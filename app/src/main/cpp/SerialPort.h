@@ -2,8 +2,8 @@
 #include <jni.h>
 
 
-#ifndef _Included_app_tek4tv_ipradio_SerialPort
-#define _Included_app_tek4tv_ipradio_SerialPort
+#ifndef _Included_app_tek4tv_ipradio_core_SerialPort
+#define _Included_app_tek4tv_ipradio_core_SerialPort
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -12,7 +12,7 @@ extern "C" {
  * Method:    open
  * Signature: (Ljava/lang/String;II)Ljava/io/FileDescriptor;
  */
-JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_SerialPort_open
+JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_core_SerialPort_open
         (JNIEnv *, jclass, jstring, jint, jint);
 
 /*
@@ -20,7 +20,7 @@ JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_SerialPort_open
  * Method:    close
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_app_tek4tv_ipradio_SerialPort_close
+JNIEXPORT void JNICALL Java_app_tek4tv_ipradio_core_SerialPort_close
         (JNIEnv *, jobject);
 
 #ifdef __cplusplus
