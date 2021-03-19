@@ -5,6 +5,7 @@ import android.net.Uri
 import android.util.LayoutDirection
 import android.util.Log
 import android.view.SurfaceView
+import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import androidx.core.view.children
@@ -27,15 +28,13 @@ import kotlin.coroutines.resume
 
 class PlayerManager(
     private val applicationContext: Context,
-    private var lifecycleScope: CoroutineScope,
     private var viewModel: MainViewModel,
-    var vlcVideoLayout: VLCVideoLayout
+    private var rootLayout : View
 ) {
     private var playMutedMediaJob: Job? = null
 
     private val mLibVLC: LibVLC
     private val audioPlayer: CustomPlayer
-    private val visualPlayer: CustomPlayer
 
     private var mainPlayer: CustomPlayer? = null
         set(value) {
@@ -61,38 +60,17 @@ class PlayerManager(
     init {
         val args = ArrayList<String>()
         args.add("-vvv")
-        //args.add("--codec=avcodec")
-        //args.add("--avcodec-codec=h264")
-        //args.add("--avcodec-hw=any")
         args.add("--aout=opensles")
-        //args.add("--vout=gles2")
-        //args.add("--file-caching=1000")
-        args.add("--avcodec-hurry-up")
-        //args.add("--avcodec-fast")
-        args.add("--avcodec-skip-frame=2")
-        args.add("--avcodec-skip-idct=2")
-        args.add("--avcodec-skiploopfilter=3")
-        args.add("--android-display-chroma=YV12")
-        /*args.add("--video-filter=transform")
-        args.add("--transform-type=180")*/
 
 
         mLibVLC = LibVLC(applicationContext, args)
-        visualPlayer = CustomPlayer(mLibVLC)
         audioPlayer = CustomPlayer(mLibVLC)
-
 
         audioList = viewModel.audioRepo.audioFileUri
 
         instance = this
     }
 
-    fun attachVisualPlayerView() {
-        /**CAUTION: FRAME DROPPING
-         * DO NOT DISABLE subtitles
-         * **/
-        visualPlayer.attachViews(vlcVideoLayout, null, true, false)
-    }
 
     fun playMediaByIndex(index: Int) {
         try {
@@ -121,33 +99,17 @@ class PlayerManager(
 
             playMutedMediaJob?.cancel()
 
-            mainPlayer?.eventListener = {}
-            visualPlayer.eventListener = {}
-            audioPlayer.eventListener = {}
+            mainPlayer?.eventListener = {_,_,_,_,_ ->}
+            audioPlayer.eventListener = {_,_,_,_,_ ->}
 
             when (mediaItem.getMediaType()) {
-                MediaType.VIDEO -> {
-                    if (mediaItem.muted) {
-                        mainPlayer = audioPlayer
-                        //playMutedVideo(mediaItem)
-                        playMutedMedia(mediaItem)
-                    } else {
-                        val media = mediaItem.getVlcMedia(mLibVLC)
-                        media.setHWDecoderEnabled(true, true)
-                        audioPlayer.stop()
-                        mainPlayer = visualPlayer
-                        visualPlayer.play(media)
-                    }
-                }
-                MediaType.IMAGE -> {
-                    //presentImage(mediaItem)
-                    playMutedMedia(mediaItem)
-                    mainPlayer = audioPlayer
-                }
                 MediaType.AUDIO -> {
                     mainPlayer = audioPlayer
                     val media = mediaItem.getVlcMedia(mLibVLC)
+                    media.parse()
+                    Log.d("playermane",media.duration.toString())
                     audioPlayer.play(media)
+
                 }
                 else -> {
                 }
@@ -156,62 +118,6 @@ class PlayerManager(
 
         } catch (e: Exception) {
             e.printStackTrace()
-        }
-    }
-
-    private fun playMutedVideo(videoItem: MediaItem) {
-        val video: Media = videoItem.getVlcMedia(mLibVLC)
-        video.addOption(":no-audio")
-        //video.addOption(":video-filter=transform{type=hflip}")
-        visualPlayer.media = video
-        visualPlayer.play()
-
-        visualPlayer.eventListener = { event ->
-            when (event) {
-                MediaPlayer.Event.EndReached -> {
-                    vlcVideoLayout.post {
-                        visualPlayer.media = video
-                        visualPlayer.play()
-                    }
-                }
-
-                MediaPlayer.Event.EncounteredError -> {
-                    playMutedMediaJob?.cancel()
-                    playMutedMediaJob = null
-
-                    visualPlayer.eventListener = {}
-
-                    playNextMedia()
-                }
-            }
-        }
-
-        playRandomAudio()
-    }
-
-
-    private fun presentImage(mediaItem: MediaItem) {
-
-        val imageList = mutableListOf(mediaItem)
-
-        imageList.addAll(
-                playlistRepo.unscheduledList.filter { it.getMediaType() == MediaType.IMAGE })
-        playRandomAudio()
-
-        playMutedMediaJob = lifecycleScope.launch {
-            var playedMainImage = false
-            while (true) {
-                val media = if (!playedMainImage) {
-                    playedMainImage = true
-                    mediaItem
-                } else {
-                    imageList.random()
-                }
-                val delayDuration = getMediaDuration(media)
-                visualPlayer.play(media.getVlcMedia(mLibVLC))
-                Log.d("delay", delayDuration.toString())
-                delay(delayDuration)
-            }
         }
     }
 
@@ -224,90 +130,11 @@ class PlayerManager(
         return 15000L
     }
 
-    //picture and muted video
-    private fun playMutedMedia(firstItem: MediaItem) {
-        val mutedMedia = mutableListOf(firstItem)
-
-        mutedMedia.addAll(currentPlaylist.filter {
-            it.getMediaType() == MediaType.IMAGE || (it.getMediaType() == MediaType.VIDEO && it.muted)
-        }.shuffled())
-
-        playRandomAudio()
-
-        playMutedMediaJob = lifecycleScope.launch {
-            var index = 0
-
-            while (true) {
-                if (index >= mutedMedia.size) index = 0
-
-                val mediaItem = mutedMedia[index]
-
-                when (mediaItem.getMediaType()) {
-                    MediaType.IMAGE -> {
-                        visualPlayer.play(mediaItem.getVlcMedia(mLibVLC))
-                        delay(getMediaDuration(mediaItem))
-                    }
-
-                    MediaType.VIDEO -> {
-                        playMutedVideoItem(mediaItem)
-                        visualPlayer.eventListener = { }
-                    }
-
-                    else -> {
-                    }
-                }
-                index++
-            }
-        }
-    }
-
-    private suspend fun playMutedVideoItem(video: MediaItem) = suspendCancellableCoroutine<Int> {
-        val vlcVideo = video.getVlcMedia(mLibVLC)
-        vlcVideo.addOption(":no-audio")
-        /*vlcVideo.addOption(":no-mediacodec-dr")
-        vlcVideo.addOption(":no-omxil-dr")*/
-
-        vlcVideo.setHWDecoderEnabled(true, true)
-        visualPlayer.play(vlcVideo)
-        visualPlayer.eventListener = { event ->
-            when (event) {
-                MediaPlayer.Event.EndReached -> it.resume(0)
-                MediaPlayer.Event.EncounteredError -> it.resume(-1)
-            }
-        }
-        it.invokeOnCancellation { visualPlayer.eventListener = { } }
-    }
-
-    private fun playRandomAudio() {
-        if (audioList.isEmpty()) {
-            audioList = viewModel.audioRepo.audioFileUri
-            audioIndex = 0
-        }
-
-        if (audioList.isNotEmpty()) {
-            if (audioIndex >= audioList.size) {
-                audioIndex = 0
-                audioList = audioList.shuffled() as MutableList<Uri>
-            }
-
-            val audioItem = audioList[audioIndex++]
-
-            val backgroundAudio = Media(mLibVLC, audioItem)
-
-
-            val audioName = audioItem.toString()
-            viewModel.currentAudioName = audioName.substring(audioName.lastIndexOf('/') + 1)
-
-            Log.d("audiox", audioItem.toString())
-            audioPlayer.play(backgroundAudio)
-        } else Log.d("audiox", "no audio")
-    }
-
 
     private fun playNextMedia() {
         if (currentPlaylistKey == "") return
 
-        vlcVideoLayout.post {
+        rootLayout.post {
             val playlist = currentPlaylist
             viewModel.playlistIndex++
             if (viewModel.playlistIndex >= playlist.size) viewModel.playlistIndex = 0
@@ -318,11 +145,11 @@ class PlayerManager(
 
     private fun setMainPlayerEventListener() {
         if (mainPlayer != null) {
-            mainPlayer!!.eventListener = { event ->
+            mainPlayer!!.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
                 when (event) {
                     MediaPlayer.Event.EndReached -> {
                         playNextMedia()
-                        mainPlayer!!.eventListener = {}
+                        mainPlayer!!.eventListener = {_,_,_,_,_ ->}
                     }
 
                     MediaPlayer.Event.EncounteredError -> {
@@ -330,7 +157,7 @@ class PlayerManager(
                         playMutedMediaJob = null
 
                         playNextMedia()
-                        mainPlayer!!.eventListener = {}
+                        mainPlayer!!.eventListener = {_,_,_,_,_ ->}
                     }
                     MediaPlayer.Event.Stopped -> viewModel.isPlaying = false
                     MediaPlayer.Event.Playing -> viewModel.isPlaying = true
@@ -412,13 +239,11 @@ class PlayerManager(
     }
 
     private fun stopAllPlayer() {
-        visualPlayer.eventListener = {}
-        audioPlayer.eventListener = {}
+        audioPlayer.eventListener = {_,_,_,_,_ ->}
 
         playMutedMediaJob?.cancel()
 
         try {
-            visualPlayer.stop()
             audioPlayer.stop()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -428,9 +253,6 @@ class PlayerManager(
     fun onActivityStop() {
         mainPlayer?.stop()
         audioPlayer.stop()
-        visualPlayer.stop()
-
-        visualPlayer.detachViews()
     }
 
     fun onActivityDestroy() {
@@ -438,9 +260,6 @@ class PlayerManager(
 
         mainPlayer?.release()
         if (!audioPlayer.isReleased) audioPlayer.release()
-
-        if (!visualPlayer.isReleased) visualPlayer.release()
-
         mLibVLC.release()
     }
 

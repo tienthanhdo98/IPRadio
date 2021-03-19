@@ -47,7 +47,7 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
         if (serialPort != null && inputStream != null && outputStream != null) {
-            coroutineScope.launch {
+            coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
                     onWatchDog()
                     delay(3000)
@@ -57,15 +57,13 @@ class SerialPortController(
     }
 
     private fun onWatchDog() {
-
-
         val looseHubConnection = if (hubManager.lastPing != "") {
             val now = Calendar.getInstance()
             val lastPingTime = Calendar.getInstance().apply {
                 time = dateformat.parse(hubManager.lastPing)
             }
             now.timeInMillis - lastPingTime.timeInMillis > 45000
-        } else false
+        } else true
 
 
         if (outputStream != null) {
@@ -79,12 +77,13 @@ class SerialPortController(
 
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 var param = if (onAir) "1" else "0"
-                Log.d("hub api", looseHubConnection.toString())
+
                 if (onAir) {
                     if (looseHubConnection) {
                         param = "2"
                     }
                 }
+                Log.d("hub api", param)
                 param = "$param,$deviceMac"
                 val mes: String = buildWriteMessage(Define.FUNC_WRITE_WATCH_DOG, param)
 
@@ -110,30 +109,27 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-        coroutineScope.launch {
+        coroutineScope.launch(Dispatchers.IO) {
+            while (!Thread.currentThread().isInterrupted) {
+                var size: Int
+                try {
+                    val buffer = ByteArray(64)
+                    if (inputStream == null) return@launch
 
-            withContext(Dispatchers.IO) {
-                while (!Thread.currentThread().isInterrupted) {
-                    var size: Int
-                    try {
-                        val buffer = ByteArray(64)
-                        if (inputStream == null) return@withContext
+                    size = inputStream!!.read(buffer)
 
-                        size = inputStream!!.read(buffer)
-
-                        if (size > 0) {
-                            val data = String(buffer, 0, size)
-                            dataFinal.append(data)
-                            if (dataFinal.toString().endsWith("\r\n")) {
-                                val s: String = dataFinal.toString()
-                                onDataReceived(s)
-                                dataFinal = StringBuffer()
-                            }
+                    if (size > 0) {
+                        val data = String(buffer, 0, size)
+                        dataFinal.append(data)
+                        if (dataFinal.toString().endsWith("\r\n")) {
+                            val s: String = dataFinal.toString()
+                            onDataReceived(s)
+                            dataFinal = StringBuffer()
                         }
-                    } catch (e: IOException) {
-                        e.printStackTrace()
-                        return@withContext
                     }
+                } catch (e: IOException) {
+                    e.printStackTrace()
+                    return@launch
                 }
             }
         }
@@ -146,7 +142,8 @@ class SerialPortController(
             if (data != null && !data.isEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
                     hubManager.sendHubDirectMessage(
-                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data)
+                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
+                    )
                     isRead = false
                 }
             }

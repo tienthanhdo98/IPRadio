@@ -102,7 +102,7 @@ static speed_t getBaudrate(jint baudrate) {
  * Method:    open
  * Signature: (Ljava/lang/String;II)Ljava/io/FileDescriptor;
  */
-JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_core_SerialPort_open
+extern "C" JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_core_SerialPort_open
         (JNIEnv *env, jclass thiz, jstring path, jint baudrate, jint flags) {
     int fd;
     speed_t speed;
@@ -174,7 +174,7 @@ JNIEXPORT jobject JNICALL Java_app_tek4tv_ipradio_core_SerialPort_open
  * Method:    close
  * Signature: ()V
  */
-JNIEXPORT void JNICALL Java_app_tek4tv_ipradio_core_SerialPort_close
+extern "C" JNIEXPORT void JNICALL Java_app_tek4tv_ipradio_core_SerialPort_close
         (JNIEnv *env, jobject thiz) {
     jclass SerialPortClass = (env)->GetObjectClass(thiz);
     jclass FileDescriptorClass = (env)->FindClass("java/io/FileDescriptor");

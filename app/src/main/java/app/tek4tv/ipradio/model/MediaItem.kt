@@ -50,7 +50,7 @@ data class MediaItem(
     fun getMediaType(): MediaType {
         val mediaName = getFileName()
 
-        val audioExt = listOf(".mp3")
+        val audioExt = listOf(".mp3",".wav")
         val videoExt = listOf(".mp4")
         val imageExt = listOf(".jpg", ".png", ".gif")
 

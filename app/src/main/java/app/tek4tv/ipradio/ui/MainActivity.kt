@@ -6,6 +6,7 @@ import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.util.Log
+import android.widget.FrameLayout
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
@@ -23,6 +24,8 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.BufferedReader
 import java.io.InputStreamReader
@@ -74,6 +77,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var mediaScheduler: MediaScheduler
 
+    private lateinit var rootLayout : FrameLayout
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,11 +97,12 @@ class MainActivity : AppCompatActivity() {
             handleFromCommandServer(command, message)
         }
 
-        serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        serialPortController.connectToSerialPort()
+        /*serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
+        serialPortController.connectToSerialPort()*/
 
-        mVideoLayout = findViewById(R.id.vlc_video_layout)
-        playerManager = PlayerManager(applicationContext, lifecycleScope, viewModel, mVideoLayout)
+
+        rootLayout = findViewById(R.id.root_layout)
+        playerManager = PlayerManager(applicationContext, viewModel,rootLayout)
         playerManager.rotationMode = orientation
 
 
@@ -142,12 +148,11 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        playerManager.attachVisualPlayerView()
         startPlayingMedia()
     }
 
     private fun setViewOrientation() {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        //requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         /*requestedOrientation = when (orientation) {
             1 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
             2 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -191,6 +196,7 @@ class MainActivity : AppCompatActivity() {
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
+                Log.d("NetworkUtil","livedata")
 
                 //if (!viewModel.isPlaying) startPlayingMedia()
 
@@ -245,9 +251,9 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     Status.UPDATE_STATUS -> {
-                        /*serialPortController.apply {
+                        serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_STATUS_PARAM, ""))
-                        }*/
+                        }
                     }
                     Status.GET_LOCATION -> {
                         val connectionId = responseHub.message

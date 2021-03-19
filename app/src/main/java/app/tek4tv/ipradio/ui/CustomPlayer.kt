@@ -4,7 +4,7 @@ import org.videolan.libvlc.MediaPlayer
 
 class CustomPlayer(libVlc: LibVLC) : MediaPlayer(libVlc)
 {
-    var eventListener: (Int) -> Unit = {}
+    var eventListener: (Int, Long, Long, Float, String?) -> Unit = { i: Int, l: Long, l1: Long, fl: Float, s: String? -> }
 
     override fun onEventNative(
             eventType: Int,
@@ -15,7 +15,7 @@ class CustomPlayer(libVlc: LibVLC) : MediaPlayer(libVlc)
     ): Event
     {
         val res = super.onEventNative(eventType, arg1, arg2, argf1, args1)
-        eventListener.invoke(eventType)
+        eventListener.invoke(eventType, arg1, arg2, argf1, args1)
         return res
     }
 }
