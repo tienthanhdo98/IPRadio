@@ -101,7 +101,7 @@ class NetworkUtils private constructor() {
 
     companion object {
         const val BASE_URL = "https://dev.device.tek4tv.vn/"
-        const val URL_HUB = "https://hub.iot.tek4tv.vn/iothub"
+        const val URL_HUB = "https://hub.ggg.tek4tv.vn/iothub"
         private var INSTANCE: NetworkUtils? = null
         val instance: NetworkUtils
             get() {

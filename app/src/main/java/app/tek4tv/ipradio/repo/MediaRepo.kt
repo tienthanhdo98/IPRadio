@@ -23,8 +23,8 @@ class MediaRepo @Inject constructor(
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
 
-    override val jsonAdapter: JsonAdapter<List<MediaItem>> =
-        moshi.adapter(Types.newParameterizedType(List::class.java, MediaItem::class.java))
+    override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
+        Types.newParameterizedType(List::class.java, MediaItem::class.java))
 
     var body = mapOf("IMEI" to Utils.getDeviceId(appContext)!!)
 
@@ -38,22 +38,20 @@ class MediaRepo @Inject constructor(
 
     private val mediaStoragePath = appContext.filesDir.path
 
-    private val imageResize = ImageResize(coroutineScope)
+    //private val imageResize = ImageResize(coroutineScope)
 
-    suspend fun getBroadcastList(needUpdate: Boolean): List<MediaItem> {
+    suspend fun getBroadcastList(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
         unscheduledList.clear()
         scheduledMediaItems.clear()
 
         val res = if (needUpdate) {
-            updatePlaylist()
+            updatePlaylist(listUrl)
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
                 Log.d("readplaylist", "local")
                 readItemsFromFile()
-            } else {
-                updatePlaylist()
-            }
+            } else listOf()
             result
         }
 
@@ -95,15 +93,15 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    suspend fun updatePlaylist(): List<MediaItem> {
+    suspend fun updatePlaylist(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
         try {
-            val res = playlistService.getPlaylist(body)
+            val res = playlistService.getPlaylist(listUrl)
             if (res.isSuccessful) {
                 val resBody = res.body()
-                if (resBody != null && resBody.playlists != null) {
-                    result = resBody.playlists!!
+                if (resBody != null) {
+                    result = resBody
                     saveItemsToFile(result)
                 }
             }
@@ -136,7 +134,6 @@ class MediaRepo @Inject constructor(
             return
         }
 
-
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
             itStoragePath = mediaStoragePath
@@ -153,9 +150,9 @@ class MediaRepo @Inject constructor(
 
                     Log.d("downloadcomplete", it.path)
 
-                    if (it.getMediaType() == MediaType.IMAGE) {
+                    /*if (it.getMediaType() == MediaType.IMAGE) {
                         imageResize.addToQueue(it.path)
-                    }
+                    }*/
                 }
 
                 override fun onError(error: Error?) {

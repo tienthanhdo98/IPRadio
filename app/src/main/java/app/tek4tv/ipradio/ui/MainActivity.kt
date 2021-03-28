@@ -69,7 +69,7 @@ class MainActivity : AppCompatActivity() {
     private var volume = "100"
     private var version = "3.0.1"
 
-    private var locationTracker = LocationTracker()
+    var locationTracker = LocationTracker()
 
     private var orientation: Int = 0
 
@@ -100,9 +100,9 @@ class MainActivity : AppCompatActivity() {
         /*serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort()*/
 
-
+        //mVideoLayout = findViewById(R.id.vlc_video_layout)
         rootLayout = findViewById(R.id.root_layout)
-        playerManager = PlayerManager(applicationContext, viewModel,rootLayout)
+        playerManager = PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.rotationMode = orientation
 
 
@@ -148,11 +148,12 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
+        //playerManager.attachVisualPlayerView()
         startPlayingMedia()
     }
 
     private fun setViewOrientation() {
-        //requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
         /*requestedOrientation = when (orientation) {
             1 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
             2 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
@@ -175,28 +176,40 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun registerObservers() {
-        viewModel.broadcastList.observe(this) {
-            playerManager.audioList = viewModel.audioRepo.audioFileUri
-            //playerManager.onNewBroadcastList()
-            //playerManager.checkScheduledMedia()
-            viewModel.downloadMedias(applicationContext)
+        /* viewModel.broadcastList.observe(this) {
+             //playerManager.audioList = viewModel.audioRepo.audioFileUri
+             //playerManager.onNewBroadcastList()
+             //playerManager.checkScheduledMedia()
+             viewModel.downloadMedias()
 
 
+             mediaScheduler.scheduleAllAlarms()
+             playerManager.startFirstPlaylist()
+         }
+
+         viewModel.audioList.observe(this) {
+             playerManager.setBackgroundAudioList(it)
+         }*/
+
+        viewModel.content.observe(this)
+        {
+            viewModel.downloadMedias()
             mediaScheduler.scheduleAllAlarms()
+            //playerManager.getLocalAudioFiles()
+            //playerManager.audioList = it.second.shuffled() as MutableList<String>
             playerManager.startFirstPlaylist()
         }
     }
 
     private fun startPlayingMedia() {
-        viewModel.getPlaylist(applicationContext, false)
-        viewModel.checkPlaylist(applicationContext)
+        viewModel.getPlayerContent("","",false)
+        viewModel.checkPlaylist()
     }
 
 
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
-                Log.d("NetworkUtil","livedata")
 
                 //if (!viewModel.isPlaying) startPlayingMedia()
 
@@ -212,10 +225,6 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun playMediaItemByIndex(index: Int) {
-        viewModel.playlistIndex = index
-        playerManager.playMediaByIndex(viewModel.playlistIndex)
-    }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
@@ -234,9 +243,14 @@ class MainActivity : AppCompatActivity() {
                     Status.GET_LIST -> {
                     }
                     Status.UPDATE_LIST -> {
+                        val mess = responseHub.message!!
+                        val str = mess.split(',')
+                        val listUrl = str[0]
+                        val musicUrl = str[1]
+
                         mediaScheduler.cancelAllAlarm()
                         viewModel.playlistIndex = 0
-                        viewModel.getPlaylist(applicationContext, true)
+                        viewModel.getPlayerContent(listUrl, musicUrl, true)
                     }
                     Status.NEXT -> {
                     }
@@ -251,9 +265,9 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     Status.UPDATE_STATUS -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_STATUS_PARAM, ""))
-                        }
+                        }*/
                     }
                     Status.GET_LOCATION -> {
                         val connectionId = responseHub.message
@@ -262,7 +276,7 @@ class MainActivity : AppCompatActivity() {
                             val result = "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
 
                             hubManager.sendHubDirectMessage(connectionId, Utils.DEVICE_LOCATION,
-                                    result)
+                                result)
                         } else Log.d("location", "location not found")
                     }
                     Status.SET_VOLUME -> {
@@ -290,7 +304,7 @@ class MainActivity : AppCompatActivity() {
                         if (responseHub.message != null) {
                             serialPortController.apply {
                                 writeToDevice(buildWriteMessage(Define.FUNC_WRITE_FORCE_SET_MUTE,
-                                        responseHub.message!!))
+                                    responseHub.message!!))
                             }
                         }
                     }
@@ -298,7 +312,7 @@ class MainActivity : AppCompatActivity() {
                         if (responseHub.message != null) {
                             serialPortController.apply {
                                 writeToDevice(buildWriteMessage(Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                                        responseHub.message!!))
+                                    responseHub.message!!))
                             }
                         }
                     }
@@ -312,9 +326,13 @@ class MainActivity : AppCompatActivity() {
 
                     Status.UPDATE_MUSIC -> {
                         if (responseHub.message != null) {
-                            Log.d("Update Music", responseHub.message!!)
-                            viewModel.getAudioListFromNetwork(applicationContext,
-                                    responseHub.message!!)
+                            /*val musicListUrl = responseHub.message!!
+
+                            ConfigUtil.putString(applicationContext,
+                                    ConfigUtil.DEFAULT_AUDIOLIST_URL, musicListUrl)
+
+                            Log.d("Update Music", musicListUrl)
+                            viewModel.getAudioList(true, musicListUrl)*/
 
                             //playerManager.audioList = viewModel.getAudioList(applicationContext)
                         }
@@ -356,7 +374,7 @@ class MainActivity : AppCompatActivity() {
                         //0: ON, 1:
                         serialPortController.apply {
                             writeToDevice(buildWriteMessage(Define.FUNC_WRITE_DTMF,
-                                    responseHub.message ?: ""))
+                                responseHub.message ?: ""))
                         }
                     }
 
@@ -375,7 +393,7 @@ class MainActivity : AppCompatActivity() {
                             val result = "$networkClass,$dataUsage,$level"
 
                             hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO,
-                                    result)
+                                result)
                         }
                     }
 
@@ -395,7 +413,7 @@ class MainActivity : AppCompatActivity() {
                         if (connectionId != null) {
                             val audioList = toJsonList(appStorageManager.getAllMusicPath())
                             hubManager.sendHubDirectMessage(connectionId, Utils.GET_AUDIO_PATH,
-                                    audioList)
+                                audioList)
                         }
                     }
 
@@ -405,7 +423,7 @@ class MainActivity : AppCompatActivity() {
                             Log.d("connectionId", connectionId)
                             val mediaList = toJsonList(appStorageManager.getAllMediaPath())
                             hubManager.sendHubDirectMessage(connectionId, Utils.GET_MEDIA_PATH,
-                                    mediaList)
+                                mediaList)
                         }
                     }
 
@@ -427,7 +445,7 @@ class MainActivity : AppCompatActivity() {
 
                     Status.CAPTURE_SCREEN -> {
                         val isPortrait = orientation == 2 || orientation == 3
-                        mediaCapture.captureSurfaceView(playlistService, isPortrait, mVideoLayout)
+                        mediaCapture.captureSurfaceView(playlistService, false, mVideoLayout)
                         //mediaCapture.captureScreen(playlistService, isPortrait, mVideoLayout)
                         /*  startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(),
                               69)*/
@@ -448,9 +466,9 @@ class MainActivity : AppCompatActivity() {
                     Status.GET_RECORD -> {
                         val connectionId = responseHub.message!!
                         val recordedAudioList = toJsonList(
-                                appStorageManager.getAllRecordedAudioPath())
+                            appStorageManager.getAllRecordedAudioPath())
                         hubManager.sendHubDirectMessage(connectionId, Utils.GET_RECORD,
-                                recordedAudioList)
+                            recordedAudioList)
                     }
 
                     Status.UPLOAD_RECORDED -> {

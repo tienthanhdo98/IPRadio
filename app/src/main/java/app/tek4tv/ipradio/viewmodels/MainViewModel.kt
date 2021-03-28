@@ -20,10 +20,14 @@ class MainViewModel @ViewModelInject constructor(
 ) : ViewModel() {
 
     var isPlaying: Boolean = false
-    val broadcastList = MutableLiveData<List<MediaItem>>()
+    /*val broadcastList = MutableLiveData<List<MediaItem>>()
+    val audioList = MutableLiveData<List<String>>()*/
+    val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
 
 
-    private var getPlaylistJob: Job? = null
+    /*private var getPlaylistJob: Job? = null
+    private var getAudioListJob: Job? = null*/
+    private var getContentJob: Job? = null
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo, audioRepo)
 
@@ -34,40 +38,48 @@ class MainViewModel @ViewModelInject constructor(
     var currentAudioName = ""
 
 
-    fun getPlaylist(context: Context, needUpdate: Boolean) {
-        if (getPlaylistJob != null) return
+    /*fun getPlaylist(needUpdate: Boolean, listUrl: String) {
+        viewModelScope.launch {
+            getPlaylistJob?.join()
+            getPlaylistJob = viewModelScope.launch {
+                val res = mediaRepo.getBroadcastList(needUpdate, listUrl)
+                broadcastList.value = res
+            }
+        }
+    }*/
 
-        getPlaylistJob = viewModelScope.launch {
-            val res = mediaRepo.getBroadcastList(needUpdate)
-            audioRepo.getAudioUrls("", false)
+    fun getPlayerContent(listUrl: String, musicUrl : String, needUpdate: Boolean)
+    {
+        viewModelScope.launch {
+            getContentJob?.join()
 
-            //mediaDownloadManager.broadcastList = res
+            getContentJob = launch {
+                val mediaList = mediaRepo.getBroadcastList(needUpdate, listUrl).shuffled()
+                val musicList = audioRepo.getAudioUrls(musicUrl, needUpdate)
 
-            broadcastList.value = res
-
-            getPlaylistJob = null
+                content.value = Pair(mediaList, musicList)
+            }
         }
     }
 
-    fun checkPlaylist(appContext: Context) {
+    fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
         mediaWatchdog.checkAudio()
     }
 
-    fun downloadMedias(appContext: Context) {
-        // mediaDownloadManager.downloadMedias(appContext)
+    fun downloadMedias() {
         mediaRepo.startDownloadMedia()
     }
 
-    fun getAudioListFromNetwork(appContext: Context, url: String) {
-        viewModelScope.launch(Dispatchers.Default) {
-            /*val audioPaths = playlistRepo.getAudioList(url)
-            if (audioPaths.isNotEmpty())
-                mediaDownloadManager.downloadAudio(appContext, audioPaths)*/
-
-            audioRepo.getAudioUrls(url, true)
+    /*fun getAudioList(needUpdate: Boolean, url: String) {
+        viewModelScope.launch {
+            getAudioListJob?.join()
+            getAudioListJob = launch {
+                val audioUrls = audioRepo.getAudioUrls(url, needUpdate)
+                audioList.postValue(audioUrls)
+            }
         }
-    }
+    }*/
 
     override fun onCleared() {
         super.onCleared()
