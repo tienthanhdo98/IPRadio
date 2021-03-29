@@ -95,8 +95,8 @@ class SerialPortController(
     }
 
 
-    fun buildWriteMessage(funtionId: String, data: String): String {
-        val s = "$$,$funtionId,$data,\r\n"
+    fun buildWriteMessage(functionId: String, data: String): String {
+        val s = "$$,$functionId,$data,\r\n"
         Log.d("requestdevice", s)
         return s
     }

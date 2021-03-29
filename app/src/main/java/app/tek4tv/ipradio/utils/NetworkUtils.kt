@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.utils
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Context.ACTIVITY_SERVICE
 import android.net.*
@@ -125,6 +126,7 @@ class NetworkUtils private constructor() {
             val info = cm.activeNetworkInfo
             if (info == null || !info.isConnected) return "-" // not connected
             if (info.type == ConnectivityManager.TYPE_WIFI) return "WIFI"
+            if (info.type == ConnectivityManager.TYPE_ETHERNET) return "ENET"
             if (info.type == ConnectivityManager.TYPE_MOBILE) {
                 return when (info.subtype) {
                     TelephonyManager.NETWORK_TYPE_GPRS, TelephonyManager.NETWORK_TYPE_EDGE, TelephonyManager.NETWORK_TYPE_CDMA, TelephonyManager.NETWORK_TYPE_1xRTT, TelephonyManager.NETWORK_TYPE_IDEN, TelephonyManager.NETWORK_TYPE_GSM -> "2G"
@@ -169,6 +171,25 @@ class NetworkUtils private constructor() {
                     is CellInfoCdma -> cellInfo.cellSignalStrength.level
                     is CellInfoGsm -> cellInfo.cellSignalStrength.level
                     is CellInfoWcdma -> cellInfo.cellSignalStrength.level
+                    else -> CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+                }
+            }
+
+            return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+        }
+
+        @SuppressLint("MissingPermission")
+        fun getCellSignalStrengthInDbm(context: Context): Int {
+            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+            val cellInfo = tm.allCellInfo[0]
+
+            if (cellInfo != null) {
+                return when (cellInfo) {
+                    is CellInfoLte -> cellInfo.cellSignalStrength.dbm
+                    is CellInfoCdma -> cellInfo.cellSignalStrength.dbm
+                    is CellInfoGsm -> cellInfo.cellSignalStrength.dbm
+                    is CellInfoWcdma -> cellInfo.cellSignalStrength.dbm
                     else -> CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
                 }
             }

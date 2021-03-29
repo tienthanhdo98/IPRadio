@@ -20,13 +20,8 @@ class MainViewModel @ViewModelInject constructor(
 ) : ViewModel() {
 
     var isPlaying: Boolean = false
-    /*val broadcastList = MutableLiveData<List<MediaItem>>()
-    val audioList = MutableLiveData<List<String>>()*/
     val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
 
-
-    /*private var getPlaylistJob: Job? = null
-    private var getAudioListJob: Job? = null*/
     private var getContentJob: Job? = null
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo, audioRepo)
@@ -37,49 +32,26 @@ class MainViewModel @ViewModelInject constructor(
 
     var currentAudioName = ""
 
-
-    /*fun getPlaylist(needUpdate: Boolean, listUrl: String) {
-        viewModelScope.launch {
-            getPlaylistJob?.join()
-            getPlaylistJob = viewModelScope.launch {
-                val res = mediaRepo.getBroadcastList(needUpdate, listUrl)
-                broadcastList.value = res
-            }
-        }
-    }*/
-
     fun getPlayerContent(listUrl: String, musicUrl : String, needUpdate: Boolean)
     {
         viewModelScope.launch {
             getContentJob?.join()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getBroadcastList(needUpdate, listUrl).shuffled()
-                val musicList = audioRepo.getAudioUrls(musicUrl, needUpdate)
+                val mediaList = mediaRepo.getBroadcastList(needUpdate, listUrl)
 
-                content.value = Pair(mediaList, musicList)
+                content.value = Pair(mediaList, listOf())
             }
         }
     }
 
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
-        mediaWatchdog.checkAudio()
     }
 
     fun downloadMedias() {
         mediaRepo.startDownloadMedia()
     }
-
-    /*fun getAudioList(needUpdate: Boolean, url: String) {
-        viewModelScope.launch {
-            getAudioListJob?.join()
-            getAudioListJob = launch {
-                val audioUrls = audioRepo.getAudioUrls(url, needUpdate)
-                audioList.postValue(audioUrls)
-            }
-        }
-    }*/
 
     override fun onCleared() {
         super.onCleared()

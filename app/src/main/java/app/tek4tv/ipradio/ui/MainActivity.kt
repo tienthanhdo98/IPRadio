@@ -27,8 +27,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.io.BufferedReader
-import java.io.InputStreamReader
 import javax.inject.Inject
 
 
@@ -118,6 +116,10 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
+        lifecycleScope.launch {
+            delay(3000)
+            NetworkUtils.networkUsage(applicationContext)
+        }
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -292,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     Status.RESTART -> {
                         serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_RESTART_DEVICE, ""))
+                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, ""))
                         }
                     }
                     Status.RELOAD -> {
@@ -373,7 +375,7 @@ class MainActivity : AppCompatActivity() {
                     Status.DTMF_STATUS -> {
                         //0: ON, 1:
                         serialPortController.apply {
-                            writeToDevice(buildWriteMessage(Define.FUNC_WRITE_DTMF,
+                            writeToDevice(buildWriteMessage(Define.FUNC_WRITE_SETUP_PI_PS_NAME,
                                 responseHub.message ?: ""))
                         }
                     }
