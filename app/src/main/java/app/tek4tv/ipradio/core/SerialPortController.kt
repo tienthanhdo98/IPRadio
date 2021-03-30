@@ -77,14 +77,21 @@ class SerialPortController(
 
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 var param = if (onAir) "1" else "0"
-
                 if (onAir) {
                     if (looseHubConnection) {
                         param = "2"
                     }
                 }
                 Log.d("hub api", param)
-                param = "$param,$deviceMac"
+
+                val networkClass = NetworkUtils.getNetworkClass(appContext)
+                val strength = when(networkClass)
+                {
+                    "2G", "3G", "4G" -> "${NetworkUtils.getCellSignalStrengthInDbm(appContext)}dbm"
+                    "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
+                    else -> "---"
+                }
+                param = "$param,$deviceMac,$networkClass,${strength}"
                 val mes: String = buildWriteMessage(Define.FUNC_WRITE_WATCH_DOG, param)
 
                 outputStream!!.write(mes.toByteArray())

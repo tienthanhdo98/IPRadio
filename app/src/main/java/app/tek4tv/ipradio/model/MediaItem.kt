@@ -53,10 +53,12 @@ data class MediaItem(
         val audioExt = listOf(".mp3",".wav")
         val videoExt = listOf(".mp4")
         val imageExt = listOf(".jpg", ".png", ".gif")
+        val liveExt = listOf("rtsp:")
 
         val isAudio = audioExt.any { mediaName.endsWith(it) }
         val isVideo = videoExt.any { mediaName.endsWith(it) }
         val isImage = imageExt.any { mediaName.endsWith(it) }
+        val isLive = liveExt.any { path.startsWith(it) }
 
         return when {
             isAudio -> MediaType.AUDIO
@@ -89,6 +91,7 @@ enum class MediaType {
     IMAGE,
     VIDEO,
     AUDIO,
+    LIVE,
     UNKNOWN
 }
 

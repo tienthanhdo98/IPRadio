@@ -66,8 +66,6 @@ class PlayerManager(
         mLibVLC = LibVLC(applicationContext, args)
         audioPlayer = CustomPlayer(mLibVLC)
 
-        audioList = viewModel.audioRepo.audioFileUri
-
         instance = this
     }
 
@@ -109,6 +107,9 @@ class PlayerManager(
                     media.parse()
                     Log.d("playermane",media.duration.toString())
                     audioPlayer.play(media)
+
+                }
+                MediaType.LIVE -> {
 
                 }
                 else -> {

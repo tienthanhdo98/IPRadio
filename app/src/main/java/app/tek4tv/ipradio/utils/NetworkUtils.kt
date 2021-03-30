@@ -124,7 +124,7 @@ class NetworkUtils private constructor() {
         fun getNetworkClass(context: Context): String {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
             val info = cm.activeNetworkInfo
-            if (info == null || !info.isConnected) return "-" // not connected
+            if (info == null || !info.isConnected) return "---" // not connected
             if (info.type == ConnectivityManager.TYPE_WIFI) return "WIFI"
             if (info.type == ConnectivityManager.TYPE_ETHERNET) return "ENET"
             if (info.type == ConnectivityManager.TYPE_MOBILE) {
@@ -135,7 +135,7 @@ class NetworkUtils private constructor() {
                     else -> "?"
                 }
             }
-            return "?"
+            return "---"
         }
 
         fun networkUsage(context: Context): String {
@@ -201,7 +201,7 @@ class NetworkUtils private constructor() {
             val wifiManager =
                 appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             val rssi = wifiManager.connectionInfo.rssi
-            return WifiManager.calculateSignalLevel(rssi, 5)
+            return rssi//WifiManager.calculateSignalLevel(rssi, 5)
         }
     }
 }

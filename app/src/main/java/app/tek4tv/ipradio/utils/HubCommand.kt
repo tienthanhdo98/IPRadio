@@ -1,6 +1,6 @@
 package app.tek4tv.ipradio.utils
 
-object Status {
+object HubCommand {
     const val RECORD = "RECORD"
     const val UPLOAD_RECORDED = "UPLOAD_RECORDED"
     const val GET_RECORD = "GET_RECORD"
@@ -30,7 +30,7 @@ object Status {
     const val SET_TIME_OVER = "SET_TIME_OVER"
     const val SET_TIME_ON = "SET_TIME_ON"
     const val GET_APP_VERSION = "GET_APP_VERSION"
-    const val DTMF_STATUS = "DTMF_STATUS"
+    const val SETUP_PI_PS_NAME = "SETUP_PI_PS_NAME"
     const val NETWORK_INFO = "NETWORK_INFO"
     const val STORAGE_INFO = "STORAGE_INFO"
     const val GET_AUDIO_PATH = "GET_AUDIO_PATH"

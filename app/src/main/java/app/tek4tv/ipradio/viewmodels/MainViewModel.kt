@@ -7,16 +7,14 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.repo.AudioRepo
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.MediaWatchDog
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
 class MainViewModel @ViewModelInject constructor(
-    internal val mediaRepo: MediaRepo, val audioRepo: AudioRepo
+    internal val mediaRepo: MediaRepo
 ) : ViewModel() {
 
     var isPlaying: Boolean = false
@@ -24,7 +22,7 @@ class MainViewModel @ViewModelInject constructor(
 
     private var getContentJob: Job? = null
 
-    private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo, audioRepo)
+    private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
     var playlistIndex = 0
 
@@ -55,7 +53,6 @@ class MainViewModel @ViewModelInject constructor(
 
     override fun onCleared() {
         super.onCleared()
-        audioRepo.cancelAllJob()
         mediaRepo.cancelAllJob()
     }
 }

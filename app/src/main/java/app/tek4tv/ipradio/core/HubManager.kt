@@ -7,7 +7,7 @@ import app.tek4tv.ipradio.model.PingHubRequest
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.Video
 import app.tek4tv.ipradio.utils.NetworkUtils
-import app.tek4tv.ipradio.utils.Status
+import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.setSystemTime
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -89,13 +89,13 @@ class HubManager(
 
                 if (command != null && message != null) {
                     when (command) {
-                        Status.PONG -> {
+                        HubCommand.PONG -> {
                             lastPing = message
                             syncTimeWithServer(message)
                             Log.d("last ping", lastPing)
                         }
 
-                        Status.UPDATE_STATUS -> {
+                        HubCommand.UPDATE_STATUS -> {
                             if (responseHub.message != null) receivedConnectionId = responseHub.message!!
                         }
                     }
