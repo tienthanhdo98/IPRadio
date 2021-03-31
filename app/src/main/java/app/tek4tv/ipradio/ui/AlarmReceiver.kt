@@ -21,7 +21,7 @@ class AlarmReceiver : BroadcastReceiver() {
                 Toast.makeText(context, listKey, Toast.LENGTH_LONG).show()
                 Log.d("alarmx", listKey)
 
-                playerManager.setPlaylist(listKey)
+                playerManager.setPlaylistByKey(listKey)
             }
 
             ACTION_END_PLAYLIST -> {

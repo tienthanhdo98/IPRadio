@@ -2,10 +2,7 @@ package app.tek4tv.ipradio.core
 
 import android.app.Activity
 import android.util.Log
-import app.tek4tv.ipradio.model.DirectMessage
-import app.tek4tv.ipradio.model.PingHubRequest
-import app.tek4tv.ipradio.model.ResponseHub
-import app.tek4tv.ipradio.model.Video
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.NetworkUtils
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.Utils
@@ -23,7 +20,6 @@ import kotlin.math.abs
 class HubManager(
     private var lifecycleScope: CoroutineScope,
     private var mainActivity: Activity,
-    private var viewModel: MainViewModel,
     private val moshi: Moshi,
     var onMessageListener: (command: String?, message: String?) -> Unit
 ) {
@@ -42,6 +38,10 @@ class HubManager(
     //current response Hub
     var responseHub = ResponseHub()
     var receivedConnectionId = ""
+
+    //player info
+    var playlistIndex = 0
+    var currentMediaItem : MediaItem? = null
 
 
     fun createNewHubConnection() {
@@ -138,12 +138,12 @@ class HubManager(
             if (!mainActivity.isFinishing && hubConnection != null) {
 
                 Log.d(LOG_TAG, "ping hub")
-                val i = viewModel.playlistIndex
+                val i = playlistIndex
                 Log.d("player:", i.toString())
 
                 var mode = "-1"
 
-                val curMediaItem = viewModel.currentMediaItem
+                val curMediaItem = currentMediaItem
 
                 if (curMediaItem != null) {
                     val path = curMediaItem.path
@@ -153,7 +153,7 @@ class HubManager(
 
                 val video = Video("" + i, mode).apply {
                     if (curMediaItem != null) mediaName = curMediaItem.name ?: ""
-                    audioName = viewModel.currentAudioName
+                    //audioName = viewModel.currentAudioName
                 }
 
 
@@ -166,7 +166,7 @@ class HubManager(
                 }
 
                 sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-                //Log.d("request", pingRequestAdapter.toJson(request))
+                Log.d("request", pingRequestAdapter.toJson(request))
             }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

@@ -64,6 +64,7 @@ data class MediaItem(
             isAudio -> MediaType.AUDIO
             isVideo -> MediaType.VIDEO
             isImage -> MediaType.IMAGE
+            isLive -> MediaType.LIVE
             else -> MediaType.UNKNOWN
         }
     }
@@ -77,11 +78,17 @@ data class MediaItem(
     }
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
+        if(getMediaType() == MediaType.LIVE)
+        {
+            Log.d("player", "live: $path")
+            return Media(mLibVLC, Uri.parse(path))
+        }
+
         return if (path.isNotEmpty() && File(path).exists()) {
-            Log.d("link", "local: $path")
+            Log.d("player", "local: $path")
             Media(mLibVLC, Uri.parse("file://$path"))
         } else {
-            Log.d("link", "online: $pathBackup")
+            Log.d("player", "online: $pathBackup")
             Media(mLibVLC, Uri.parse(pathBackup))
         }
     }

@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.utils
 
 import android.annotation.SuppressLint
 import android.app.ActivityManager
+import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.content.Context.ACTIVITY_SERVICE
@@ -9,11 +10,14 @@ import android.net.*
 import android.net.ConnectivityManager.NetworkCallback
 import android.net.wifi.WifiManager
 import android.os.Build
+import android.os.Process
 import android.telephony.*
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import java.lang.Exception
 import java.util.*
 
 
@@ -138,27 +142,6 @@ class NetworkUtils private constructor() {
             return "---"
         }
 
-        fun networkUsage(context: Context): String {
-            val manager = context.getSystemService(ACTIVITY_SERVICE) as ActivityManager
-            val runningApps = manager.runningAppProcesses
-            for (runningApp in runningApps) {
-                val received = TrafficStats.getUidRxBytes(runningApp.uid)
-                val sent = TrafficStats.getUidTxBytes(runningApp.uid)
-                Log.d(
-                    "ok", String.format(
-                        Locale.getDefault(),
-                        "uid: %1d - name: %s: Sent = %1d, Rcvd = %1d",
-                        runningApp.uid,
-                        runningApp.processName,
-                        sent,
-                        received
-                    )
-                )
-                return "$received,$sent"
-            }
-            return ""
-        }
-
         @SuppressLint("MissingPermission")
         fun getCellSignalStrength(context: Context): Int {
             val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
@@ -202,6 +185,40 @@ class NetworkUtils private constructor() {
                 appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             val rssi = wifiManager.connectionInfo.rssi
             return rssi//WifiManager.calculateSignalLevel(rssi, 5)
+        }
+
+        fun checkForNetworkStatPermission(context: Context): Boolean {
+            val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager?
+            val mode = appOps!!.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS,
+                Process.myUid(), context.packageName
+            )
+            return mode == AppOpsManager.MODE_ALLOWED
+        }
+
+        fun getNetworkUsage(appContext: Context): String {
+            return try {
+                val netStatManager =
+                    appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+                val helper = NetworkStatsHelper(netStatManager)
+                val startTime = Calendar.getInstance().apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                }
+                val endTime = Calendar.getInstance().apply {
+                    set(Calendar.DAY_OF_MONTH, 1)
+                    add(Calendar.MONTH, 1)
+                    add(Calendar.DAY_OF_MONTH, -1)
+                }
+                val allRxByte =
+                    helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+                val allTxByte =
+                    helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+
+                "$allRxByte,$allTxByte"
+            } catch (e: Exception) {
+                e.printStackTrace()
+                "-1,-1"
+            }
         }
     }
 }

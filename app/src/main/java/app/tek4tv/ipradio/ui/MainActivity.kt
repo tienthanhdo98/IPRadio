@@ -1,23 +1,21 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.app.usage.NetworkStatsManager
+import android.content.Intent
 import android.content.SharedPreferences
-import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.provider.Settings
 import android.util.Log
 import android.widget.FrameLayout
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubManager
-import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.PlayerManager
-import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.*
+import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -37,13 +35,22 @@ class MainActivity : AppCompatActivity() {
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
     private val PREF_ORIENTATION = "pref_orientation"
 
-    private val permissions = arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE,
-            Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.REQUEST_INSTALL_PACKAGES,
-            Manifest.permission.INTERNET, Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.READ_PHONE_STATE, Manifest.permission.READ_PHONE_NUMBERS,
-            Manifest.permission.READ_SMS, Manifest.permission.WRITE_SETTINGS,
-            Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION,
-            Manifest.permission.ACCESS_WIFI_STATE, Manifest.permission.RECORD_AUDIO, Manifest.permission.SYSTEM_ALERT_WINDOW)
+    private val permissions = arrayOf(
+        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+        Manifest.permission.READ_EXTERNAL_STORAGE,
+        Manifest.permission.REQUEST_INSTALL_PACKAGES,
+        Manifest.permission.INTERNET,
+        Manifest.permission.ACCESS_NETWORK_STATE,
+        Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.READ_PHONE_NUMBERS,
+        Manifest.permission.READ_SMS,
+        Manifest.permission.WRITE_SETTINGS,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
+        Manifest.permission.ACCESS_WIFI_STATE,
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.SYSTEM_ALERT_WINDOW
+    )
 
     private lateinit var mVideoLayout: VLCVideoLayout
 
@@ -66,7 +73,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var preference: SharedPreferences
 
     private var volume = "100"
-    private var version = "3.0.1"
+    private var version = "1.0.0"
 
     var locationTracker = LocationTracker()
 
@@ -76,7 +83,27 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var rootLayout : FrameLayout
+    private lateinit var rootLayout: FrameLayout
+
+    private val playerCallback = object  : PlayerCallback
+    {
+        override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
+            hubManager.playlistIndex = index
+            hubManager.currentMediaItem = mediaItem
+        }
+
+        override fun onVlcPlayerStop() {
+
+        }
+
+        override fun onStartTimeFrame(frame: String) {
+
+        }
+
+        override fun onEndTimeFrame(frame: String, isLastTimeFrame: Boolean) {
+
+        }
+    }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -87,12 +114,9 @@ class MainActivity : AppCompatActivity() {
 
         preference = getPreferences(MODE_PRIVATE)
 
-        orientation = preference.getInt(PREF_ORIENTATION, 0)
-        setViewOrientation()
-
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
-        hubManager = HubManager(lifecycleScope, this, viewModel, moshi) { command, message ->
+        hubManager = HubManager(lifecycleScope, this, moshi) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -102,7 +126,7 @@ class MainActivity : AppCompatActivity() {
         //mVideoLayout = findViewById(R.id.vlc_video_layout)
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayerManager(applicationContext, viewModel, rootLayout)
-        playerManager.rotationMode = orientation
+        playerManager.playerCallback = playerCallback
 
 
         NetworkUtils.instance.startNetworkListener(this)
@@ -117,23 +141,6 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-        lifecycleScope.launch {
-            delay(3000)
-            //NetworkUtils.networkUsage(applicationContext)
-        }
-
-        /*lifecycleScope.launch {
-            delay(3000)
-            val netStatManager = getSystemService(NETWORK_STATS_SERVICE) as NetworkStatsManager
-            val helper = NetworkStatsHelper(netStatManager)
-            val startTime = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, 1)
-            }.timeInMillis
-            val endTime = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, 30)
-            }.timeInMillis
-            Log.d("rxtx", "${helper.getAllRxByte(applicationContext,startTime, endTime )} -${helper.getAllTxByte(applicationContext,startTime, endTime )} ")
-        }*/
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -168,16 +175,6 @@ class MainActivity : AppCompatActivity() {
         startPlayingMedia()
     }
 
-    private fun setViewOrientation() {
-        requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        /*requestedOrientation = when (orientation) {
-            1 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_LANDSCAPE
-            2 -> ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
-            3 -> ActivityInfo.SCREEN_ORIENTATION_REVERSE_PORTRAIT
-            else -> ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
-        }*/
-    }
-
     private fun needGrantPermission(): Boolean {
         var needGrantPermission = false
 
@@ -188,37 +185,26 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
+        if(!NetworkUtils.checkForNetworkStatPermission(applicationContext))
+        {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
+
         return needGrantPermission
     }
 
     private fun registerObservers() {
-        /* viewModel.broadcastList.observe(this) {
-             //playerManager.audioList = viewModel.audioRepo.audioFileUri
-             //playerManager.onNewBroadcastList()
-             //playerManager.checkScheduledMedia()
-             viewModel.downloadMedias()
-
-
-             mediaScheduler.scheduleAllAlarms()
-             playerManager.startFirstPlaylist()
-         }
-
-         viewModel.audioList.observe(this) {
-             playerManager.setBackgroundAudioList(it)
-         }*/
-
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
             mediaScheduler.scheduleAllAlarms()
-            //playerManager.getLocalAudioFiles()
-            //playerManager.audioList = it.second.shuffled() as MutableList<String>
             playerManager.startFirstPlaylist()
         }
     }
 
     private fun startPlayingMedia() {
-        viewModel.getPlayerContent("","",false)
+        viewModel.getPlayerContent("", "", false)
         viewModel.checkPlaylist()
     }
 
@@ -226,9 +212,6 @@ class MainActivity : AppCompatActivity() {
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
-
-                //if (!viewModel.isPlaying) startPlayingMedia()
-
                 if (hubManager.hubConnection == null) {
                     hubManager.createNewHubConnection()
                     Log.d("Connected", "Connected")
@@ -265,7 +248,7 @@ class MainActivity : AppCompatActivity() {
                         val musicUrl = str[1]
 
                         mediaScheduler.cancelAllAlarm()
-                        viewModel.playlistIndex = 0
+                        //viewModel.playlistIndex = 0
                         viewModel.getPlayerContent(listUrl, musicUrl, true)
                     }
                     HubCommand.NEXT -> {
@@ -289,16 +272,14 @@ class MainActivity : AppCompatActivity() {
                         val connectionId = responseHub.message
                         if (locationTracker.mlocation != null && connectionId != null) {
 
-                            val result = "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
+                            val result =
+                                "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
 
-                            hubManager.sendHubDirectMessage(connectionId, Utils.DEVICE_LOCATION,
-                                result)
+                            hubManager.sendHubDirectMessage(
+                                connectionId, Utils.DEVICE_LOCATION,
+                                result
+                            )
                         } else Log.d("location", "location not found")
-                    }
-                    HubCommand.SET_VOLUME -> {
-                        /*if (responseHub.message != null) {
-                            setVolume(responseHub.message!!)
-                        }*/
                     }
                     HubCommand.STOP -> {
                     }
@@ -308,7 +289,12 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.RESTART -> {
                         serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, ""))
+                            writeToDevice(
+                                buildReadMessage(
+                                    Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
+                                    ""
+                                )
+                            )
                         }
                     }
                     HubCommand.RELOAD -> {
@@ -319,16 +305,24 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.SET_MUTE_DEVICE -> {
                         if (responseHub.message != null) {
                             serialPortController.apply {
-                                writeToDevice(buildWriteMessage(Define.FUNC_WRITE_FORCE_SET_MUTE,
-                                    responseHub.message!!))
+                                writeToDevice(
+                                    buildWriteMessage(
+                                        Define.FUNC_WRITE_FORCE_SET_MUTE,
+                                        responseHub.message!!
+                                    )
+                                )
                             }
                         }
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
                             serialPortController.apply {
-                                writeToDevice(buildWriteMessage(Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                                    responseHub.message!!))
+                                writeToDevice(
+                                    buildWriteMessage(
+                                        Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                                        responseHub.message!!
+                                    )
+                                )
                             }
                         }
                     }
@@ -340,21 +334,6 @@ class MainActivity : AppCompatActivity() {
                         }
                     }
 
-                    HubCommand.ROTATION -> {
-                        if (responseHub.message != null) {
-                            Log.d("rotation", responseHub.message.toString())
-                            try {
-                                val requireOrientation = responseHub.message!!.toInt()
-                                preference.edit(commit = true) {
-                                    putInt(PREF_ORIENTATION, requireOrientation)
-                                }
-
-                                CrashHandler.restartApp(MyApp.instance!!, this)
-                            } catch (e: Exception) {
-                                Log.e("orientation", "Error parsing orientation")
-                            }
-                        }
-                    }
 
                     HubCommand.SET_TIME_OVER -> {
                         serialPortController.apply {
@@ -375,8 +354,42 @@ class MainActivity : AppCompatActivity() {
 
                     HubCommand.SETUP_PI_PS_NAME -> {
                         serialPortController.apply {
-                            writeToDevice(buildWriteMessage(Define.FUNC_WRITE_SETUP_PI_PS_NAME,
-                                responseHub.message ?: ""))
+                            writeToDevice(
+                                buildWriteMessage(
+                                    Define.FUNC_WRITE_SETUP_PI_PS_NAME,
+                                    responseHub.message ?: ""
+                                )
+                            )
+                        }
+                    }
+
+                    HubCommand.PLAY_VOD_LIVE_FORCE -> {
+                        val hubMessage = responseHub.message ?: ""
+                        serialPortController.apply {
+                            writeToDevice(
+                                buildWriteMessage(
+                                    Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE,
+                                    hubMessage
+                                )
+                            )
+                        }
+                    }
+
+                    HubCommand.PLAY_TUNER_LIVE_FORCE -> {
+                        val hubMessage = responseHub.message ?: ""
+                        serialPortController.apply {
+                            writeToDevice(
+                                buildWriteMessage(
+                                    Define.FUNC_WRITE_PLAY_TUNER_FORCE,
+                                    hubMessage
+                                )
+                            )
+                        }
+                    }
+
+                    HubCommand.READ_DEVICE_INFO -> {
+                        serialPortController.apply {
+                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_DEVICE_INFO, ""))
                         }
                     }
 
@@ -384,7 +397,7 @@ class MainActivity : AppCompatActivity() {
                         val connectionId = responseHub.message
                         if (connectionId != null) {
                             val networkClass = NetworkUtils.getNetworkClass(applicationContext)
-                            val dataUsage = NetworkUtils.networkUsage(applicationContext)
+                            val dataUsage = NetworkUtils.getNetworkUsage(applicationContext)
 
                             val level = when (networkClass) {
                                 "WIFI" -> NetworkUtils.getWifiSignalStrength(applicationContext)
@@ -394,8 +407,10 @@ class MainActivity : AppCompatActivity() {
 
                             val result = "$networkClass,$dataUsage,$level"
 
-                            hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO,
-                                result)
+                            hubManager.sendHubDirectMessage(
+                                connectionId, Utils.NETWORK_INFO,
+                                result
+                            )
                         }
                     }
 
@@ -414,8 +429,10 @@ class MainActivity : AppCompatActivity() {
                         val connectionId = responseHub.message
                         if (connectionId != null) {
                             val audioList = toJsonList(appStorageManager.getAllMusicPath())
-                            hubManager.sendHubDirectMessage(connectionId, Utils.GET_AUDIO_PATH,
-                                audioList)
+                            hubManager.sendHubDirectMessage(
+                                connectionId, Utils.GET_AUDIO_PATH,
+                                audioList
+                            )
                         }
                     }
 
@@ -424,8 +441,10 @@ class MainActivity : AppCompatActivity() {
                         if (connectionId != null) {
                             Log.d("connectionId", connectionId)
                             val mediaList = toJsonList(appStorageManager.getAllMediaPath())
-                            hubManager.sendHubDirectMessage(connectionId, Utils.GET_MEDIA_PATH,
-                                mediaList)
+                            hubManager.sendHubDirectMessage(
+                                connectionId, Utils.GET_MEDIA_PATH,
+                                mediaList
+                            )
                         }
                     }
 
@@ -460,9 +479,12 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.GET_RECORD -> {
                         val connectionId = responseHub.message!!
                         val recordedAudioList = toJsonList(
-                            appStorageManager.getAllRecordedAudioPath())
-                        hubManager.sendHubDirectMessage(connectionId, Utils.GET_RECORD,
-                            recordedAudioList)
+                            appStorageManager.getAllRecordedAudioPath()
+                        )
+                        hubManager.sendHubDirectMessage(
+                            connectionId, Utils.GET_RECORD,
+                            recordedAudioList
+                        )
                     }
 
                     HubCommand.UPLOAD_RECORDED -> {
@@ -483,19 +505,7 @@ class MainActivity : AppCompatActivity() {
         return adapter.toJson(list)
     }
 
-    /*private fun setVolume(volumeToSet: Int) {
-        try {
-            val maxVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            val volume = ((maxVolume.toFloat() / 100) * volumeToSet).toInt()
-
-            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volume,
-                    AudioManager.FLAG_SHOW_UI)
-        } catch (e: Exception) {
-
-        }
-    }*/
-
-    fun cancelAllAlarm() {
+    private fun cancelAllAlarm() {
         mediaScheduler.cancelAllAlarm()
     }
 }

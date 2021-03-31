@@ -16,19 +16,11 @@ import kotlinx.coroutines.launch
 class MainViewModel @ViewModelInject constructor(
     internal val mediaRepo: MediaRepo
 ) : ViewModel() {
-
-    var isPlaying: Boolean = false
     val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
 
     private var getContentJob: Job? = null
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
-
-    var playlistIndex = 0
-
-    var currentMediaItem: MediaItem? = null
-
-    var currentAudioName = ""
 
     fun getPlayerContent(listUrl: String, musicUrl : String, needUpdate: Boolean)
     {
