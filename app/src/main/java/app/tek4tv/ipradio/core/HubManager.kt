@@ -121,7 +121,6 @@ class HubManager(
         try {
             hubConnection!!.invoke(Utils.DIRECT_MESSAGE, connectionId, command, message)
         } catch (e: Exception) {
-            Log.e(LOG_TAG, e.message)
             e.printStackTrace()
         }
     }

@@ -17,8 +17,8 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
-import java.lang.Exception
 import java.util.*
+import kotlin.Exception
 
 
 class NetworkUtils private constructor() {
@@ -163,21 +163,27 @@ class NetworkUtils private constructor() {
 
         @SuppressLint("MissingPermission")
         fun getCellSignalStrengthInDbm(context: Context): Int {
-            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+            try {
+                val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
 
-            val cellInfo = tm.allCellInfo[0]
+                val cellInfo = tm.allCellInfo[0]
 
-            if (cellInfo != null) {
-                return when (cellInfo) {
-                    is CellInfoLte -> cellInfo.cellSignalStrength.dbm
-                    is CellInfoCdma -> cellInfo.cellSignalStrength.dbm
-                    is CellInfoGsm -> cellInfo.cellSignalStrength.dbm
-                    is CellInfoWcdma -> cellInfo.cellSignalStrength.dbm
-                    else -> CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+                if (cellInfo != null) {
+                    return when (cellInfo) {
+                        is CellInfoLte -> cellInfo.cellSignalStrength.dbm
+                        is CellInfoCdma -> cellInfo.cellSignalStrength.dbm
+                        is CellInfoGsm -> cellInfo.cellSignalStrength.dbm
+                        is CellInfoWcdma -> cellInfo.cellSignalStrength.dbm
+                        else -> CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+                    }
                 }
-            }
 
-            return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+                return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
+            }
+            catch (e : Exception)
+            {
+                return -1
+            }
         }
 
         fun getWifiSignalStrength(appContext: Context): Int {

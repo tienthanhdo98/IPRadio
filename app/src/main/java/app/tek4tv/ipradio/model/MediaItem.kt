@@ -59,12 +59,14 @@ data class MediaItem(
         val isVideo = videoExt.any { mediaName.endsWith(it) }
         val isImage = imageExt.any { mediaName.endsWith(it) }
         val isLive = liveExt.any { path.startsWith(it) }
+        val isTuner = path.matches(Regex(TUNER_REG))
 
         return when {
             isAudio -> MediaType.AUDIO
             isVideo -> MediaType.VIDEO
             isImage -> MediaType.IMAGE
             isLive -> MediaType.LIVE
+            isTuner -> MediaType.TUNER
             else -> MediaType.UNKNOWN
         }
     }
@@ -92,6 +94,11 @@ data class MediaItem(
             Media(mLibVLC, Uri.parse(pathBackup))
         }
     }
+
+    companion object
+    {
+        const val TUNER_REG = "^\\d,\\d+,\\d+\$"
+    }
 }
 
 enum class MediaType {
@@ -99,6 +106,7 @@ enum class MediaType {
     VIDEO,
     AUDIO,
     LIVE,
+    TUNER,
     UNKNOWN
 }
 

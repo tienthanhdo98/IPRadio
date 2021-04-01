@@ -31,6 +31,7 @@ class SerialPortController(
     private var isRead = false
 
     var dataFinal = StringBuffer()
+    var playMode = ""
 
     fun connectToSerialPort() {
         try {
@@ -82,7 +83,7 @@ class SerialPortController(
                         param = "2"
                     }
                 }
-                Log.d("hub api", param)
+                Log.d(LOG_TAG, "status: $param")
 
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
                 val strength = when(networkClass)
@@ -104,14 +105,14 @@ class SerialPortController(
 
     fun buildWriteMessage(functionId: String, data: String): String {
         val s = "$$,$functionId,$data,\r\n"
-        Log.d("requestdevice", s)
+        //Log.d(LOG_TAG, s)
         return s
     }
 
     fun buildReadMessage(functionId: String, message: String): String {
         isRead = true
         val s = "$$,$functionId,$message,\r\n"
-        Log.d("requestevice", s)
+        //Log.d(LOG_TAG, s)
         return s
     }
 
@@ -144,9 +145,9 @@ class SerialPortController(
 
     private fun onDataReceived(data: String?) {
         // read data
-        Log.d("OnDataReceived", "dataFinal: $data")
+        Log.d(LOG_TAG, "dataFinal: $data")
         if (data!!.endsWith("\r\n")) {
-            if (data != null && !data.isEmpty() && data.startsWith("$$,")) {
+            if (data != null && data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
                     hubManager.sendHubDirectMessage(
                         hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
@@ -165,5 +166,27 @@ class SerialPortController(
                 e.printStackTrace()
             }
         }
+    }
+
+    fun invokeDeviceFunc(funcId : String, data : String, isRead : Boolean = false)
+    {
+        if(isRead)
+        {
+            writeToDevice(buildReadMessage(funcId,data))
+        }
+        else
+        {
+            writeToDevice(buildWriteMessage(funcId,data))
+        }
+        Log.d(LOG_TAG, "invoke $funcId with $data, isRead: $isRead")
+    }
+
+
+    companion object
+    {
+        const val MODE_VOD_LIVE = "MODE_VOD_LIVE"
+        const val MODE_TUNER = "MODE_TUNER"
+        const val MODE_NONE = "MODE_NONE"
+        const val LOG_TAG="SerialPortController"
     }
 }

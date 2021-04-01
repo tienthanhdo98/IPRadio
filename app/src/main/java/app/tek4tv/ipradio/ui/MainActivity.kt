@@ -16,6 +16,7 @@ import androidx.lifecycle.observe
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -85,15 +86,23 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: FrameLayout
 
-    private val playerCallback = object  : PlayerCallback
-    {
+    private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
             hubManager.playlistIndex = index
             hubManager.currentMediaItem = mediaItem
+
+            if (mediaItem.getMediaType() != MediaType.TUNER
+                && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE) {
+                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, volume)
+                serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
+            }
         }
 
-        override fun onVlcPlayerStop() {
-
+        override fun onTimeOver() {
+            serialPortController.apply {
+                invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+                playMode = SerialPortController.MODE_NONE
+            }
         }
 
         override fun onStartTimeFrame(frame: String) {
@@ -102,6 +111,13 @@ class MainActivity : AppCompatActivity() {
 
         override fun onEndTimeFrame(frame: String, isLastTimeFrame: Boolean) {
 
+        }
+
+        override fun onPlayTuner(mediaItem: MediaItem) {
+            serialPortController.apply {
+                invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, mediaItem.path)
+                playMode = SerialPortController.MODE_TUNER
+            }
         }
     }
 
@@ -123,15 +139,11 @@ class MainActivity : AppCompatActivity() {
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort()
 
-        //mVideoLayout = findViewById(R.id.vlc_video_layout)
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerCallback = playerCallback
 
-
         NetworkUtils.instance.startNetworkListener(this)
-
-        //audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         initHubConnect()
         registerObservers()
@@ -171,7 +183,6 @@ class MainActivity : AppCompatActivity() {
 
     override fun onStart() {
         super.onStart()
-        //playerManager.attachVisualPlayerView()
         startPlayingMedia()
     }
 
@@ -185,8 +196,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        if(!NetworkUtils.checkForNetworkStatPermission(applicationContext))
-        {
+        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
             val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
             startActivity(intent)
         }
@@ -235,6 +245,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val responseHub = hubManager.responseHub
+            volume = responseHub.volume ?: ""
 
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
             if (isImei) {
@@ -264,9 +275,14 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     HubCommand.UPDATE_STATUS -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_STATUS_PARAM, ""))
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_READ_STATUS_PARAM,
+                            "",
+                            true
+                        )
                     }
                     HubCommand.GET_LOCATION -> {
                         val connectionId = responseHub.message
@@ -288,14 +304,18 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.START -> {
                     }
                     HubCommand.RESTART -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(
                                 buildReadMessage(
                                     Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
                                     ""
                                 )
                             )
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
+                            "", true
+                        )
                     }
                     HubCommand.RELOAD -> {
 
@@ -304,26 +324,34 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_MUTE_DEVICE -> {
                         if (responseHub.message != null) {
-                            serialPortController.apply {
+                            /*serialPortController.apply {
                                 writeToDevice(
                                     buildWriteMessage(
                                         Define.FUNC_WRITE_FORCE_SET_MUTE,
                                         responseHub.message!!
                                     )
                                 )
-                            }
+                            }*/
+                            serialPortController.invokeDeviceFunc(
+                                Define.FUNC_WRITE_FORCE_SET_MUTE,
+                                responseHub.message!!
+                            )
                         }
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
-                            serialPortController.apply {
+                            /*serialPortController.apply {
                                 writeToDevice(
                                     buildWriteMessage(
                                         Define.FUNC_WRITE_FORCE_SET_VOLUME,
                                         responseHub.message!!
                                     )
                                 )
-                            }
+                            }*/
+                            serialPortController.invokeDeviceFunc(
+                                Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                                responseHub.message!!
+                            )
                         }
                     }
 
@@ -336,15 +364,25 @@ class MainActivity : AppCompatActivity() {
 
 
                     HubCommand.SET_TIME_OVER -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_PLAY_NO_SOURCE, ""))
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_PLAY_NO_SOURCE,
+                            "",
+                            true
+                        )
                     }
 
                     HubCommand.SET_TIME_ON -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_PLAY_VOD_LIVE, volume))
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_PLAY_VOD_LIVE,
+                            volume,
+                            true
+                        )
                     }
 
                     HubCommand.GET_APP_VERSION -> {
@@ -353,44 +391,61 @@ class MainActivity : AppCompatActivity() {
 
 
                     HubCommand.SETUP_PI_PS_NAME -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(
                                 buildWriteMessage(
                                     Define.FUNC_WRITE_SETUP_PI_PS_NAME,
                                     responseHub.message ?: ""
                                 )
                             )
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_SETUP_PI_PS_NAME,
+                            responseHub.message ?: ""
+                        )
                     }
 
                     HubCommand.PLAY_VOD_LIVE_FORCE -> {
                         val hubMessage = responseHub.message ?: ""
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(
                                 buildWriteMessage(
                                     Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE,
                                     hubMessage
                                 )
                             )
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE,
+                            hubMessage
+                        )
                     }
 
                     HubCommand.PLAY_TUNER_LIVE_FORCE -> {
                         val hubMessage = responseHub.message ?: ""
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(
                                 buildWriteMessage(
                                     Define.FUNC_WRITE_PLAY_TUNER_FORCE,
                                     hubMessage
                                 )
                             )
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_PLAY_TUNER_FORCE,
+                            hubMessage
+                        )
                     }
 
                     HubCommand.READ_DEVICE_INFO -> {
-                        serialPortController.apply {
+                        /*serialPortController.apply {
                             writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_DEVICE_INFO, ""))
-                        }
+                        }*/
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_READ_DEVICE_INFO,
+                            "",
+                            true
+                        )
                     }
 
                     HubCommand.NETWORK_INFO -> {
@@ -507,6 +562,10 @@ class MainActivity : AppCompatActivity() {
 
     private fun cancelAllAlarm() {
         mediaScheduler.cancelAllAlarm()
+    }
+
+    companion object {
+        const val LOG_TAG = "MainActivity"
     }
 }
 

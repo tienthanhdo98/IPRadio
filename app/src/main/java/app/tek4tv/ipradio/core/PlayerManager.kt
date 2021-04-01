@@ -9,6 +9,10 @@ import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
 import java.util.*
@@ -40,6 +44,9 @@ class PlayerManager(
     var playerCallback : PlayerCallback? = null
 
     var playlistIndex = 0
+
+    var isTimeOver = false
+    private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
     init {
         val args = ArrayList<String>()
@@ -87,11 +94,13 @@ class PlayerManager(
                     media.parse()
                     Log.d(LOGTAG,media.duration.toString())
                     audioPlayer.play(media)
-
                 }
                 MediaType.LIVE -> {
                     val liveUri = mediaItem.getVlcMedia(mLibVLC)
                     audioPlayer.play(liveUri)
+                }
+                MediaType.TUNER -> {
+                    playerCallback?.onPlayTuner(mediaItem)
                 }
                 else -> {
                     playNextMedia()
@@ -178,6 +187,7 @@ class PlayerManager(
 
 
             playMediaByIndex(0)
+            isTimeOver = false
         }
     }
 
@@ -211,7 +221,7 @@ class PlayerManager(
         var isLastTimeFrame = false
 
         //check if all alarms has go off, if yes play random medias
-        try {
+       /* try {
             val sortedTimeDivider = viewModel.mediaRepo.scheduledList.keys.sorted()
 
             isLastTimeFrame = sortedTimeDivider.isNotEmpty() && sortedTimeDivider.last() == cancelListKey
@@ -222,9 +232,16 @@ class PlayerManager(
         catch (e : Exception)
         {
             e.printStackTrace()
-        }
+        }*/
 
         playerCallback?.onEndTimeFrame(cancelListKey, isLastTimeFrame)
+
+        //check time over
+        isTimeOver = true
+        coroutineScope.launch {
+            delay(15000)
+            if(isTimeOver) playerCallback?.onTimeOver()
+        }
     }
 
     private fun stopAllPlayer() {
@@ -235,8 +252,6 @@ class PlayerManager(
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-        playerCallback?.onVlcPlayerStop()
     }
 
     fun onActivityStop() {
@@ -259,7 +274,8 @@ class PlayerManager(
 interface PlayerCallback
 {
     fun onPlayNewMedia(index: Int, mediaItem: MediaItem)
-    fun onVlcPlayerStop()
+    fun onTimeOver()
     fun onStartTimeFrame(frame : String)
     fun onEndTimeFrame(frame: String, isLastTimeFrame : Boolean)
+    fun onPlayTuner(mediaItem: MediaItem)
 }

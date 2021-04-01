@@ -26,7 +26,6 @@ class MediaRepo @Inject constructor(
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java))
 
-    var body = mapOf("IMEI" to Utils.getDeviceId(appContext)!!)
 
     var broadcastList = mutableListOf<MediaItem>()
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
@@ -123,6 +122,8 @@ class MediaRepo @Inject constructor(
     fun downloadAMediaItem(it: MediaItem) {
         val url = it.path
         if (url.isEmpty() || !url.startsWith("http")) return
+
+        Log.d("downloadx", url)
 
         val fileName = getFileNameFromUrl(url)
 
