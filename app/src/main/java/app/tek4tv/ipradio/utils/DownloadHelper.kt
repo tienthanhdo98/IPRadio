@@ -149,6 +149,61 @@ class DownloadItem : Comparable<DownloadItem> {
     }
 }
 
-class DownloadHelper2 {
+class DownloadHelper2 private constructor(
+) {
+    private val CHUNK_SIZE = 5
 
+    private val addedItem = mutableMapOf<String, Boolean>()
+    private val downloadQueue: Queue<DownloadItem> = PriorityQueue()
+    private var isDownloading = false
+    private var downloadJob: Job? = null
+
+    private val mutex = Mutex()
+
+    private val downloadContext = newSingleThreadContext("DownloadThread")
+    private val scope = CoroutineScope(downloadContext)
+
+    private val downloadSlot = booleanArrayOf(false, false, false, false, false)
+
+    private fun startDownload()
+    {
+
+    }
+
+    private suspend fun downloadSingleItem(it: DownloadItem): Boolean =
+        suspendCancellableCoroutine { cont ->
+            PRDownloader.download(it.itDownloadUrl, it.itStoragePath, it.itFileName).build()
+                .start(object : OnDownloadListener {
+                    override fun onDownloadComplete() {
+                        cont.resume(true)
+                    }
+
+                    override fun onError(error: Error?) {
+                        cont.resume(false)
+                    }
+                })
+        }
+
+    fun addToQueue(downloadItem: DownloadItem) {
+        scope.launch {
+            /*mutex.withLock {
+
+            }*/
+            val added = addedItem[downloadItem.itDownloadUrl]
+            if (added != null && added) return@launch
+            addedItem[downloadItem.itDownloadUrl] = true
+
+            downloadQueue.offer(downloadItem)
+
+            if (!isDownloading) startDownload()
+        }
+    }
+
+    companion object {
+        private var instance: DownloadHelper2? = null
+        fun getInstance(scope: CoroutineScope): DownloadHelper2 {
+            if (instance == null) instance = DownloadHelper2()
+            return instance!!
+        }
+    }
 }

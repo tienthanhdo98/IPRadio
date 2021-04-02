@@ -51,20 +51,14 @@ data class MediaItem(
         val mediaName = getFileName()
 
         val audioExt = listOf(".mp3",".wav")
-        val videoExt = listOf(".mp4")
-        val imageExt = listOf(".jpg", ".png", ".gif")
         val liveExt = listOf("rtsp:")
 
         val isAudio = audioExt.any { mediaName.endsWith(it) }
-        val isVideo = videoExt.any { mediaName.endsWith(it) }
-        val isImage = imageExt.any { mediaName.endsWith(it) }
         val isLive = liveExt.any { path.startsWith(it) }
         val isTuner = path.matches(Regex(TUNER_REG))
 
         return when {
             isAudio -> MediaType.AUDIO
-            isVideo -> MediaType.VIDEO
-            isImage -> MediaType.IMAGE
             isLive -> MediaType.LIVE
             isTuner -> MediaType.TUNER
             else -> MediaType.UNKNOWN

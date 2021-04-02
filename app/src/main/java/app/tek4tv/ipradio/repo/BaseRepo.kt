@@ -27,6 +27,7 @@ abstract class BaseRepo<T>(
                     writeFile(fileStoragePath, json)
                 } catch (e: IOException) {
                     Log.e("BaseRepo", "error writing playlist!!!")
+                    e.printStackTrace()
                 }
             }
         }

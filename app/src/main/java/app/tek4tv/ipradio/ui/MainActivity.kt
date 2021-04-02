@@ -92,7 +92,8 @@ class MainActivity : AppCompatActivity() {
             hubManager.currentMediaItem = mediaItem
 
             if (mediaItem.getMediaType() != MediaType.TUNER
-                && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE) {
+                && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
+            ) {
                 serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, volume)
                 serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
             }
@@ -153,6 +154,12 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
+       /* lifecycleScope.launch {
+            delay(5000)
+            mediaScheduler.cancelAllAlarm()
+            //viewModel.playlistIndex = 0
+            viewModel.getPlayerContent("https://jsonkeeper.com/b/0T9R", "", true)
+        }*/
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -245,7 +252,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             val responseHub = hubManager.responseHub
-            volume = responseHub.volume ?: ""
+            //volume = responseHub.volume ?: ""
 
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
             if (isImei) {
