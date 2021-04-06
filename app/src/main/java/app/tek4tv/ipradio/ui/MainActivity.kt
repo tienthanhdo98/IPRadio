@@ -73,7 +73,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var preference: SharedPreferences
 
-    private var volume = "100"
+    private var volume = "80"
     private var version = "1.0.0"
 
     var locationTracker = LocationTracker()
@@ -115,9 +115,21 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onPlayTuner(mediaItem: MediaItem) {
-            serialPortController.apply {
-                invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, mediaItem.path)
-                playMode = SerialPortController.MODE_TUNER
+            try {
+                val t = mediaItem.path.split(',')
+                val pipsData = "${t[3]},${t[4]}"
+                val tunerData = "${t[0]},${t[1]},${t[2]}"
+
+                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
+
+                serialPortController.apply {
+                    invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
+                    playMode = SerialPortController.MODE_TUNER
+                }
+            }
+            catch (e : Exception)
+            {
+                e.printStackTrace()
             }
         }
     }
@@ -154,12 +166,11 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-       /* lifecycleScope.launch {
-            delay(5000)
-            mediaScheduler.cancelAllAlarm()
-            //viewModel.playlistIndex = 0
-            viewModel.getPlayerContent("https://jsonkeeper.com/b/0T9R", "", true)
-        }*/
+         lifecycleScope.launch {
+             delay(5000)
+             mediaScheduler.cancelAllAlarm()
+             viewModel.getPlayerContent("https://api.box.tek4tv.vn/api/ipradio/totalscenario/detail/29", "", true)
+         }
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -274,17 +285,11 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.PREVIEW -> {
                     }
                     HubCommand.JUMP -> {
-                        /* Log.d(command, message)
-                        val id = responseHub.message!!.trim().toInt()
-                        playMediaItemByIndex(id)*/
                     }
                     HubCommand.LIVE -> {
 
                     }
                     HubCommand.UPDATE_STATUS -> {
-                        /*serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_STATUS_PARAM, ""))
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_READ_STATUS_PARAM,
                             "",
@@ -311,14 +316,6 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.START -> {
                     }
                     HubCommand.RESTART -> {
-                        /*serialPortController.apply {
-                            writeToDevice(
-                                buildReadMessage(
-                                    Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
-                                    ""
-                                )
-                            )
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
                             "", true
@@ -331,14 +328,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_MUTE_DEVICE -> {
                         if (responseHub.message != null) {
-                            /*serialPortController.apply {
-                                writeToDevice(
-                                    buildWriteMessage(
-                                        Define.FUNC_WRITE_FORCE_SET_MUTE,
-                                        responseHub.message!!
-                                    )
-                                )
-                            }*/
                             serialPortController.invokeDeviceFunc(
                                 Define.FUNC_WRITE_FORCE_SET_MUTE,
                                 responseHub.message!!
@@ -347,14 +336,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
-                            /*serialPortController.apply {
-                                writeToDevice(
-                                    buildWriteMessage(
-                                        Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                                        responseHub.message!!
-                                    )
-                                )
-                            }*/
                             serialPortController.invokeDeviceFunc(
                                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
                                 responseHub.message!!
@@ -371,9 +352,6 @@ class MainActivity : AppCompatActivity() {
 
 
                     HubCommand.SET_TIME_OVER -> {
-                        /*serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_PLAY_NO_SOURCE, ""))
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_PLAY_NO_SOURCE,
                             "",
@@ -382,9 +360,6 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     HubCommand.SET_TIME_ON -> {
-                        /*serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_PLAY_VOD_LIVE, volume))
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_PLAY_VOD_LIVE,
                             volume,
@@ -398,14 +373,6 @@ class MainActivity : AppCompatActivity() {
 
 
                     HubCommand.SETUP_PI_PS_NAME -> {
-                        /*serialPortController.apply {
-                            writeToDevice(
-                                buildWriteMessage(
-                                    Define.FUNC_WRITE_SETUP_PI_PS_NAME,
-                                    responseHub.message ?: ""
-                                )
-                            )
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_SETUP_PI_PS_NAME,
                             responseHub.message ?: ""
@@ -414,14 +381,6 @@ class MainActivity : AppCompatActivity() {
 
                     HubCommand.PLAY_VOD_LIVE_FORCE -> {
                         val hubMessage = responseHub.message ?: ""
-                        /*serialPortController.apply {
-                            writeToDevice(
-                                buildWriteMessage(
-                                    Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE,
-                                    hubMessage
-                                )
-                            )
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE,
                             hubMessage
@@ -430,14 +389,6 @@ class MainActivity : AppCompatActivity() {
 
                     HubCommand.PLAY_TUNER_LIVE_FORCE -> {
                         val hubMessage = responseHub.message ?: ""
-                        /*serialPortController.apply {
-                            writeToDevice(
-                                buildWriteMessage(
-                                    Define.FUNC_WRITE_PLAY_TUNER_FORCE,
-                                    hubMessage
-                                )
-                            )
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_PLAY_TUNER_FORCE,
                             hubMessage
@@ -445,9 +396,6 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     HubCommand.READ_DEVICE_INFO -> {
-                        /*serialPortController.apply {
-                            writeToDevice(buildReadMessage(Define.FUNC_WRITE_READ_DEVICE_INFO, ""))
-                        }*/
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_READ_DEVICE_INFO,
                             "",
@@ -458,7 +406,7 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.NETWORK_INFO -> {
                         val connectionId = responseHub.message
                         if (connectionId != null) {
-                            val networkClass = NetworkUtils.getNetworkClass(applicationContext)
+                            /*val networkClass = NetworkUtils.getNetworkClass(applicationContext)
                             val dataUsage = NetworkUtils.getNetworkUsage(applicationContext)
 
                             val level = when (networkClass) {
@@ -467,7 +415,9 @@ class MainActivity : AppCompatActivity() {
                                 else -> NetworkUtils.getCellSignalStrength(applicationContext)
                             }
 
-                            val result = "$networkClass,$dataUsage,$level"
+                            val result = "$networkClass,$dataUsage,$level"*/
+
+                            val result = NetworkUtils.getNetworkInfo(applicationContext)
 
                             hubManager.sendHubDirectMessage(
                                 connectionId, Utils.NETWORK_INFO,
@@ -519,11 +469,7 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     HubCommand.CAPTURE_SCREEN -> {
-                        val isPortrait = orientation == 2 || orientation == 3
-                        mediaCapture.captureSurfaceView(playlistService, false, mVideoLayout)
-                        //mediaCapture.captureScreen(playlistService, isPortrait, mVideoLayout)
-                        /*  startActivityForResult(mediaProjectionManager.createScreenCaptureIntent(),
-                              69)*/
+
                     }
 
                     HubCommand.RECORD -> {

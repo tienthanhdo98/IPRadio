@@ -105,8 +105,8 @@ class NetworkUtils private constructor() {
     }
 
     companion object {
-        const val BASE_URL = "https://dev.device.tek4tv.vn/"
-        const val URL_HUB = "https://hub.ggg.tek4tv.vn/iothub"
+        const val BASE_URL = "https://box.dev.tek4tv.vn/"
+        const val URL_HUB = "https://hub.dev.tek4tv.vn/iothub"
         private var INSTANCE: NetworkUtils? = null
         val instance: NetworkUtils
             get() {
@@ -179,10 +179,8 @@ class NetworkUtils private constructor() {
                 }
 
                 return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
-            }
-            catch (e : Exception)
-            {
-                return -1
+            } catch (e: Exception) {
+                return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
             }
         }
 
@@ -224,6 +222,30 @@ class NetworkUtils private constructor() {
             } catch (e: Exception) {
                 e.printStackTrace()
                 "-1,-1"
+            }
+        }
+
+        fun getNetworkInfo(appContext: Context): String {
+            return try {
+                val networkClass = getNetworkClass(appContext)
+                val dataUsage = getNetworkUsage(appContext)
+
+                val level = when (networkClass) {
+                    "WIFI" -> getWifiSignalStrength(appContext).toString()
+                    "---" -> 0
+                    else -> {
+                        val cellStrength = getCellSignalStrengthInDbm(appContext)
+                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
+                            "${cellStrength}dbm"
+                        else
+                            "NONE_OR_UNKNOWN"
+                    }
+                }
+
+                return "$networkClass,$dataUsage,$level"
+            } catch (e: Exception) {
+                e.printStackTrace()
+                "error"
             }
         }
     }

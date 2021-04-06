@@ -13,5 +13,5 @@ public class Define {
     public final static String FUNC_WRITE_READ_DEVICE_INFO = "9";
     public final static String FUNC_WRITE_PLAY_NO_SOURCE = "10";
     public final static String FUNC_WRITE_FORCE_RESTART_DEVICE = "11";
-    public final static String FUNC_WRITE_SETUP_PI_PS_NAME = "12";
+    public final static String FUNC_WRITE_SETUP_PI_PS_NAME = "13";
 }

@@ -162,6 +162,7 @@ class HubManager(
                     connectionId = (hubConnection!!.connectionId)
                     this.video = videoAdapter.toJson(video)
                     startTine = dateFormat.format(Date())
+                    networkInfo = NetworkUtils.getNetworkInfo(mainActivity.applicationContext)
                 }
 
                 sendMessage(pingRequestAdapter.toJson(request), Utils.ping)

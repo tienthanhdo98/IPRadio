@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
+import android.telephony.CellSignalStrength
 import android.util.Log
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.NetworkUtils
@@ -88,7 +89,12 @@ class SerialPortController(
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
                 val strength = when(networkClass)
                 {
-                    "2G", "3G", "4G" -> "${NetworkUtils.getCellSignalStrengthInDbm(appContext)}dbm"
+                    "2G", "3G", "4G" -> {
+                        val cellStrength = NetworkUtils.getCellSignalStrengthInDbm(appContext)
+                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
+                            "${cellStrength}dbm"
+                        else "undefine"
+                    }
                     "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
                     else -> "---"
                 }

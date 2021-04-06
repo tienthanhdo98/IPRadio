@@ -33,5 +33,8 @@ class PingHubRequest {
 
     @Json(name = "Video")
    
-     var video: String? = null
+    var video: String? = null
+
+    @Json(name = "NetworkInfo")
+    var networkInfo = ""
 }

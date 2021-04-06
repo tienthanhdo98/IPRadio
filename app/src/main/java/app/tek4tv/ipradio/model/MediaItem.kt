@@ -91,7 +91,7 @@ data class MediaItem(
 
     companion object
     {
-        const val TUNER_REG = "^\\d,\\d+,\\d+\$"
+        const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"
     }
 }
 
