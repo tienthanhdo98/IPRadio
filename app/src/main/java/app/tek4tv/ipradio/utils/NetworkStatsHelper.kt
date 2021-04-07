@@ -182,7 +182,7 @@ class NetworkStatsHelper {
         }*/
 
     @SuppressLint("MissingPermission")
-    private fun getSubscriberId(context: Context, networkType: Int): String {
+    private fun getSubscriberId(context: Context, networkType: Int): String? {
         if (ConnectivityManager.TYPE_MOBILE == networkType) {
             val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
             return tm.subscriberId

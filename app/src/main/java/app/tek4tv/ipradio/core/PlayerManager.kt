@@ -191,6 +191,19 @@ class PlayerManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
 
+            var isNewDayStarted = false
+            if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
+            ) isNewDayStarted = true
+
+            if (isNewDayStarted) {
+                if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)) end.add(
+                    Calendar.DAY_OF_MONTH, 1)
+                else {
+                    start.add(Calendar.DAY_OF_MONTH, 1)
+                    end.add(Calendar.DAY_OF_MONTH, 1)
+                }
+            }
+
             val now = Calendar.getInstance().timeInMillis
 
             if (now in start.timeInMillis..end.timeInMillis) {

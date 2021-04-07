@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.model
 
 import android.content.Context
+import android.util.Log
 import app.tek4tv.ipradio.utils.ConfigUtil
 import com.squareup.moshi.Json
 import java.text.SimpleDateFormat
@@ -26,6 +27,7 @@ data class ForceMedia(
                 add(Calendar.MINUTE, duration)
             }
             val endTimeStr = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
+            Log.d("alarmx",endTimeStr)
 
             putString(appContext, FORCE_MEDIA_END_TIME, endTimeStr)
         }

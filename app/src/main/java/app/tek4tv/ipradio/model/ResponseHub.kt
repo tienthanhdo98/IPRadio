@@ -17,4 +17,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Start")
     var start: String? = null
+
+    @Json(name = "Duration")
+    var duration : Int = 0
 }

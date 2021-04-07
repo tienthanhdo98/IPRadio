@@ -196,7 +196,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(mediaEndTime)
         }.timeInMillis
 
-        if(mediaEndTimeInMillis >= Calendar.getInstance().timeInMillis) return
+        if(mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
 
         alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
             mediaEndTimeInMillis, alarmIntent)

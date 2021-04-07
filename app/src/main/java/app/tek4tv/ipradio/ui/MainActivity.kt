@@ -182,6 +182,17 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         //Toast.makeText(this,"1.1",Toast.LENGTH_LONG).show()
+
+        lifecycleScope.launch {
+            delay(15000)
+            val rp = ResponseHub().apply {
+                message = "1,1030,50,2,cum2"
+                duration = 2
+                volume = "50"
+            }
+
+            playForceMedia(rp)
+        }
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -296,8 +307,10 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.UPDATE_LIST -> {
                         val mess = responseHub.message!!
 
-                        mediaScheduler.cancelAllAlarm()
+                        cancelAllAlarm()
                         //viewModel.playlistIndex = 0
+                        ForceMedia.deleteForeMediaPref(applicationContext)
+
                         viewModel.getPlayerContent(mess, true)
                     }
                     HubCommand.NEXT -> {
@@ -307,9 +320,7 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.JUMP -> {
                     }
                     HubCommand.LIVE -> {
-                        val hubMessage = responseHub.message
-                        if(hubMessage!=null)
-                            playForceMedia(hubMessage)
+                        playForceMedia(responseHub)
                     }
                     HubCommand.UPDATE_STATUS -> {
                         serialPortController.invokeDeviceFunc(
@@ -347,9 +358,7 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     HubCommand.SWITCH_MODE_FM -> {
-                        val hubMessage = responseHub.message
-                        if(hubMessage!=null)
-                            playForceMedia(hubMessage)
+                        playForceMedia(responseHub)
                     }
                     HubCommand.SET_MUTE_DEVICE -> {
                         if (responseHub.message != null) {
@@ -528,14 +537,26 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun cancelAllAlarm() {
-        mediaScheduler.cancelAllAlarm()
+        if(ForceMedia.hasValidForceMedia(applicationContext))
+            mediaScheduler.cancelForceMediaAlarm()
+        else
+        {
+            mediaScheduler.cancelAllAlarm()
+        }
     }
 
-    private fun playForceMedia(message: String)
+    private fun playForceMedia(responseHub: ResponseHub)
     {
         try {
-            val jsonAdapter = moshi.adapter(ForceMedia::class.java)
-            playForceMedia(jsonAdapter.fromJson(message)!!)
+            val forceMedia = ForceMedia(responseHub.message!!)
+            forceMedia.duration = responseHub.duration
+            playForceMedia(forceMedia)
+
+
+            serialPortController.invokeDeviceFunc(
+                Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                responseHub.volume.toString()
+            )
         }
         catch (e : Exception)
         {
