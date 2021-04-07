@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import android.view.View
+import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.repo.MediaRepo
@@ -18,19 +19,12 @@ import org.videolan.libvlc.MediaPlayer
 import java.util.*
 
 class PlayerManager(
-    applicationContext: Context,
+    val applicationContext: Context,
     private var viewModel: MainViewModel,
-    private var rootLayout : View
+    private var rootLayout: View
 ) {
     private val mLibVLC: LibVLC
     private val audioPlayer: CustomPlayer
-
-    /*private var mainPlayer: CustomPlayer? = null
-        set(value) {
-            field = value
-            setMainPlayerEventListener()
-        }*/
-
     private val playlistRepo: MediaRepo
         get() = viewModel.mediaRepo
 
@@ -41,7 +35,7 @@ class PlayerManager(
     //HH:mm:ss-HH:mm:ss for scheduled media
     private var currentPlaylistKey = "0"
 
-    var playerCallback : PlayerCallback? = null
+    var playerCallback: PlayerCallback? = null
 
     var playlistIndex = 0
 
@@ -85,14 +79,14 @@ class PlayerManager(
             //viewModel.currentMediaItem = mediaItem
 
             //mainPlayer?.eventListener = {_,_,_,_,_ ->}
-            audioPlayer.eventListener = {_,_,_,_,_ ->}
+            audioPlayer.eventListener = { _, _, _, _, _ -> }
 
             when (mediaItem.getMediaType()) {
                 MediaType.AUDIO -> {
                     setMainPlayerEventListener()
                     val media = mediaItem.getVlcMedia(mLibVLC)
-                    media.parse()
-                    Log.d(LOGTAG,media.duration.toString())
+                    /*media.parse()
+                    Log.d(LOGTAG,media.duration.toString())*/
                     audioPlayer.play(media)
                 }
                 MediaType.LIVE -> {
@@ -131,12 +125,12 @@ class PlayerManager(
             when (event) {
                 MediaPlayer.Event.EndReached -> {
                     playNextMedia()
-                    audioPlayer.eventListener = {_,_,_,_,_ ->}
+                    audioPlayer.eventListener = { _, _, _, _, _ -> }
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
                     playNextMedia()
-                    audioPlayer.eventListener = {_,_,_,_,_ ->}
+                    audioPlayer.eventListener = { _, _, _, _, _ -> }
                 }
                 /*MediaPlayer.Event.Stopped -> viewModel.isPlaying = false
                 MediaPlayer.Event.Playing -> viewModel.isPlaying = true*/
@@ -148,14 +142,11 @@ class PlayerManager(
     fun setPlaylistByKey(playlistKey: String) {
         stopAllPlayer()
 
-        if(playlistKey=="-1")
-        {
+        if (playlistKey == "-1") {
             currentPlaylistKey = "-1"
 
             setPlaylistContent(playlistRepo.unscheduledList)
-        }
-        else
-        {
+        } else {
             currentPlaylistKey = playlistKey
             setPlaylistContent(playlistRepo.scheduledList[playlistKey] ?: listOf())
         }
@@ -210,7 +201,7 @@ class PlayerManager(
         }
 
         //random playlist
-        if(!found)
+        if (!found)
             setPlaylistByKey("-1")
     }
 
@@ -220,32 +211,18 @@ class PlayerManager(
         stopAllPlayer()
         var isLastTimeFrame = false
 
-        //check if all alarms has go off, if yes play random medias
-       /* try {
-            val sortedTimeDivider = viewModel.mediaRepo.scheduledList.keys.sorted()
-
-            isLastTimeFrame = sortedTimeDivider.isNotEmpty() && sortedTimeDivider.last() == cancelListKey
-
-            if(isLastTimeFrame)
-                setPlaylistByKey("-1")
-        }
-        catch (e : Exception)
-        {
-            e.printStackTrace()
-        }*/
-
         playerCallback?.onEndTimeFrame(cancelListKey, isLastTimeFrame)
 
         //check time over
         isTimeOver = true
         coroutineScope.launch {
             delay(15000)
-            if(isTimeOver) playerCallback?.onTimeOver()
+            if (isTimeOver) playerCallback?.onTimeOver()
         }
     }
 
     private fun stopAllPlayer() {
-        audioPlayer.eventListener = {_,_,_,_,_ ->}
+        audioPlayer.eventListener = { _, _, _, _, _ -> }
 
         try {
             audioPlayer.stop()
@@ -254,28 +231,41 @@ class PlayerManager(
         }
     }
 
+    fun playForceMedia(forceMedia: ForceMedia) {
+        currentPlaylistKey = PLAY_MODE_FORCE
+        stopAllPlayer()
+        playMedia(forceMedia.toMediaItem())
+    }
+
+    fun stopForceMedia() {
+        if(currentPlaylistKey != PLAY_MODE_FORCE) return
+
+        stopAllPlayer()
+        playerCallback?.onEndForceMedia()
+    }
+
     fun onActivityStop() {
-        //mainPlayer?.stop()
         audioPlayer.stop()
     }
 
     fun onActivityDestroy() {
-        //mainPlayer?.release()
         if (!audioPlayer.isReleased) audioPlayer.release()
         mLibVLC.release()
     }
 
     companion object {
         const val LOGTAG = "player"
+        const val PLAY_MODE_RANDOM = "-1"
+        const val PLAY_MODE_FORCE = "-2"
         var instance: PlayerManager? = null
     }
 }
 
-interface PlayerCallback
-{
+interface PlayerCallback {
     fun onPlayNewMedia(index: Int, mediaItem: MediaItem)
     fun onTimeOver()
-    fun onStartTimeFrame(frame : String)
-    fun onEndTimeFrame(frame: String, isLastTimeFrame : Boolean)
+    fun onStartTimeFrame(frame: String)
+    fun onEndTimeFrame(frame: String, isLastTimeFrame: Boolean)
     fun onPlayTuner(mediaItem: MediaItem)
+    fun onEndForceMedia()
 }

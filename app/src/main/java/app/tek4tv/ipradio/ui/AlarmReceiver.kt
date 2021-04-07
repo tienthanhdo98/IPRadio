@@ -39,6 +39,11 @@ class AlarmReceiver : BroadcastReceiver() {
 
                 playerManager.playScheduledMediaByIndex(mediaIndex)
             }
+
+            ACTION_END_FORCE_MEDIA -> {
+                playerManager.stopForceMedia()
+                Log.d("alarmx", "stop force")
+            }
         }
     }
 
@@ -48,5 +53,6 @@ class AlarmReceiver : BroadcastReceiver() {
         const val ACTION_END_PLAYLIST = "xaction_end_playlist"
         const val SCHEDULED_LIST_KEY = "scheduled_list_key"
         const val SCHEDULED_MEDIA_INDEX = "scheduled_media_uri"
+        const val ACTION_END_FORCE_MEDIA = "ACTION_END_FORCE_MEDIA"
     }
 }

@@ -5,10 +5,13 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.AlarmReceiver
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
+import java.text.SimpleDateFormat
 import java.util.*
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
@@ -167,6 +170,44 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 alarmIntent?.cancel()
             }
         }
+    }
+
+    private fun getScheduleForceMediaIntent(flag : Int): PendingIntent? {
+        val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
+        if(!hasForceMedia) return null
+
+        val intent = Intent(appContext, AlarmReceiver::class.java).apply {
+            action = AlarmReceiver.ACTION_END_FORCE_MEDIA
+        }
+
+        return PendingIntent.getBroadcast(appContext, -69, intent, flag)
+    }
+
+    fun scheduleForceMediaAlarm()
+    {
+        Log.d("alarmx", "set force")
+
+        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_UPDATE_CURRENT) ?: return
+
+        val mediaEndTime = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_END_TIME,"")
+        if(mediaEndTime == null || mediaEndTime == "") return
+
+        val mediaEndTimeInMillis = Calendar.getInstance().apply {
+            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(mediaEndTime)
+        }.timeInMillis
+
+        if(mediaEndTimeInMillis >= Calendar.getInstance().timeInMillis) return
+
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP,
+            mediaEndTimeInMillis, alarmIntent)
+    }
+
+    fun cancelForceMediaAlarm()
+    {
+        Log.d("alarmx", "cancel force")
+        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_NO_CREATE) ?: return
+        alarmManager.cancel(alarmIntent)
+        alarmIntent.cancel()
     }
 
     fun scheduleAllAlarms() {

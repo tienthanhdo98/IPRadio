@@ -16,8 +16,7 @@ import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -27,6 +26,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -133,6 +133,11 @@ class MainActivity : AppCompatActivity() {
                 e.printStackTrace()
             }
         }
+
+        override fun onEndForceMedia() {
+            ForceMedia.deleteForeMediaPref(applicationContext)
+            startPlayingMedia()
+        }
     }
 
     fun turnoffPA()
@@ -232,6 +237,18 @@ class MainActivity : AppCompatActivity() {
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
+
+            if (ForceMedia.hasValidForceMedia(applicationContext))
+            {
+                mediaScheduler.scheduleForceMediaAlarm()
+                val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
+                if(forceMedia != null)
+                    playerManager.playForceMedia(forceMedia)
+
+                return@observe
+            }
+
+            //default
             mediaScheduler.scheduleAllAlarms()
             playerManager.startFirstPlaylist()
         }
@@ -290,7 +307,9 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.JUMP -> {
                     }
                     HubCommand.LIVE -> {
-
+                        val hubMessage = responseHub.message
+                        if(hubMessage!=null)
+                            playForceMedia(hubMessage)
                     }
                     HubCommand.UPDATE_STATUS -> {
                         serialPortController.invokeDeviceFunc(
@@ -328,6 +347,9 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     HubCommand.SWITCH_MODE_FM -> {
+                        val hubMessage = responseHub.message
+                        if(hubMessage!=null)
+                            playForceMedia(hubMessage)
                     }
                     HubCommand.SET_MUTE_DEVICE -> {
                         if (responseHub.message != null) {
@@ -409,17 +431,6 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.NETWORK_INFO -> {
                         val connectionId = responseHub.message
                         if (connectionId != null) {
-                            /*val networkClass = NetworkUtils.getNetworkClass(applicationContext)
-                            val dataUsage = NetworkUtils.getNetworkUsage(applicationContext)
-
-                            val level = when (networkClass) {
-                                "WIFI" -> NetworkUtils.getWifiSignalStrength(applicationContext)
-                                "---" -> 0
-                                else -> NetworkUtils.getCellSignalStrength(applicationContext)
-                            }
-
-                            val result = "$networkClass,$dataUsage,$level"*/
-
                             val result = NetworkUtils.getNetworkInfo(applicationContext)
 
                             hubManager.sendHubDirectMessage(
@@ -518,6 +529,35 @@ class MainActivity : AppCompatActivity() {
 
     private fun cancelAllAlarm() {
         mediaScheduler.cancelAllAlarm()
+    }
+
+    private fun playForceMedia(message: String)
+    {
+        try {
+            val jsonAdapter = moshi.adapter(ForceMedia::class.java)
+            playForceMedia(jsonAdapter.fromJson(message)!!)
+        }
+        catch (e : Exception)
+        {
+            e.printStackTrace()
+        }
+    }
+
+    private fun playForceMedia(forceMedia: ForceMedia)
+    {
+        try {
+            cancelAllAlarm()
+
+            forceMedia.saveItemToPref(applicationContext)
+
+            mediaScheduler.scheduleForceMediaAlarm()
+
+            playerManager.playForceMedia(forceMedia)
+        }
+        catch (e : Exception)
+        {
+            e.printStackTrace()
+        }
     }
 
     companion object {
