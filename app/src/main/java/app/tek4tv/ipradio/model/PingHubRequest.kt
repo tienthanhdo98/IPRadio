@@ -37,4 +37,7 @@ class PingHubRequest {
 
     @Json(name = "NetworkInfo")
     var networkInfo = ""
+
+    @Json(name = "Version")
+    var version = ""
 }

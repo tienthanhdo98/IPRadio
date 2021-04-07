@@ -22,7 +22,7 @@ class MainViewModel @ViewModelInject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    fun getPlayerContent(listUrl: String, musicUrl : String, needUpdate: Boolean)
+    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
     {
         viewModelScope.launch {
             getContentJob?.join()

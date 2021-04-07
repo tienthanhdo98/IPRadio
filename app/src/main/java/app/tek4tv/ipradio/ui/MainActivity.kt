@@ -9,6 +9,7 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.FrameLayout
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -134,6 +135,14 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun turnoffPA()
+    {
+        serialPortController.apply {
+            invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+            playMode = SerialPortController.MODE_NONE
+        }
+    }
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -166,11 +175,8 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-         lifecycleScope.launch {
-             delay(5000)
-             mediaScheduler.cancelAllAlarm()
-             viewModel.getPlayerContent("https://api.box.tek4tv.vn/api/ipradio/totalscenario/detail/29", "", true)
-         }
+
+        //Toast.makeText(this,"1.1",Toast.LENGTH_LONG).show()
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -232,7 +238,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun startPlayingMedia() {
-        viewModel.getPlayerContent("", "", false)
+        viewModel.getPlayerContent("", false)
         viewModel.checkPlaylist()
     }
 
@@ -272,13 +278,10 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.UPDATE_LIST -> {
                         val mess = responseHub.message!!
-                        val str = mess.split(',')
-                        val listUrl = str[0]
-                        val musicUrl = str[1]
 
                         mediaScheduler.cancelAllAlarm()
                         //viewModel.playlistIndex = 0
-                        viewModel.getPlayerContent(listUrl, musicUrl, true)
+                        viewModel.getPlayerContent(mess, true)
                     }
                     HubCommand.NEXT -> {
                     }
@@ -346,7 +349,7 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.UPDATE_VERSION -> {
                         if (responseHub.message != null) {
                             Log.d("update", responseHub.message!!)
-                            downloadUpdateApk(responseHub.message!!, this)
+                            downloadUpdateApk(responseHub.message!!, this, serialPortController)
                         }
                     }
 

@@ -43,6 +43,16 @@ class HubManager(
     var playlistIndex = 0
     var currentMediaItem : MediaItem? = null
 
+    var versionName = ""
+
+    init {
+        versionName = try {
+            mainActivity.packageManager.getPackageInfo(mainActivity.packageName, 0).versionName
+        } catch (e : Exception) {
+            ""
+        }
+    }
+
 
     fun createNewHubConnection() {
         if (openNewConnectionJob != null && openNewConnectionJob!!.isActive) return
@@ -163,6 +173,7 @@ class HubManager(
                     this.video = videoAdapter.toJson(video)
                     startTine = dateFormat.format(Date())
                     networkInfo = NetworkUtils.getNetworkInfo(mainActivity.applicationContext)
+                    version = versionName
                 }
 
                 sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
