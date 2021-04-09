@@ -59,14 +59,15 @@ class SerialPortController(
     }
 
     private fun onWatchDog() {
-        val looseHubConnection = if (hubManager.lastPing != "") {
+        /*val looseHubConnection = if (hubManager.lastPing != "") {
             val now = Calendar.getInstance()
             val lastPingTime = Calendar.getInstance().apply {
                 time = dateformat.parse(hubManager.lastPing)
             }
             now.timeInMillis - lastPingTime.timeInMillis > 45000
-        } else true
+        } else true*/
 
+        val looseHubConnection = hubManager.pingCounter >= 3
 
         if (outputStream != null) {
 
@@ -79,10 +80,10 @@ class SerialPortController(
 
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 var param = if (onAir) "1" else "0"
-                if (onAir) {
-                    if (looseHubConnection) {
+                if (onAir && looseHubConnection) {
+                    //if (looseHubConnection) {
                         param = "2"
-                    }
+                    //}
                 }
                 Log.d(LOG_TAG, "status: $param")
 

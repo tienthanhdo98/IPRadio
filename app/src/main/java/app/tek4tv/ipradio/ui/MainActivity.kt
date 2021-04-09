@@ -183,7 +183,7 @@ class MainActivity : AppCompatActivity() {
 
         //Toast.makeText(this,"1.1",Toast.LENGTH_LONG).show()
 
-        lifecycleScope.launch {
+        /*lifecycleScope.launch {
             delay(15000)
             val rp = ResponseHub().apply {
                 message = "1,1030,50,2,cum2"
@@ -192,7 +192,7 @@ class MainActivity : AppCompatActivity() {
             }
 
             playForceMedia(rp)
-        }
+        }*/
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
