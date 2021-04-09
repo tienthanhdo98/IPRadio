@@ -26,6 +26,7 @@ class HubManager(
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null
+    private var reconnectingJob: Job? = null
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val deviceImei = Utils.getDeviceId(mainActivity.applicationContext)
@@ -76,6 +77,12 @@ class HubManager(
                 Log.d("Connected", connectionId)
                 firstTimeConnected = true
                 startPingTimer()
+
+                if(reconnectingJob!=null)
+                {
+                    reconnectingJob?.cancel()
+                    reconnectingJob = null
+                }
             } else {
                 /*
                  Avoid when we open the app for first time, have network but cannot connect to hub,
@@ -83,9 +90,25 @@ class HubManager(
                 */
 
                 if (!firstTimeConnected)
-                    createNewHubConnection(true)
+                {
+                    if(reconnectingJob==null)
+                        tryReconnect()
+                }
+                    //createNewHubConnection(true)
             }
             openNewConnectionJob = null
+        }
+    }
+
+    private fun tryReconnect()
+    {
+        reconnectingJob?.cancel()
+        reconnectingJob = lifecycleScope.launch(Dispatchers.Default) {
+            while (true)
+            {
+                delay(15000)
+                createNewHubConnection(true)
+            }
         }
     }
 
