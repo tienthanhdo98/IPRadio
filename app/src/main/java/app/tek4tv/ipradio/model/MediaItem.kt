@@ -89,6 +89,15 @@ data class MediaItem(
         }
     }
 
+    fun getDisplayName() : String{
+        return when(getMediaType())
+        {
+            MediaType.AUDIO -> name?:" "
+            MediaType.LIVE, MediaType.TUNER ->  "${name?:""} ${path}"
+            else -> ""
+        }
+    }
+
     companion object
     {
         const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"

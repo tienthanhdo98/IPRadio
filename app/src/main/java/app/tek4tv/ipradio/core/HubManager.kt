@@ -44,6 +44,7 @@ class HubManager(
     //player info
     var playlistIndex = 0
     var currentMediaItem: MediaItem? = null
+    var curMediaName = ""
 
     var versionName = ""
 
@@ -62,6 +63,12 @@ class HubManager(
     fun createNewHubConnection(forceReconnect: Boolean = false) {
         if (!forceReconnect && openNewConnectionJob != null && openNewConnectionJob!!.isActive) return
 
+        try {
+            hubConnection?.close()
+        } catch (e: Exception) {
+            //e.printStackTrace()
+        }
+
         hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
 
         connectToHub()
@@ -78,8 +85,7 @@ class HubManager(
                 firstTimeConnected = true
                 startPingTimer()
 
-                if(reconnectingJob!=null)
-                {
+                if (reconnectingJob != null) {
                     reconnectingJob?.cancel()
                     reconnectingJob = null
                 }
@@ -89,24 +95,18 @@ class HubManager(
                  the ping hub timer hasn't started yet(cannot check for hub connection every 15s)
                 */
 
-                if (!firstTimeConnected)
-                {
-                    if(reconnectingJob==null)
-                        tryReconnect()
-                }
-                    //createNewHubConnection(true)
+                if (!firstTimeConnected && reconnectingJob == null)
+                    tryReconnect()
             }
             openNewConnectionJob = null
         }
     }
 
-    private fun tryReconnect()
-    {
+    private fun tryReconnect() {
         reconnectingJob?.cancel()
         reconnectingJob = lifecycleScope.launch(Dispatchers.Default) {
-            while (true)
-            {
-                delay(15000)
+            while (true) {
+                delay(10000)
                 createNewHubConnection(true)
             }
         }
@@ -137,7 +137,7 @@ class HubManager(
                     when (command) {
                         HubCommand.PONG -> {
                             pingCounter = 0
-                            syncTimeWithServer(message)
+                            //syncTimeWithServer(message)
                         }
 
                         HubCommand.UPDATE_STATUS -> {
@@ -202,7 +202,7 @@ class HubManager(
                 }
 
                 val video = Video("" + i, mode).apply {
-                    if (curMediaItem != null) mediaName = curMediaItem.name ?: ""
+                    mediaName = curMediaName
                 }
 
                 val request = PingHubRequest().apply {

@@ -8,7 +8,7 @@ import android.widget.Toast
 import app.tek4tv.ipradio.core.PlayerManager
 
 
-class AlarmReceiver : BroadcastReceiver() {
+class MediaScheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null || intent == null) return
 
@@ -44,6 +44,11 @@ class AlarmReceiver : BroadcastReceiver() {
                 playerManager.stopForceMedia()
                 Log.d("alarmx", "stop force")
             }
+
+            ACTION_RESCHEDULE -> {
+                Log.d("alarmx", "reschedule all alarms")
+                playerManager.requestRescheduleMedias()
+            }
         }
     }
 
@@ -54,5 +59,6 @@ class AlarmReceiver : BroadcastReceiver() {
         const val SCHEDULED_LIST_KEY = "scheduled_list_key"
         const val SCHEDULED_MEDIA_INDEX = "scheduled_media_uri"
         const val ACTION_END_FORCE_MEDIA = "ACTION_END_FORCE_MEDIA"
+        const val ACTION_RESCHEDULE = "ACTION_RESCHEDULE"
     }
 }

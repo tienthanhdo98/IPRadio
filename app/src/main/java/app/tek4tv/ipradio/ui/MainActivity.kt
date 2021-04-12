@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.app.usage.NetworkStatsManager
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
@@ -9,7 +8,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.FrameLayout
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -23,10 +21,7 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -35,7 +30,6 @@ import javax.inject.Inject
 class MainActivity : AppCompatActivity() {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
-    private val PREF_ORIENTATION = "pref_orientation"
 
     private val permissions = arrayOf(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
@@ -44,14 +38,11 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.READ_PHONE_NUMBERS,
-        Manifest.permission.READ_SMS,
         Manifest.permission.WRITE_SETTINGS,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
         Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.SYSTEM_ALERT_WINDOW
     )
 
     private lateinit var mVideoLayout: VLCVideoLayout
@@ -74,12 +65,12 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var preference: SharedPreferences
 
+    private lateinit var logUtils : LogUtils
+
     private var volume = "80"
     private var version = "1.0.0"
 
     var locationTracker = LocationTracker()
-
-    private var orientation: Int = 0
 
     private lateinit var mediaCapture: MediaCapture
 
@@ -91,6 +82,10 @@ class MainActivity : AppCompatActivity() {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
             hubManager.playlistIndex = index
             hubManager.currentMediaItem = mediaItem
+
+            val displayName = mediaItem.getDisplayName()
+            hubManager.curMediaName = displayName
+            logUtils.logPlayMedia(displayName)
 
             if (mediaItem.getMediaType() != MediaType.TUNER
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
@@ -108,11 +103,11 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-
+            logUtils.logStartTimeFrame(frame)
         }
 
-        override fun onEndTimeFrame(frame: String, isLastTimeFrame: Boolean) {
-
+        override fun onEndTimeFrame(frame: String) {
+            logUtils.logEndTimeFrame(frame)
         }
 
         override fun onPlayTuner(mediaItem: MediaItem) {
@@ -137,6 +132,11 @@ class MainActivity : AppCompatActivity() {
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
+        }
+
+        override fun rescheduleMedias() {
+            mediaScheduler.scheduleAllAlarms()
+            mediaScheduler.setRescheduleMediasAlarm()
         }
     }
 
@@ -180,6 +180,9 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
+        mediaScheduler.setRescheduleMediasAlarm()
+
+        logUtils = LogUtils(applicationContext)
 
         //Toast.makeText(this,"1.1",Toast.LENGTH_LONG).show()
 
@@ -211,6 +214,7 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
+        logUtils.onActivityStop()
         cancelAllAlarm()
     }
 

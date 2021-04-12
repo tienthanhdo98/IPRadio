@@ -29,7 +29,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
 
     private fun logToFile(thread: Thread, ex: Throwable) {
         try {
-            val logPath = "${activity.applicationContext.filesDir.path}${File.separator}log.txt"
+            val logPath = "${activity.applicationContext.filesDir.path}${File.separator}logerror.txt"
             val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
             val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
 

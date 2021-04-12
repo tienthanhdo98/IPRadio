@@ -16,10 +16,11 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
+import java.lang.ref.WeakReference
 import java.util.*
 
 class PlayerManager(
-    val applicationContext: Context,
+    applicationContext: Context,
     private var viewModel: MainViewModel,
     private var rootLayout: View
 ) {
@@ -30,6 +31,7 @@ class PlayerManager(
 
     var currentPlaylist = listOf<MediaItem>()
 
+    //-2 for force media
     //-1 for random unscheduled media
     //0 for init
     //HH:mm:ss-HH:mm:ss for scheduled media
@@ -53,7 +55,7 @@ class PlayerManager(
     }
 
 
-    fun playMediaByIndex(index: Int) {
+    private fun playMediaByIndex(index: Int) {
         try {
             val playlist = currentPlaylist
 
@@ -76,9 +78,6 @@ class PlayerManager(
 
     private fun playMedia(mediaItem: MediaItem) {
         try {
-            //viewModel.currentMediaItem = mediaItem
-
-            //mainPlayer?.eventListener = {_,_,_,_,_ ->}
             audioPlayer.eventListener = { _, _, _, _, _ -> }
 
             when (mediaItem.getMediaType()) {
@@ -132,8 +131,6 @@ class PlayerManager(
                     playNextMedia()
                     audioPlayer.eventListener = { _, _, _, _, _ -> }
                 }
-                /*MediaPlayer.Event.Stopped -> viewModel.isPlaying = false
-                MediaPlayer.Event.Playing -> viewModel.isPlaying = true*/
             }
         }
     }
@@ -141,23 +138,19 @@ class PlayerManager(
 
     fun setPlaylistByKey(playlistKey: String) {
         stopAllPlayer()
-
+        playerCallback?.onStartTimeFrame(playlistKey)
         if (playlistKey == "-1") {
             currentPlaylistKey = "-1"
-
             setPlaylistContent(playlistRepo.unscheduledList)
         } else {
             currentPlaylistKey = playlistKey
             setPlaylistContent(playlistRepo.scheduledList[playlistKey] ?: listOf())
         }
         Log.d(LOGTAG, currentPlaylistKey)
-
-        playerCallback?.onStartTimeFrame(playlistKey)
     }
 
     private fun setPlaylistContent(playlist: List<MediaItem>) {
         this.currentPlaylist = playlist
-        //this.audioList = audios
 
         playlistIndex = 0
 
@@ -176,7 +169,6 @@ class PlayerManager(
                 }
             }
 
-
             playMediaByIndex(0)
             isTimeOver = false
         }
@@ -191,7 +183,7 @@ class PlayerManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
 
-            var isNewDayStarted = false
+            /*var isNewDayStarted = false
             if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
             ) isNewDayStarted = true
 
@@ -202,7 +194,7 @@ class PlayerManager(
                     start.add(Calendar.DAY_OF_MONTH, 1)
                     end.add(Calendar.DAY_OF_MONTH, 1)
                 }
-            }
+            }*/
 
             val now = Calendar.getInstance().timeInMillis
 
@@ -222,9 +214,8 @@ class PlayerManager(
         if (cancelListKey != currentPlaylistKey) return
         currentPlaylistKey = ""
         stopAllPlayer()
-        var isLastTimeFrame = false
 
-        playerCallback?.onEndTimeFrame(cancelListKey, isLastTimeFrame)
+        playerCallback?.onEndTimeFrame(cancelListKey)
 
         //check time over
         isTimeOver = true
@@ -257,6 +248,11 @@ class PlayerManager(
         playerCallback?.onEndForceMedia()
     }
 
+    fun requestRescheduleMedias()
+    {
+        playerCallback?.rescheduleMedias()
+    }
+
     fun onActivityStop() {
         audioPlayer.stop()
     }
@@ -278,7 +274,8 @@ interface PlayerCallback {
     fun onPlayNewMedia(index: Int, mediaItem: MediaItem)
     fun onTimeOver()
     fun onStartTimeFrame(frame: String)
-    fun onEndTimeFrame(frame: String, isLastTimeFrame: Boolean)
+    fun onEndTimeFrame(frame: String)
     fun onPlayTuner(mediaItem: MediaItem)
     fun onEndForceMedia()
+    fun rescheduleMedias()
 }
