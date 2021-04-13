@@ -68,7 +68,6 @@ class MainActivity : AppCompatActivity() {
     private lateinit var logUtils : LogUtils
 
     private var volume = "80"
-    private var version = "1.0.0"
 
     var locationTracker = LocationTracker()
 
@@ -103,7 +102,8 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-            logUtils.logStartTimeFrame(frame)
+            if(frame != "-1")
+                logUtils.logStartTimeFrame(frame)
         }
 
         override fun onEndTimeFrame(frame: String) {
@@ -135,8 +135,9 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun rescheduleMedias() {
+            mediaScheduler.cancelAllAlarm()
             mediaScheduler.scheduleAllAlarms()
-            mediaScheduler.setRescheduleMediasAlarm()
+            mediaScheduler.setRescheduleAllAlarms()
         }
     }
 
@@ -180,7 +181,7 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-        mediaScheduler.setRescheduleMediasAlarm()
+        mediaScheduler.setRescheduleAllAlarms()
 
         logUtils = LogUtils(applicationContext)
 
@@ -404,11 +405,6 @@ class MainActivity : AppCompatActivity() {
                             true
                         )
                     }
-
-                    HubCommand.GET_APP_VERSION -> {
-                        hubManager.sendMessage(version, Utils.APP_VERSION)
-                    }
-
 
                     HubCommand.SETUP_PI_PS_NAME -> {
                         serialPortController.invokeDeviceFunc(

@@ -16,7 +16,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
-import java.lang.ref.WeakReference
 import java.util.*
 
 class PlayerManager(
@@ -44,6 +43,8 @@ class PlayerManager(
     var isTimeOver = false
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
+    var currentPlayingMedia : MediaItem? = null
+
     init {
         val args = ArrayList<String>()
         args.add("-vvv")
@@ -57,12 +58,13 @@ class PlayerManager(
 
     private fun playMediaByIndex(index: Int) {
         try {
-            val playlist = currentPlaylist
+            if (currentPlaylist.isEmpty()) return
+            val mediaItem = currentPlaylist[index]
 
-            if (playlist.isEmpty()) return
-            val mediaItem = playlist[index]
+            if(mediaItem.getMediaType() == MediaType.VOD)
+                playMedia(mediaItem)
 
-            playMedia(mediaItem)
+            Log.d(LOGTAG, "Play media $index")
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -74,14 +76,30 @@ class PlayerManager(
         if (mediaIndex >= scheduledItems.size) return
 
         playMedia(scheduledItems[mediaIndex])
+
+        playlistIndex = currentPlaylist.indexOf(scheduledItems[mediaIndex])
+    }
+
+
+    fun endScheduledMediaByIndex(mediaIndex: Int) {
+        val scheduledItems = viewModel.mediaRepo.scheduledMediaItems
+        if (mediaIndex >= scheduledItems.size) return
+
+        val itemToEnd = scheduledItems[mediaIndex]
+        if(itemToEnd.id != currentPlayingMedia?.id) return
+
+        stopAllPlayer()
+        playNextMedia()
     }
 
     private fun playMedia(mediaItem: MediaItem) {
+
+        currentPlayingMedia = mediaItem
         try {
             audioPlayer.eventListener = { _, _, _, _, _ -> }
 
             when (mediaItem.getMediaType()) {
-                MediaType.AUDIO -> {
+                MediaType.VOD -> {
                     setMainPlayerEventListener()
                     val media = mediaItem.getVlcMedia(mLibVLC)
                     /*media.parse()
@@ -110,10 +128,11 @@ class PlayerManager(
     private fun playNextMedia() {
         if (currentPlaylistKey == "") return
 
+        Log.d(LOGTAG, "Play nex media")
+
         rootLayout.post {
-            val playlist = currentPlaylist
             playlistIndex++
-            if (playlistIndex >= playlist.size) playlistIndex = 0
+            if (playlistIndex >= currentPlaylist.size) playlistIndex = 0
 
             playMediaByIndex(playlistIndex)
         }
@@ -151,27 +170,9 @@ class PlayerManager(
 
     private fun setPlaylistContent(playlist: List<MediaItem>) {
         this.currentPlaylist = playlist
-
         playlistIndex = 0
-
-        if (currentPlaylist.isNotEmpty()) {
-
-            //if the first item is scheduled, skip over and play the second media
-            val firstItem = playlist[0]
-            if (firstItem.fixTime != "00:00:00") {
-                val now = Calendar.getInstance()
-                val scheduledTime = toCalendar(firstItem.fixTime)
-
-                if (now.timeInMillis < scheduledTime.timeInMillis && currentPlaylist.size > 2) {
-                    playMediaByIndex(1)
-                    playlistIndex = 1
-                    return
-                }
-            }
-
-            playMediaByIndex(0)
-            isTimeOver = false
-        }
+        playMediaByIndex(playlistIndex)
+        isTimeOver = false
     }
 
     fun startFirstPlaylist() {
@@ -182,19 +183,6 @@ class PlayerManager(
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-
-            /*var isNewDayStarted = false
-            if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
-            ) isNewDayStarted = true
-
-            if (isNewDayStarted) {
-                if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)) end.add(
-                    Calendar.DAY_OF_MONTH, 1)
-                else {
-                    start.add(Calendar.DAY_OF_MONTH, 1)
-                    end.add(Calendar.DAY_OF_MONTH, 1)
-                }
-            }*/
 
             val now = Calendar.getInstance().timeInMillis
 

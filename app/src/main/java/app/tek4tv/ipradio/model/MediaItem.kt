@@ -17,21 +17,13 @@ data class MediaItem(
 
     @Json(name = "ID") var id: Int = 0,
 
-    @Json(name = "Duration") var duration: String? = null,
+    @Json(name = "Duration") var duration : Int = 0,
 
     @Json(name = "Path") var path: String = "",
 
-    /*@Json(name = "Start") var start: String? = null,
-
-    @Json(name = "End") var end: String? = null,*/
-
-    //@Json(name = "Edit") var edit: Boolean = false,
-
-    //@Json(name = "Category") var category: Category? = null,
-
     @Json(name = "FixTime") var fixTime: String = "",
 
-    //@Json(name = "Mute") var muted: Boolean = false
+    @Json(name = "Type") var type : String = "",
 ) : Serializable {
 
     var pathBackup: String = ""
@@ -48,19 +40,19 @@ data class MediaItem(
     else File("file://$path").name
 
     fun getMediaType(): MediaType {
-        val mediaName = getFileName()
+        /*val mediaName = getFileName()
 
         val audioExt = listOf(".mp3",".wav")
         val liveExt = listOf("rtsp:")
 
         val isAudio = audioExt.any { mediaName.endsWith(it) }
         val isLive = liveExt.any { path.startsWith(it) }
-        val isTuner = path.matches(Regex(TUNER_REG))
+        val isTuner = path.matches(Regex(TUNER_REG))*/
 
-        return when {
-            isAudio -> MediaType.AUDIO
-            isLive -> MediaType.LIVE
-            isTuner -> MediaType.TUNER
+        return when(type) {
+            "VOD" -> MediaType.VOD
+            "LIVE" -> MediaType.LIVE
+            "FM" -> MediaType.TUNER
             else -> MediaType.UNKNOWN
         }
     }
@@ -92,8 +84,8 @@ data class MediaItem(
     fun getDisplayName() : String{
         return when(getMediaType())
         {
-            MediaType.AUDIO -> name?:" "
-            MediaType.LIVE, MediaType.TUNER ->  "${name?:""} ${path}"
+            MediaType.VOD -> name?:" "
+            MediaType.LIVE, MediaType.TUNER ->  "${name?:""} $path"
             else -> ""
         }
     }
@@ -105,15 +97,14 @@ data class MediaItem(
 }
 
 enum class MediaType {
-    IMAGE,
-    VIDEO,
-    AUDIO,
+    VOD,
     LIVE,
     TUNER,
     UNKNOWN
 }
 
 
+/*
 @JsonClass(generateAdapter = true)
 data class Category(
 
@@ -129,3 +120,4 @@ class ResponseList {
     @Json(name = "Playlist")
     var playlists: List<MediaItem>? = null
 }
+*/

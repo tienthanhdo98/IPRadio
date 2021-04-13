@@ -28,7 +28,7 @@ class MediaWatchDog(
                 //if (playlist.isNotEmpty()) {
                 var foundBrokenPath = false
                 mediaRepo.broadcastList.forEach {
-                    if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.AUDIO) return@forEach
+                    if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.VOD) return@forEach
 
                     val mediaPath = it.path
                     if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
