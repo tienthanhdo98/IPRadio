@@ -191,7 +191,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val now = Calendar.getInstance()
             val scheduleTime = toCalendar(mediaItem.fixTime)
             val limit = toCalendar(mediaItem.fixTime).apply {
-                add(Calendar.SECOND, mediaItem.duration)
+                add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
             }
 
             if (now > limit) return@forEachIndexed

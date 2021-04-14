@@ -20,7 +20,7 @@ fun toCalendar(time: String): Calendar {
 }
 
 //duration: HH:mm:ss
-fun getDurationInSecond(duration: String): Long {
+fun getDurationInSecond(duration: String): Int {
     return try {
         (duration.split(":").mapIndexed { index, s ->
             when (index) {
@@ -29,7 +29,7 @@ fun getDurationInSecond(duration: String): Long {
                 2 -> s.toInt()
                 else -> 0
             }
-        }.fold(0L) { acc, it -> acc + it })
+        }.fold(0) { acc, it -> acc + it })
     } catch (e: Exception) {
         0
     }

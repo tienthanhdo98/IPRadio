@@ -17,7 +17,7 @@ data class MediaItem(
 
     @Json(name = "ID") var id: Int = 0,
 
-    @Json(name = "Duration") var duration : Int = 0,
+    @Json(name = "Duration") var duration : String = "00:00:00",
 
     @Json(name = "Path") var path: String = "",
 
@@ -52,7 +52,7 @@ data class MediaItem(
         return when(type) {
             "VOD" -> MediaType.VOD
             "LIVE" -> MediaType.LIVE
-            "FM" -> MediaType.TUNER
+            "FM", "AM" -> MediaType.TUNER
             else -> MediaType.UNKNOWN
         }
     }

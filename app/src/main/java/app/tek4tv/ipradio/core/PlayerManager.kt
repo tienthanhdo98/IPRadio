@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.CustomPlayer
+import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import kotlinx.coroutines.CoroutineScope
@@ -43,7 +44,7 @@ class PlayerManager(
     var isTimeOver = false
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    var currentPlayingMedia : MediaItem? = null
+    var currentPlayingMedia: MediaItem? = null
 
     init {
         val args = ArrayList<String>()
@@ -61,7 +62,8 @@ class PlayerManager(
             if (currentPlaylist.isEmpty()) return
             val mediaItem = currentPlaylist[index]
 
-            if(mediaItem.getMediaType() == MediaType.VOD)
+            //skip LIVE and TUNER as they will be played by alarm
+            if (mediaItem.getMediaType() == MediaType.VOD)
                 playMedia(mediaItem)
 
             Log.d(LOGTAG, "Play media $index")
@@ -75,9 +77,8 @@ class PlayerManager(
         val scheduledItems = viewModel.mediaRepo.scheduledMediaItems
         if (mediaIndex >= scheduledItems.size) return
 
-        playMedia(scheduledItems[mediaIndex])
-
         playlistIndex = currentPlaylist.indexOf(scheduledItems[mediaIndex])
+        playMedia(scheduledItems[mediaIndex])
     }
 
 
@@ -86,7 +87,7 @@ class PlayerManager(
         if (mediaIndex >= scheduledItems.size) return
 
         val itemToEnd = scheduledItems[mediaIndex]
-        if(itemToEnd.id != currentPlayingMedia?.id) return
+        if (itemToEnd.id != currentPlayingMedia?.id) return
 
         stopAllPlayer()
         playNextMedia()
@@ -107,8 +108,9 @@ class PlayerManager(
                     audioPlayer.play(media)
                 }
                 MediaType.LIVE -> {
-                    val liveUri = mediaItem.getVlcMedia(mLibVLC)
-                    audioPlayer.play(liveUri)
+                    val stream = mediaItem.getVlcMedia(mLibVLC)
+                    stream.addOption(":rtsp-tcp")
+                    audioPlayer.play(stream)
                 }
                 MediaType.TUNER -> {
                     playerCallback?.onPlayTuner(mediaItem)
@@ -177,6 +179,7 @@ class PlayerManager(
 
     fun startFirstPlaylist() {
         var found = false
+
         val scheduledList = viewModel.mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
@@ -187,15 +190,45 @@ class PlayerManager(
             val now = Calendar.getInstance().timeInMillis
 
             if (now in start.timeInMillis..end.timeInMillis) {
-                setPlaylistByKey(period)
+                //setPlaylistByKey(period)
                 found = true
                 break
             }
         }
 
-        //random playlist
-        if (!found)
-            setPlaylistByKey("-1")
+        if (found) {
+
+        }
+    }
+
+    //return an index and timestamp of the media that would be play
+    //when we jump in the middle of a time frame
+    private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
+        try {
+            val mediaList = playlistRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
+            val now = Calendar.getInstance()
+            val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
+
+            var t = 0
+
+            for (i in mediaList.indices) {
+                val media = mediaList[i]
+                val mediaDuration = getDurationInSecond(media.duration)
+
+                t += mediaDuration
+
+                if (t > secondFromStart) {
+                    val startTimeStamp = mediaDuration - (t - secondFromStart)
+                    return Pair(i, startTimeStamp)
+                }
+            }
+
+            return Pair(0, 0)
+        } catch (e: Exception) {
+            Log.e(LOGTAG, "Error calculate resume")
+            e.printStackTrace()
+            return Pair(0, 0)
+        }
     }
 
     fun stopPlaylist(cancelListKey: String) {
@@ -230,14 +263,13 @@ class PlayerManager(
     }
 
     fun stopForceMedia() {
-        if(currentPlaylistKey != PLAY_MODE_FORCE) return
+        if (currentPlaylistKey != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
         playerCallback?.onEndForceMedia()
     }
 
-    fun requestRescheduleMedias()
-    {
+    fun requestRescheduleMedias() {
         playerCallback?.rescheduleMedias()
     }
 
