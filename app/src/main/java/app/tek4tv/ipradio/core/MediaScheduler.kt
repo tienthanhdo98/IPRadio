@@ -293,6 +293,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 startIntent?.cancel()
                 alarmManager.cancel(endIntent)
                 endIntent?.cancel()
+
+                Log.d("alarmx", "cancel media ${mediaItem.path}")
             }
         }
     }

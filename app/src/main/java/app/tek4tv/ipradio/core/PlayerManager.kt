@@ -57,14 +57,14 @@ class PlayerManager(
     }
 
 
-    private fun playMediaByIndex(index: Int) {
+    private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
             if (currentPlaylist.isEmpty()) return
             val mediaItem = currentPlaylist[index]
 
             //skip LIVE and TUNER as they will be played by alarm
             if (mediaItem.getMediaType() == MediaType.VOD)
-                playMedia(mediaItem)
+                playMedia(mediaItem, timeStamp)
 
             Log.d(LOGTAG, "Play media $index")
 
@@ -93,7 +93,7 @@ class PlayerManager(
         playNextMedia()
     }
 
-    private fun playMedia(mediaItem: MediaItem) {
+    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
 
         currentPlayingMedia = mediaItem
         try {
@@ -105,6 +105,9 @@ class PlayerManager(
                     val media = mediaItem.getVlcMedia(mLibVLC)
                     /*media.parse()
                     Log.d(LOGTAG,media.duration.toString())*/
+                    if (timeStamp != -1)
+                        media.addOption(":start-time=$timeStamp")
+
                     audioPlayer.play(media)
                 }
                 MediaType.LIVE -> {
@@ -112,7 +115,7 @@ class PlayerManager(
                     stream.addOption(":rtsp-tcp")
                     audioPlayer.play(stream)
                 }
-                MediaType.TUNER -> {
+                MediaType.FM -> {
                     playerCallback?.onPlayTuner(mediaItem)
                 }
                 else -> {
@@ -157,7 +160,7 @@ class PlayerManager(
     }
 
 
-    fun setPlaylistByKey(playlistKey: String) {
+    /*fun setPlaylistByKey(playlistKey: String) {
         stopAllPlayer()
         playerCallback?.onStartTimeFrame(playlistKey)
         if (playlistKey == "-1") {
@@ -175,11 +178,27 @@ class PlayerManager(
         playlistIndex = 0
         playMediaByIndex(playlistIndex)
         isTimeOver = false
+    }*/
+
+    fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
+        stopAllPlayer()
+        playerCallback?.onStartTimeFrame(timeFrame)
+        currentPlaylistKey = timeFrame
+
+        currentPlaylist = playlistRepo.scheduledList[timeFrame] ?: listOf()
+
+        if (resumePoint != null) {
+            playlistIndex = resumePoint.first
+            playMediaByIndex(playlistIndex, resumePoint.second)
+        } else {
+            playlistIndex = 0
+            playMediaByIndex(playlistIndex)
+        }
+
+        isTimeOver = false
     }
 
     fun startFirstPlaylist() {
-        var found = false
-
         val scheduledList = viewModel.mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
@@ -190,14 +209,12 @@ class PlayerManager(
             val now = Calendar.getInstance().timeInMillis
 
             if (now in start.timeInMillis..end.timeInMillis) {
-                //setPlaylistByKey(period)
-                found = true
+
+                val resumePoint = calculateResumePoint(start, period)
+                setTimeFrame(period, resumePoint)
+
                 break
             }
-        }
-
-        if (found) {
-
         }
     }
 

@@ -21,7 +21,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
                 Toast.makeText(context, listKey, Toast.LENGTH_LONG).show()
                 Log.d("alarmx", listKey)
 
-                playerManager.setPlaylistByKey(listKey)
+                playerManager.setTimeFrame(listKey, null)
             }
 
             ACTION_END_PLAYLIST -> {

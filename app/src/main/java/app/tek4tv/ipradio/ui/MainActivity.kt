@@ -77,6 +77,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: FrameLayout
 
+    private lateinit var globalProperties : GlobalProperties
+
     private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
             hubManager.playlistIndex = index
@@ -84,12 +86,14 @@ class MainActivity : AppCompatActivity() {
 
             val displayName = mediaItem.getDisplayName()
             hubManager.curMediaName = displayName
-            logUtils.logPlayMedia(displayName)
 
-            if (mediaItem.getMediaType() != MediaType.TUNER
+            if(globalProperties.logEnabled)
+                logUtils.logPlayMedia(displayName)
+
+            if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
             ) {
-                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, volume)
+                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, globalProperties.volume)
                 serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
             }
         }
@@ -102,19 +106,22 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-            if(frame != "-1")
+            if(globalProperties.logEnabled)
                 logUtils.logStartTimeFrame(frame)
         }
 
         override fun onEndTimeFrame(frame: String) {
-            logUtils.logEndTimeFrame(frame)
+            if(globalProperties.logEnabled)
+                logUtils.logEndTimeFrame(frame)
         }
 
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
-                val t = mediaItem.path.split(',')
-                val pipsData = "${t[3]},${t[4]}"
-                val tunerData = "${t[0]},${t[1]},${t[2]}"
+                val tunerType = if(mediaItem.getMediaType() == MediaType.AM) "0"
+                else "1"
+
+                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
+                val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
 
                 serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
 
@@ -183,9 +190,9 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
         mediaScheduler.setRescheduleAllAlarms()
 
-        logUtils = LogUtils(applicationContext)
+        globalProperties = GlobalProperties(applicationContext)
 
-        //Toast.makeText(this,"1.1",Toast.LENGTH_LONG).show()
+        logUtils = LogUtils(applicationContext)
 
         /*lifecycleScope.launch {
             delay(15000)
@@ -312,8 +319,9 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.UPDATE_LIST -> {
                         val mess = responseHub.message!!
 
+                        globalProperties.saveProperties(responseHub)
+
                         cancelAllAlarm()
-                        //viewModel.playlistIndex = 0
                         ForceMedia.deleteForeMediaPref(applicationContext)
 
                         viewModel.getPlayerContent(mess, true)

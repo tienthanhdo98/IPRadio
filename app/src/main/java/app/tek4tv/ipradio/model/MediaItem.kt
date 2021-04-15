@@ -40,28 +40,12 @@ data class MediaItem(
     else File("file://$path").name
 
     fun getMediaType(): MediaType {
-        /*val mediaName = getFileName()
-
-        val audioExt = listOf(".mp3",".wav")
-        val liveExt = listOf("rtsp:")
-
-        val isAudio = audioExt.any { mediaName.endsWith(it) }
-        val isLive = liveExt.any { path.startsWith(it) }
-        val isTuner = path.matches(Regex(TUNER_REG))*/
-
         return when(type) {
             "VOD" -> MediaType.VOD
             "LIVE" -> MediaType.LIVE
-            "FM", "AM" -> MediaType.TUNER
+            "FM" -> MediaType.FM
+            "AM" -> MediaType.AM
             else -> MediaType.UNKNOWN
-        }
-    }
-
-    fun getUri(): Uri {
-        return if (path.isNotEmpty() && File(path).exists()) {
-            Uri.parse("file://$path")
-        } else {
-            Uri.parse(pathBackup)
         }
     }
 
@@ -85,7 +69,7 @@ data class MediaItem(
         return when(getMediaType())
         {
             MediaType.VOD -> name?:" "
-            MediaType.LIVE, MediaType.TUNER ->  "${name?:""} $path"
+            MediaType.LIVE, MediaType.FM , MediaType.AM->  "${name?:""} $path"
             else -> ""
         }
     }
@@ -99,7 +83,8 @@ data class MediaItem(
 enum class MediaType {
     VOD,
     LIVE,
-    TUNER,
+    FM,
+    AM,
     UNKNOWN
 }
 

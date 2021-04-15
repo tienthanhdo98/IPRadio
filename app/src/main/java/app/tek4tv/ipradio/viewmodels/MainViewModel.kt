@@ -31,6 +31,8 @@ class MainViewModel @ViewModelInject constructor(
                 val mediaList = mediaRepo.getBroadcastList(needUpdate, listUrl)
 
                 content.value = Pair(mediaList, listOf())
+
+                getContentJob = null
             }
         }
     }

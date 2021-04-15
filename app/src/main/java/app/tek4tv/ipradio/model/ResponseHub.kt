@@ -13,11 +13,20 @@ class ResponseHub : Serializable {
     var message: String? = null
 
     @Json(name = "Volume")
-    var volume: String? = null
+    var volume: String = ""
 
     @Json(name = "Start")
     var start: String? = null
 
     @Json(name = "Duration")
     var duration : Int = 0
+
+    @Json(name = "PI")
+    var piCode = ""
+
+    @Json(name = "PS")
+    var psName = ""
+
+    @Json(name = "Log")
+    var logEnabled : Boolean? = null
 }
