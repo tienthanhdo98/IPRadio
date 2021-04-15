@@ -23,7 +23,7 @@ class LogUtils(private val appContext: Context) {
             createFolder(logFolderPath)
         }
 
-        val logName = "log${SimpleDateFormat("ddMMyyyy").format(Date())}.txt"
+        val logName = "${SimpleDateFormat("ddMMyyyy").format(Date())}.txt"
         logFilePath = "$logFolderPath/$logName"
     }
 

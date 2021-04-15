@@ -15,7 +15,10 @@ data class ForceMedia(
     @Json(name = "Duration")
     var duration : Int = 0
 
-    fun toMediaItem() = MediaItem(path = path, name = "Force : $path")
+    @Json(name = "Type")
+    var type = ""
+
+    fun toMediaItem() :MediaItem = MediaItem(path = path, name = "Khẩn cấp : $path", type = type)
 
     fun saveItemToPref(appContext: Context)
     {
@@ -30,6 +33,8 @@ data class ForceMedia(
             Log.d("alarmx",endTimeStr)
 
             putString(appContext, FORCE_MEDIA_END_TIME, endTimeStr)
+
+            putString(appContext, FORCE_MEDIA_TYPE, type)
         }
     }
 
@@ -39,9 +44,14 @@ data class ForceMedia(
         {
             val path = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_PATH, "")
 
+            val type = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_TYPE, "")!!
+
             if(path==null || path =="") return null
 
-            return ForceMedia(path)
+            val r = ForceMedia(path)
+            r.type = type
+
+            return r
         }
 
         fun hasValidForceMedia(appContext: Context) : Boolean
@@ -54,6 +64,9 @@ data class ForceMedia(
 
             val endTime = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_END_TIME, "")
             if(endTime == null || endTime =="") return false
+
+            val type = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_TYPE, "")
+            if(type == null || type =="") return false
 
             if (getForceMediaEndTime(appContext) <= Calendar.getInstance().timeInMillis) return false
 
@@ -76,6 +89,7 @@ data class ForceMedia(
                 putBool(appContext,HAVE_FORCE_MEDIA,false)
                 putString(appContext, FORCE_MEDIA_PATH, "")
                 putString(appContext, FORCE_MEDIA_END_TIME, "")
+                putString(appContext, FORCE_MEDIA_TYPE,"")
             }
         }
     }

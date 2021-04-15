@@ -142,7 +142,7 @@ class HubManager(
 
                         HubCommand.UPDATE_STATUS -> {
                             if (responseHub.message != null) receivedConnectionId =
-                                responseHub.message!!
+                                responseHub.message ?: ""
                         }
                     }
                 }

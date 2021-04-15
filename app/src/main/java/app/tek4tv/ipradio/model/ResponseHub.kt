@@ -29,4 +29,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Log")
     var logEnabled : Boolean? = null
+
+    @Json(name = "Type")
+    var type : String = ""
 }

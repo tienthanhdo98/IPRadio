@@ -21,9 +21,18 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
+import java.security.GeneralSecurityException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.*
 import javax.inject.Inject
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 @AndroidEntryPoint
@@ -65,7 +74,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var preference: SharedPreferences
 
-    private lateinit var logUtils : LogUtils
+    private lateinit var logUtils: LogUtils
 
     private var volume = "80"
 
@@ -77,7 +86,7 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: FrameLayout
 
-    private lateinit var globalProperties : GlobalProperties
+    private lateinit var globalProperties: GlobalProperties
 
     private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
@@ -87,13 +96,16 @@ class MainActivity : AppCompatActivity() {
             val displayName = mediaItem.getDisplayName()
             hubManager.curMediaName = displayName
 
-            if(globalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logPlayMedia(displayName)
 
             if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
             ) {
-                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, globalProperties.volume)
+                serialPortController.invokeDeviceFunc(
+                    Define.FUNC_WRITE_PLAY_VOD_LIVE,
+                    globalProperties.volume
+                )
                 serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
             }
         }
@@ -103,35 +115,40 @@ class MainActivity : AppCompatActivity() {
                 invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
                 playMode = SerialPortController.MODE_NONE
             }
+
+            hubManager.curMediaName = ""
+            hubManager.currentMediaItem = null
         }
 
         override fun onStartTimeFrame(frame: String) {
-            if(globalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logStartTimeFrame(frame)
         }
 
         override fun onEndTimeFrame(frame: String) {
-            if(globalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logEndTimeFrame(frame)
         }
 
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
-                val tunerType = if(mediaItem.getMediaType() == MediaType.AM) "0"
+                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0"
                 else "1"
 
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
 
-                serialPortController.invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
+                serialPortController.invokeDeviceFunc(
+                    Define.FUNC_WRITE_SETUP_PI_PS_NAME,
+                    pipsData,
+                    true
+                )
 
                 serialPortController.apply {
                     invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
                     playMode = SerialPortController.MODE_TUNER
                 }
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
@@ -146,10 +163,14 @@ class MainActivity : AppCompatActivity() {
             mediaScheduler.scheduleAllAlarms()
             mediaScheduler.setRescheduleAllAlarms()
         }
+
+        override fun onLiveError() {
+            hubManager.curMediaName = ""
+            hubManager.currentMediaItem = null
+        }
     }
 
-    fun turnoffPA()
-    {
+    fun turnoffPA() {
         serialPortController.apply {
             invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
             playMode = SerialPortController.MODE_NONE
@@ -193,17 +214,6 @@ class MainActivity : AppCompatActivity() {
         globalProperties = GlobalProperties(applicationContext)
 
         logUtils = LogUtils(applicationContext)
-
-        /*lifecycleScope.launch {
-            delay(15000)
-            val rp = ResponseHub().apply {
-                message = "1,1030,50,2,cum2"
-                duration = 2
-                volume = "50"
-            }
-
-            playForceMedia(rp)
-        }*/
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -261,11 +271,10 @@ class MainActivity : AppCompatActivity() {
         {
             viewModel.downloadMedias()
 
-            if (ForceMedia.hasValidForceMedia(applicationContext))
-            {
+            if (ForceMedia.hasValidForceMedia(applicationContext)) {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                if(forceMedia != null)
+                if (forceMedia != null)
                     playerManager.playForceMedia(forceMedia)
 
                 return@observe
@@ -318,6 +327,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.UPDATE_LIST -> {
                         val mess = responseHub.message!!
+
+                        playerManager.stopAllPlayer()
 
                         globalProperties.saveProperties(responseHub)
 
@@ -383,6 +394,8 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
+                            globalProperties.saveVolume(responseHub.message!!)
+
                             serialPortController.invokeDeviceFunc(
                                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
                                 responseHub.message!!
@@ -499,10 +512,6 @@ class MainActivity : AppCompatActivity() {
                         appStorageManager.deleteAllMedia()
                     }
 
-                    HubCommand.CAPTURE_SCREEN -> {
-
-                    }
-
                     HubCommand.RECORD -> {
                         val shouldStart = responseHub.start!! == "1"
 
@@ -530,6 +539,20 @@ class MainActivity : AppCompatActivity() {
                         val filePath = responseHub.message!!
                         mediaCapture.updateRecordedAudio(filePath)
                     }
+
+                    HubCommand.DELETE_ALL_LOG -> {
+                        appStorageManager.deleteAllLog()
+                    }
+
+                    HubCommand.GET_LOG_BY_DAY -> {
+                        val logName = responseHub.message
+
+                        if (logName != null) {
+                            val logPath =
+                                "${applicationContext.filesDir.path}/$MEDIA_LOG_FOLDER_NAME/$logName.txt"
+                            FtpUtils.uploadLogFile(applicationContext, logPath)
+                        }
+                    }
                 }
             }
         } catch (e: java.lang.Exception) {
@@ -545,18 +568,17 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun cancelAllAlarm() {
-        if(ForceMedia.hasValidForceMedia(applicationContext))
+        if (ForceMedia.hasValidForceMedia(applicationContext))
             mediaScheduler.cancelForceMediaAlarm()
-        else
-        {
+        else {
             mediaScheduler.cancelAllAlarm()
         }
     }
 
-    private fun playForceMedia(responseHub: ResponseHub)
-    {
+    private fun playForceMedia(responseHub: ResponseHub) {
         try {
             val forceMedia = ForceMedia(responseHub.message!!)
+            forceMedia.type = responseHub.type!!
             forceMedia.duration = responseHub.duration
             playForceMedia(forceMedia)
 
@@ -565,15 +587,12 @@ class MainActivity : AppCompatActivity() {
                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
                 responseHub.volume.toString()
             )
-        }
-        catch (e : Exception)
-        {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun playForceMedia(forceMedia: ForceMedia)
-    {
+    private fun playForceMedia(forceMedia: ForceMedia) {
         try {
             cancelAllAlarm()
 
@@ -582,9 +601,7 @@ class MainActivity : AppCompatActivity() {
             mediaScheduler.scheduleForceMediaAlarm()
 
             playerManager.playForceMedia(forceMedia)
-        }
-        catch (e : Exception)
-        {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }

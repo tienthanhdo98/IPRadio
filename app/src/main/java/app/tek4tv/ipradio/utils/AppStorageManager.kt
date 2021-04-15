@@ -12,6 +12,7 @@ class AppStorageManager(appContext: Context) {
     private val fileDirPath = appContext.filesDir.path
     private val audioDirPath = "$fileDirPath${File.separator}$AUDIO_FOLDER_NAME"
     private val recordedAudioDirPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
+    private val logDirPath = "$fileDirPath${File.separator}$MEDIA_LOG_FOLDER_NAME"
     private val activityManager =
         appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val memoryInfo = ActivityManager.MemoryInfo()
@@ -71,4 +72,9 @@ class AppStorageManager(appContext: Context) {
     }
 
     fun getAllRecordedAudioPath() = getAllFilePathInFolder(recordedAudioDirPath)
+
+    fun deleteAllLog()
+    {
+        deleteAllFileInFolder(logDirPath)
+    }
 }

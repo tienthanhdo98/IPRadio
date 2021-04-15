@@ -6,6 +6,7 @@ object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
     //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
+    const val FORCE_MEDIA_TYPE = "FORCE_MEDIA_TYPE"
     const val FORCE_MEDIA_PATH = "FORCE_MEDIA_PATH"
     const val FORCE_MEDIA_END_TIME = "FORCE_MEDIA_END_TIME"
     fun putString(context: Context, key: String?, value: String?) {

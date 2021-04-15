@@ -103,8 +103,7 @@ class PlayerManager(
                 MediaType.VOD -> {
                     setMainPlayerEventListener()
                     val media = mediaItem.getVlcMedia(mLibVLC)
-                    /*media.parse()
-                    Log.d(LOGTAG,media.duration.toString())*/
+
                     if (timeStamp != -1)
                         media.addOption(":start-time=$timeStamp")
 
@@ -114,6 +113,22 @@ class PlayerManager(
                     val stream = mediaItem.getVlcMedia(mLibVLC)
                     stream.addOption(":rtsp-tcp")
                     audioPlayer.play(stream)
+
+                    audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+                        when (event) {
+                            MediaPlayer.Event.EndReached -> {
+                                Log.d(LOGTAG,"EndReached")
+                                playerCallback?.onLiveError()
+                            }
+
+                            MediaPlayer.Event.EncounteredError -> {
+                                Log.e(LOGTAG,"EncounteredError")
+                                playerCallback?.onLiveError()
+                            }
+                        }
+                    }
+
+
                 }
                 MediaType.FM -> {
                     playerCallback?.onPlayTuner(mediaItem)
@@ -147,13 +162,15 @@ class PlayerManager(
         audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
             when (event) {
                 MediaPlayer.Event.EndReached -> {
-                    playNextMedia()
                     audioPlayer.eventListener = { _, _, _, _, _ -> }
+                    Log.d(LOGTAG,"EndReached")
+                    playNextMedia()
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
-                    playNextMedia()
                     audioPlayer.eventListener = { _, _, _, _, _ -> }
+                    Log.e(LOGTAG,"EncounteredError")
+                    playNextMedia()
                 }
             }
         }
@@ -199,6 +216,7 @@ class PlayerManager(
     }
 
     fun startFirstPlaylist() {
+        isTimeOver = true
         val scheduledList = viewModel.mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
@@ -216,6 +234,8 @@ class PlayerManager(
                 break
             }
         }
+
+        checkTimeOver()
     }
 
     //return an index and timestamp of the media that would be play
@@ -257,13 +277,18 @@ class PlayerManager(
 
         //check time over
         isTimeOver = true
+        checkTimeOver()
+    }
+
+    private fun checkTimeOver()
+    {
         coroutineScope.launch {
             delay(15000)
             if (isTimeOver) playerCallback?.onTimeOver()
         }
     }
 
-    private fun stopAllPlayer() {
+    fun stopAllPlayer() {
         audioPlayer.eventListener = { _, _, _, _, _ -> }
 
         try {
@@ -315,4 +340,5 @@ interface PlayerCallback {
     fun onPlayTuner(mediaItem: MediaItem)
     fun onEndForceMedia()
     fun rescheduleMedias()
+    fun onLiveError()
 }

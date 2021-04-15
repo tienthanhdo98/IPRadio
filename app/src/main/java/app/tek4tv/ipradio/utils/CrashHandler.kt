@@ -23,13 +23,13 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
         if (appInstance != null) {
             logToFile(thread, ex)
 
-            //restartApp(appInstance, activity)
+            restartApp(appInstance, activity)
         }
     }
 
     private fun logToFile(thread: Thread, ex: Throwable) {
         try {
-            val logPath = "${activity.applicationContext.filesDir.path}${File.separator}logerror.txt"
+            val logPath = "${activity.applicationContext.filesDir.path}/$MEDIA_LOG_FOLDER_NAME/logerror.txt"
             val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
             val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
 

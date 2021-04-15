@@ -21,8 +21,9 @@ class GlobalProperties(private val appContext : Context) {
     {
         if(responseHub.volume != "")
         {
-            ConfigUtil.putString(appContext, DEFAULT_VOLUME, responseHub.volume)
-            volume = responseHub.volume
+            /*ConfigUtil.putString(appContext, DEFAULT_VOLUME, responseHub.volume)
+            volume = responseHub.volume*/
+            saveVolume(responseHub.volume)
         }
 
         if(responseHub.piCode != "")
@@ -42,6 +43,12 @@ class GlobalProperties(private val appContext : Context) {
             ConfigUtil.putBool(appContext, DEFAULT_LOG_ENABLE, responseHub.logEnabled!!)
             logEnabled = responseHub.logEnabled!!
         }
+    }
+
+    fun saveVolume(vol : String)
+    {
+        ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
+        volume = vol
     }
 
     companion object
