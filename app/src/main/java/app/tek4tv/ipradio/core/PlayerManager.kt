@@ -11,12 +11,11 @@ import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
+import org.videolan.libvlc.interfaces.IMedia
 import java.util.*
 
 class PlayerManager(
@@ -44,7 +43,8 @@ class PlayerManager(
     var isTimeOver = false
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    var currentPlayingMedia: MediaItem? = null
+    private var currentPlayingMedia: MediaItem? = null
+    var currentVlcMedia: Media? = null
 
     init {
         val args = ArrayList<String>()
@@ -101,40 +101,18 @@ class PlayerManager(
 
             when (mediaItem.getMediaType()) {
                 MediaType.VOD -> {
-                    setMainPlayerEventListener()
-                    val media = mediaItem.getVlcMedia(mLibVLC)
-
-                    if (timeStamp != -1)
-                        media.addOption(":start-time=$timeStamp")
-
-                    audioPlayer.play(media)
+                    playVOD(mediaItem, timeStamp)
                 }
                 MediaType.LIVE -> {
-                    val stream = mediaItem.getVlcMedia(mLibVLC)
-                    stream.addOption(":rtsp-tcp")
-                    audioPlayer.play(stream)
-
-                    audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
-                        when (event) {
-                            MediaPlayer.Event.EndReached -> {
-                                Log.d(LOGTAG,"EndReached")
-                                playerCallback?.onLiveError()
-                            }
-
-                            MediaPlayer.Event.EncounteredError -> {
-                                Log.e(LOGTAG,"EncounteredError")
-                                playerCallback?.onLiveError()
-                            }
-                        }
-                    }
-
-
+                    playLiveStream(mediaItem)
                 }
                 MediaType.FM -> {
                     playerCallback?.onPlayTuner(mediaItem)
+                    currentVlcMedia = null
                 }
                 else -> {
                     playNextMedia()
+                    currentVlcMedia = null
                 }
             }
 
@@ -148,8 +126,6 @@ class PlayerManager(
     private fun playNextMedia() {
         if (currentPlaylistKey == "") return
 
-        Log.d(LOGTAG, "Play nex media")
-
         rootLayout.post {
             playlistIndex++
             if (playlistIndex >= currentPlaylist.size) playlistIndex = 0
@@ -158,44 +134,93 @@ class PlayerManager(
         }
     }
 
-    private fun setMainPlayerEventListener() {
+    private fun playVOD(mediaItem: MediaItem, timeStamp: Int) {
         audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
             when (event) {
                 MediaPlayer.Event.EndReached -> {
                     audioPlayer.eventListener = { _, _, _, _, _ -> }
-                    Log.d(LOGTAG,"EndReached")
+                    Log.d(LOGTAG, "EndReached")
                     playNextMedia()
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
                     audioPlayer.eventListener = { _, _, _, _, _ -> }
-                    Log.e(LOGTAG,"EncounteredError")
+                    Log.e(LOGTAG, "EncounteredError")
                     playNextMedia()
+                }
+            }
+        }
+
+        val media = mediaItem.getVlcMedia(mLibVLC)
+
+        if (timeStamp != -1)
+            media.addOption(":start-time=$timeStamp")
+
+        currentVlcMedia = media
+
+        audioPlayer.play(media)
+    }
+
+    private var reconnectingLiveStreamJob: Job? = null
+
+    private fun playLiveStream(mediaItem: MediaItem) {
+        val stream = mediaItem.getVlcMedia(mLibVLC)
+        stream.addOption(":rtsp-tcp")
+        audioPlayer.play(stream)
+
+        currentVlcMedia = stream
+
+        audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+            when (event) {
+                MediaPlayer.Event.EndReached -> {
+                    Log.d(LOGTAG, "EndReached")
+                    if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
+                        tryReconnectLiveStream(mediaItem)
+                    playerCallback?.onLiveError()
+                }
+
+                MediaPlayer.Event.EncounteredError -> {
+                    Log.e(LOGTAG, "EncounteredError")
+                    if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
+                        tryReconnectLiveStream(mediaItem)
+                    playerCallback?.onLiveError()
                 }
             }
         }
     }
 
+    private fun tryReconnectLiveStream(mediaItem: MediaItem) {
+        reconnectingLiveStreamJob?.cancel()
+        reconnectingLiveStreamJob = coroutineScope.launch(Dispatchers.Default) {
+            var needReconnect = true
+            while (needReconnect) {
+                Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
+                playMedia(mediaItem)
 
-    /*fun setPlaylistByKey(playlistKey: String) {
-        stopAllPlayer()
-        playerCallback?.onStartTimeFrame(playlistKey)
-        if (playlistKey == "-1") {
-            currentPlaylistKey = "-1"
-            setPlaylistContent(playlistRepo.unscheduledList)
-        } else {
-            currentPlaylistKey = playlistKey
-            setPlaylistContent(playlistRepo.scheduledList[playlistKey] ?: listOf())
+                delay(5000)
+
+                needReconnect = checkLiveStream(mediaItem, currentVlcMedia!!)
+            }
+            Log.d(LOGTAG, "reconnect: exit")
+            reconnectingLiveStreamJob = null
         }
-        Log.d(LOGTAG, currentPlaylistKey)
     }
 
-    private fun setPlaylistContent(playlist: List<MediaItem>) {
-        this.currentPlaylist = playlist
-        playlistIndex = 0
-        playMediaByIndex(playlistIndex)
-        isTimeOver = false
-    }*/
+    //check to see if there is an error when playing livestream
+    private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
+        val now = Calendar.getInstance()
+
+        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        }
+        val check = (now < liveEndTime)
+                && (stream.state != IMedia.State.Playing)
+
+        Log.d(LOGTAG, "check: $check")
+
+        return check
+    }
+
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
@@ -280,8 +305,7 @@ class PlayerManager(
         checkTimeOver()
     }
 
-    private fun checkTimeOver()
-    {
+    private fun checkTimeOver() {
         coroutineScope.launch {
             delay(15000)
             if (isTimeOver) playerCallback?.onTimeOver()

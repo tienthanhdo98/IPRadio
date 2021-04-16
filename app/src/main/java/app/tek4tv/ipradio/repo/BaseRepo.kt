@@ -21,7 +21,7 @@ abstract class BaseRepo<T>(
         saveFileJob = coroutineScope.launch {
             withContext(Dispatchers.IO) {
                 val json = jsonAdapter.toJson(playlist)
-                Log.d("writefile", json)
+                Log.d("writefile", "$fileStoragePath")
 
                 try {
                     writeFile(fileStoragePath, json)
