@@ -77,8 +77,24 @@ class PlayerManager(
         val scheduledItems = viewModel.mediaRepo.scheduledMediaItems
         if (mediaIndex >= scheduledItems.size) return
 
-        playlistIndex = currentPlaylist.indexOf(scheduledItems[mediaIndex])
-        playMedia(scheduledItems[mediaIndex])
+        val itemToPlay = scheduledItems[mediaIndex]
+
+        for (frame in playlistRepo.scheduledList.keys)
+        {
+            val t = frame.split("-")
+            val start = toCalendar(t[0])
+            val end = toCalendar(t[1])
+
+            val indexInSubList = playlistRepo.scheduledList[frame]!!.indexOf(itemToPlay)
+
+            if(toCalendar(itemToPlay.fixTime) in (start..end) && indexInSubList != -1)
+            {
+                playlistIndex = indexInSubList
+                break
+            }
+        }
+
+        playMedia(itemToPlay)
     }
 
 
@@ -90,6 +106,8 @@ class PlayerManager(
         if (itemToEnd.id != currentPlayingMedia?.id) return
 
         stopAllPlayer()
+
+        //playlistIndex = currentPlaylist.indexOf(itemToEnd)
         playNextMedia()
     }
 
