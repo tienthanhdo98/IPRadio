@@ -248,5 +248,11 @@ class NetworkUtils private constructor() {
                 "error"
             }
         }
+
+        fun setWifiEnable(appContext: Context, enable : Boolean)
+        {
+            val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+            wifiManager.isWifiEnabled = enable
+        }
     }
 }

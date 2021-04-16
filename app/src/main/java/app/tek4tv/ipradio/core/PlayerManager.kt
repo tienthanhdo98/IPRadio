@@ -79,16 +79,14 @@ class PlayerManager(
 
         val itemToPlay = scheduledItems[mediaIndex]
 
-        for (frame in playlistRepo.scheduledList.keys)
-        {
+        for (frame in playlistRepo.scheduledList.keys) {
             val t = frame.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
 
             val indexInSubList = playlistRepo.scheduledList[frame]!!.indexOf(itemToPlay)
 
-            if(toCalendar(itemToPlay.fixTime) in (start..end) && indexInSubList != -1)
-            {
+            if (toCalendar(itemToPlay.fixTime) in (start..end) && indexInSubList != -1) {
                 playlistIndex = indexInSubList
                 break
             }
@@ -114,6 +112,12 @@ class PlayerManager(
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
 
         currentPlayingMedia = mediaItem
+
+        if (currentVlcMedia != null) {
+            if (!currentVlcMedia!!.isReleased)
+                currentVlcMedia?.release()
+        }
+
         try {
             audioPlayer.eventListener = { _, _, _, _, _ -> }
 

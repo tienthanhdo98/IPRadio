@@ -1,9 +1,11 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -24,15 +26,8 @@ import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.security.GeneralSecurityException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.*
 import javax.inject.Inject
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 
 @AndroidEntryPoint
@@ -552,6 +547,11 @@ class MainActivity : AppCompatActivity() {
                                 "${applicationContext.filesDir.path}/$MEDIA_LOG_FOLDER_NAME/$logName.txt"
                             FtpUtils.uploadLogFile(applicationContext, logPath)
                         }
+                    }
+
+                    HubCommand.CONTROL_WIFI_STATE -> {
+                        val wifiEnable = responseHub.message!! == "1"
+                        NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                     }
                 }
             }
