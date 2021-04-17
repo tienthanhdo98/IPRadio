@@ -156,7 +156,6 @@ class MainActivity : AppCompatActivity() {
         override fun rescheduleMedias() {
             mediaScheduler.cancelAllAlarm()
             mediaScheduler.scheduleAllAlarms()
-            mediaScheduler.setRescheduleAllAlarms()
         }
 
         override fun onLiveError() {
@@ -204,7 +203,7 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-        mediaScheduler.setRescheduleAllAlarms()
+
 
         globalProperties = GlobalProperties(applicationContext)
 
@@ -277,6 +276,7 @@ class MainActivity : AppCompatActivity() {
 
             //default
             mediaScheduler.scheduleAllAlarms()
+
             playerManager.startFirstPlaylist()
         }
     }
