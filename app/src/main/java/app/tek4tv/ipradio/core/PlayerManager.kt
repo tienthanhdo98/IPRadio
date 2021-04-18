@@ -338,7 +338,8 @@ class PlayerManager(
         audioPlayer.eventListener = { _, _, _, _, _ -> }
 
         try {
-            audioPlayer.stop()
+            if(audioPlayer.isPlaying)
+                audioPlayer.stop()
         } catch (e: Exception) {
             e.printStackTrace()
         }

@@ -92,7 +92,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    suspend fun updatePlaylist(listUrl: String): List<MediaItem> {
+    private suspend fun updatePlaylist(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
         try {
@@ -100,7 +100,8 @@ class MediaRepo @Inject constructor(
             if (res.isSuccessful) {
                 val resBody = res.body()
                 if (resBody != null) {
-                    result = resBody
+                    var i = 1
+                    result = resBody.onEach { it.id = i++ }
                     saveItemsToFile(result)
                 }
             }
@@ -152,10 +153,6 @@ class MediaRepo @Inject constructor(
                     }
 
                     Log.d("downloadcomplete", it.path)
-
-                    /*if (it.getMediaType() == MediaType.IMAGE) {
-                        imageResize.addToQueue(it.path)
-                    }*/
                 }
 
                 override fun onError(error: Error?) {
