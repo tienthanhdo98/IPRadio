@@ -585,10 +585,13 @@ class MainActivity : AppCompatActivity() {
             //if we are playing a force media that has a higher level, skip playing this
             if (playerManager.currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(applicationContext, ConfigUtil.FORCE_MEDIA, "")
-                if (value != null && value == "") {
+                if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
 
-                    if (currentForceMedia != null && currentForceMedia.level > level) return
+                    if (currentForceMedia != null && currentForceMedia.level > level) {
+                        Log.d(LOG_TAG, "aaaaaaaaaaaaaaaaaaa")
+                        return
+                    }
                 }
             }
 

@@ -31,7 +31,7 @@ data class ForceMedia(
         this.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
     }
 
-    fun toMediaItem(): MediaItem = MediaItem(path = path, name = "Khẩn cấp : $path", type = type)
+    fun toMediaItem(): MediaItem = MediaItem(path = path, name = path, type = type)
 
     fun saveItemToPref(appContext: Context) {
         ConfigUtil.run {
@@ -59,7 +59,7 @@ data class ForceMedia(
 
             val fm = jsonAdapter.fromJson(value) ?: return false
 
-            if (toCalendar(fm.endTime).timeInMillis <= Calendar.getInstance().timeInMillis) return false
+            if (SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime) <= Date()) return false
 
             return true
         }
