@@ -1,11 +1,9 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
 import android.content.pm.PackageManager
-import android.net.wifi.WifiManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -17,17 +15,21 @@ import androidx.lifecycle.observe
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
+import java.security.GeneralSecurityException
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
 import java.util.*
 import javax.inject.Inject
+import javax.net.ssl.HttpsURLConnection
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 @AndroidEntryPoint
@@ -55,9 +57,6 @@ class MainActivity : AppCompatActivity() {
 
     @Inject
     lateinit var moshi: Moshi
-
-    @Inject
-    lateinit var playlistService: PlaylistService
 
     private lateinit var hubManager: HubManager
     private lateinit var playerManager: PlayerManager
@@ -178,11 +177,13 @@ class MainActivity : AppCompatActivity() {
 
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
+        disableSSLTest()
+
         preference = getPreferences(MODE_PRIVATE)
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
-        hubManager = HubManager(lifecycleScope, this, moshi) { command, message ->
+        hubManager = HubManager(lifecycleScope, this) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -577,15 +578,27 @@ class MainActivity : AppCompatActivity() {
 
     private fun playForceMedia(responseHub: ResponseHub) {
         try {
-            val forceMedia = ForceMedia(responseHub.message!!)
-            forceMedia.type = responseHub.type!!
-            forceMedia.duration = responseHub.duration
-            playForceMedia(forceMedia)
+            val duration = responseHub.duration
+            val type = responseHub.type
+            val level = responseHub.level
 
+            //if we are playing a force media that has a higher level, skip playing this
+            if (playerManager.currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
+                val value = ConfigUtil.getString(applicationContext, ConfigUtil.FORCE_MEDIA, "")
+                if (value != null && value == "") {
+                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
+
+                    if (currentForceMedia != null && currentForceMedia.level > level) return
+                }
+            }
+
+            val forceMedia = ForceMedia(responseHub.message!!, duration, type, level)
+
+            playForceMedia(forceMedia)
 
             serialPortController.invokeDeviceFunc(
                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                responseHub.volume.toString()
+                responseHub.volume
             )
         } catch (e: Exception) {
             e.printStackTrace()
@@ -603,6 +616,34 @@ class MainActivity : AppCompatActivity() {
             playerManager.playForceMedia(forceMedia)
         } catch (e: Exception) {
             e.printStackTrace()
+        }
+    }
+
+    fun disableSSLTest() {
+        val trustAllCerts: Array<TrustManager> = arrayOf(
+            object : X509TrustManager {
+                override fun checkClientTrusted(
+                    certs: Array<X509Certificate?>?, authType: String?
+                ) {
+                }
+
+                override fun checkServerTrusted(
+                    certs: Array<X509Certificate?>?, authType: String?
+                ) {
+                }
+
+                override fun getAcceptedIssuers(): Array<X509Certificate?>? {
+                    return null
+                }
+            }
+        )
+
+        // Install the all-trusting trust manager
+        try {
+            val sc: SSLContext = SSLContext.getInstance("SSL")
+            sc.init(null, trustAllCerts, SecureRandom())
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+        } catch (e: GeneralSecurityException) {
         }
     }
 

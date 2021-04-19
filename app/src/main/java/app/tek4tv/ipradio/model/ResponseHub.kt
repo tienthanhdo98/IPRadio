@@ -32,4 +32,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Type")
     var type : String = ""
+
+    @Json(name = "Level")
+    var level: Int = 0
 }

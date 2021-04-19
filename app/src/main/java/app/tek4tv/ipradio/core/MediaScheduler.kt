@@ -5,6 +5,7 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
@@ -17,7 +18,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
-    fun setRescheduleAllAlarms() {
+    private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
         }
@@ -77,40 +78,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             }
         }
     }
-
-    /*fun setAlarmsForFrame(listKey: String, setForNextDay : Boolean = false)
-    {
-        val requestCode = mediaRepo.timeDividers[listKey]!![0].id
-        val endRequestCode = mediaRepo.timeDividers[listKey]!![1].id
-
-        var isNewDayStarted = false
-
-        val t = listKey.split("-")
-        val start = toCalendar(t[0])
-        val end = toCalendar(t[1])
-
-        if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
-        ) isNewDayStarted = true
-
-        if(setForNextDay)
-        {
-            start.add(Calendar.DAY_OF_MONTH, 1)
-            end.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        if (isNewDayStarted) {
-            end.add(Calendar.DAY_OF_MONTH, 1)
-        }
-
-        val now = Calendar.getInstance().timeInMillis
-
-        if (now in start.timeInMillis..end.timeInMillis) {
-            setAlarmForList(listKey, endRequestCode, end, true)
-        } else if (now < start.timeInMillis) {
-            setAlarmForList(listKey, requestCode, start)
-            setAlarmForList(listKey, endRequestCode, end, true)
-        }
-    }*/
 
     private fun setAlarmForList(
         listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
@@ -241,25 +208,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     private fun cancelMediaAlarms() {
         mediaRepo.scheduledMediaItems.forEachIndexed { index, mediaItem ->
-            /*val now = Calendar.getInstance()
-            val scheduleTime = toCalendar(mediaItem.fixTime)
-
-            if (now > scheduleTime) return@forEachIndexed*/
-
-            /*val isAlarmWorking = getScheduleMediaIntent(
-                index, mediaItem.id,
-                PendingIntent.FLAG_NO_CREATE
-            ) != null
-
-            if (isAlarmWorking) {
-                Log.d("alarmx", "cancel media ${mediaItem.path}")
-
-                val alarmIntent = getScheduleMediaIntent(index, mediaItem.id, 0)
-
-                alarmManager.cancel(alarmIntent)
-                alarmIntent?.cancel()
-            }*/
-
             val isAlarmWorking =
                 getScheduleMediaIntent(
                     index,
@@ -315,11 +263,14 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_UPDATE_CURRENT) ?: return
 
-        val mediaEndTime = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_END_TIME, "")
-        if (mediaEndTime == null || mediaEndTime == "") return
+        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+
+        if(fmValue ==null || fmValue == "") return
+
+        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
 
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(mediaEndTime)
+            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
         }.timeInMillis
 
         if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return

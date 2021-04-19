@@ -2,94 +2,72 @@ package app.tek4tv.ipradio.model
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.toCalendar
 import com.squareup.moshi.Json
 import java.text.SimpleDateFormat
 import java.util.*
 
 data class ForceMedia(
     @Json(name = "Message")
-    var path : String = ""
-)
-{
+    var path: String = "",
     @Json(name = "Duration")
-    var duration : Int = 0
+    var duration: Int = 0,
 
     @Json(name = "Type")
-    var type = ""
+    var type: String = "",
 
-    fun toMediaItem() :MediaItem = MediaItem(path = path, name = "Khẩn cấp : $path", type = type)
+    @Json(name = "Level")
+    var level: Int = 0
+) {
+    @Json(name = "EndTime")
+    var endTime = ""
 
-    fun saveItemToPref(appContext: Context)
-    {
+    init {
+        val endTime = Calendar.getInstance().apply {
+            add(Calendar.MINUTE, duration)
+        }
+        this.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
+    }
+
+    fun toMediaItem(): MediaItem = MediaItem(path = path, name = "Khẩn cấp : $path", type = type)
+
+    fun saveItemToPref(appContext: Context) {
         ConfigUtil.run {
-            putBool(appContext,HAVE_FORCE_MEDIA,true)
-            putString(appContext, FORCE_MEDIA_PATH, path)
-
-            val endTime = Calendar.getInstance().apply {
-                add(Calendar.MINUTE, duration)
-            }
-            val endTimeStr = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
-            Log.d("alarmx",endTimeStr)
-
-            putString(appContext, FORCE_MEDIA_END_TIME, endTimeStr)
-
-            putString(appContext, FORCE_MEDIA_TYPE, type)
+            putBool(appContext, HAVE_FORCE_MEDIA, true)
+            val value = jsonAdapter.toJson(this@ForceMedia)
+            putString(appContext, FORCE_MEDIA, value)
         }
     }
 
-    companion object
-    {
-        fun getLocalForceMedia(appContext: Context) : ForceMedia?
-        {
-            val path = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_PATH, "")
+    companion object {
+        val jsonAdapter = MoshiInst.moshi.adapter(ForceMedia::class.java)
 
-            val type = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_TYPE, "")!!
-
-            if(path==null || path =="") return null
-
-            val r = ForceMedia(path)
-            r.type = type
-
-            return r
+        fun getLocalForceMedia(appContext: Context): ForceMedia? {
+            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+            if (value == null || value == "") return null
+            return jsonAdapter.fromJson(value)
         }
 
-        fun hasValidForceMedia(appContext: Context) : Boolean
-        {
+        fun hasValidForceMedia(appContext: Context): Boolean {
             val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
-            if(!hasForceMedia) return false
+            if (!hasForceMedia) return false
 
-            val path = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_PATH, "")
-            if(path == null || path =="") return false
+            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+            if (value == null || value == "") return false
 
-            val endTime = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_END_TIME, "")
-            if(endTime == null || endTime =="") return false
+            val fm = jsonAdapter.fromJson(value) ?: return false
 
-            val type = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_TYPE, "")
-            if(type == null || type =="") return false
-
-            if (getForceMediaEndTime(appContext) <= Calendar.getInstance().timeInMillis) return false
+            if (toCalendar(fm.endTime).timeInMillis <= Calendar.getInstance().timeInMillis) return false
 
             return true
         }
 
-        fun getForceMediaEndTime(appContext: Context) : Long
-        {
-            val mediaEndTime = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_END_TIME,"")
-            if(mediaEndTime == null || mediaEndTime == "") return -1L
-
-            return Calendar.getInstance().apply {
-                time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(mediaEndTime)
-            }.timeInMillis
-        }
-
-        fun deleteForeMediaPref(appContext: Context)
-        {
+        fun deleteForeMediaPref(appContext: Context) {
             ConfigUtil.run {
-                putBool(appContext,HAVE_FORCE_MEDIA,false)
-                putString(appContext, FORCE_MEDIA_PATH, "")
-                putString(appContext, FORCE_MEDIA_END_TIME, "")
-                putString(appContext, FORCE_MEDIA_TYPE,"")
+                putBool(appContext, HAVE_FORCE_MEDIA, false)
+                putString(appContext, FORCE_MEDIA, "")
             }
         }
     }

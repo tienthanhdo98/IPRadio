@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.core
 
 import android.app.Activity
 import android.util.Log
+import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.NetworkUtils
 import app.tek4tv.ipradio.utils.HubCommand
@@ -19,10 +20,10 @@ import kotlin.math.abs
 class HubManager(
     private var lifecycleScope: CoroutineScope,
     private var mainActivity: Activity,
-    private val moshi: Moshi,
     var onMessageListener: (command: String?, message: String?) -> Unit
 ) {
     private val LOG_TAG = "HubConnectionTask"
+    private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null

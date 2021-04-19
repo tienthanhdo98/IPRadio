@@ -11,6 +11,9 @@ import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.Player
+import com.google.android.exoplayer2.SimpleExoPlayer
 import kotlinx.coroutines.*
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -24,7 +27,10 @@ class PlayerManager(
     private var rootLayout: View
 ) {
     private val mLibVLC: LibVLC
-    private val audioPlayer: CustomPlayer
+    private val vlcPlayer: CustomPlayer
+
+    private val exoPlayer = SimpleExoPlayer.Builder(applicationContext).build()
+
     private val playlistRepo: MediaRepo
         get() = viewModel.mediaRepo
 
@@ -34,7 +40,7 @@ class PlayerManager(
     //-1 for random unscheduled media
     //0 for init
     //HH:mm:ss-HH:mm:ss for scheduled media
-    private var currentPlaylistKey = "0"
+    var currentPlaylistKey = "0"
 
     var playerCallback: PlayerCallback? = null
 
@@ -46,14 +52,38 @@ class PlayerManager(
     private var currentPlayingMedia: MediaItem? = null
     var currentVlcMedia: Media? = null
 
+    private var isUsingExoPlayer = false
+
+    private val exoEventListener = object : Player.EventListener {
+        override fun onPlaybackStateChanged(state: Int) {
+            super.onPlaybackStateChanged(state)
+
+            Log.d(LOGTAG,"exo state: $state")
+        }
+
+        override fun onPlayerError(error: ExoPlaybackException) {
+            super.onPlayerError(error)
+
+            Log.d(LOGTAG,"exoerror: ${error.message?:""}")
+        }
+    }
+
     init {
         val args = ArrayList<String>()
         args.add("-vvv")
 
         mLibVLC = LibVLC(applicationContext, args)
-        audioPlayer = CustomPlayer(mLibVLC)
+        vlcPlayer = CustomPlayer(mLibVLC)
 
         instance = this
+
+        /*coroutineScope.launch {
+            while (true)
+            {
+                delay(3000)
+                Log.d(LOGTAG,"vlc media: ${currentVlcMedia?.state ?: ""}")
+            }
+        }*/
     }
 
 
@@ -118,8 +148,11 @@ class PlayerManager(
                 currentVlcMedia?.release()
         }
 
+        isUsingExoPlayer = false
+
         try {
-            audioPlayer.eventListener = { _, _, _, _, _ -> }
+            vlcPlayer.eventListener = { _, _, _, _, _ -> }
+            exoPlayer.removeListener(exoEventListener)
 
             when (mediaItem.getMediaType()) {
                 MediaType.VOD -> {
@@ -157,16 +190,16 @@ class PlayerManager(
     }
 
     private fun playVOD(mediaItem: MediaItem, timeStamp: Int) {
-        audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+        vlcPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
             when (event) {
                 MediaPlayer.Event.EndReached -> {
-                    audioPlayer.eventListener = { _, _, _, _, _ -> }
+                    vlcPlayer.eventListener = { _, _, _, _, _ -> }
                     Log.d(LOGTAG, "EndReached")
                     playNextMedia()
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
-                    audioPlayer.eventListener = { _, _, _, _, _ -> }
+                    vlcPlayer.eventListener = { _, _, _, _, _ -> }
                     Log.e(LOGTAG, "EncounteredError")
                     playNextMedia()
                 }
@@ -180,19 +213,34 @@ class PlayerManager(
 
         currentVlcMedia = media
 
-        audioPlayer.play(media)
+        vlcPlayer.play(media)
     }
 
     private var reconnectingLiveStreamJob: Job? = null
 
     private fun playLiveStream(mediaItem: MediaItem) {
+
+        if(mediaItem.path.endsWith("m3u8"))
+        {
+            playHlsExo(mediaItem)
+        }
+        else
+        {
+            playStreamVlc(mediaItem)
+        }
+    }
+
+    private fun playStreamVlc(mediaItem: MediaItem)
+    {
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
-        audioPlayer.play(stream)
+
+        vlcPlayer.play(stream)
 
         currentVlcMedia = stream
 
-        audioPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+        vlcPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+            //Log.d(LOGTAG, "event: $event")
             when (event) {
                 MediaPlayer.Event.EndReached -> {
                     Log.d(LOGTAG, "EndReached")
@@ -209,6 +257,16 @@ class PlayerManager(
                 }
             }
         }
+    }
+
+    private fun playHlsExo(mediaItem: MediaItem)
+    {
+        isUsingExoPlayer = true
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.path)
+        exoPlayer.addListener(exoEventListener)
+        exoPlayer.setMediaItem(em)
+        exoPlayer.playWhenReady = true
+        exoPlayer.prepare()
     }
 
     private fun tryReconnectLiveStream(mediaItem: MediaItem) {
@@ -335,11 +393,18 @@ class PlayerManager(
     }
 
     fun stopAllPlayer() {
-        audioPlayer.eventListener = { _, _, _, _, _ -> }
+        vlcPlayer.eventListener = { _, _, _, _, _ -> }
 
         try {
-            if(audioPlayer.isPlaying)
-                audioPlayer.stop()
+            if(isUsingExoPlayer)
+            {
+                exoPlayer.stop()
+            }
+            else
+            {
+                if(vlcPlayer.isPlaying)
+                    vlcPlayer.stop()
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -363,11 +428,12 @@ class PlayerManager(
     }
 
     fun onActivityStop() {
-        audioPlayer.stop()
+        //audioPlayer.stop()
+        stopAllPlayer()
     }
 
     fun onActivityDestroy() {
-        if (!audioPlayer.isReleased) audioPlayer.release()
+        if (!vlcPlayer.isReleased) vlcPlayer.release()
         mLibVLC.release()
     }
 

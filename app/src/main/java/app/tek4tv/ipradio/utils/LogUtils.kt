@@ -29,12 +29,14 @@ class LogUtils(private val appContext: Context) {
 
     fun logStartTimeFrame(frame : String)
     {
+        writeLogToFile("------------------------")
         writeLogToFile("Bắt đầu khung giờ $frame")
     }
 
     fun logEndTimeFrame(frame : String)
     {
         writeLogToFile("Kết thúc khung giờ $frame")
+        writeLogToFile("------------------------\n")
     }
 
     fun logPlayMedia(mediaName : String)
