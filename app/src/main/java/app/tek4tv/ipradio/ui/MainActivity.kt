@@ -20,6 +20,8 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
@@ -210,6 +212,15 @@ class MainActivity : AppCompatActivity() {
         globalProperties = GlobalProperties(applicationContext)
 
         logUtils = LogUtils(applicationContext)
+
+        lifecycleScope.launch {
+            delay(5000)
+            mediaCapture.startCaptureAudio()
+            delay(20000)
+            mediaCapture.stopAudioCapture()
+            delay(1000)
+            //mediaCapture.updateRecordedAudio("${applicationContext.filesDir.path}/recorded/2204")
+        }
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
