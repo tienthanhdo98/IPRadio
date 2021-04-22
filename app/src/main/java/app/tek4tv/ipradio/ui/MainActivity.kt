@@ -24,6 +24,7 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.net.ssl.HttpsURLConnection
@@ -177,7 +178,7 @@ class MainActivity : AppCompatActivity() {
 
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        disableSSLTest()
+        disableSSL()
 
         preference = getPreferences(MODE_PRIVATE)
 
@@ -597,6 +598,11 @@ class MainActivity : AppCompatActivity() {
 
             val forceMedia = ForceMedia(responseHub.message!!, duration, type, level)
 
+            val endTime = Calendar.getInstance().apply {
+                add(Calendar.MINUTE, duration)
+            }
+            //endtime
+            forceMedia.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
             playForceMedia(forceMedia)
 
             serialPortController.invokeDeviceFunc(
@@ -622,7 +628,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun disableSSLTest() {
+    private fun disableSSL() {
         val trustAllCerts: Array<TrustManager> = arrayOf(
             object : X509TrustManager {
                 override fun checkClientTrusted(

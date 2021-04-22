@@ -24,13 +24,6 @@ data class ForceMedia(
     @Json(name = "EndTime")
     var endTime = ""
 
-    init {
-        val endTime = Calendar.getInstance().apply {
-            add(Calendar.MINUTE, duration)
-        }
-        this.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
-    }
-
     fun toMediaItem(): MediaItem = MediaItem(path = path, name = path, type = type)
 
     fun saveItemToPref(appContext: Context) {
