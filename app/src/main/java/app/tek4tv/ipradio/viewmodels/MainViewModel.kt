@@ -44,9 +44,4 @@ class MainViewModel @ViewModelInject constructor(
     fun downloadMedias() {
         mediaRepo.startDownloadMedia()
     }
-
-    override fun onCleared() {
-        super.onCleared()
-        mediaRepo.cancelAllJob()
-    }
 }

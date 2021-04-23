@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.CustomPlayer
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -53,10 +54,12 @@ class PlayerManager(
     var currentVlcMedia: Media? = null
 
     private var isUsingExoPlayer = false
+    private var currentExoState = -1
 
     private val exoEventListener = object : Player.EventListener {
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
+            currentExoState = state
 
             Log.d(LOGTAG,"exo state: $state")
         }
@@ -65,6 +68,10 @@ class PlayerManager(
             super.onPlayerError(error)
 
             Log.d(LOGTAG,"exoerror: ${error.message?:""}")
+            error.printStackTrace()
+
+            if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!))
+                playMedia(currentPlayingMedia!!)
         }
     }
 
@@ -277,7 +284,7 @@ class PlayerManager(
                 Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
                 playMedia(mediaItem)
 
-                delay(5000)
+                delay(10000)
 
                 needReconnect = checkLiveStream(mediaItem, currentVlcMedia!!)
             }
@@ -285,7 +292,6 @@ class PlayerManager(
             reconnectingLiveStreamJob = null
         }
     }
-
     //check to see if there is an error when playing livestream
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
         val now = Calendar.getInstance()
@@ -295,6 +301,20 @@ class PlayerManager(
         }
         val check = (now < liveEndTime)
                 && (stream.state != IMedia.State.Playing)
+
+        Log.d(LOGTAG, "check: $check")
+
+        return check
+    }
+
+    private fun checkHls(mediaItem: MediaItem): Boolean {
+        val now = Calendar.getInstance()
+
+        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        }
+        val check = (now < liveEndTime)
+                && (currentExoState != Player.STATE_READY)
 
         Log.d(LOGTAG, "check: $check")
 
@@ -360,8 +380,12 @@ class PlayerManager(
                 t += mediaDuration
 
                 if (t > secondFromStart) {
-                    val startTimeStamp = mediaDuration - (t - secondFromStart)
-                    return Pair(i, startTimeStamp)
+                    return if(GlobalProperties.resumeFromStart) {
+                        Pair(i, 0)
+                    } else {
+                        val startTimeStamp = mediaDuration - (t - secondFromStart)
+                        Pair(i, startTimeStamp)
+                    }
                 }
             }
 

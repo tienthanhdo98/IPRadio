@@ -35,4 +35,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Level")
     var level: Int = 0
+
+    @Json(name = "Resume")
+    var resumeFromStart: Boolean? = null
 }

@@ -51,6 +51,7 @@ fun setSystemTime(requireTime: String) {
         os.writeBytes("exit\n")
         os.flush()
         process.waitFor()
+        os.close()
     } catch (e: Exception) {
         Log.e("timesync", e.message ?: "")
         e.printStackTrace()

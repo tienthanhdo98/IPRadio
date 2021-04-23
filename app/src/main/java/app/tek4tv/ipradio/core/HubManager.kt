@@ -4,6 +4,7 @@ import android.app.Activity
 import android.util.Log
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.utils.NetworkUtils
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.Utils
@@ -19,7 +20,7 @@ import kotlin.math.abs
 
 class HubManager(
     private var lifecycleScope: CoroutineScope,
-    private var mainActivity: Activity,
+    private var mainActivity: MainActivity,
     var onMessageListener: (command: String?, message: String?) -> Unit
 ) {
     private val LOG_TAG = "HubConnectionTask"

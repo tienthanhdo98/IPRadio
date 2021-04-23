@@ -12,11 +12,13 @@ import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.observe
+import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.exoplayer2.util.SntpClient
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
@@ -33,6 +35,7 @@ import javax.net.ssl.HttpsURLConnection
 import javax.net.ssl.SSLContext
 import javax.net.ssl.TrustManager
 import javax.net.ssl.X509TrustManager
+import kotlin.math.abs
 
 
 @AndroidEntryPoint
@@ -83,8 +86,6 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: FrameLayout
 
-    private lateinit var globalProperties: GlobalProperties
-
     private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
             hubManager.playlistIndex = index
@@ -93,7 +94,7 @@ class MainActivity : AppCompatActivity() {
             val displayName = mediaItem.getDisplayName()
             hubManager.curMediaName = displayName
 
-            if (globalProperties.logEnabled)
+            if (GlobalProperties.logEnabled)
                 logUtils.logPlayMedia(displayName)
 
             if (mediaItem.getMediaType() != MediaType.FM
@@ -101,7 +102,7 @@ class MainActivity : AppCompatActivity() {
             ) {
                 serialPortController.invokeDeviceFunc(
                     Define.FUNC_WRITE_PLAY_VOD_LIVE,
-                    globalProperties.volume
+                    GlobalProperties.volume
                 )
                 serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
             }
@@ -118,12 +119,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-            if (globalProperties.logEnabled)
+            if (GlobalProperties.logEnabled)
                 logUtils.logStartTimeFrame(frame)
         }
 
         override fun onEndTimeFrame(frame: String) {
-            if (globalProperties.logEnabled)
+            if (GlobalProperties.logEnabled)
                 logUtils.logEndTimeFrame(frame)
         }
 
@@ -132,8 +133,8 @@ class MainActivity : AppCompatActivity() {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0"
                 else "1"
 
-                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
+                val pipsData = "${GlobalProperties.piCode},${GlobalProperties.psName}"
+                val tunerData = "$tunerType,${mediaItem.path},${GlobalProperties.volume}"
 
                 serialPortController.invokeDeviceFunc(
                     Define.FUNC_WRITE_SETUP_PI_PS_NAME,
@@ -177,7 +178,6 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         disableSSL()
@@ -208,19 +208,7 @@ class MainActivity : AppCompatActivity() {
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
-
-        globalProperties = GlobalProperties(applicationContext)
-
         logUtils = LogUtils(applicationContext)
-
-        lifecycleScope.launch {
-            delay(5000)
-            mediaCapture.startCaptureAudio()
-            delay(20000)
-            mediaCapture.stopAudioCapture()
-            delay(1000)
-            //mediaCapture.updateRecordedAudio("${applicationContext.filesDir.path}/recorded/2204")
-        }
     }
 
     /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
@@ -235,6 +223,40 @@ class MainActivity : AppCompatActivity() {
              }
          }
      }*/
+
+    private fun checkTime()
+    {
+        SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener
+        {
+            override fun onTimeReceived(rawDate: String?) {
+                if(rawDate == null) return
+
+                try {
+                    val receiveFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+                    val receivedDate = receiveFormat.parse(rawDate)
+
+                    if(abs(receivedDate.time - Date().time) > 30000)
+                    {
+
+                        Log.d("Time","Sync")
+
+                        val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+                        setSystemTime(dateFormat.format(receivedDate))
+
+                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                    }
+                }
+                catch (e : Exception)
+                {
+                    e.printStackTrace()
+                }
+            }
+
+            override fun onError(ex: java.lang.Exception?) {
+                ex?.printStackTrace()
+            }
+        })
+    }
 
     override fun onStop() {
         super.onStop()
@@ -294,7 +316,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun startPlayingMedia() {
+    fun startPlayingMedia() {
         viewModel.getPlayerContent("", false)
         viewModel.checkPlaylist()
     }
@@ -303,6 +325,8 @@ class MainActivity : AppCompatActivity() {
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
+                checkTime()
+
                 if (hubManager.hubConnection == null) {
                     hubManager.createNewHubConnection()
                     Log.d("Connected", "Connected")
@@ -338,7 +362,7 @@ class MainActivity : AppCompatActivity() {
 
                         playerManager.stopAllPlayer()
 
-                        globalProperties.saveProperties(responseHub)
+                        GlobalProperties.saveProperties(responseHub)
 
                         cancelAllAlarm()
                         ForceMedia.deleteForeMediaPref(applicationContext)
@@ -402,7 +426,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
-                            globalProperties.saveVolume(responseHub.message!!)
+                            GlobalProperties.saveVolume(responseHub.message!!)
 
                             serialPortController.invokeDeviceFunc(
                                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
@@ -580,7 +604,7 @@ class MainActivity : AppCompatActivity() {
         return adapter.toJson(list)
     }
 
-    private fun cancelAllAlarm() {
+    fun cancelAllAlarm() {
         if (ForceMedia.hasValidForceMedia(applicationContext))
             mediaScheduler.cancelForceMediaAlarm()
         else {

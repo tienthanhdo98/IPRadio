@@ -14,7 +14,7 @@ abstract class BaseRepo<T>(
 
     private var saveFileJob: Job? = null
 
-    protected val coroutineScope = CoroutineScope(Dispatchers.Default)
+    protected val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     suspend fun saveItemsToFile(playlist: List<T>) {
         saveFileJob?.join()
@@ -29,6 +29,7 @@ abstract class BaseRepo<T>(
                     Log.e("BaseRepo", "error writing playlist!!!")
                     e.printStackTrace()
                 }
+                //saveFileJob = null
             }
         }
     }
