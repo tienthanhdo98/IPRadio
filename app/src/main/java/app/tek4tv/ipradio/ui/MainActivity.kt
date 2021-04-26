@@ -639,11 +639,6 @@ class MainActivity : AppCompatActivity() {
             //endtime
             forceMedia.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
             playForceMedia(forceMedia)
-
-            serialPortController.invokeDeviceFunc(
-                Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                responseHub.volume
-            )
         } catch (e: Exception) {
             e.printStackTrace()
         }
