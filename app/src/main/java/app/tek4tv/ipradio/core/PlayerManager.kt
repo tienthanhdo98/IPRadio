@@ -380,8 +380,12 @@ class PlayerManager(
                 t += mediaDuration
 
                 if (t > secondFromStart) {
-                    val startTimeStamp = mediaDuration - (t - secondFromStart)
-                    return Pair(i, startTimeStamp)
+                    return if(GlobalProperties.resumeFromStart) {
+                        Pair(i, 0)
+                    } else {
+                        val startTimeStamp = mediaDuration - (t - secondFromStart)
+                        Pair(i, startTimeStamp)
+                    }
                 }
             }
 
