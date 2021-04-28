@@ -71,6 +71,6 @@ class LogUtils(private val appContext: Context) {
 
     fun onActivityStop()
     {
-        coroutineScope.cancel()
+        //coroutineScope.cancel()
     }
 }

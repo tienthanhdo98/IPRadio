@@ -313,12 +313,14 @@ class MainActivity : AppCompatActivity() {
             mediaScheduler.scheduleAllAlarms()
 
             playerManager.startFirstPlaylist()
+
+            //all load done, check
+            viewModel.checkPlaylist()
         }
     }
 
     fun startPlayingMedia() {
         viewModel.getPlayerContent("", false)
-        viewModel.checkPlaylist()
     }
 
 

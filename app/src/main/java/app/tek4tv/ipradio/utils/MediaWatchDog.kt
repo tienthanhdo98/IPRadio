@@ -25,36 +25,64 @@ class MediaWatchDog(
                     continue
                 }
                 Log.d(LOG_TAG, "begin check media")
-                //if (playlist.isNotEmpty()) {
-                var foundBrokenPath = false
-                mediaRepo.broadcastList.forEach {
-                    if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.VOD) return@forEach
 
-                    val mediaPath = it.path
-                    if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
-                        if (it.pathBackup.startsWith("http")) it.path = it.pathBackup
-                        foundBrokenPath = true
-                    }
-                }
+                checkBrokenPath()
 
-                if (foundBrokenPath)
-                    mediaRepo.saveItemsToFile(mediaRepo.broadcastList)//savePlaylist(broadcastList, appContext.filesDir.path)
-
-                val needDownload = mediaRepo.broadcastList.filter {
-                    it.path.startsWith("http")
-                }
-
-                if (needDownload.isNotEmpty()) {
-                    needDownload.forEach {
-                        mediaRepo.downloadAMediaItem(it)
-                    }
-                } //downloadMedias(appContext)
-
-                Log.d("checkplaylist", (needDownload.isNotEmpty()).toString())
-                //}
+                checkDownload()
                 Log.d(LOG_TAG, "end check media")
+
                 delay(delayDuration)
             }
         }
+    }
+
+    private suspend fun checkBrokenPath()
+    {
+        try {
+            var foundBrokenPath = false
+            mediaRepo.broadcastList.forEach {
+                if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.VOD) return@forEach
+
+                val mediaPath = it.path
+                if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
+                    if (it.pathBackup.startsWith("http")) it.path = it.pathBackup
+                    foundBrokenPath = true
+                }
+            }
+
+            if (foundBrokenPath)
+                mediaRepo.saveItemsToFile(mediaRepo.broadcastList)
+        }
+        catch (e: Exception)
+        {
+            Log.e(LOG_TAG, "error check path")
+            e.printStackTrace()
+        }
+    }
+
+    private fun checkDownload()
+    {
+        try {
+            val needDownload = mediaRepo.broadcastList.filter {
+                it.getMediaType() == MediaType.VOD && it.path.startsWith("http")
+            }
+
+            if (needDownload.isNotEmpty()) {
+                needDownload.forEach {
+                    mediaRepo.downloadAMediaItem(it)
+                }
+            }
+        }
+        catch (e : Exception)
+        {
+            Log.e(LOG_TAG, "error check download")
+            e.printStackTrace()
+        }
+    }
+
+    fun cancelCheck()
+    {
+        checkPlaylistJob?.cancel()
+        checkPlaylistJob = null
     }
 }

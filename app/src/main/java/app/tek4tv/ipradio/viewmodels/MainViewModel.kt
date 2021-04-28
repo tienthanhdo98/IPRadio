@@ -27,6 +27,9 @@ class MainViewModel @ViewModelInject constructor(
         viewModelScope.launch {
             getContentJob?.join()
 
+            //cancel media check here
+            mediaWatchdog.cancelCheck()
+
             getContentJob = launch {
                 val mediaList = mediaRepo.getBroadcastList(needUpdate, listUrl)
 
