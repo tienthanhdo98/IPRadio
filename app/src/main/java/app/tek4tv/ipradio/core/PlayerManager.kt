@@ -13,6 +13,7 @@ import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import kotlinx.coroutines.*
@@ -56,10 +57,17 @@ class PlayerManager(
     private var isUsingExoPlayer = false
     private var currentExoState = -1
 
+    var isLiveStreamError = false
+
     private val exoEventListener = object : Player.EventListener {
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
             currentExoState = state
+
+            if (state == ExoPlayer.STATE_READY)
+            {
+                checkTurnOnPaLive()
+            }
 
             Log.d(LOGTAG,"exo state: $state")
         }
@@ -70,8 +78,14 @@ class PlayerManager(
             Log.d(LOGTAG,"exoerror: ${error.message?:""}")
             error.printStackTrace()
 
-            if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!))
+            isLiveStreamError = true
+
+            playerCallback?.onLiveError()
+
+            if(currentPlayingMedia!=null/* && checkHls(currentPlayingMedia!!)*/) {
                 playMedia(currentPlayingMedia!!)
+                Log.d(LOGTAG, "aaaaaaaaa")
+            }
         }
     }
 
@@ -83,14 +97,6 @@ class PlayerManager(
         vlcPlayer = CustomPlayer(mLibVLC)
 
         instance = this
-
-        /*coroutineScope.launch {
-            while (true)
-            {
-                delay(3000)
-                Log.d(LOGTAG,"vlc media: ${currentVlcMedia?.state ?: ""}")
-            }
-        }*/
     }
 
 
@@ -134,6 +140,8 @@ class PlayerManager(
 
 
     fun endScheduledMediaByIndex(mediaIndex: Int) {
+        isLiveStreamError = false
+
         val scheduledItems = viewModel.mediaRepo.scheduledMediaItems
         if (mediaIndex >= scheduledItems.size) return
 
@@ -146,6 +154,14 @@ class PlayerManager(
         playNextMedia()
     }
 
+    private fun resetState()
+    {
+        isUsingExoPlayer = false
+        //isLiveStreamError = false
+        vlcPlayer.eventListener = { _, _, _, _, _ -> }
+        exoPlayer.removeListener(exoEventListener)
+    }
+
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
 
         currentPlayingMedia = mediaItem
@@ -155,11 +171,8 @@ class PlayerManager(
                 currentVlcMedia?.release()
         }
 
-        isUsingExoPlayer = false
-
         try {
-            vlcPlayer.eventListener = { _, _, _, _, _ -> }
-            exoPlayer.removeListener(exoEventListener)
+            resetState()
 
             when (mediaItem.getMediaType()) {
                 MediaType.VOD -> {
@@ -251,19 +264,26 @@ class PlayerManager(
             when (event) {
                 MediaPlayer.Event.EndReached -> {
                     Log.d(LOGTAG, "EndReached")
-                    if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
-                        tryReconnectLiveStream(mediaItem)
-                    playerCallback?.onLiveError()
+                    onLiveErrorVlc(mediaItem, stream)
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
                     Log.e(LOGTAG, "EncounteredError")
-                    if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
-                        tryReconnectLiveStream(mediaItem)
-                    playerCallback?.onLiveError()
+                    onLiveErrorVlc(mediaItem, stream)
+                }
+                MediaPlayer.Event.Playing -> {
+                    checkTurnOnPaLive()
                 }
             }
         }
+    }
+
+    private fun onLiveErrorVlc(mediaItem: MediaItem, stream: Media)
+    {
+        if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
+            tryReconnectLiveStream(mediaItem)
+        isLiveStreamError = true
+        playerCallback?.onLiveError()
     }
 
     private fun playHlsExo(mediaItem: MediaItem)
@@ -305,6 +325,16 @@ class PlayerManager(
         Log.d(LOGTAG, "check: $check")
 
         return check
+    }
+
+    //call when successfully reconnect to live stream to turn on PA
+    private fun checkTurnOnPaLive()
+    {
+        if(isLiveStreamError)
+        {
+            isLiveStreamError = false
+            playerCallback?.requestTurnOnPa()
+        }
     }
 
     private fun checkHls(mediaItem: MediaItem): Boolean {
@@ -478,4 +508,5 @@ interface PlayerCallback {
     fun onEndForceMedia()
     fun rescheduleMedias()
     fun onLiveError()
+    fun requestTurnOnPa()
 }

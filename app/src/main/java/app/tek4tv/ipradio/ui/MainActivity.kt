@@ -99,20 +99,14 @@ class MainActivity : AppCompatActivity() {
 
             if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
+                && !playerManager.isLiveStreamError
             ) {
-                serialPortController.invokeDeviceFunc(
-                    Define.FUNC_WRITE_PLAY_VOD_LIVE,
-                    GlobalProperties.volume
-                )
-                serialPortController.playMode = SerialPortController.MODE_VOD_LIVE
+               serialPortController.turnOnPAVod()
             }
         }
 
         override fun onTimeOver() {
-            serialPortController.apply {
-                invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
-                playMode = SerialPortController.MODE_NONE
-            }
+            serialPortController.turnOffPA()
 
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
@@ -164,16 +158,14 @@ class MainActivity : AppCompatActivity() {
         override fun onLiveError() {
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+
+            serialPortController.turnOffPA()
+        }
+
+        override fun requestTurnOnPa() {
+            serialPortController.turnOnPAVod()
         }
     }
-
-    fun turnoffPA() {
-        serialPortController.apply {
-            invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
-            playMode = SerialPortController.MODE_NONE
-        }
-    }
-
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

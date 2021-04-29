@@ -4,6 +4,7 @@ import android.content.Context
 import android.telephony.CellSignalStrength
 import android.util.Log
 import app.tek4tv.ipradio.utils.Define
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.NetworkUtils
 import app.tek4tv.ipradio.utils.Utils
 import kotlinx.coroutines.*
@@ -82,14 +83,13 @@ class SerialPortController(
                 var param = if (onAir) "1" else "0"
                 if (onAir && looseHubConnection) {
                     //if (looseHubConnection) {
-                        param = "2"
+                    param = "2"
                     //}
                 }
                 Log.d(LOG_TAG, "status: $param")
 
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
-                val strength = when(networkClass)
-                {
+                val strength = when (networkClass) {
                     "2G", "3G", "4G" -> {
                         val cellStrength = NetworkUtils.getCellSignalStrengthInDbm(appContext)
                         if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
@@ -175,25 +175,30 @@ class SerialPortController(
         }
     }
 
-    fun invokeDeviceFunc(funcId : String, data : String, isRead : Boolean = false)
-    {
-        if(isRead)
-        {
-            writeToDevice(buildReadMessage(funcId,data))
-        }
-        else
-        {
-            writeToDevice(buildWriteMessage(funcId,data))
+    fun invokeDeviceFunc(funcId: String, data: String, isRead: Boolean = false) {
+        if (isRead) {
+            writeToDevice(buildReadMessage(funcId, data))
+        } else {
+            writeToDevice(buildWriteMessage(funcId, data))
         }
         Log.d(LOG_TAG, "invoke $funcId with $data, isRead: $isRead")
     }
 
+    fun turnOffPA() {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+        playMode = MODE_NONE
+    }
 
-    companion object
+    fun turnOnPAVod()
     {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.volume)
+        playMode = MODE_VOD_LIVE
+    }
+
+    companion object {
         const val MODE_VOD_LIVE = "MODE_VOD_LIVE"
         const val MODE_TUNER = "MODE_TUNER"
         const val MODE_NONE = "MODE_NONE"
-        const val LOG_TAG="SerialPortController"
+        const val LOG_TAG = "SerialPortController"
     }
 }
