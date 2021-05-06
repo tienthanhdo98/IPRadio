@@ -452,7 +452,6 @@ class PlayerManager(
 
     fun stopAllPlayer() {
         vlcPlayer.eventListener = { _, _, _, _, _ -> }
-        reconnectingLiveStreamJob?.cancel()
 
         try {
             exoPlayer.stop()
@@ -475,6 +474,10 @@ class PlayerManager(
     fun playForceMedia(forceMedia: ForceMedia) {
         currentPlaylistKey = PLAY_MODE_FORCE
         stopAllPlayer()
+
+        if(reconnectingLiveStreamJob != null && reconnectingLiveStreamJob!!.isActive)
+            reconnectingLiveStreamJob?.cancel()
+
         playMedia(forceMedia.toMediaItem())
     }
 
