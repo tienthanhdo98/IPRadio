@@ -201,20 +201,21 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
-    }
 
-    /* override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-         super.onActivityResult(requestCode, resultCode, data)
-         if (requestCode == 69) {
-             Toast.makeText(this, "capture", Toast.LENGTH_LONG).show()
-             lifecycleScope.launch {
-                 val isPortrait = orientation == 2 || orientation == 3
-                 mediaCapture.captureImageMega(playlistService,
-                     mediaProjectionManager.getMediaProjection(resultCode, data),
-                     resources.displayMetrics.densityDpi, isPortrait)
-             }
-         }
-     }*/
+        /*lifecycleScope.launch {
+            delay(60000)
+            val rp = ResponseHub().apply {
+                message="https://streaming1.vov.vn:8443/audio/vovvn1_vov3.stream_aac/playlist.m3u8"
+                duration = 3
+                type = "LIVE"
+                level = 0
+            }
+            playForceMedia(rp)
+            delay(20000)
+            rp.message = "rtsp://live.tek4tv.vn:1935/live/box"
+            playForceMedia(rp)
+        }*/
+    }
 
     private fun checkTime()
     {

@@ -302,7 +302,11 @@ class PlayerManager(
             var needReconnect = true
             while (needReconnect) {
                 Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
-                playMedia(mediaItem)
+
+                withContext(Dispatchers.Main)
+                {
+                    playMedia(mediaItem)
+                }
 
                 delay(10000)
 
@@ -448,9 +452,13 @@ class PlayerManager(
 
     fun stopAllPlayer() {
         vlcPlayer.eventListener = { _, _, _, _, _ -> }
+        reconnectingLiveStreamJob?.cancel()
 
         try {
-            if(isUsingExoPlayer)
+            exoPlayer.stop()
+            if(vlcPlayer.isPlaying)
+                vlcPlayer.stop()
+            /*if(isUsingExoPlayer)
             {
                 exoPlayer.stop()
             }
@@ -458,7 +466,7 @@ class PlayerManager(
             {
                 if(vlcPlayer.isPlaying)
                     vlcPlayer.stop()
-            }
+            }*/
         } catch (e: Exception) {
             e.printStackTrace()
         }
