@@ -345,7 +345,6 @@ class MainActivity : AppCompatActivity() {
             }
 
             val responseHub = hubManager.responseHub
-            //volume = responseHub.volume ?: ""
 
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
             if (isImei) {
@@ -359,6 +358,11 @@ class MainActivity : AppCompatActivity() {
 
                         GlobalProperties.saveProperties(responseHub)
 
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                            responseHub.volume
+                        )
+
                         cancelAllAlarm()
                         ForceMedia.deleteForeMediaPref(applicationContext)
 
@@ -371,6 +375,11 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.JUMP -> {
                     }
                     HubCommand.LIVE -> {
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                            GlobalProperties.volume
+                        )
+
                         playForceMedia(responseHub)
                     }
                     HubCommand.UPDATE_STATUS -> {
@@ -409,6 +418,11 @@ class MainActivity : AppCompatActivity() {
 
                     }
                     HubCommand.SWITCH_MODE_FM -> {
+                        serialPortController.invokeDeviceFunc(
+                            Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                            GlobalProperties.volume
+                        )
+
                         playForceMedia(responseHub)
                     }
                     HubCommand.SET_MUTE_DEVICE -> {
@@ -421,7 +435,7 @@ class MainActivity : AppCompatActivity() {
                     }
                     HubCommand.SET_VOLUME_DEVICE -> {
                         if (responseHub.message != null) {
-                            GlobalProperties.saveVolume(responseHub.message!!)
+                            //GlobalProperties.saveVolume(responseHub.message!!)
 
                             serialPortController.invokeDeviceFunc(
                                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
