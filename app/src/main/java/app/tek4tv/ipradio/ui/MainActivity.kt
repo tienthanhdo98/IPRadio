@@ -704,6 +704,13 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    fun forceRestart() {
+        serialPortController.invokeDeviceFunc(
+            Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
+            "", true
+        )
+    }
+
     companion object {
         const val LOG_TAG = "MainActivity"
     }

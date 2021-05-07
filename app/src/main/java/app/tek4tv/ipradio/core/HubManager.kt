@@ -118,6 +118,7 @@ class HubManager(
         //open connection on another thread
         return withContext(Dispatchers.Default) {
             try {
+                hubConnection!!.onClosed { Log.e(LOG_TAG,"Connection closed") }
                 hubConnection!!.start().blockingAwait()
                 hubConnection!!.connectionId
             } catch (e: Exception) {
@@ -242,6 +243,12 @@ class HubManager(
 
     private fun checkConnection() {
         if (pingCounter >= 3) {
+            if(pingCounter >= 100)
+            {
+                mainActivity.forceRestart()
+                return
+            }
+
             Log.e(LOG_TAG, "Losed hub connection")
 
             try {
@@ -261,20 +268,6 @@ class HubManager(
             responseHub = ResponseHub()
             if (message.startsWith("{")) {
                 responseHub = responseAdapter.fromJson(message)!!
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun syncTimeWithServer(timeFromServer: String) {
-        try {
-            val time = dateFormat.parse(timeFromServer)
-            val now = Date()
-
-            if (abs(time.time - now.time) >= 3000) {
-                setSystemTime(timeFromServer)
-                Log.d("timesync", "sync with server time: $timeFromServer")
             }
         } catch (e: Exception) {
             e.printStackTrace()
