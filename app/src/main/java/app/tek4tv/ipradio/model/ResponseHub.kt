@@ -38,4 +38,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Resume")
     var resumeFromStart: Boolean? = null
+
+    @Json(name = "Name")
+    var name : String = ""
 }

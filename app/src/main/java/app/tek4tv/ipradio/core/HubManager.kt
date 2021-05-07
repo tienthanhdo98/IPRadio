@@ -195,16 +195,20 @@ class HubManager(
 
                 var mode = "-1"
 
-                val curMediaItem = currentMediaItem
-
-                if (curMediaItem != null) {
-                    val path = curMediaItem.path
+                if (currentMediaItem != null) {
+                    val path = currentMediaItem!!.path
                     mode = if (path.isNotEmpty() && !File(path).exists()) "1"
                     else "0"
                 }
 
                 val video = Video("" + i, mode).apply {
-                    mediaName = curMediaName
+
+                    if(currentMediaItem!=null)
+                    {
+                        mediaName = curMediaName
+                        path = currentMediaItem!!.path
+                        level = currentMediaItem!!.level
+                    }
                 }
 
                 val request = PingHubRequest().apply {

@@ -24,7 +24,27 @@ data class ForceMedia(
     @Json(name = "EndTime")
     var endTime = ""
 
-    fun toMediaItem(): MediaItem = MediaItem(path = path, name = path, type = type)
+    @Json(name = "FixTime")
+    var fixTime = ""
+
+    @Json(name = "Name")
+    var name = ""
+
+    fun toMediaItem(): MediaItem {
+        val h = duration / 60
+        val m = duration - h * 60
+
+        val hs = if (h >= 10) "$h" else "0$h"
+        val ms = if (m >= 10) "$m" else "0$m"
+
+        return MediaItem(
+            path = path,
+            name = name,
+            type = type,
+            fixTime = fixTime,
+            duration = "$hs:$ms:00",
+        ).also { it.level = level }
+    }
 
     fun saveItemToPref(appContext: Context) {
         ConfigUtil.run {

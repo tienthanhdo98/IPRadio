@@ -21,6 +21,7 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
+import java.text.SimpleDateFormat
 import java.util.*
 
 class PlayerManager(
@@ -318,12 +319,18 @@ class PlayerManager(
     }
     //check to see if there is an error when playing livestream
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
+        if(currentPlayingMedia!=null && currentPlayingMedia!!.path != mediaItem.path) return false
+
         val now = Calendar.getInstance()
 
         val liveEndTime = toCalendar(mediaItem.fixTime).apply {
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
         }
-        val check = (now < liveEndTime)
+
+        Log.d("timeee","${SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(now.time)}")
+        Log.d("timeee","${SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(liveEndTime.time)}")
+
+        val check = (now <= liveEndTime)
                 && (stream.state != IMedia.State.Playing)
 
         Log.d(LOGTAG, "check: $check")
@@ -475,8 +482,11 @@ class PlayerManager(
         currentPlaylistKey = PLAY_MODE_FORCE
         stopAllPlayer()
 
-        if(reconnectingLiveStreamJob != null && reconnectingLiveStreamJob!!.isActive)
+        if(reconnectingLiveStreamJob != null)
+        {
             reconnectingLiveStreamJob?.cancel()
+            reconnectingLiveStreamJob = null
+        }
 
         playMedia(forceMedia.toMediaItem())
     }

@@ -91,7 +91,7 @@ class MainActivity : AppCompatActivity() {
             hubManager.playlistIndex = index
             hubManager.currentMediaItem = mediaItem
 
-            val displayName = mediaItem.getDisplayName()
+            val displayName = mediaItem.name ?: ""//mediaItem.getDisplayName()
             hubManager.curMediaName = displayName
 
             if (GlobalProperties.logEnabled)
@@ -612,6 +612,7 @@ class MainActivity : AppCompatActivity() {
             val duration = responseHub.duration
             val type = responseHub.type
             val level = responseHub.level
+            val mediaName = responseHub.name
 
             //if we are playing a force media that has a higher level, skip playing this
             if (playerManager.currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
@@ -619,20 +620,28 @@ class MainActivity : AppCompatActivity() {
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
 
-                    if (currentForceMedia != null && currentForceMedia.level > level) {
+                    if (currentForceMedia != null && currentForceMedia.level < level) {
                         Log.d(LOG_TAG, "aaaaaaaaaaaaaaaaaaa")
                         return
                     }
                 }
             }
 
-            val forceMedia = ForceMedia(responseHub.message!!, duration, type, level)
+            val forceMedia = ForceMedia(responseHub.message!!, duration, type, level).apply {
+                val mediaEndTime = Calendar.getInstance().apply {
+                    add(Calendar.MINUTE, duration)
+                }
+                endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
+                fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+                name = mediaName
+            }
 
-            val endTime = Calendar.getInstance().apply {
+            /*val endTime = Calendar.getInstance().apply {
                 add(Calendar.MINUTE, duration)
             }
             //endtime
-            forceMedia.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
+            *//*forceMedia.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
+            forceMedia.fixTime = SimpleDateFormat("HH:mm:ss").format(Date())*/
             playForceMedia(forceMedia)
         } catch (e: Exception) {
             e.printStackTrace()

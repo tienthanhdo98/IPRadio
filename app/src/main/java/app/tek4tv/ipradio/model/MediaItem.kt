@@ -11,8 +11,6 @@ import java.io.Serializable
 
 @JsonClass(generateAdapter = true)
 data class MediaItem(
-    //@Json(name = "Index") var index: String? = null,
-
     @Json(name = "Name") var name: String? = null,
 
     @Json(name = "ID") var id: Int = 0,
@@ -25,6 +23,8 @@ data class MediaItem(
 
     @Json(name = "Type") var type : String = "",
 ) : Serializable {
+
+    @Json(name = "Level") var level : Int = -1
 
     var pathBackup: String = ""
         set(value) {
@@ -62,15 +62,6 @@ data class MediaItem(
         } else {
             Log.d("player", "online: $pathBackup")
             Media(mLibVLC, Uri.parse(pathBackup))
-        }
-    }
-
-    fun getDisplayName() : String{
-        return when(getMediaType())
-        {
-            MediaType.VOD -> name?:" "
-            MediaType.LIVE, MediaType.FM , MediaType.AM->  "${name?:""} $path"
-            else -> ""
         }
     }
 

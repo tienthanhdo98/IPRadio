@@ -10,5 +10,9 @@ class Video(
 
     @Json(name = "MediaName") var mediaName: String = "",
 
-    @Json(name = "AudioName") var audioName: String = " "
+    @Json(name = "AudioName") var audioName: String = " ",
+
+    @Json(name = "Path") var path: String = "",
+
+    @Json(name = "Level") var level : Int = -1
 )
