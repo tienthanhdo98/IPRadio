@@ -324,10 +324,12 @@ class MainActivity : AppCompatActivity() {
             if (isConnected) {
                 checkTime()
 
-                if (hubManager.hubConnection == null) {
-                    hubManager.createNewHubConnection()
+                hubManager.createNewHubConnection()
+
+                /*if (hubManager.hubConnection == null) {
+
                     Log.d("Connected", "Connected")
-                }
+                }*/
 
                 locationTracker.getLocation(this@MainActivity)
             } else {

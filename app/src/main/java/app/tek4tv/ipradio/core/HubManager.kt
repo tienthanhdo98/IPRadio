@@ -28,6 +28,7 @@ class HubManager(
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null
+
     //private var reconnectingJob: Job? = null
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
@@ -123,9 +124,16 @@ class HubManager(
         //open connection on another thread
         return withContext(Dispatchers.Default) {
             try {
-                hubConnection!!.start().retry().doOnComplete {
-                    hubEventObserver.forEach { it.onConnectedToHub() }
-                }.blockingAwait()
+                hubConnection!!.start()
+                    /*.doOnComplete {
+                        hubEventObserver.forEach { it.onConnectedToHub() }
+                    }*/
+                    .retry()
+                    .doOnError {
+                        Log.e(LOG_TAG,it.message ?: "Error open connection")
+                        //it.printStackTrace()
+                    }
+                    .blockingAwait()
                 hubConnection!!.connectionId
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
@@ -210,8 +218,7 @@ class HubManager(
 
                 val video = Video("" + i, mode).apply {
 
-                    if(currentMediaItem!=null)
-                    {
+                    if (currentMediaItem != null) {
                         mediaName = curMediaName
                         path = currentMediaItem!!.path
                         level = currentMediaItem!!.level
@@ -251,8 +258,7 @@ class HubManager(
         if (pingCounter >= 3) {
             hubEventObserver.forEach { it.onLostHubConnection() }
 
-            if(pingCounter >= 100)
-            {
+            if (pingCounter >= 100) {
                 mainActivity.forceRestart()
                 return
             }
@@ -284,8 +290,7 @@ class HubManager(
     }
 }
 
-interface HubEventObserver
-{
+interface HubEventObserver {
     fun onLostHubConnection()
     fun onConnectedToHub()
 }
