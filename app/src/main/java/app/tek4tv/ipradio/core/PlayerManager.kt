@@ -28,7 +28,7 @@ class PlayerManager(
     applicationContext: Context,
     private var viewModel: MainViewModel,
     private var rootLayout: View
-) {
+) : HubEventObserver {
     private val mLibVLC: LibVLC
     private val vlcPlayer: CustomPlayer
 
@@ -302,6 +302,13 @@ class PlayerManager(
         reconnectingLiveStreamJob = coroutineScope.launch(Dispatchers.Default) {
             var needReconnect = true
             while (needReconnect) {
+
+                if(!connectedToHub) {
+                    Log.e(LOGTAG, "abort live $connectedToHub")
+                    delay(15000)
+                    continue
+                }
+
                 Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
 
                 withContext(Dispatchers.Main)
@@ -309,7 +316,7 @@ class PlayerManager(
                     playMedia(mediaItem)
                 }
 
-                delay(10000)
+                delay(15000)
 
                 needReconnect = checkLiveStream(mediaItem, currentVlcMedia!!)
             }
@@ -510,6 +517,16 @@ class PlayerManager(
     fun onActivityDestroy() {
         if (!vlcPlayer.isReleased) vlcPlayer.release()
         mLibVLC.release()
+    }
+
+    var connectedToHub = false
+
+    override fun onLostHubConnection() {
+        connectedToHub = false
+    }
+
+    override fun onConnectedToHub() {
+        connectedToHub = true
     }
 
     companion object {

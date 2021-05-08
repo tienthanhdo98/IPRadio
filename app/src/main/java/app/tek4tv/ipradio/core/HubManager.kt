@@ -34,6 +34,8 @@ class HubManager(
     private val deviceImei = Utils.getDeviceId(mainActivity.applicationContext)
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
+    val hubEventObserver = mutableListOf<HubEventObserver>()
+
     var pingCounter = 69
 
     //var lastPing = ""
@@ -84,6 +86,7 @@ class HubManager(
 
             if (connectionId != null) {
                 Log.d("Connected", connectionId)
+                hubEventObserver.forEach { it.onConnectedToHub() }
                 firstTimeConnected = true
                 startPingTimer()
 
@@ -241,8 +244,10 @@ class HubManager(
         }
     }
 
-    private fun checkConnection() {
+    private suspend fun checkConnection() {
         if (pingCounter >= 3) {
+            hubEventObserver.forEach { it.onLostHubConnection() }
+
             if(pingCounter >= 100)
             {
                 mainActivity.forceRestart()
@@ -259,6 +264,7 @@ class HubManager(
             }
 
             createNewHubConnection()
+            //openConnection()
         }
     }
 
@@ -273,4 +279,10 @@ class HubManager(
             e.printStackTrace()
         }
     }
+}
+
+interface HubEventObserver
+{
+    fun onLostHubConnection()
+    fun onConnectedToHub()
 }

@@ -189,6 +189,8 @@ class MainActivity : AppCompatActivity() {
         playerManager = PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerCallback = playerCallback
 
+        hubManager.hubEventObserver.add(playerManager)
+
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
