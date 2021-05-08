@@ -28,7 +28,7 @@ class HubManager(
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null
-    private var reconnectingJob: Job? = null
+    //private var reconnectingJob: Job? = null
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val deviceImei = Utils.getDeviceId(mainActivity.applicationContext)
@@ -58,22 +58,24 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
+
+        hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
     }
 
 
     //this var used to check whether a connection to hub has ever been made
-    var firstTimeConnected = false
+    //var firstTimeConnected = false
 
     fun createNewHubConnection(forceReconnect: Boolean = false) {
-        if (!forceReconnect && openNewConnectionJob != null && openNewConnectionJob!!.isActive) return
+        /*if (!forceReconnect && openNewConnectionJob != null && openNewConnectionJob!!.isActive) return
 
         try {
             hubConnection?.close()
         } catch (e: Exception) {
             //e.printStackTrace()
-        }
+        }*/
 
-        hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
+        //hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
 
         connectToHub()
         onMessage()
@@ -87,27 +89,27 @@ class HubManager(
             if (connectionId != null) {
                 Log.d("Connected", connectionId)
                 hubEventObserver.forEach { it.onConnectedToHub() }
-                firstTimeConnected = true
+                //firstTimeConnected = true
                 startPingTimer()
 
-                if (reconnectingJob != null) {
+                /*if (reconnectingJob != null) {
                     reconnectingJob?.cancel()
                     reconnectingJob = null
-                }
+                }*/
             } else {
                 /*
                  Avoid when we open the app for first time, have network but cannot connect to hub,
                  the ping hub timer hasn't started yet(cannot check for hub connection every 15s)
                 */
 
-                if (!firstTimeConnected && reconnectingJob == null)
-                    tryReconnect()
+                /*if (!firstTimeConnected && reconnectingJob == null)
+                    tryReconnect()*/
             }
             openNewConnectionJob = null
         }
     }
 
-    private fun tryReconnect() {
+    /*private fun tryReconnect() {
         reconnectingJob?.cancel()
         reconnectingJob = lifecycleScope.launch(Dispatchers.Default) {
             while (true) {
@@ -115,14 +117,15 @@ class HubManager(
                 createNewHubConnection(true)
             }
         }
-    }
+    }*/
 
     private suspend fun openConnection(): String? {
         //open connection on another thread
         return withContext(Dispatchers.Default) {
             try {
-                hubConnection!!.onClosed { Log.e(LOG_TAG,"Connection closed") }
-                hubConnection!!.start().blockingAwait()
+                hubConnection!!.start().retry().doOnComplete {
+                    hubEventObserver.forEach { it.onConnectedToHub() }
+                }.blockingAwait()
                 hubConnection!!.connectionId
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
