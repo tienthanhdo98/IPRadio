@@ -79,33 +79,40 @@ class HubManager(
         //hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
 
         connectToHub()
-        onMessage()
+        //onMessage()
     }
 
     private fun connectToHub() {
         openNewConnectionJob?.cancel()
         openNewConnectionJob = lifecycleScope.launch {
-            val connectionId = openConnection()
+            var connectionId = openConnection()
 
-            if (connectionId != null) {
+            while (connectionId == null)
+            {
+                delay(10000)
+                connectionId = openConnection()
+                Log.e(LOG_TAG, "Trying to reconnect...")
+            }
+
+            /*if (connectionId != null) {
                 Log.d("Connected", connectionId)
                 hubEventObserver.forEach { it.onConnectedToHub() }
                 //firstTimeConnected = true
                 startPingTimer()
 
-                /*if (reconnectingJob != null) {
+                if (reconnectingJob != null) {
                     reconnectingJob?.cancel()
                     reconnectingJob = null
-                }*/
+                }
             } else {
-                /*
+
                  Avoid when we open the app for first time, have network but cannot connect to hub,
                  the ping hub timer hasn't started yet(cannot check for hub connection every 15s)
-                */
 
-                /*if (!firstTimeConnected && reconnectingJob == null)
-                    tryReconnect()*/
-            }
+
+                if (!firstTimeConnected && reconnectingJob == null)
+                    tryReconnect()
+            }*/
             openNewConnectionJob = null
         }
     }
@@ -125,13 +132,10 @@ class HubManager(
         return withContext(Dispatchers.Default) {
             try {
                 hubConnection!!.start()
-                    /*.doOnComplete {
+                    .doOnComplete {
+                        onMessage()
+                        startPingTimer()
                         hubEventObserver.forEach { it.onConnectedToHub() }
-                    }*/
-                    .retry()
-                    .doOnError {
-                        Log.e(LOG_TAG,it.message ?: "Error open connection")
-                        //it.printStackTrace()
                     }
                     .blockingAwait()
                 hubConnection!!.connectionId
