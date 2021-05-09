@@ -18,12 +18,9 @@ import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.google.android.exoplayer2.util.SntpClient
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
@@ -178,7 +175,18 @@ class MainActivity : AppCompatActivity() {
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
-        hubManager = HubManager(lifecycleScope, this) { command, message ->
+        val hubComm = object  : HubComm
+        {
+            override fun forceRestartApp() {
+                CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+            }
+
+            override fun forceRestartDevice() {
+                this@MainActivity.forceRestartDevice()
+            }
+        }
+
+        hubManager = HubManager(hubComm) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -324,16 +332,11 @@ class MainActivity : AppCompatActivity() {
             if (isConnected) {
                 checkTime()
 
-                hubManager.createNewHubConnection()
-
-                /*if (hubManager.hubConnection == null) {
-
-                    Log.d("Connected", "Connected")
-                }*/
+                hubManager.connectToHub()
 
                 locationTracker.getLocation(this@MainActivity)
             } else {
-                hubManager.hubConnection = null
+
             }
         }
     }
@@ -708,7 +711,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    fun forceRestart() {
+    fun forceRestartDevice() {
         serialPortController.invokeDeviceFunc(
             Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
             "", true
