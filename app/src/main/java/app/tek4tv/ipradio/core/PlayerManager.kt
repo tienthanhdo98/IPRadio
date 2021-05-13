@@ -303,18 +303,18 @@ class PlayerManager(
             var needReconnect = true
             while (needReconnect) {
 
-                if(!connectedToHub) {
-                    Log.e(LOGTAG, "abort live $connectedToHub")
-                    delay(15000)
-                    continue
-                }
-
                 Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
 
-                withContext(Dispatchers.Main)
+                if(connectedToHub)
                 {
-                    playMedia(mediaItem)
+                    withContext(Dispatchers.Main)
+                    {
+                        playMedia(mediaItem)
+                    }
                 }
+                else
+                    Log.e(LOGTAG, "abort live $connectedToHub")
+
 
                 delay(15000)
 

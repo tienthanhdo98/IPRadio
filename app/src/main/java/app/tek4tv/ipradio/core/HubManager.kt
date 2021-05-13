@@ -22,6 +22,8 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit
 ) {
     private val LOG_TAG = "HubConnectionTask"
+    private val CONNECT_COUNTER_LIMIT = 100
+    private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
@@ -76,10 +78,10 @@ class HubManager(
             var i = 0
 
             while (connectionId == null) {
-                if(i >= 100) hubComm.forceRestartApp()
+                if(i >= CONNECT_COUNTER_LIMIT) hubComm.forceRestartApp()
 
                 i++
-                delay(10000)
+                delay(PING_INTERVAL)
                 connectionId = openConnection()
                 Log.e(LOG_TAG, "Trying to reconnect... $i")
             }
@@ -192,7 +194,7 @@ class HubManager(
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
-                connectionId = (hubConnection!!.connectionId)
+                connectionId = (hubConnection.connectionId)
                 this.video = videoAdapter.toJson(video)
                 startTine = dateFormat.format(Date())
                 networkInfo = NetworkUtils.getNetworkInfo(appContext)
@@ -211,7 +213,7 @@ class HubManager(
             while (true) {
                 sendPing()
                 Log.d(LOG_TAG, "ping: $pingCounter")
-                delay(15000)
+                delay(PING_INTERVAL)
                 checkConnection()
             }
         }
@@ -219,7 +221,7 @@ class HubManager(
 
     private suspend fun checkConnection() {
         //Danger here
-        if (pingCounter >= 100) {
+        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
             hubComm.forceRestartApp()
         }
 
