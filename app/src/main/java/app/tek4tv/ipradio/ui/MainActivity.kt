@@ -656,13 +656,6 @@ class MainActivity : AppCompatActivity() {
                 fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 name = mediaName
             }
-
-            /*val endTime = Calendar.getInstance().apply {
-                add(Calendar.MINUTE, duration)
-            }
-            //endtime
-            *//*forceMedia.endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(endTime.time)
-            forceMedia.fixTime = SimpleDateFormat("HH:mm:ss").format(Date())*/
             playForceMedia(forceMedia)
         } catch (e: Exception) {
             e.printStackTrace()
@@ -706,7 +699,7 @@ class MainActivity : AppCompatActivity() {
         try {
             val sc: SSLContext = SSLContext.getInstance("SSL")
             sc.init(null, trustAllCerts, SecureRandom())
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.getSocketFactory())
+            HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
         } catch (e: GeneralSecurityException) {
         }
     }

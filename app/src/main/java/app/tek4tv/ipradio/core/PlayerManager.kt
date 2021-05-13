@@ -83,7 +83,7 @@ class PlayerManager(
 
             playerCallback?.onLiveError()
 
-            if(currentPlayingMedia!=null/* && checkHls(currentPlayingMedia!!)*/) {
+            if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!)) {
                 playMedia(currentPlayingMedia!!)
                 Log.d(LOGTAG, "aaaaaaaaa")
             }
@@ -362,9 +362,9 @@ class PlayerManager(
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
         }
         val check = (now < liveEndTime)
-                && (currentExoState != Player.STATE_READY)
+                //&& (currentExoState != Player.STATE_READY)
 
-        Log.d(LOGTAG, "check: $check")
+        Log.d(LOGTAG, "check hls: $check")
 
         return check
     }
