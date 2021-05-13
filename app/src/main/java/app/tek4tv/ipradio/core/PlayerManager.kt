@@ -77,7 +77,6 @@ class PlayerManager(
             super.onPlayerError(error)
 
             Log.d(LOGTAG,"exoerror: ${error.message?:""}")
-            error.printStackTrace()
 
             isLiveStreamError = true
 
@@ -148,6 +147,12 @@ class PlayerManager(
 
         val itemToEnd = scheduledItems[mediaIndex]
         if (itemToEnd.id != currentPlayingMedia?.id) return
+
+        if(reconnectingLiveStreamJob != null)
+        {
+            reconnectingLiveStreamJob?.cancel()
+            reconnectingLiveStreamJob = null
+        }
 
         stopAllPlayer()
 
@@ -255,11 +260,9 @@ class PlayerManager(
     {
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
-
-        vlcPlayer.play(stream)
-
         currentVlcMedia = stream
 
+        vlcPlayer.play(stream)
         vlcPlayer.eventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
             //Log.d(LOGTAG, "event: $event")
             when (event) {
@@ -275,6 +278,15 @@ class PlayerManager(
                 MediaPlayer.Event.Playing -> {
                     checkTurnOnPaLive()
                 }
+            }
+        }
+
+        coroutineScope.launch {
+            delay(15000)
+            if(currentVlcMedia!!.state != IMedia.State.Playing && reconnectingLiveStreamJob == null)
+            {
+                Log.e(LOGTAG, "Init vlc stream error")
+                onLiveErrorVlc(mediaItem, stream)
             }
         }
     }
@@ -298,6 +310,7 @@ class PlayerManager(
     }
 
     private fun tryReconnectLiveStream(mediaItem: MediaItem) {
+        Log.d(LOGTAG, "reconnect: init reconnect")
         reconnectingLiveStreamJob?.cancel()
         reconnectingLiveStreamJob = coroutineScope.launch(Dispatchers.Default) {
             var needReconnect = true
