@@ -21,6 +21,8 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
@@ -211,20 +213,6 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
-
-        /*lifecycleScope.launch {
-            delay(60000)
-            val rp = ResponseHub().apply {
-                message="https://streaming1.vov.vn:8443/audio/vovvn1_vov3.stream_aac/playlist.m3u8"
-                duration = 3
-                type = "LIVE"
-                level = 0
-            }
-            playForceMedia(rp)
-            delay(20000)
-            rp.message = "rtsp://live.tek4tv.vn:1935/live/box"
-            playForceMedia(rp)
-        }*/
     }
 
     private fun checkTime()
@@ -245,6 +233,8 @@ class MainActivity : AppCompatActivity() {
 
                         val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
                         setSystemTime(dateFormat.format(receivedDate))
+
+                        cancelAllAlarm()
 
                         CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                     }

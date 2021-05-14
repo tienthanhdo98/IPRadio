@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
+import android.media.MediaSyncEvent
 import android.util.Log
 import android.view.View
 import app.tek4tv.ipradio.model.ForceMedia
@@ -272,6 +273,7 @@ class PlayerManager(
                 }
 
                 MediaPlayer.Event.EncounteredError -> {
+                    Log.d("Error","on Thread : ${Thread.currentThread().name}")
                     Log.e(LOGTAG, "EncounteredError")
                     onLiveErrorVlc(mediaItem, stream)
                 }
@@ -280,20 +282,14 @@ class PlayerManager(
                 }
             }
         }
-
-        coroutineScope.launch {
-            delay(15000)
-            if(currentVlcMedia!!.state != IMedia.State.Playing && reconnectingLiveStreamJob == null)
-            {
-                Log.e(LOGTAG, "Init vlc stream error")
-                onLiveErrorVlc(mediaItem, stream)
-            }
-        }
     }
 
+    //@Synchronized
     private fun onLiveErrorVlc(mediaItem: MediaItem, stream: Media)
     {
-        if (checkLiveStream(mediaItem, stream) && reconnectingLiveStreamJob == null)
+        val a = checkLiveStream(mediaItem, stream)
+
+        if (a && reconnectingLiveStreamJob == null)
             tryReconnectLiveStream(mediaItem)
         isLiveStreamError = true
         playerCallback?.onLiveError()
@@ -309,25 +305,20 @@ class PlayerManager(
         exoPlayer.prepare()
     }
 
+    //@Synchronized
     private fun tryReconnectLiveStream(mediaItem: MediaItem) {
         Log.d(LOGTAG, "reconnect: init reconnect")
         reconnectingLiveStreamJob?.cancel()
-        reconnectingLiveStreamJob = coroutineScope.launch(Dispatchers.Default) {
+        reconnectingLiveStreamJob = coroutineScope.launch {
             var needReconnect = true
             while (needReconnect) {
 
                 Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
 
                 if(connectedToHub)
-                {
-                    withContext(Dispatchers.Main)
-                    {
-                        playMedia(mediaItem)
-                    }
-                }
+                    playMedia(mediaItem)
                 else
                     Log.e(LOGTAG, "abort live $connectedToHub")
-
 
                 delay(15000)
 
@@ -347,11 +338,11 @@ class PlayerManager(
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
         }
 
-        Log.d("timeee","${SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(now.time)}")
-        Log.d("timeee","${SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(liveEndTime.time)}")
-
         val check = (now <= liveEndTime)
                 && (stream.state != IMedia.State.Playing)
+
+        Log.e("check", "${now <= liveEndTime}")
+        Log.e("check", "${stream.state != IMedia.State.Playing}")
 
         Log.d(LOGTAG, "check: $check")
 
