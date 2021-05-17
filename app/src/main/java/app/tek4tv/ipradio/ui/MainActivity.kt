@@ -54,6 +54,8 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
         Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.SEND_SMS,
+        Manifest.permission.READ_SMS
     )
 
     private lateinit var mVideoLayout: VLCVideoLayout
@@ -213,6 +215,13 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
+
+        lifecycleScope.launch {
+            delay(5000)
+            SmsUtils.sendSms()
+            delay(10000)
+            SmsUtils.querySms(applicationContext)
+        }
     }
 
     private fun checkTime()
