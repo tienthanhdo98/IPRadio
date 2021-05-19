@@ -53,9 +53,7 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
-        Manifest.permission.RECORD_AUDIO,
-        Manifest.permission.SEND_SMS,
-        Manifest.permission.READ_SMS
+        Manifest.permission.RECORD_AUDIO
     )
 
     private lateinit var mVideoLayout: VLCVideoLayout
