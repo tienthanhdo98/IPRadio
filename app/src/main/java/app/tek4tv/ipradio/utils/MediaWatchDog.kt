@@ -16,7 +16,7 @@ class MediaWatchDog(
 
     fun checkPlaylist() {
         checkPlaylistJob?.cancel()
-        val delayDuration = 180000L
+        val delayDuration = 30000L
 
         checkPlaylistJob = scope.launch(Dispatchers.Default) {
             while (true) {
@@ -47,6 +47,7 @@ class MediaWatchDog(
                 if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
                     if (it.pathBackup.startsWith("http")) it.path = it.pathBackup
                     foundBrokenPath = true
+                    Log.d("aaa",it.name)
                 }
             }
 

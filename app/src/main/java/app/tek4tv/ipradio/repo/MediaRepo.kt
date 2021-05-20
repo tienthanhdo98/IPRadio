@@ -154,17 +154,21 @@ class MediaRepo @Inject constructor(
         val url = it.path
         //if (url.isEmpty() || !url.startsWith("http")) return
 
-        Log.d("downloadx", url)
-
         val fileName = getFileNameFromUrl(url)
-
         if (isFileExisted(mediaStoragePath, fileName)) {
-            it.path = "$mediaStoragePath/$fileName"
-            coroutineScope.launch {
-                saveItemsToFile(broadcastList)
+            //handle broken path
+            if(it.path != "$mediaStoragePath/$fileName")
+            {
+                it.path = "$mediaStoragePath/$fileName"
+                coroutineScope.launch {
+                    saveItemsToFile(broadcastList)
+                }
             }
+
             return
         }
+
+        Log.d("download item", url)
 
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
