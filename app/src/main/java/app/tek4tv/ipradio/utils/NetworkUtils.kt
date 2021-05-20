@@ -231,8 +231,9 @@ class NetworkUtils private constructor() {
                 val dataUsage = getNetworkUsage(appContext)
 
                 val level = when (networkClass) {
-                    "WIFI" -> getWifiSignalStrength(appContext).toString()
-                    "---" -> 0
+                    "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
+                    "---" -> ""
+                    "ENET" -> ""
                     else -> {
                         val cellStrength = getCellSignalStrengthInDbm(appContext)
                         if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)

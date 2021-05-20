@@ -191,7 +191,7 @@ class SerialPortController(
 
     fun turnOnPAVod()
     {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.volume)
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
         playMode = MODE_VOD_LIVE
     }
 

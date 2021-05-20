@@ -85,6 +85,8 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var rootLayout: FrameLayout
 
+    private val globalProperties = GlobalProperties.getInst()
+
     private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
             hubManager.playlistIndex = index
@@ -93,7 +95,7 @@ class MainActivity : AppCompatActivity() {
             val displayName = mediaItem.name ?: ""//mediaItem.getDisplayName()
             hubManager.curMediaName = displayName
 
-            if (GlobalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logPlayMedia(displayName)
 
             if (mediaItem.getMediaType() != MediaType.FM
@@ -112,12 +114,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-            if (GlobalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logStartTimeFrame(frame)
         }
 
         override fun onEndTimeFrame(frame: String) {
-            if (GlobalProperties.logEnabled)
+            if (globalProperties.logEnabled)
                 logUtils.logEndTimeFrame(frame)
         }
 
@@ -126,8 +128,8 @@ class MainActivity : AppCompatActivity() {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0"
                 else "1"
 
-                val pipsData = "${GlobalProperties.piCode},${GlobalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.path},${GlobalProperties.volume}"
+                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
+                val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
 
                 serialPortController.invokeDeviceFunc(
                     Define.FUNC_WRITE_SETUP_PI_PS_NAME,
@@ -353,7 +355,7 @@ class MainActivity : AppCompatActivity() {
 
                         playerManager.stopAllPlayer()
 
-                        GlobalProperties.saveProperties(responseHub)
+                        globalProperties.saveProperties(responseHub)
 
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_FORCE_SET_VOLUME,
@@ -374,7 +376,7 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.LIVE -> {
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                            GlobalProperties.volume
+                            globalProperties.volume
                         )
 
                         playForceMedia(responseHub)
@@ -417,7 +419,7 @@ class MainActivity : AppCompatActivity() {
                     HubCommand.SWITCH_MODE_FM -> {
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_FORCE_SET_VOLUME,
-                            GlobalProperties.volume
+                            globalProperties.volume
                         )
 
                         playForceMedia(responseHub)
