@@ -13,8 +13,11 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
+import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.collections.LinkedHashMap
 
 @Singleton
 class MediaRepo @Inject constructor(
@@ -24,7 +27,8 @@ class MediaRepo @Inject constructor(
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
 
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
-        Types.newParameterizedType(List::class.java, MediaItem::class.java))
+        Types.newParameterizedType(List::class.java, MediaItem::class.java)
+    )
 
 
     var broadcastList = mutableListOf<MediaItem>()
@@ -37,7 +41,31 @@ class MediaRepo @Inject constructor(
 
     private val mediaStoragePath = appContext.filesDir.path
 
-    //private val imageResize = ImageResize(coroutineScope)
+    suspend fun updateScenario(url: String) {
+        val fetchResult = playlistService.getMonthlyPlaylist(url)
+
+        if (fetchResult.isSuccessful) {
+            val monthScenario = fetchResult.body() ?: return
+
+            val singleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
+
+            if (singleScenario && isFileExisted(appContext.filesDir.path, PLAYLIST_FILE_NAME)
+            ) {
+                Log.d("aaa","return update")
+                return
+            }
+
+            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+
+            val dayScenario = if(singleScenario) monthScenario[0]
+            else monthScenario.firstOrNull { it.date == currentDate }
+
+            if (dayScenario != null) {
+                //getBroadcastList(true, dayScenarioUrl.sourceUrl)
+                updatePlaylist(dayScenario.sourceUrl)
+            }
+        }
+    }
 
     suspend fun getBroadcastList(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
@@ -121,7 +149,7 @@ class MediaRepo @Inject constructor(
     }
 
     fun downloadAMediaItem(it: MediaItem) {
-        if(it.getMediaType() != MediaType.VOD) return
+        if (it.getMediaType() != MediaType.VOD) return
 
         val url = it.path
         //if (url.isEmpty() || !url.startsWith("http")) return

@@ -153,7 +153,12 @@ class MainActivity : AppCompatActivity() {
 
         override fun rescheduleMedias() {
             mediaScheduler.cancelAllAlarm()
-            mediaScheduler.scheduleAllAlarms()
+            //mediaScheduler.scheduleAllAlarms()
+
+            val monthlyScenarioUrl = ConfigUtil.getString(applicationContext,
+                ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: return
+
+            viewModel.updateDailyScenario(monthlyScenarioUrl)
         }
 
         override fun onLiveError() {
@@ -215,6 +220,8 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
+
+        ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://jsonkeeper.com/b/8GXC")
     }
 
     private fun checkTime()
@@ -322,7 +329,7 @@ class MainActivity : AppCompatActivity() {
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
-                checkTime()
+                //checkTime()
 
                 hubManager.connectToHub()
 

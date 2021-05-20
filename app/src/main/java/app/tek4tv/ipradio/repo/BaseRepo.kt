@@ -12,7 +12,7 @@ abstract class BaseRepo<T>(
 ) {
     abstract val jsonAdapter: JsonAdapter<List<T>>
 
-    private var saveFileJob: Job? = null
+    var saveFileJob: Job? = null
 
     protected val coroutineScope = CoroutineScope(Dispatchers.IO)
 
@@ -32,6 +32,7 @@ abstract class BaseRepo<T>(
                 //saveFileJob = null
             }
         }
+        saveFileJob?.join()
     }
 
     suspend fun readItemsFromFile(): List<T> {

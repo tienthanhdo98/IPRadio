@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.MediaWatchDog
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -46,5 +47,13 @@ class MainViewModel @ViewModelInject constructor(
 
     fun downloadMedias() {
         mediaRepo.startDownloadMedia()
+    }
+
+    fun updateDailyScenario(url : String)
+    {
+        viewModelScope.launch {
+            mediaRepo.updateScenario(url)
+            getPlayerContent("", false)
+        }
     }
 }

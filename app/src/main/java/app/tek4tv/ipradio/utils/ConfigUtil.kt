@@ -7,10 +7,8 @@ object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
     //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
-    /*const val FORCE_MEDIA_TYPE = "FORCE_MEDIA_TYPE"
-    const val FORCE_MEDIA_PATH = "FORCE_MEDIA_PATH"
-    const val FORCE_MEDIA_END_TIME = "FORCE_MEDIA_END_TIME"*/
     const val FORCE_MEDIA = "FORCE_MEDIA"
+    const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
