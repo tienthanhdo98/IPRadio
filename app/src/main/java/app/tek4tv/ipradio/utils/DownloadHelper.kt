@@ -1,17 +1,16 @@
 package app.tek4tv.ipradio.utils
 
 import android.util.Log
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.downloader.PRDownloader
 import kotlinx.coroutines.*
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
-import kotlin.Comparator
+import java.util.concurrent.ConcurrentHashMap
+import java.util.concurrent.ConcurrentLinkedQueue
 import kotlin.coroutines.resume
 
 class DownloadHelper private constructor(
@@ -149,26 +148,19 @@ class DownloadItem : Comparable<DownloadItem> {
     }
 }
 
-class DownloadHelper2 private constructor(
-) {
-    private val CHUNK_SIZE = 5
+/**
+ * A class for queueing download request
+ * Can submit download request from many thread
+ */
+class DownloadHelper2 private constructor() {
+    //for tracking added item to the queue
+    private val addedItem = ConcurrentHashMap<String, Boolean>()
 
-    private val addedItem = mutableMapOf<String, Boolean>()
-    private val downloadQueue: Queue<DownloadItem> = PriorityQueue()
-    private var isDownloading = false
-    private var downloadJob: Job? = null
+    //act like a places-holder for downloading item
+    //we can only download 3 file at a time
+    private val counterChanel = Channel<Int>(3)
 
-    private val mutex = Mutex()
-
-    private val downloadContext = newSingleThreadContext("DownloadThread")
-    private val scope = CoroutineScope(downloadContext)
-
-    private val downloadSlot = booleanArrayOf(false, false, false, false, false)
-
-    private fun startDownload()
-    {
-
-    }
+    private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private suspend fun downloadSingleItem(it: DownloadItem): Boolean =
         suspendCancellableCoroutine { cont ->
@@ -184,24 +176,43 @@ class DownloadHelper2 private constructor(
                 })
         }
 
-    fun addToQueue(downloadItem: DownloadItem) {
+    private fun downloadItem(downloadItem : DownloadItem)
+    {
         scope.launch {
-            /*mutex.withLock {
-
-            }*/
-            val added = addedItem[downloadItem.itDownloadUrl]
-            if (added != null && added) return@launch
-            addedItem[downloadItem.itDownloadUrl] = true
-
-            downloadQueue.offer(downloadItem)
-
-            if (!isDownloading) startDownload()
+            //try to take a download slot
+            //if the channel is full, the coroutine will be suspend until there are more slots
+            counterChanel.send(0)
+            Log.d(LOG_TAG,"Downloading : ${downloadItem.itDownloadUrl}")
+            val success = downloadSingleItem(downloadItem)
+            if(success) {
+                downloadItem.downloadListener?.onDownloadComplete()
+                Log.d(LOG_TAG,"Success: ${downloadItem.itDownloadUrl}")
+            }
+            else {
+                downloadItem.downloadListener?.onError(Error())
+                Log.e(LOG_TAG,"Error: ${downloadItem.itDownloadUrl}")
+            }
+            //when we done downloading an item, remove its slot
+            counterChanel.receive()
+            addedItem[downloadItem.itDownloadUrl] = false
         }
+    }
+
+    fun addToQueue(downloadItem: DownloadItem) {
+        //prevent duplicate download from a url
+        val added = addedItem[downloadItem.itDownloadUrl]
+        if (added != null && added) {
+            Log.d(LOG_TAG, "Duplicated: ${downloadItem.itDownloadUrl}")
+            return
+        }
+        addedItem[downloadItem.itDownloadUrl] = true
+        downloadItem(downloadItem)
     }
 
     companion object {
         private var instance: DownloadHelper2? = null
-        fun getInstance(scope: CoroutineScope): DownloadHelper2 {
+        const val LOG_TAG="DownloadHelper2"
+        fun getInstance(): DownloadHelper2 {
             if (instance == null) instance = DownloadHelper2()
             return instance!!
         }

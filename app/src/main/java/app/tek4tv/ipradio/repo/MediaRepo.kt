@@ -41,39 +41,46 @@ class MediaRepo @Inject constructor(
 
     private val mediaStoragePath = appContext.filesDir.path
 
-    suspend fun updateScenario(url: String) {
-        val fetchResult = playlistService.getMonthlyPlaylist(url)
+    suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
+        try {
+            val fetchResult = playlistService.getMonthlyPlaylist(url)
 
-        if (fetchResult.isSuccessful) {
+            if (!fetchResult.isSuccessful) return
             val monthScenario = fetchResult.body() ?: return
 
-            val singleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
+            //if there are only a single scenario for every day
+            val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
 
-            if (singleScenario && isFileExisted(appContext.filesDir.path, PLAYLIST_FILE_NAME)
-            ) {
-                Log.d("aaa","return update")
+            //in case of single scenario, continue to use old scenario
+            if (isSingleScenario && !forceNewScenario) {
+                Log.d("updateDailyScenario", "return update")
                 return
             }
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-            val dayScenario = if(singleScenario) monthScenario[0]
+            val dayScenario = if (isSingleScenario) monthScenario[0]
             else monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                //getBroadcastList(true, dayScenarioUrl.sourceUrl)
-                updatePlaylist(dayScenario.sourceUrl)
+                updateScenario(dayScenario.sourceUrl)
+            } else {
+                //In case there are no scenario for today, don't play anythings
+                saveItemsToFile(listOf())
             }
+
+        } catch (e: Exception) {
+            Log.e("updateDailyScenario", "Cannot update daily scenario")
         }
     }
 
-    suspend fun getBroadcastList(needUpdate: Boolean, listUrl: String): List<MediaItem> {
+    suspend fun getScenario(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
         unscheduledList.clear()
         scheduledMediaItems.clear()
 
         val res = if (needUpdate) {
-            updatePlaylist(listUrl)
+            updateScenario(listUrl)
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
                 Log.d("readplaylist", "local")
@@ -120,7 +127,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    private suspend fun updatePlaylist(listUrl: String): List<MediaItem> {
+    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
         try {
@@ -157,8 +164,7 @@ class MediaRepo @Inject constructor(
         val fileName = getFileNameFromUrl(url)
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
-            if(it.path != "$mediaStoragePath/$fileName")
-            {
+            if (it.path != "$mediaStoragePath/$fileName") {
                 it.path = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
                     saveItemsToFile(broadcastList)

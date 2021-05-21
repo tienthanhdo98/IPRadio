@@ -8,7 +8,7 @@ plugins {
 android {
     signingConfigs {
         release {
-            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\vlc\\Tek4TV Digital Signage\\keystore.jks')
+            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
             storePassword '123456789'
             keyAlias 'key0'
             keyPassword '123456789'
@@ -35,7 +35,6 @@ android {
 
     buildTypes {
         release {
-            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }

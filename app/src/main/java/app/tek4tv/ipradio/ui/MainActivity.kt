@@ -56,8 +56,6 @@ class MainActivity : AppCompatActivity() {
         Manifest.permission.RECORD_AUDIO
     )
 
-    private lateinit var mVideoLayout: VLCVideoLayout
-
     private val viewModel by viewModels<MainViewModel>()
 
     @Inject
@@ -65,13 +63,10 @@ class MainActivity : AppCompatActivity() {
 
     private lateinit var hubManager: HubManager
     private lateinit var playerManager: PlayerManager
-    //private lateinit var audioManager: AudioManager
 
     private lateinit var serialPortController: SerialPortController
 
     private lateinit var appStorageManager: AppStorageManager
-
-    private lateinit var preference: SharedPreferences
 
     private lateinit var logUtils: LogUtils
 
@@ -92,7 +87,7 @@ class MainActivity : AppCompatActivity() {
             hubManager.playlistIndex = index
             hubManager.currentMediaItem = mediaItem
 
-            val displayName = mediaItem.name ?: ""//mediaItem.getDisplayName()
+            val displayName = mediaItem.name ?: ""
             hubManager.curMediaName = displayName
 
             if (globalProperties.logEnabled)
@@ -158,7 +153,7 @@ class MainActivity : AppCompatActivity() {
             val monthlyScenarioUrl = ConfigUtil.getString(applicationContext,
                 ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: return
 
-            viewModel.updateDailyScenario(monthlyScenarioUrl)
+            viewModel.updateMonthlyScenario(monthlyScenarioUrl)
         }
 
         override fun onLiveError() {
@@ -179,8 +174,6 @@ class MainActivity : AppCompatActivity() {
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         disableSSL()
-
-        preference = getPreferences(MODE_PRIVATE)
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -221,7 +214,10 @@ class MainActivity : AppCompatActivity() {
 
         logUtils = LogUtils(applicationContext)
 
-        ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://jsonkeeper.com/b/8GXC")
+        lifecycleScope.launch {
+            delay(3000)
+            viewModel.testDownloadQueue(applicationContext)
+        }
     }
 
     private fun checkTime()
@@ -374,11 +370,15 @@ class MainActivity : AppCompatActivity() {
 
                         viewModel.getPlayerContent(mess, true)
                     }
-                    HubCommand.NEXT -> {
-                    }
-                    HubCommand.PREVIEW -> {
-                    }
-                    HubCommand.JUMP -> {
+
+                    HubCommand.UPDATE_MONTHLY_LIST -> {
+                        val mess = responseHub.message!!
+
+                        playerManager.stopAllPlayer()
+                        cancelAllAlarm()
+                        ForceMedia.deleteForeMediaPref(applicationContext)
+                        viewModel.updateMonthlyScenario(mess, true)
+                        ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                     }
                     HubCommand.LIVE -> {
                         serialPortController.invokeDeviceFunc(
@@ -408,20 +408,11 @@ class MainActivity : AppCompatActivity() {
                             )
                         } else Log.d("location", "location not found")
                     }
-                    HubCommand.STOP -> {
-                    }
-                    HubCommand.PAUSE -> {
-                    }
-                    HubCommand.START -> {
-                    }
                     HubCommand.RESTART -> {
                         serialPortController.invokeDeviceFunc(
                             Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
                             "", true
                         )
-                    }
-                    HubCommand.RELOAD -> {
-
                     }
                     HubCommand.SWITCH_MODE_FM -> {
                         serialPortController.invokeDeviceFunc(
@@ -675,33 +666,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun disableSSL() {
-        val trustAllCerts: Array<TrustManager> = arrayOf(
-            object : X509TrustManager {
-                override fun checkClientTrusted(
-                    certs: Array<X509Certificate?>?, authType: String?
-                ) {
-                }
 
-                override fun checkServerTrusted(
-                    certs: Array<X509Certificate?>?, authType: String?
-                ) {
-                }
-
-                override fun getAcceptedIssuers(): Array<X509Certificate?>? {
-                    return null
-                }
-            }
-        )
-
-        // Install the all-trusting trust manager
-        try {
-            val sc: SSLContext = SSLContext.getInstance("SSL")
-            sc.init(null, trustAllCerts, SecureRandom())
-            HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-        } catch (e: GeneralSecurityException) {
-        }
-    }
 
     fun forceRestartDevice() {
         serialPortController.invokeDeviceFunc(
