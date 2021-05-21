@@ -10,12 +10,15 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.NetworkUtils
 import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.decryptData
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.system.measureNanoTime
+import kotlin.system.measureTimeMillis
 
 class HubManager(
     private val hubComm: HubComm,
@@ -78,7 +81,7 @@ class HubManager(
             var i = 0
 
             while (connectionId == null) {
-                if(i >= CONNECT_COUNTER_LIMIT) hubComm.forceRestartApp()
+                if (i >= CONNECT_COUNTER_LIMIT) hubComm.forceRestartApp()
 
                 i++
                 delay(PING_INTERVAL)
@@ -115,11 +118,13 @@ class HubManager(
         registerOnMessageListener = true
 
         hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
-            parseHubResponse(message)
+
 
             mainHandler.post {
                 Log.d("command", command ?: "")
                 Log.d("message", message ?: "")
+
+                var needDecrypt = false
 
                 if (command != null && message != null) {
                     when (command) {
@@ -131,9 +136,13 @@ class HubManager(
                             if (responseHub.message != null) receivedConnectionId =
                                 responseHub.message ?: ""
                         }
+
+                        HubCommand.SET_VOLUME_DEVICE -> {
+                            needDecrypt = true
+                        }
                     }
                 }
-
+                parseHubResponse(message, needDecrypt)
                 //Handle command from server in MainActivity
                 onMessageListener.invoke(command, message)
             }
@@ -249,21 +258,32 @@ class HubManager(
         }
     }
 
-    private fun parseHubResponse(message: String?) {
+    private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
         if (message.isNullOrEmpty()) return
-        try {
-            responseHub = ResponseHub()
-            if (message.startsWith("{")) {
-                responseHub = responseAdapter.fromJson(message)!!
+
+        val time = measureTimeMillis {
+            try {
+                responseHub = ResponseHub()
+                if (needDecrypt) {
+                    val decryptedStr = decryptData(message, privateKeyStr)
+                    Log.d(LOG_TAG, "after decrypt: $decryptedStr")
+                    responseHub = responseAdapter.fromJson(decryptedStr)!!
+                } else {
+                    if (message.startsWith("{")) {
+                        responseHub = responseAdapter.fromJson(message)!!
+                    }
+                }
+
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
-        } catch (e: Exception) {
-            e.printStackTrace()
         }
+        if (needDecrypt)
+            Log.d(LOG_TAG, "decrypt take $time ms")
     }
 }
 
-interface HubComm
-{
+interface HubComm {
     fun forceRestartApp()
     fun forceRestartDevice()
 }
@@ -272,3 +292,7 @@ interface HubEventObserver {
     fun onLostHubConnection()
     fun onConnectedToHub()
 }
+
+
+val privateKeyStr =
+    "MIICWwIBAAKBgQCUN2A7D+wecFVoH9xQkg1o87hA/DFa8mMTfshyU4mrcvf3w0UkhmvxWJXA4hcvQWjpsXDm1ok7AhB9qeoEbxXYejyQLf9+znaBt2m4rgpSTPNb2ioOFd6d9JuiWJ1oPhPETjoyBdJ37yAZWkoX4nPXK4GcaaW5KPHcMGGRIzP/bQIDAQABAoGARlt7HM5UIablhAYLyVtrbjSzdHXC4A9LpMd8U3kAUxjCSSSyv8Hnn6uTevpYUyBTswt+MrYIcrBqL5zm76/jyCQ/i7wobqO+y089gyOVP6z6ZL2IASFoyEvMeI6Mp673p2EOWEyL/nbaiOmwhk16wsCg3hA9rABZVb3cHOCBzsECQQDKDDRCNYQjqHI9qHqDeq/7nOnQb59bJPb/8/EyxTA/2gFpjaRzyaHg/YUw0XsY9B0wzf+JJXFQ5OOPNusD/yNJAkEAu8tPCX5qSDYY+K/C+JvRob/keB7eXfQlNvDC6e2xs3rl7Qlt5f/bvhv/YdwmHEGQUDgXgsbIl7TW3WtnbebXBQJAen69rCpv64JziIg9hrr6OMzgQLt73LFjgrgt0n8UipGsa4cxXfWvzA1IE9ndDLrre6xYsZhexBGRGUHNaEXl6QJAV43rdJauwKoQLGntsfEb5JjN0T87F3zLmPjZNy1t6ysCZeg+h7wpXFI7WAnG7ueWfAAa3gsF3M0gXC1GFJRKbQJAO932dYpY+Ht5sJMHfQ7KwV8RsIN9vcWfdzoeI1a6/2LjYOoo23z98FCDKYdMV6QZr2JksPRfddMdvnquWxDMlg=="

@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
@@ -21,20 +20,11 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
-import java.security.GeneralSecurityException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 import kotlin.math.abs
+import android.util.Base64
 
 
 @AndroidEntryPoint
@@ -214,11 +204,26 @@ class MainActivity : AppCompatActivity() {
 
         logUtils = LogUtils(applicationContext)
 
-        lifecycleScope.launch {
+        /*lifecycleScope.launch {
             delay(3000)
             viewModel.testDownloadQueue(applicationContext)
-        }
+        }*/
+
+        //addition_isCorrect()
     }
+
+/*
+    fun addition_isCorrect() {
+
+        val message = "CB2oO8IYLv5kco5/Tj+mmx3gjNkcqx8RnZpOjRnlcDeklz5AJzpNbisu+TxzWmG3G0IH2xUYvGFFYq66HsHbYl4EMjShcewfyZ+ujLZydFGOkAuzhVFyYrDvq5Oq/Cp6HqY7CWgvS83TdamWaVYpqeMvbP6+gvLIsRBdgzG1XMM="
+
+        val decrypted = decryptData(message, privateKeyStr)
+
+        Log.d("aaa","aaa")
+    }
+*/
+
+
 
     private fun checkTime()
     {
