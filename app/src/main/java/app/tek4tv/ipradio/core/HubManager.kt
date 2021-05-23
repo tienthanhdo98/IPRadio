@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
+import android.util.Base64
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
@@ -15,10 +16,14 @@ import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import kotlinx.coroutines.*
 import java.io.File
+import java.security.KeyFactory
+import java.security.NoSuchAlgorithmException
+import java.security.PrivateKey
+import java.security.spec.InvalidKeySpecException
+import java.security.spec.PKCS8EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.system.measureNanoTime
-import kotlin.system.measureTimeMillis
+import javax.crypto.Cipher
 
 class HubManager(
     private val hubComm: HubComm,
@@ -257,29 +262,21 @@ class HubManager(
             hubEventObserver.forEach { it.onLostHubConnection() }
         }
     }
-
+    //parse hub command content
     private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
         if (message.isNullOrEmpty()) return
-
-        val time = measureTimeMillis {
-            try {
-                responseHub = ResponseHub()
-                if (needDecrypt) {
-                    val decryptedStr = decryptData(message, privateKeyStr)
-                    Log.d(LOG_TAG, "after decrypt: $decryptedStr")
-                    responseHub = responseAdapter.fromJson(decryptedStr)!!
-                } else {
-                    if (message.startsWith("{")) {
-                        responseHub = responseAdapter.fromJson(message)!!
-                    }
-                }
-
-            } catch (e: Exception) {
-                e.printStackTrace()
+        try {
+            responseHub = ResponseHub()
+            if (needDecrypt) {
+                val decryptedStr = decryptData(message, privateKeyStr)
+                responseHub = responseAdapter.fromJson(decryptedStr)!!
+            } else {
+                if (message.startsWith("{"))
+                    responseHub = responseAdapter.fromJson(message)!!
             }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
-        if (needDecrypt)
-            Log.d(LOG_TAG, "decrypt take $time ms")
     }
 }
 
