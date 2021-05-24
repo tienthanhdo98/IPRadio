@@ -19,3 +19,8 @@
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+-keep class org.videolan.libvlc.** {*;}
+-keep class com.microsoft.signalr.** {*;}
+-keep class io.reactivex.** {*;}
+-dontshrink
+-dontoptimize
