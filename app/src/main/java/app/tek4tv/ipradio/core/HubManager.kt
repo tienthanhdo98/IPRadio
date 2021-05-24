@@ -123,35 +123,38 @@ class HubManager(
         registerOnMessageListener = true
 
         hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
+            try {
+                mainHandler.post {
+                    Log.d("command", command ?: "")
+                    Log.d("message", message ?: "")
 
+                    var needDecrypt = false
 
-            mainHandler.post {
-                Log.d("command", command ?: "")
-                Log.d("message", message ?: "")
+                    if (command != null && message != null) {
+                        when (command) {
+                            HubCommand.PONG -> {
+                                pingCounter = 0
+                            }
 
-                var needDecrypt = false
+                            HubCommand.UPDATE_STATUS -> {
+                                if (responseHub.message != null) receivedConnectionId =
+                                    responseHub.message ?: ""
+                            }
 
-                if (command != null && message != null) {
-                    when (command) {
-                        HubCommand.PONG -> {
-                            pingCounter = 0
-                        }
-
-                        HubCommand.UPDATE_STATUS -> {
-                            if (responseHub.message != null) receivedConnectionId =
-                                responseHub.message ?: ""
-                        }
-
-                        HubCommand.SET_VOLUME_DEVICE -> {
-                            needDecrypt = true
+                            HubCommand.SET_VOLUME_DEVICE -> {
+                                needDecrypt = true
+                            }
                         }
                     }
+                    parseHubResponse(message, needDecrypt)
+                    //Handle command from server in MainActivity
+                    onMessageListener.invoke(command, message)
                 }
-                parseHubResponse(message, needDecrypt)
-                //Handle command from server in MainActivity
-                onMessageListener.invoke(command, message)
             }
-
+            catch (e : Exception)
+            {
+                e.printStackTrace()
+            }
         }, String::class.java, String::class.java)
     }
 

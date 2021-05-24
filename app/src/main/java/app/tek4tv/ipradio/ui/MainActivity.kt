@@ -139,6 +139,7 @@ class MainActivity : AppCompatActivity() {
         override fun rescheduleMedias() {
             mediaScheduler.cancelAllAlarm()
             //mediaScheduler.scheduleAllAlarms()
+            logUtils = LogUtils(applicationContext)
 
             val monthlyScenarioUrl = ConfigUtil.getString(applicationContext,
                 ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: return
