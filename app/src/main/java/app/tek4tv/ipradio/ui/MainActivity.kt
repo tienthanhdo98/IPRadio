@@ -20,11 +20,12 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import kotlin.math.abs
-import android.util.Base64
 
 
 @AndroidEntryPoint
@@ -99,13 +100,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         override fun onStartTimeFrame(frame: String) {
-            if (globalProperties.logEnabled)
+            if (globalProperties.logEnabled) {
                 logUtils.logStartTimeFrame(frame)
+                logUtils.logPerformance(applicationContext, appStorageManager)
+            }
         }
 
         override fun onEndTimeFrame(frame: String) {
-            if (globalProperties.logEnabled)
+            if (globalProperties.logEnabled) {
                 logUtils.logEndTimeFrame(frame)
+                logUtils.logPerformance(applicationContext, appStorageManager)
+            }
         }
 
         override fun onPlayTuner(mediaItem: MediaItem) {
@@ -138,8 +143,7 @@ class MainActivity : AppCompatActivity() {
 
         override fun rescheduleMedias() {
             mediaScheduler.cancelAllAlarm()
-            //mediaScheduler.scheduleAllAlarms()
-            logUtils = LogUtils(applicationContext)
+            //mediaScheduler.scheduleAllAlarms(
 
             val monthlyScenarioUrl = ConfigUtil.getString(applicationContext,
                 ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: return
@@ -204,27 +208,7 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
-
-        /*lifecycleScope.launch {
-            delay(3000)
-            viewModel.testDownloadQueue(applicationContext)
-        }*/
-
-        //addition_isCorrect()
     }
-
-/*
-    fun addition_isCorrect() {
-
-        val message = "CB2oO8IYLv5kco5/Tj+mmx3gjNkcqx8RnZpOjRnlcDeklz5AJzpNbisu+TxzWmG3G0IH2xUYvGFFYq66HsHbYl4EMjShcewfyZ+ujLZydFGOkAuzhVFyYrDvq5Oq/Cp6HqY7CWgvS83TdamWaVYpqeMvbP6+gvLIsRBdgzG1XMM="
-
-        val decrypted = decryptData(message, privateKeyStr)
-
-        Log.d("aaa","aaa")
-    }
-*/
-
-
 
     private fun checkTime()
     {
@@ -265,7 +249,6 @@ class MainActivity : AppCompatActivity() {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
-        logUtils.onActivityStop()
         cancelAllAlarm()
     }
 
@@ -357,8 +340,6 @@ class MainActivity : AppCompatActivity() {
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
             if (isImei) {
                 when (command) {
-                    HubCommand.GET_LIST -> {
-                    }
                     HubCommand.UPDATE_LIST -> {
                         val mess = responseHub.message!!
 
@@ -593,7 +574,7 @@ class MainActivity : AppCompatActivity() {
 
                         if (logName != null) {
                             val logPath =
-                                "${applicationContext.filesDir.path}/$MEDIA_LOG_FOLDER_NAME/$logName.txt"
+                                "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
                             FtpUtils.uploadLogFile(applicationContext, logPath)
                         }
                     }
@@ -602,7 +583,32 @@ class MainActivity : AppCompatActivity() {
                         val wifiEnable = responseHub.message!! == "1"
                         NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                     }
+
+                    HubCommand.GET_ENCRYPTED_STORAGE_INFO -> {
+                        val connectionId = responseHub.message
+                        if (connectionId != null) {
+                            val info = appStorageManager.run {
+                                "${getTotalRomStorage()},${getUsedRomStorage()}"
+                            }
+
+                            hubManager.sendEncryptedMessage(connectionId, Utils.ENCRYPTED_STORAGE_INFO, info)
+                        }
+                    }
+
+                    HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
+                        if (responseHub.message != null) {
+                            serialPortController.invokeDeviceFunc(
+                                Define.FUNC_WRITE_FORCE_SET_VOLUME,
+                                responseHub.message!!
+                            )
+                        }
+                    }
                 }
+            }
+
+            if(command != HubCommand.PONG && command!=HubCommand.UPDATE_STATUS && globalProperties.logEnabled)
+            {
+                logUtils.logHubCommand(command, responseHub.message?:"")
             }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

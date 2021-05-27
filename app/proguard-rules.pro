@@ -22,5 +22,10 @@
 -keep class org.videolan.libvlc.** {*;}
 -keep class com.microsoft.signalr.** {*;}
 -keep class io.reactivex.** {*;}
+-keep class org.apache.commons.** {*;}
+-keep interface org.videolan.libvlc.** {*;}
+-keep interface com.microsoft.signalr.** {*;}
+-keep interface io.reactivex.** {*;}
+-keep interface org.apache.commons.** {*;}
 -dontshrink
 -dontoptimize

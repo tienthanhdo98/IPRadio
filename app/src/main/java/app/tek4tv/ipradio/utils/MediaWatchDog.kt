@@ -16,7 +16,7 @@ class MediaWatchDog(
 
     fun checkPlaylist() {
         checkPlaylistJob?.cancel()
-        val delayDuration = 30000L
+        val delayDuration = 180000L
 
         checkPlaylistJob = scope.launch(Dispatchers.Default) {
             while (true) {

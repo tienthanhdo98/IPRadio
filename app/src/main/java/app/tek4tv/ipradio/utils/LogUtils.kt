@@ -1,76 +1,97 @@
 package app.tek4tv.ipradio.utils
 
 import android.content.Context
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.io.BufferedWriter
-import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
 
+const val LOG_FOLDER_NAME = "app_logs"
+const val SYSTEM_LOG_FOLDER_NAME = "system_logs"
+const val PLAYER_LOG_FOLDER_NAME = "player_logs"
+const val PERFORMANCE_LOG_FOLDER_NAME = "performance_logs"
+
 class LogUtils(private val appContext: Context) {
     private var writeFileJob: Job? = null
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
-    private var logFilePath = ""
-    private val logFolderPath = "${appContext.filesDir}/$MEDIA_LOG_FOLDER_NAME"
+    private val fileNameFormat = SimpleDateFormat("ddMMyyyy")
+    private val logFolderPath = "${appContext.filesDir}/$LOG_FOLDER_NAME"
+    private val systemLogFolderPath = "$logFolderPath/$SYSTEM_LOG_FOLDER_NAME"
+    private val playerLogFolderPath = "$logFolderPath/$PLAYER_LOG_FOLDER_NAME"
+    private val performanceLogFolderPath = "$logFolderPath/$PERFORMANCE_LOG_FOLDER_NAME"
 
     init {
-
-        if(!File(logFolderPath).exists())
-        {
-            createFolder(logFolderPath)
+        listOf(
+            logFolderPath,
+            playerLogFolderPath,
+            systemLogFolderPath,
+            performanceLogFolderPath
+        ).forEach {
+            if (!isFolderExisted(it))
+                createFolder(it)
         }
-
-        val logName = "${SimpleDateFormat("ddMMyyyy").format(Date())}.txt"
-        logFilePath = "$logFolderPath/$logName"
     }
 
-    fun logStartTimeFrame(frame : String)
-    {
-        writeLogToFile("------------------------")
-        writeLogToFile("Bắt đầu khung giờ $frame")
+    fun logPerformance(appContext: Context, appStorageManager: AppStorageManager) {
+        val str =
+            "Used RAM: ${appStorageManager.getUsedRam()} - Avail RAM: ${appStorageManager.getAvailRam()} - Network Info: ${
+                NetworkUtils.getNetworkInfo(appContext)
+            }"
+
+        writeLogToFile(getLogFilePath(performanceLogFolderPath), str)
     }
 
-    fun logEndTimeFrame(frame : String)
-    {
-        writeLogToFile("Kết thúc khung giờ $frame")
-        writeLogToFile("------------------------\n")
+    fun logHubCommand(command: String, message: String) {
+        val filePath = getLogFilePath(systemLogFolderPath)
+        writeLogToFile(filePath, "$command : $message")
     }
 
-    fun logPlayMedia(mediaName : String)
-    {
-        writeLogToFile("Phát $mediaName")
+    fun logStartTimeFrame(frame: String) {
+        val filePath = getLogFilePath(playerLogFolderPath)
+        writeLogToFile(filePath, "------------------------")
+        writeLogToFile(filePath, "Bắt đầu khung giờ $frame")
     }
 
-    private fun writeLogToFile(line : String)
-    {
+    fun logEndTimeFrame(frame: String) {
+        val filePath = getLogFilePath(playerLogFolderPath)
+        writeLogToFile(filePath, "Kết thúc khung giờ $frame")
+        writeLogToFile(filePath, "------------------------\n")
+    }
+
+    fun logPlayMedia(mediaName: String) {
+        val filePath = getLogFilePath(playerLogFolderPath)
+        writeLogToFile(filePath, "Phát $mediaName")
+    }
+
+    private fun writeLogToFile(filePath: String, line: String) {
         coroutineScope.launch {
             writeFileJob?.join()
 
             writeFileJob = launch {
                 val time = dateFormat.format(Date())
-                writeLine("$time $line")
+                writeLine(filePath, "$time $line")
             }
         }
     }
 
-    private fun writeLine(line : String)
-    {
+    private fun writeLine(filePath: String, line: String) {
         try {
-            val out = PrintWriter(BufferedWriter(FileWriter(logFilePath, true)))
+            val out = PrintWriter(BufferedWriter(FileWriter(filePath, true)))
             out.println(line)
             out.close()
-        }
-        catch (e : Exception)
-        {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun onActivityStop()
-    {
-        //coroutineScope.cancel()
+    private fun getLogFilePath(folderPath: String): String {
+        val logFileName = "${fileNameFormat.format(Date())}.txt"
+        return "$folderPath/$logFileName"
     }
 }

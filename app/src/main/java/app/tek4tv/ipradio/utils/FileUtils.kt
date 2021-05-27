@@ -11,7 +11,7 @@ const val PLAYLIST_FILE_NAME = "playlist.json"
 const val AUDIO_LIST_FILE_NAME = "audio_list.json"
 const val AUDIO_FOLDER_NAME = "audios"
 const val RECORDED_AUDIO_FOLDER_NAME = "recorded"
-const val MEDIA_LOG_FOLDER_NAME = "media_logs"
+
 
 fun isFileExisted(storagePath: String, fileName: String): Boolean {
     val file = File(storagePath, fileName)

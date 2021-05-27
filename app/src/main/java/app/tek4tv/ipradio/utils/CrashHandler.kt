@@ -8,7 +8,6 @@ import android.content.Intent
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.ui.MainActivity
 import java.io.BufferedWriter
-import java.io.File
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
@@ -29,7 +28,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
 
     private fun logToFile(thread: Thread, ex: Throwable) {
         try {
-            val logPath = "${activity.applicationContext.filesDir.path}/$MEDIA_LOG_FOLDER_NAME/logerror.txt"
+            val logPath = "${activity.applicationContext.filesDir.path}/$LOG_FOLDER_NAME/logerror.txt"
             val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
             val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
 

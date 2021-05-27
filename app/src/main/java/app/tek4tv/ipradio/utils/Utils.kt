@@ -18,6 +18,7 @@ import javax.net.ssl.X509TrustManager
 class Utils {
     companion object {
         const val STORAGE_INFO = "STORAGE_INFO"
+        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
         const val DEVICE_ID = "device_id"
         const val APP_VERSION = "APP_VERSION"
