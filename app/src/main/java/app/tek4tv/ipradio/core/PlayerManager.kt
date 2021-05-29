@@ -475,15 +475,6 @@ class PlayerManager(
             exoPlayer.stop()
             if(vlcPlayer.isPlaying)
                 vlcPlayer.stop()
-            /*if(isUsingExoPlayer)
-            {
-                exoPlayer.stop()
-            }
-            else
-            {
-                if(vlcPlayer.isPlaying)
-                    vlcPlayer.stop()
-            }*/
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -514,7 +505,6 @@ class PlayerManager(
     }
 
     fun onActivityStop() {
-        //audioPlayer.stop()
         stopAllPlayer()
     }
 

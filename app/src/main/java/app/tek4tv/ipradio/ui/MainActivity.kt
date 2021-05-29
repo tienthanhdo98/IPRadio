@@ -603,6 +603,13 @@ class MainActivity : AppCompatActivity() {
                             )
                         }
                     }
+
+                    HubCommand.STOP_FORCE -> {
+                        playerManager.stopAllPlayer()
+                        cancelAllAlarm()
+                        ForceMedia.deleteForeMediaPref(applicationContext)
+                        viewModel.getPlayerContent("", false)
+                    }
                 }
             }
 
