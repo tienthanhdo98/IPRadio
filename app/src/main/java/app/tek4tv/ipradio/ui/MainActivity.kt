@@ -208,6 +208,11 @@ class MainActivity : AppCompatActivity() {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         logUtils = LogUtils(applicationContext)
+
+       /* lifecycleScope.launch {
+            delay(3000)
+            logUtils.logStartTimeFrame("11:38:00")
+        }*/
     }
 
     private fun checkTime()

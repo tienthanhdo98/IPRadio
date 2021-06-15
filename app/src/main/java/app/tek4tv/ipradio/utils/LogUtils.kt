@@ -1,10 +1,14 @@
 package app.tek4tv.ipradio.utils
 
 import android.content.Context
+import com.google.firebase.database.FirebaseDatabase
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import okhttp3.internal.Util
 import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -25,6 +29,9 @@ class LogUtils(private val appContext: Context) {
     private val systemLogFolderPath = "$logFolderPath/$SYSTEM_LOG_FOLDER_NAME"
     private val playerLogFolderPath = "$logFolderPath/$PLAYER_LOG_FOLDER_NAME"
     private val performanceLogFolderPath = "$logFolderPath/$PERFORMANCE_LOG_FOLDER_NAME"
+
+    private val rtDatabase = Firebase.database.reference
+    private val imei = Utils.getDeviceId(appContext)
 
     init {
         listOf(
@@ -56,17 +63,24 @@ class LogUtils(private val appContext: Context) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "------------------------")
         writeLogToFile(filePath, "Bắt đầu khung giờ $frame")
+
+
+        rtDatabase.child("playerLog").child(imei).push().setValue("Bắt đầu khung giờ $frame")
     }
 
     fun logEndTimeFrame(frame: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "Kết thúc khung giờ $frame")
         writeLogToFile(filePath, "------------------------\n")
+
+        rtDatabase.child("playerLog").child(imei).push().setValue("Kết thúc khung giờ $frame")
     }
 
     fun logPlayMedia(mediaName: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "Phát $mediaName")
+
+        rtDatabase.child("playerLog").child(imei).push().setValue("Phát $mediaName")
     }
 
     private fun writeLogToFile(filePath: String, line: String) {
