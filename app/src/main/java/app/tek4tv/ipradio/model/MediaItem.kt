@@ -22,6 +22,8 @@ data class MediaItem(
     @Json(name = "FixTime") var fixTime: String = "",
 
     @Json(name = "Type") var type : String = "",
+
+    @Json(name = "fileId") var fileId : Int = 0
 ) : Serializable {
 
     @Json(name = "Level") var level : Int = -1

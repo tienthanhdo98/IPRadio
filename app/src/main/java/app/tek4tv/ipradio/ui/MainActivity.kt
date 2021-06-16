@@ -82,7 +82,7 @@ class MainActivity : AppCompatActivity() {
             hubManager.curMediaName = displayName
 
             if (globalProperties.logEnabled)
-                logUtils.logPlayMedia(displayName)
+                logUtils.logPlayMedia(mediaItem)
 
             if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
