@@ -17,6 +17,8 @@ import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
@@ -81,8 +83,25 @@ class MainActivity : AppCompatActivity() {
             val displayName = mediaItem.name ?: ""
             hubManager.curMediaName = displayName
 
-            if (globalProperties.logEnabled)
-                logUtils.logPlayMedia(mediaItem)
+            if (globalProperties.logEnabled) {
+                try {
+                    if(viewModel.currentMedia == null)
+                    {
+                        logUtils.logPlayMedia(mediaItem)
+                    }
+                    else
+                    {
+                        if(viewModel.currentMedia!!.id != mediaItem.id)
+                            logUtils.logPlayMedia(mediaItem)
+                    }
+
+                    viewModel.currentMedia = mediaItem
+                }
+                catch (e : Exception)
+                {
+                    e.printStackTrace()
+                }
+            }
 
             if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
@@ -182,6 +201,8 @@ class MainActivity : AppCompatActivity() {
                 this@MainActivity.forceRestartDevice()
             }
         }
+
+        Firebase.database.setPersistenceEnabled(true)
 
         hubManager = HubManager(hubComm) { command, message ->
             handleFromCommandServer(command, message)

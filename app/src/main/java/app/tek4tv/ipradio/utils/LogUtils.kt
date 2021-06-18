@@ -45,7 +45,6 @@ class LogUtils(private val appContext: Context) {
             if (!isFolderExisted(it)) createFolder(it)
         }
 
-        Firebase.database.setPersistenceEnabled(true)
         rtDatabase = Firebase.database.reference
         devicePlaylistDb = rtDatabase.child("ipradio").child("device")
             .child(imei).child("playlist")

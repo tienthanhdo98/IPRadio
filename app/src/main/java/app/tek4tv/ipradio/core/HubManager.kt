@@ -9,8 +9,12 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
+import com.google.firebase.database.DatabaseReference
+import com.google.firebase.database.ktx.database
+import com.google.firebase.ktx.Firebase
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.TransportEnum
 import kotlinx.coroutines.*
 import java.io.File
 import java.security.KeyFactory
@@ -20,6 +24,7 @@ import java.security.spec.InvalidKeySpecException
 import java.security.spec.PKCS8EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 import javax.crypto.Cipher
 
 class HubManager(
@@ -63,6 +68,9 @@ class HubManager(
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    private val notifyDisconnected = AtomicBoolean(false)
+
+    private val networkDb : DatabaseReference
 
     init {
         versionName = try {
@@ -71,7 +79,12 @@ class HubManager(
             ""
         }
 
-        hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB).build()
+        hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB)
+            .withTransport(TransportEnum.WEBSOCKETS)
+            .build()
+
+        networkDb = Firebase.database.reference.child("ipradio").child("device")
+            .child(deviceImei).child("network")
     }
 
 
@@ -105,6 +118,7 @@ class HubManager(
         return withContext(Dispatchers.Default) {
             try {
                 hubConnection.start().blockingAwait()
+                networkDb.push().setValue(HubConnectState(state = "CONNECTED"))
                 hubConnection.connectionId
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
@@ -253,11 +267,21 @@ class HubManager(
 
         if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
-            notifyHubDisconnected()
+
+            if(notifyDisconnected.compareAndSet(false, true))
+            {
+                notifyHubDisconnected()
+
+                networkDb.push().setValue(HubConnectState(state = "DISCONNECTED"))
+            }
+
 
             //Try to reconnect to hub
             val cid = openConnection()
-            if (cid != null) notifyHubConnected()
+            if (cid != null) {
+                notifyHubConnected()
+                notifyDisconnected.compareAndSet(true, false)
+            }
         }
     }
 
@@ -301,6 +325,11 @@ interface HubEventObserver {
     fun onLostHubConnection()
     fun onConnectedToHub()
 }
+
+data class HubConnectState(
+    var state : String = "",
+    var start : Long = Date().time
+)
 
 val publicKey = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
 
