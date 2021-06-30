@@ -70,7 +70,9 @@ class HubManager(
 
     private val notifyDisconnected = AtomicBoolean(false)
 
-    private val networkDb : DatabaseReference
+    //private val networkDb : DatabaseReference
+
+    private val logUtils = LogUtils.getInst()
 
     init {
         versionName = try {
@@ -83,8 +85,8 @@ class HubManager(
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
 
-        networkDb = Firebase.database.reference.child("ipradio").child("device")
-            .child(deviceImei).child("network")
+        /*networkDb = Firebase.database.reference.child("ipradio").child("device")
+            .child(deviceImei).child("network")*/
     }
 
 
@@ -118,7 +120,9 @@ class HubManager(
         return withContext(Dispatchers.Default) {
             try {
                 hubConnection.start().blockingAwait()
-                networkDb.push().setValue(HubConnectState(state = "CONNECTED"))
+                //networkDb.push().setValue(HubConnectState(state = "CONNECTED"))
+                logUtils.logHubConnectState(
+                    HubConnectState(state = "CONNECTED", networkType = NetworkUtils.getNetworkClass(appContext)))
                 hubConnection.connectionId
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
@@ -272,7 +276,7 @@ class HubManager(
             {
                 notifyHubDisconnected()
 
-                networkDb.push().setValue(HubConnectState(state = "DISCONNECTED"))
+                logUtils.logHubConnectState(HubConnectState(state = "DISCONNECTED"))
             }
 
 
@@ -325,11 +329,6 @@ interface HubEventObserver {
     fun onLostHubConnection()
     fun onConnectedToHub()
 }
-
-data class HubConnectState(
-    var state : String = "",
-    var start : Long = Date().time
-)
 
 val publicKey = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
 

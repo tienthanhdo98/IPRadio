@@ -35,6 +35,8 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
 
+    var latestStatus :String? = ""
+
     fun connectToSerialPort() {
         try {
             initSerialPort()
@@ -152,9 +154,11 @@ class SerialPortController(
 
     private fun onDataReceived(data: String?) {
         // read data
+        if(data == null) return
+
         Log.d(LOG_TAG, "dataFinal: $data")
-        if (data!!.endsWith("\r\n")) {
-            if (data != null && data.isNotEmpty() && data.startsWith("$$,")) {
+        if (data.endsWith("\r\n")) {
+            if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
                     hubManager.sendHubDirectMessage(
                         hubManager.receivedConnectionId, Utils.DEVICE_INFO, data

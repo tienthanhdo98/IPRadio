@@ -1,8 +1,8 @@
 package app.tek4tv.ipradio.utils
 
 import android.content.Context
-import app.tek4tv.ipradio.model.FbMediaReport
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.model.*
 import com.google.firebase.database.DatabaseReference
 import com.google.firebase.database.ktx.database
 import com.google.firebase.ktx.Firebase
@@ -21,7 +21,9 @@ const val SYSTEM_LOG_FOLDER_NAME = "system_logs"
 const val PLAYER_LOG_FOLDER_NAME = "player_logs"
 const val PERFORMANCE_LOG_FOLDER_NAME = "performance_logs"
 
-class LogUtils(private val appContext: Context) {
+class LogUtils private constructor() {
+    private val appContext: Context = MyApp.instance!!.applicationContext
+
     private var writeFileJob: Job? = null
     private val coroutineScope: CoroutineScope = CoroutineScope(Dispatchers.IO)
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -32,7 +34,12 @@ class LogUtils(private val appContext: Context) {
     private val performanceLogFolderPath = "$logFolderPath/$PERFORMANCE_LOG_FOLDER_NAME"
 
     private val rtDatabase : DatabaseReference
-    private val devicePlaylistDb : DatabaseReference
+    //private val devicePlaylistDb : DatabaseReference
+    private val rootDeviceDb : DatabaseReference
+    private val playlistDb : DatabaseReference
+    private val timeframeDb : DatabaseReference
+    private val deviceStatusDb : DatabaseReference
+    private val networkDb : DatabaseReference
     private val imei = Utils.getDeviceId(appContext)
 
     init {
@@ -46,8 +53,13 @@ class LogUtils(private val appContext: Context) {
         }
 
         rtDatabase = Firebase.database.reference
-        devicePlaylistDb = rtDatabase.child("ipradio").child("device")
-            .child(imei).child("playlist")
+        rootDeviceDb = rtDatabase.child("ipradio").child("device").child(imei)
+        playlistDb = rootDeviceDb.child("playlist")
+        timeframeDb = rootDeviceDb.child("time_frame")
+        deviceStatusDb = rootDeviceDb.child("device_status")
+        networkDb = rootDeviceDb.child("network")
+        /*devicePlaylistDb = rtDatabase.child("ipradio").child("device")
+            .child(imei).child("playlist")*/
     }
 
     fun logPerformance(appContext: Context, appStorageManager: AppStorageManager) {
@@ -68,20 +80,37 @@ class LogUtils(private val appContext: Context) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "------------------------")
         writeLogToFile(filePath, "Bắt đầu khung giờ $frame")
+
+        val reportObj = FbTimeFrameReport(frame, FbTimeFrameReport.STATUS_START)
+        timeframeDb.child(reportObj.time.toString()).setValue(reportObj)
     }
 
     fun logEndTimeFrame(frame: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "Kết thúc khung giờ $frame")
         writeLogToFile(filePath, "------------------------\n")
+
+        val reportObj = FbTimeFrameReport(frame, FbTimeFrameReport.STATUS_STOP)
+        timeframeDb.child(reportObj.time.toString()).setValue(reportObj)
     }
 
-    fun logPlayMedia(mediaItem: MediaItem) {
+    fun logPlayMedia(mediaItem: MediaItem, volume : String, paState : String) {
         val filePath = getLogFilePath(playerLogFolderPath)
         writeLogToFile(filePath, "Phát ${mediaItem.name}")
 
-        val reportObj = FbMediaReport(mediaItem.name ?: "", mediaItem.fileId)
-        devicePlaylistDb.push().setValue(reportObj)
+        val reportObj = FbMediaReport(mediaItem.name ?: "", mediaItem.fileId, volume, paState)
+        playlistDb.child(reportObj.start.toString()).setValue(reportObj)
+    }
+
+    fun logHubConnectState(state : HubConnectState)
+    {
+        networkDb.child(state.start.toString()).setValue(state)
+    }
+
+    fun logStartApp()
+    {
+        val reportObj = FbDeviceStatusReport(FbDeviceStatusReport.STATUS_ON)
+        deviceStatusDb.child(reportObj.time.toString()).setValue(reportObj)
     }
 
     private fun writeLogToFile(filePath: String, line: String) {
@@ -108,5 +137,17 @@ class LogUtils(private val appContext: Context) {
     private fun getLogFilePath(folderPath: String): String {
         val logFileName = "${fileNameFormat.format(Date())}.txt"
         return "$folderPath/$logFileName"
+    }
+
+    companion object
+    {
+        private var instance : LogUtils? = null
+
+        @Synchronized
+        fun getInst() : LogUtils
+        {
+            if(instance == null) instance = LogUtils()
+            return instance!!
+        }
     }
 }

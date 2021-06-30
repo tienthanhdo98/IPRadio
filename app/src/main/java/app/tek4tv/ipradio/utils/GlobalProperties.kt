@@ -66,6 +66,11 @@ class GlobalProperties {
         volume = vol
     }
 
+    fun setTempVolume(vol : String)
+    {
+        volume = vol
+    }
+
     companion object
     {
         private var instance : GlobalProperties? = null

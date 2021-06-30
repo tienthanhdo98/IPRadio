@@ -84,15 +84,18 @@ class MainActivity : AppCompatActivity() {
             hubManager.curMediaName = displayName
 
             if (globalProperties.logEnabled) {
+                val paState = if(serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                else "0"
+
                 try {
                     if(viewModel.currentMedia == null)
                     {
-                        logUtils.logPlayMedia(mediaItem)
+                        logUtils.logPlayMedia(mediaItem, globalProperties.volume, paState)
                     }
                     else
                     {
                         if(viewModel.currentMedia!!.id != mediaItem.id)
-                            logUtils.logPlayMedia(mediaItem)
+                            logUtils.logPlayMedia(mediaItem, globalProperties.volume, paState)
                     }
 
                     viewModel.currentMedia = mediaItem
@@ -204,6 +207,9 @@ class MainActivity : AppCompatActivity() {
 
         Firebase.database.setPersistenceEnabled(true)
 
+        logUtils = LogUtils.getInst()
+        logUtils.logStartApp()
+
         hubManager = HubManager(hubComm) { command, message ->
             handleFromCommandServer(command, message)
         }
@@ -227,13 +233,6 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-
-        logUtils = LogUtils(applicationContext)
-
-       /* lifecycleScope.launch {
-            delay(3000)
-            logUtils.logStartTimeFrame("11:38:00")
-        }*/
     }
 
     private fun checkTime()
@@ -451,6 +450,8 @@ class MainActivity : AppCompatActivity() {
                                 Define.FUNC_WRITE_FORCE_SET_VOLUME,
                                 responseHub.message!!
                             )
+
+                            globalProperties.setTempVolume(responseHub.message!!)
                         }
                     }
 

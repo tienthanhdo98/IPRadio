@@ -27,5 +27,8 @@
 -keep interface com.microsoft.signalr.** {*;}
 -keep interface io.reactivex.** {*;}
 -keep interface org.apache.commons.** {*;}
+
+-keep class app.tek4tv.ipradio.model.** {*;}
+-keep class org.json.* { *; }
 -dontshrink
 -dontoptimize
