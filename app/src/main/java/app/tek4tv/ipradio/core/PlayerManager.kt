@@ -284,7 +284,6 @@ class PlayerManager(
         }
     }
 
-    //@Synchronized
     private fun onLiveErrorVlc(mediaItem: MediaItem, stream: Media)
     {
         val a = checkLiveStream(mediaItem, stream)
@@ -305,7 +304,6 @@ class PlayerManager(
         exoPlayer.prepare()
     }
 
-    //@Synchronized
     private fun tryReconnectLiveStream(mediaItem: MediaItem) {
         Log.d(LOGTAG, "reconnect: init reconnect")
         reconnectingLiveStreamJob?.cancel()

@@ -70,8 +70,6 @@ class HubManager(
 
     private val notifyDisconnected = AtomicBoolean(false)
 
-    //private val networkDb : DatabaseReference
-
     private val logUtils = LogUtils.getInst()
 
     init {
@@ -84,9 +82,6 @@ class HubManager(
         hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB)
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
-
-        /*networkDb = Firebase.database.reference.child("ipradio").child("device")
-            .child(deviceImei).child("network")*/
     }
 
 

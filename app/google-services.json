@@ -1,34 +1,34 @@
 {
   "project_info": {
-    "project_number": "242769325030",
-    "firebase_url": "https://ipradio-logging-default-rtdb.asia-southeast1.firebasedatabase.app",
-    "project_id": "ipradio-logging",
-    "storage_bucket": "ipradio-logging.appspot.com"
+    "project_number": "43777711300",
+    "firebase_url": "https://ipradio-logging-d81d8-default-rtdb.asia-southeast1.firebasedatabase.app",
+    "project_id": "ipradio-logging-d81d8",
+    "storage_bucket": "ipradio-logging-d81d8.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:242769325030:android:4fc9e6f1dc5bdccb064427",
+        "mobilesdk_app_id": "1:43777711300:android:200c1d87f63c24e4ac7d91",
         "android_client_info": {
           "package_name": "app.tek4tv.ipradio"
         }
       },
       "oauth_client": [
         {
-          "client_id": "242769325030-5o6e2ipm6hderadnds8jiulnt3amc8es.apps.googleusercontent.com",
+          "client_id": "43777711300-v45kjkklkocuvtj23u0k8cipqc0jff8h.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyBLIdqhb9l6k20VoHh_m9s-VKirHBY_rTM"
+          "current_key": "AIzaSyDO-4dYNUSHyw1LduxFRooPG7Vxt6-0KIo"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "242769325030-5o6e2ipm6hderadnds8jiulnt3amc8es.apps.googleusercontent.com",
+              "client_id": "43777711300-v45kjkklkocuvtj23u0k8cipqc0jff8h.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
