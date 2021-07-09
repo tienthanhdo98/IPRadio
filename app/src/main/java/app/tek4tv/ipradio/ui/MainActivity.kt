@@ -205,7 +205,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
 
-        Firebase.database.setPersistenceEnabled(true)
+        //Firebase.database.setPersistenceEnabled(true)
 
         logUtils = LogUtils.getInst()
         logUtils.logStartApp()
