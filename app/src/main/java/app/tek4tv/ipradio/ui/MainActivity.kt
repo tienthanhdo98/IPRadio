@@ -1,8 +1,10 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -17,13 +19,9 @@ import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -233,6 +231,8 @@ class MainActivity : AppCompatActivity() {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
+
+        setMaxVolume()
     }
 
     private fun checkTime()
@@ -719,6 +719,20 @@ class MainActivity : AppCompatActivity() {
             Define.FUNC_WRITE_FORCE_RESTART_DEVICE,
             "", true
         )
+    }
+
+    private fun setMaxVolume()
+    {
+        try
+        {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        }
+        catch (e : Exception)
+        {
+            Log.e(LOG_TAG, "Error setting max volume")
+        }
     }
 
     companion object {
