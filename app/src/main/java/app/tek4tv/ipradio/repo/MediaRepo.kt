@@ -156,7 +156,7 @@ class MediaRepo @Inject constructor(
     }
 
     fun downloadAMediaItem(it: MediaItem) {
-        if (it.getMediaType() != MediaType.VOD) return
+        if (it.getMediaType() != MediaType.FILE) return
 
         val url = it.path
         //if (url.isEmpty() || !url.startsWith("http")) return

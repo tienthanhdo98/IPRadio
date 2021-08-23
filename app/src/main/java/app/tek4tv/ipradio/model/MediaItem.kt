@@ -43,7 +43,7 @@ data class MediaItem(
 
     fun getMediaType(): MediaType {
         return when(type) {
-            "VOD" -> MediaType.VOD
+            "VOD" -> MediaType.FILE
             "LIVE" -> MediaType.LIVE
             "FM" -> MediaType.FM
             "AM" -> MediaType.AM
@@ -74,7 +74,7 @@ data class MediaItem(
 }
 
 enum class MediaType {
-    VOD,
+    FILE,
     LIVE,
     FM,
     AM,

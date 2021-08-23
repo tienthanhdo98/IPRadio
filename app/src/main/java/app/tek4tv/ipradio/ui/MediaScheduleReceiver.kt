@@ -12,51 +12,9 @@ class MediaScheduleReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (context == null || intent == null) return
 
-        val playerManager = PlayerManager.instance ?: return
+        val alarmListener = MainActivity.alarmListener ?: return
 
-
-        when (intent.action) {
-            ACTION_PLAY_MEDIA_LIST -> {
-                val listKey = intent.getStringExtra(SCHEDULED_LIST_KEY)
-                Toast.makeText(context, listKey, Toast.LENGTH_LONG).show()
-                Log.d("alarmx", listKey)
-
-                playerManager.setTimeFrame(listKey, null)
-            }
-
-            ACTION_END_PLAYLIST -> {
-                val listKey = intent.getStringExtra(SCHEDULED_LIST_KEY)
-                Toast.makeText(context, listKey, Toast.LENGTH_LONG).show()
-                Log.d("alarmx", "end: $listKey")
-
-                playerManager.stopPlaylist(listKey)
-            }
-
-            ACTION_PLAY_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(SCHEDULED_MEDIA_INDEX, 0)
-                Toast.makeText(context, mediaIndex.toString(), Toast.LENGTH_LONG).show()
-                Log.d("alarmx", "start media: $mediaIndex" )
-
-                playerManager.playScheduledMediaByIndex(mediaIndex)
-            }
-
-            ACTION_END_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "end media: $mediaIndex" )
-
-                playerManager.endScheduledMediaByIndex(mediaIndex)
-            }
-
-            ACTION_END_FORCE_MEDIA -> {
-                playerManager.stopForceMedia()
-                Log.d("alarmx", "stop force")
-            }
-
-            ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                playerManager.requestRescheduleMedias()
-            }
-        }
+        alarmListener.onAlarm(intent)
     }
 
     companion object {
@@ -69,4 +27,8 @@ class MediaScheduleReceiver : BroadcastReceiver() {
         const val ACTION_END_FORCE_MEDIA = "ACTION_END_FORCE_MEDIA"
         const val ACTION_RESCHEDULE = "ACTION_RESCHEDULE"
     }
+}
+
+interface AlarmListener{
+    fun onAlarm(intent: Intent)
 }

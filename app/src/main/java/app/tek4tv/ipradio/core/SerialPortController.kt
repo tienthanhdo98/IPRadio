@@ -62,14 +62,6 @@ class SerialPortController(
     }
 
     private fun onWatchDog() {
-        /*val looseHubConnection = if (hubManager.lastPing != "") {
-            val now = Calendar.getInstance()
-            val lastPingTime = Calendar.getInstance().apply {
-                time = dateformat.parse(hubManager.lastPing)
-            }
-            now.timeInMillis - lastPingTime.timeInMillis > 45000
-        } else true*/
-
         val looseHubConnection = hubManager.pingCounter >= 3
 
         if (outputStream != null) {
@@ -84,9 +76,7 @@ class SerialPortController(
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 var param = if (onAir) "1" else "0"
                 if (onAir && looseHubConnection) {
-                    //if (looseHubConnection) {
                     param = "2"
-                    //}
                 }
                 Log.d(LOG_TAG, "status: $param")
 
@@ -197,6 +187,56 @@ class SerialPortController(
     {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
         playMode = MODE_VOD_LIVE
+    }
+
+    fun writeForceSetVolume(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_FORCE_SET_VOLUME, data)
+    }
+
+    fun updateStatus()
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_READ_STATUS_PARAM, "", true)
+    }
+
+    fun hardRestart()
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
+    }
+
+    fun setMuteDevice(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_FORCE_SET_MUTE, data)
+    }
+
+    fun setTimeOver()
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+    }
+
+    fun setTimeOn(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, data, true)
+    }
+
+    fun setUpPiPsName(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, data)
+    }
+
+    fun readDeviceInfo()
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_READ_DEVICE_INFO, "", true)
+    }
+
+    fun writePlayVodLiveForce(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE, data)
+    }
+
+    fun playTunerLiveForce(data: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER_FORCE, data)
     }
 
     companion object {

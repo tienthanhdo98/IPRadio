@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import java.net.NetworkInterface
 import java.security.GeneralSecurityException
 import java.security.SecureRandom
@@ -77,6 +78,12 @@ class Utils {
         fun <T> toJsonString(moshi: Moshi, type: Class<T>, value: T): String {
             val adapter = moshi.adapter(type)
             return adapter.toJson(value)
+        }
+
+        fun toJsonList(moshi: Moshi, list: List<String>): String {
+            val listType = Types.newParameterizedType(List::class.java, String::class.java)
+            val adapter = moshi.adapter<List<String>>(listType)
+            return adapter.toJson(list)
         }
     }
 }

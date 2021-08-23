@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.media.MediaSyncEvent
 import android.util.Log
 import android.view.View
 import app.tek4tv.ipradio.model.ForceMedia
@@ -22,7 +21,6 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
-import java.text.SimpleDateFormat
 import java.util.*
 
 class PlayerManager(
@@ -107,7 +105,7 @@ class PlayerManager(
             val mediaItem = currentPlaylist[index]
 
             //skip LIVE and TUNER as they will be played by alarm
-            if (mediaItem.getMediaType() == MediaType.VOD)
+            if (mediaItem.getMediaType() == MediaType.FILE)
                 playMedia(mediaItem, timeStamp)
 
             Log.d(LOGTAG, "Play media $index")
@@ -182,7 +180,7 @@ class PlayerManager(
             resetState()
 
             when (mediaItem.getMediaType()) {
-                MediaType.VOD -> {
+                MediaType.FILE -> {
                     playVOD(mediaItem, timeStamp)
                 }
                 MediaType.LIVE -> {

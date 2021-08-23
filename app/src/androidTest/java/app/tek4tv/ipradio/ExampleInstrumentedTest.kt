@@ -3,6 +3,9 @@ package app.tek4tv.ipradio
 import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import app.tek4tv.ipradio.core.players_helper.IPlayerEventListener
+import app.tek4tv.ipradio.core.players_helper.VlcMediaPlayer
+import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -27,4 +30,6 @@ class ExampleInstrumentedTest {
         val appContext = InstrumentationRegistry.getInstrumentation().targetContext
         assertEquals("app.tek4tv.ipradio", appContext.packageName)
     }
+
+
 }

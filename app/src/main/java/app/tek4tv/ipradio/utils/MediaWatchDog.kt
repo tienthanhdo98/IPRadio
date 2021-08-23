@@ -41,7 +41,7 @@ class MediaWatchDog(
         try {
             var foundBrokenPath = false
             mediaRepo.broadcastList.forEach {
-                if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.VOD) return@forEach
+                if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
 
                 val mediaPath = it.path
                 if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
@@ -65,7 +65,7 @@ class MediaWatchDog(
     {
         try {
             val needDownload = mediaRepo.broadcastList.filter {
-                it.getMediaType() == MediaType.VOD && it.path.startsWith("http")
+                it.getMediaType() == MediaType.FILE && it.path.startsWith("http")
             }
 
             if (needDownload.isNotEmpty()) {
