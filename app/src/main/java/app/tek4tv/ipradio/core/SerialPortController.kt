@@ -239,6 +239,13 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER_FORCE, data)
     }
 
+    fun playTuner(pipsData: String, tunerData: String)
+    {
+        invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
+        playMode = MODE_TUNER
+    }
+
     companion object {
         const val MODE_VOD_LIVE = "MODE_VOD_LIVE"
         const val MODE_TUNER = "MODE_TUNER"

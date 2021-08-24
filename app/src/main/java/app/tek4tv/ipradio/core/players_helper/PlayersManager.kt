@@ -9,7 +9,9 @@ import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
@@ -17,6 +19,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.*
 
 class PlayersManager(
@@ -42,10 +45,6 @@ class PlayersManager(
     var playerCallback: PlayerCallback? = null
     var isTimeOver = false
 
-    override fun requestTurnOnPaLive() {
-        playerCallback?.requestTurnOnPa()
-    }
-
     override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
         if(isLiveError)
         {
@@ -55,6 +54,7 @@ class PlayersManager(
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         currentPlayingMedia = mediaItem
+        playerCallback?.onPlayMediaSuccess(mediaItem)
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
@@ -146,6 +146,7 @@ class PlayersManager(
                 }
                 MediaType.FM -> {
                     playerCallback?.onPlayTuner(mediaItem)
+                    currentPlayingMedia = mediaItem
                 }
                 else -> {
                     playNextMedia()
@@ -233,18 +234,57 @@ class PlayersManager(
         playNextMedia()
     }
 
-    fun playForceMedia(forceMedia: ForceMedia) {
-        currentPlaylistKey = PLAY_MODE_FORCE
-        stopAllPlayer()
-
-        playMedia(forceMedia.toMediaItem())
-    }
-
     fun stopForceMedia() {
         if (currentPlaylistKey != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
         playerCallback?.onEndForceMedia()
+    }
+
+    fun onPlayForceCommand(context: Context, responseHub: ResponseHub) {
+        try {
+            val duration = responseHub.duration
+            val type = responseHub.type
+            val level = responseHub.level
+            val mediaName = responseHub.name
+
+            //if we are playing a force media that has a higher level, skip playing this
+            if (currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
+                val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
+                if (value != null && value != "") {
+                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
+
+                    if (currentForceMedia != null && currentForceMedia.level < level) return
+                }
+            }
+
+            val forceMedia = ForceMedia(responseHub.message!!, duration, type, level).apply {
+                val mediaEndTime = Calendar.getInstance().apply {
+                    add(Calendar.MINUTE, duration)
+                }
+                endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
+                fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+                name = mediaName
+            }
+            playForceMedia(context, forceMedia)
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun playForceMedia(context: Context, forceMedia: ForceMedia) {
+        try {
+            playerCallback?.onPlayForceMedia()
+
+            forceMedia.saveItemToPref(context)
+
+            currentPlaylistKey = PLAY_MODE_FORCE
+            stopAllPlayer()
+            playMedia(forceMedia.toMediaItem())
+
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
     }
 
     fun onActivityStop()

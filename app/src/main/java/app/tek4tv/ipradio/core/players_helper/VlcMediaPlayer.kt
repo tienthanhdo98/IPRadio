@@ -58,7 +58,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             MediaPlayer.Event.Playing -> {
                 if(!isPlaying)
                 {
-                    playerEventListener.requestTurnOnPaLive()
+                    //playerEventListener.requestTurnOnPaLive()
                     isPlaying = true
                     playerEventListener.onPlayMediaSuccess(currentMedia)
                 }

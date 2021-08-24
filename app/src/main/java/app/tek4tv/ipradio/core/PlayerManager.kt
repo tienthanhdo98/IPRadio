@@ -351,7 +351,7 @@ class PlayerManager(
         if(isLiveStreamError)
         {
             isLiveStreamError = false
-            playerCallback?.requestTurnOnPa()
+            //playerCallback?.requestTurnOnPa()
         }
     }
 
@@ -497,7 +497,7 @@ class PlayerManager(
     }
 
     fun requestRescheduleMedias() {
-        playerCallback?.rescheduleMedias()
+        //playerCallback?.rescheduleMedias()
     }
 
     fun onActivityStop() {
@@ -533,8 +533,10 @@ interface PlayerCallback {
     fun onStartTimeFrame(frame: String)
     fun onEndTimeFrame(frame: String)
     fun onPlayTuner(mediaItem: MediaItem)
-    fun onEndForceMedia()
-    fun rescheduleMedias()
+    //fun rescheduleMedias()
     fun onLiveError()
-    fun requestTurnOnPa()
+    //fun requestTurnOnPa()
+    fun onPlayForceMedia()
+    fun onEndForceMedia()
+    fun onPlayMediaSuccess(mediaItem: MediaItem?)
 }

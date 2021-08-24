@@ -70,9 +70,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
             val now = Calendar.getInstance().timeInMillis
 
-            if (now in start.timeInMillis..end.timeInMillis) {
+            /*if (now in start.timeInMillis..end.timeInMillis) {
                 setAlarmForList(period, endRequestCode, end, true)
-            } else if (now < start.timeInMillis) {
+            } else */if (now < start.timeInMillis) {
                 setAlarmForList(period, requestCode, start)
                 setAlarmForList(period, endRequestCode, end, true)
             }
@@ -193,10 +193,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                     0
                 )
 
-                alarmManager.setExactAndAllowWhileIdle(
+                /*alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     scheduleTime.timeInMillis, startIntent
-                )
+                )*/
 
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,

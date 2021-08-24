@@ -37,7 +37,7 @@ class ExoMediaPlayer(
 
             if(isPlaying) {
                 eventListener.onPlayMediaSuccess(currentPlayingMedia)
-                eventListener.requestTurnOnPaLive()
+                //eventListener.requestTurnOnPaLive()
             }
         }
 

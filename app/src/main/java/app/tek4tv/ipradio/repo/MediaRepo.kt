@@ -37,7 +37,7 @@ class MediaRepo @Inject constructor(
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
 
-    private val downloadHelper = DownloadHelper.getInstance(coroutineScope)
+    private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
 

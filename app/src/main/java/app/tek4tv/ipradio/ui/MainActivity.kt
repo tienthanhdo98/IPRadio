@@ -7,7 +7,6 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
 import android.widget.FrameLayout
-import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -18,21 +17,13 @@ import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.core.players_helper.ExoMediaPlayer
 import app.tek4tv.ipradio.core.players_helper.IPlayerEventListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.core.players_helper.VlcMediaPlayer
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-import kotlin.math.abs
 
 
 @AndroidEntryPoint
@@ -47,7 +38,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.WRITE_SETTINGS,
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
@@ -107,12 +97,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
             }
 
-            if (mediaItem.getMediaType() != MediaType.FM
+            /*if (mediaItem.getMediaType() != MediaType.FM
                 && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
                 && !playerManager.isLiveStreamError
             ) {
                 serialPortController.turnOnPAVod()
-            }
+            }*/
         }
 
         override fun onTimeOver() {
@@ -138,22 +128,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
-                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0"
-                else "1"
-
+                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
 
-                serialPortController.invokeDeviceFunc(
-                    Define.FUNC_WRITE_SETUP_PI_PS_NAME,
-                    pipsData,
-                    true
-                )
-
-                serialPortController.apply {
-                    invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
-                    playMode = SerialPortController.MODE_TUNER
-                }
+                serialPortController.playTuner(pipsData, tunerData)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -164,7 +143,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             startPlayingMedia()
         }
 
-        override fun rescheduleMedias() {
+        /*override fun rescheduleMedias() {
             mediaScheduler.cancelAllAlarm()
             val monthlyScenarioUrl = ConfigUtil.getString(
                 applicationContext,
@@ -172,7 +151,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             ) ?: return
 
             viewModel.updateMonthlyScenario(monthlyScenarioUrl)
-        }
+        }*/
 
         override fun onLiveError() {
             hubManager.curMediaName = ""
@@ -181,8 +160,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
         }
 
-        override fun requestTurnOnPa() {
-            serialPortController.turnOnPAVod()
+        override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+            if (mediaItem?.getMediaType() != MediaType.FM) {
+                serialPortController.turnOnPAVod()
+            }
+        }
+
+        override fun onPlayForceMedia() {
+            cancelAllAlarm()
+            mediaScheduler.scheduleForceMediaAlarm()
         }
     }
 
@@ -257,10 +243,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     fun testVlc() {
         val vlcPlayer = ExoMediaPlayer(applicationContext, object : IPlayerEventListener {
-            override fun requestTurnOnPaLive() {
-                Log.d("ExoMediaPlayer", "requestTurnOnPaLive1")
-            }
-
             override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
                 Log.d("ExoMediaPlayer", "onPlayerError")
             }
@@ -321,7 +303,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllAlarm()
-                //mediaScheduler.scheduleAllAlarms(
 
                 val monthlyScenarioUrl = ConfigUtil.getString(
                     applicationContext,
@@ -360,7 +341,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 if (forceMedia != null)
-                    playerManager.playForceMedia(forceMedia)
+                    playerManager.playForceMedia(applicationContext, forceMedia)
 
                 return@observe
             }
@@ -382,7 +363,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun initHubConnect() {
         NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
             if (isConnected) {
-                //checkTime()
                 hubManager.connectToHub()
                 locationTracker.getLocation(this@MainActivity)
             }
@@ -431,7 +411,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.LIVE -> {
                     serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playForceMedia(responseHub)
+                    playerManager.onPlayForceCommand(applicationContext, responseHub)
                 }
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
@@ -454,7 +434,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.SWITCH_MODE_FM -> {
                     serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playForceMedia(responseHub)
+                    playerManager.onPlayForceCommand(applicationContext, responseHub)
                 }
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
@@ -630,51 +610,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun cancelAllAlarm() {
         if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
         else mediaScheduler.cancelAllAlarm()
-    }
-
-    private fun playForceMedia(responseHub: ResponseHub) {
-        try {
-            val duration = responseHub.duration
-            val type = responseHub.type
-            val level = responseHub.level
-            val mediaName = responseHub.name
-
-            //if we are playing a force media that has a higher level, skip playing this
-            if (playerManager.currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
-                val value = ConfigUtil.getString(applicationContext, ConfigUtil.FORCE_MEDIA, "")
-                if (value != null && value != "") {
-                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
-
-                    if (currentForceMedia != null && currentForceMedia.level < level) return
-                }
-            }
-
-            val forceMedia = ForceMedia(responseHub.message!!, duration, type, level).apply {
-                val mediaEndTime = Calendar.getInstance().apply {
-                    add(Calendar.MINUTE, duration)
-                }
-                endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
-                fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
-                name = mediaName
-            }
-            playForceMedia(forceMedia)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-
-    private fun playForceMedia(forceMedia: ForceMedia) {
-        try {
-            cancelAllAlarm()
-
-            forceMedia.saveItemToPref(applicationContext)
-
-            mediaScheduler.scheduleForceMediaAlarm()
-
-            playerManager.playForceMedia(forceMedia)
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
     }
 
     companion object {
