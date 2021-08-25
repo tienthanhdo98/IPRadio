@@ -70,7 +70,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     init {
         val args = ArrayList<String>()
-        args.add("-vvv")
+        //args.add("-vvv")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)

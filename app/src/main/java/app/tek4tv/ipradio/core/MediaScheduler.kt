@@ -70,9 +70,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
             val now = Calendar.getInstance().timeInMillis
 
-            /*if (now in start.timeInMillis..end.timeInMillis) {
+            if (now in start.timeInMillis..end.timeInMillis) {
                 setAlarmForList(period, endRequestCode, end, true)
-            } else */if (now < start.timeInMillis) {
+            } else if (now < start.timeInMillis) {
                 setAlarmForList(period, requestCode, start)
                 setAlarmForList(period, endRequestCode, end, true)
             }
@@ -237,8 +237,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                     0
                 )
 
-                alarmManager.cancel(startIntent)
-                startIntent?.cancel()
+                //alarmManager.cancel(startIntent)
+                //startIntent?.cancel()
                 alarmManager.cancel(endIntent)
                 endIntent?.cancel()
 
@@ -259,8 +259,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleForceMediaAlarm() {
-        Log.d("alarmx", "set force")
-
         val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_UPDATE_CURRENT) ?: return
 
         val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
@@ -279,6 +277,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             AlarmManager.RTC_WAKEUP,
             mediaEndTimeInMillis, alarmIntent
         )
+
+        Log.d("alarmx", "set force")
     }
 
     fun cancelForceMediaAlarm() {

@@ -72,7 +72,7 @@ class PlayersManager(
     //Playlist - timeframe
     fun startFirstTimeFrame()
     {
-        isTimeOver = true
+        //isTimeOver = true
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
@@ -90,7 +90,7 @@ class PlayersManager(
                 break
             }
         }
-        checkTimeOver()
+        //checkTimeOver()
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
@@ -116,9 +116,11 @@ class PlayersManager(
 
         rootLayout.post {
             playlistIndex++
-            if (playlistIndex >= currentPlaylist.size) playlistIndex = 0
+            /*if (playlistIndex >= currentPlaylist.size) playlistIndex = 0
 
-            playMediaByIndex(playlistIndex)
+            playMediaByIndex(playlistIndex)*/
+
+            if(playlistIndex < currentPlaylist.size) playMediaByIndex(playlistIndex)
         }
     }
 
@@ -274,9 +276,9 @@ class PlayersManager(
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia) {
         try {
-            playerCallback?.onPlayForceMedia()
-
             forceMedia.saveItemToPref(context)
+
+            playerCallback?.onPlayForceMedia()
 
             currentPlaylistKey = PLAY_MODE_FORCE
             stopAllPlayer()

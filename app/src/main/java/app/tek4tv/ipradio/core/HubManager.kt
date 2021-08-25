@@ -121,7 +121,7 @@ class HubManager(
                 hubConnection.connectionId
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
-                e.printStackTrace()
+                //e.printStackTrace()
                 null
             }
         }
