@@ -36,11 +36,12 @@ class PlayersManager(
     //-1 for random unscheduled media
     //0 for init
     //HH:mm:ss-HH:mm:ss for scheduled media
-    var currentPlaylistKey = "0"
+    private var currentPlaylistKey = "0"
 
     private var currentPlaylist = listOf<MediaItem>()
 
-    private var playlistIndex = 0
+    var playlistIndex = 0
+        private set
 
     var playerCallback: PlayerCallback? = null
     var isTimeOver = false
@@ -53,7 +54,6 @@ class PlayersManager(
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-        currentPlayingMedia = mediaItem
         playerCallback?.onPlayMediaSuccess(mediaItem)
     }
 
@@ -62,11 +62,23 @@ class PlayersManager(
     }
 
     override fun onLostHubConnection() {
-
+        if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
+            stopAllPlayer()
     }
 
-    override fun onConnectedToHub() {
+    override fun onReconnectedToHub() {
+        if(currentPlayingMedia == null) return
 
+        if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
+        {
+            val now = Calendar.getInstance()
+
+            val liveEndTime = toCalendar(currentPlayingMedia!!.fixTime).apply {
+                add(Calendar.SECOND, getDurationInSecond(currentPlayingMedia!!.duration))
+            }
+
+            if(now < liveEndTime) playMedia(currentPlayingMedia!!)
+        }
     }
 
     //Playlist - timeframe
@@ -116,10 +128,6 @@ class PlayersManager(
 
         rootLayout.post {
             playlistIndex++
-            /*if (playlistIndex >= currentPlaylist.size) playlistIndex = 0
-
-            playMediaByIndex(playlistIndex)*/
-
             if(playlistIndex < currentPlaylist.size) playMediaByIndex(playlistIndex)
         }
     }
@@ -139,6 +147,7 @@ class PlayersManager(
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
+            currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     vlcPlayer.playMedia(mediaItem, timeStamp)
@@ -148,7 +157,6 @@ class PlayersManager(
                 }
                 MediaType.FM -> {
                     playerCallback?.onPlayTuner(mediaItem)
-                    currentPlayingMedia = mediaItem
                 }
                 else -> {
                     playNextMedia()

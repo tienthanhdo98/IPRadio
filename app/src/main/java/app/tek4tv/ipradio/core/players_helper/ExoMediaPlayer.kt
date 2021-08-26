@@ -12,6 +12,7 @@ import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import java.util.*
 
+//Mainly  for playing m3u8 stream
 class ExoMediaPlayer(
     appContext: Context,
     private val eventListener: IPlayerEventListener) : IMediaPlayer {
@@ -22,11 +23,9 @@ class ExoMediaPlayer(
 
     private var currentPlayingMedia : MediaItem? = null
 
-    var currentExoState = -1
-        private set
+    private var isPlaying = false
 
-    var isPlaying = false
-        private set
+    override fun isPlaying(): Boolean = isPlaying
 
     private val exoEventListener = object : Player.EventListener {
 
@@ -37,17 +36,11 @@ class ExoMediaPlayer(
 
             if(isPlaying) {
                 eventListener.onPlayMediaSuccess(currentPlayingMedia)
-                //eventListener.requestTurnOnPaLive()
             }
         }
 
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
-            currentExoState = state
-
-            /*if (state == ExoPlayer.STATE_READY) {
-                eventListener.requestTurnOnPaLive()
-            }*/
 
             Log.d(TAG, "exo state: $state")
         }
@@ -97,6 +90,7 @@ class ExoMediaPlayer(
         try {
             exoPlayer.stop()
             isPlaying = false
+            currentPlayingMedia = null
         } catch (e: Exception) {
             e.printStackTrace()
         }

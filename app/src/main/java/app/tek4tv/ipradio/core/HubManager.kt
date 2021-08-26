@@ -3,29 +3,19 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
-import android.util.Base64
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
-import com.google.firebase.database.DatabaseReference
-import com.google.firebase.database.ktx.database
-import com.google.firebase.ktx.Firebase
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import kotlinx.coroutines.*
 import java.io.File
-import java.security.KeyFactory
-import java.security.NoSuchAlgorithmException
-import java.security.PrivateKey
-import java.security.spec.InvalidKeySpecException
-import java.security.spec.PKCS8EncodedKeySpec
 import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
-import javax.crypto.Cipher
 
 class HubManager(
     private val hubComm: HubComm,
@@ -103,7 +93,7 @@ class HubManager(
             Log.d(LOG_TAG, "$connectionId")
             onMessage()
             startPingTimer()
-            notifyHubConnected()
+            //notifyHubConnected()
 
             openNewConnectionJob = null
         }
@@ -278,16 +268,16 @@ class HubManager(
             //Try to reconnect to hub
             val cid = openConnection()
             if (cid != null) {
-                notifyHubConnected()
+                notifyHubReconnected()
                 notifyDisconnected.compareAndSet(true, false)
             }
         }
     }
 
     @Synchronized
-    private fun notifyHubConnected() {
+    private fun notifyHubReconnected() {
         mainHandler.post {
-            hubEventObserver.forEach { it.onConnectedToHub() }
+            hubEventObserver.forEach { it.onReconnectedToHub() }
         }
     }
 
@@ -322,7 +312,7 @@ interface HubComm {
 
 interface HubEventObserver {
     fun onLostHubConnection()
-    fun onConnectedToHub()
+    fun onReconnectedToHub()
 }
 
 val publicKey = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="

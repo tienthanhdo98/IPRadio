@@ -72,12 +72,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val playerCallback = object : PlayerCallback {
         override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
-            hubManager.playlistIndex = index
-            hubManager.currentMediaItem = mediaItem
-
-            val displayName = mediaItem.name ?: ""
-            hubManager.curMediaName = displayName
-
             if (globalProperties.logEnabled) {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -96,13 +90,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     e.printStackTrace()
                 }
             }
-
-            /*if (mediaItem.getMediaType() != MediaType.FM
-                && serialPortController.playMode != SerialPortController.MODE_VOD_LIVE
-                && !playerManager.isLiveStreamError
-            ) {
-                serialPortController.turnOnPAVod()
-            }*/
         }
 
         override fun onTimeOver() {
@@ -143,16 +130,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             startPlayingMedia()
         }
 
-        /*override fun rescheduleMedias() {
-            mediaScheduler.cancelAllAlarm()
-            val monthlyScenarioUrl = ConfigUtil.getString(
-                applicationContext,
-                ConfigUtil.MONTHLY_SCENARIO_URL, ""
-            ) ?: return
-
-            viewModel.updateMonthlyScenario(monthlyScenarioUrl)
-        }*/
-
         override fun onLiveError() {
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
@@ -161,6 +138,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+            hubManager.playlistIndex = playerManager.playlistIndex
+            hubManager.currentMediaItem = mediaItem
+
+            val displayName = mediaItem?.name ?: ""
+            hubManager.curMediaName = displayName
+
             if (mediaItem?.getMediaType() != MediaType.FM) {
                 serialPortController.turnOnPAVod()
             }
@@ -237,32 +220,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStart() {
         super.onStart()
-        //testVlc()
         startPlayingMedia()
-    }
-
-    fun testVlc() {
-        val vlcPlayer = ExoMediaPlayer(applicationContext, object : IPlayerEventListener {
-            override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
-                Log.d("ExoMediaPlayer", "onPlayerError")
-            }
-
-            override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-                Log.d("ExoMediaPlayer", "onPlayMediaSuccess")
-            }
-
-            override fun onMediaEndReached(mediaItem: MediaItem?) {
-                Log.d("ExoMediaPlayer", "onMediaEndReached")
-            }
-        })
-
-        val mediaItem = MediaItem(
-            path = "https://ll4mfr7mnaliv.vcdn.cloud/laichau/radio/playlist.m3u8",
-            type = "LIVE",
-            fixTime = "16:39:00",
-            duration = "01:00:00"
-        )
-        vlcPlayer.playMedia(mediaItem)
     }
 
     override fun onAlarm(intent: Intent) {
@@ -280,13 +238,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 playerManager.stopPlaylist(listKey)
             }
-
-            /*MediaScheduleReceiver.ACTION_PLAY_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "start media: $mediaIndex")
-
-                playerManager.playScheduledMediaByIndex(mediaIndex)
-            }*/
 
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
                 val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
@@ -613,7 +564,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     companion object {
-        const val LOG_TAG = "MainActivity"
         var alarmListener: AlarmListener? = null
     }
 }

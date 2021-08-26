@@ -24,8 +24,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var currentMedia: MediaItem? = null
     private var currentVlcMedia: Media? = null
 
-    var isPlaying = false
-        private set
+    private var isPlaying = false
+
+    override fun isPlaying(): Boolean = isPlaying
 
     private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
         when (event) {
@@ -36,8 +37,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
-                }
-                else {
+                } else {
                     onLiveErrorVlc()
                 }
             }
@@ -49,15 +49,13 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onPlayerError(VlcException("EncounteredError"))
                     isPlaying = false
-                }
-                else {
+                } else {
                     onLiveErrorVlc()
                 }
             }
 
             MediaPlayer.Event.Playing -> {
-                if(!isPlaying)
-                {
+                if (!isPlaying) {
                     //playerEventListener.requestTurnOnPaLive()
                     isPlaying = true
                     playerEventListener.onPlayMediaSuccess(currentMedia)
@@ -78,7 +76,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
-        if(isPlaying) stop()
+        if (isPlaying) stop()
 
         when (mediaItem.getMediaType()) {
             MediaType.FILE -> {
@@ -102,6 +100,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         if (vlcPlayer.isPlaying)
             vlcPlayer.stop()
         isPlaying = false
+        currentMedia = null
+        currentVlcMedia = null
     }
 
     override fun release() {
@@ -151,19 +151,23 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun onLiveErrorVlc() {
-        val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
+        if (currentMedia == null || currentVlcMedia == null) return
 
-        if (isStreamFailed) {
-            isPlaying = false
-            playerEventListener.onPlayerError(VlcException("Stream failed!"), true)
-            playLiveStream(currentMedia!!)
-        }
-        else
-        {
-            Log.d(TAG,"Stopping from reconnect")
-            stop()
+        try {
+            val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
+
+            if (isStreamFailed) {
+                isPlaying = false
+                playerEventListener.onPlayerError(VlcException("Stream failed!"), true)
+                playLiveStream(currentMedia!!)
+            } else {
+                Log.d(TAG, "Stopping from reconnect")
+                stop()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 }
 
-class VlcException(mess: String? = null) : Exception(mess?:"")
+class VlcException(mess: String? = null) : Exception(mess ?: "")

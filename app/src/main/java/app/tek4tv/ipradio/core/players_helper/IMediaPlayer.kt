@@ -7,4 +7,5 @@ interface IMediaPlayer {
     fun reset()
     fun stop()
     fun release()
+    fun isPlaying() : Boolean
 }

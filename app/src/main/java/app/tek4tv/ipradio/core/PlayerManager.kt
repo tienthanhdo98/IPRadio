@@ -515,7 +515,7 @@ class PlayerManager(
         connectedToHub = false
     }
 
-    override fun onConnectedToHub() {
+    override fun onReconnectedToHub() {
         connectedToHub = true
     }
 
