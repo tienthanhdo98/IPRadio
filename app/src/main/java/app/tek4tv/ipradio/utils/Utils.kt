@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContextCompat
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -85,33 +86,5 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
-    }
-}
-
-fun disableSSL() {
-    val trustAllCerts: Array<TrustManager> = arrayOf(
-        object : X509TrustManager {
-            override fun checkClientTrusted(
-                certs: Array<X509Certificate?>?, authType: String?
-            ) {
-            }
-
-            override fun checkServerTrusted(
-                certs: Array<X509Certificate?>?, authType: String?
-            ) {
-            }
-
-            override fun getAcceptedIssuers(): Array<X509Certificate?>? {
-                return null
-            }
-        }
-    )
-
-    // Install the all-trusting trust manager
-    try {
-        val sc: SSLContext = SSLContext.getInstance("SSL")
-        sc.init(null, trustAllCerts, SecureRandom())
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-    } catch (e: GeneralSecurityException) {
     }
 }

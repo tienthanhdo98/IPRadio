@@ -38,7 +38,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
                 } else {
-                    onLiveErrorVlc()
+                    if (!disconnectedHub)
+                        onLiveErrorVlc()
                 }
             }
 
@@ -50,13 +51,13 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     playerEventListener.onPlayerError(VlcException("EncounteredError"))
                     isPlaying = false
                 } else {
-                    onLiveErrorVlc()
+                    if (!disconnectedHub)
+                        onLiveErrorVlc()
                 }
             }
 
             MediaPlayer.Event.Playing -> {
                 if (!isPlaying) {
-                    //playerEventListener.requestTurnOnPaLive()
                     isPlaying = true
                     playerEventListener.onPlayMediaSuccess(currentMedia)
                 }
@@ -107,6 +108,21 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     override fun release() {
         vlcPlayer.release()
         mLibVLC.release()
+    }
+
+    private var disconnectedHub = false
+
+    override fun onLostHubConnection() {
+        disconnectedHub = true
+    }
+
+    override fun onHubReconnected() {
+        disconnectedHub = false
+
+        if (currentMedia == null || currentMedia?.getMediaType() != MediaType.LIVE) return
+
+        if (checkLiveStream(currentMedia!!, currentVlcMedia!!))
+            playLiveStream(currentMedia!!)
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {

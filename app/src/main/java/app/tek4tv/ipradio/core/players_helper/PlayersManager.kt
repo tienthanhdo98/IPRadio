@@ -11,10 +11,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.toCalendar
+import app.tek4tv.ipradio.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -30,6 +27,7 @@ class PlayersManager(
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
+    private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaItem? = null
 
     //-2 for force media
@@ -62,12 +60,13 @@ class PlayersManager(
     }
 
     override fun onLostHubConnection() {
-        if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
-            stopAllPlayer()
+        /*if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
+            stopAllPlayer()*/
+        currentPlayer?.onLostHubConnection()
     }
 
     override fun onReconnectedToHub() {
-        if(currentPlayingMedia == null) return
+        /*if(currentPlayingMedia == null) return
 
         if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
         {
@@ -78,7 +77,8 @@ class PlayersManager(
             }
 
             if(now < liveEndTime) playMedia(currentPlayingMedia!!)
-        }
+        }*/
+        currentPlayer?.onHubReconnected()
     }
 
     //Playlist - timeframe
@@ -145,12 +145,14 @@ class PlayersManager(
         }
     }
 
-    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
+    fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
+        playerCallback?.onPlayNewMedia(playlistIndex, mediaItem)
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     vlcPlayer.playMedia(mediaItem, timeStamp)
+                    currentPlayer = vlcPlayer
                 }
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
@@ -162,17 +164,19 @@ class PlayersManager(
                     playNextMedia()
                 }
             }
-
-            playerCallback?.onPlayNewMedia(playlistIndex, mediaItem)
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        if(mediaItem.path.endsWith("m3u8")) exoPlayer.playMedia(mediaItem, -1)
-        else vlcPlayer.playMedia(mediaItem, -1)
+        currentPlayer = if(mediaItem.path.endsWith("m3u8")) {
+            exoPlayer.playMedia(mediaItem, -1)
+            exoPlayer
+        } else {
+            vlcPlayer.playMedia(mediaItem, -1)
+            vlcPlayer
+        }
     }
 
     fun stopAllPlayer()
@@ -284,6 +288,7 @@ class PlayersManager(
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia) {
         try {
+            Log.d("aaa","force")
             forceMedia.saveItemToPref(context)
 
             playerCallback?.onPlayForceMedia()

@@ -23,7 +23,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 3
-        versionName "2.0.4"
+        versionName "2.1.0"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -106,6 +106,7 @@ dependencies {
 
     implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
     implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
 
     //firebase logging
     implementation platform('com.google.firebase:firebase-bom:28.1.0')

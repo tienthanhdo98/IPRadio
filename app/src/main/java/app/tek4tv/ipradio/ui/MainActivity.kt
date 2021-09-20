@@ -14,14 +14,14 @@ import androidx.lifecycle.observe
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
-import app.tek4tv.ipradio.core.players_helper.ExoMediaPlayer
-import app.tek4tv.ipradio.core.players_helper.IPlayerEventListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -159,8 +159,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
-
-        disableSSL()
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -339,6 +337,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
 
+                    //playerManager.stopForceMedia()
                     playerManager.stopAllPlayer()
 
                     globalProperties.saveProperties(responseHub)
@@ -449,16 +448,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-                HubCommand.GET_AUDIO_PATH -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val audioList = Utils.toJsonList(moshi, appStorageManager.getAllMusicPath())
-                        hubManager.sendHubDirectMessage(
-                            connectionId, Utils.GET_AUDIO_PATH, audioList
-                        )
-                    }
-                }
-
                 HubCommand.GET_MEDIA_PATH -> {
                     val connectionId = responseHub.message
                     if (connectionId != null) {
@@ -468,10 +457,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             connectionId, Utils.GET_MEDIA_PATH, mediaList
                         )
                     }
-                }
-
-                HubCommand.DELETE_ALL_AUDIO -> {
-                    appStorageManager.deleteAllMusic()
                 }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
@@ -567,4 +552,3 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         var alarmListener: AlarmListener? = null
     }
 }
-

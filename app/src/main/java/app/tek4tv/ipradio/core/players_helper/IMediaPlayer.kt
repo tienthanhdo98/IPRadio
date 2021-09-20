@@ -8,4 +8,6 @@ interface IMediaPlayer {
     fun stop()
     fun release()
     fun isPlaying() : Boolean
+    fun onLostHubConnection()
+    fun onHubReconnected()
 }

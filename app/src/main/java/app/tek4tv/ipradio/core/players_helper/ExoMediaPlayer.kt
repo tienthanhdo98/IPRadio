@@ -2,14 +2,17 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlaybackException
-import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
+import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
+import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
+import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import okhttp3.OkHttpClient
 import java.util.*
 
 //Mainly  for playing m3u8 stream
@@ -19,11 +22,13 @@ class ExoMediaPlayer(
 
     private val TAG = "ExoMediaPlayer"
 
-    private val exoPlayer = SimpleExoPlayer.Builder(appContext).build()
+    private val exoPlayer  : SimpleExoPlayer
 
     private var currentPlayingMedia : MediaItem? = null
 
     private var isPlaying = false
+
+    private var isHubDisconnected = false
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -39,21 +44,19 @@ class ExoMediaPlayer(
             }
         }
 
-        override fun onPlaybackStateChanged(state: Int) {
-            super.onPlaybackStateChanged(state)
-
-            Log.d(TAG, "exo state: $state")
-        }
-
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
-
             Log.d(TAG, "exoerror: ${error.message ?: ""}")
+
+            //Live stream failed
+            //if hub connection has been lost, exit then try to reconnect when hub connected again
+            //else try to reconnect to livestream immediately
 
             eventListener.onPlayerError(error, true)
 
-            isPlaying = false
+            if(isHubDisconnected) return
 
+            isPlaying = false
             if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!)) {
                 playMedia(currentPlayingMedia!!)
             }
@@ -65,6 +68,14 @@ class ExoMediaPlayer(
     }
 
     init {
+        val okHttpClient = OkHttpClient.Builder().apply {
+            ignoreAllSSLErrors()
+        }.build()
+        val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
+        val dataSourceFactory = DefaultDataSourceFactory(appContext,null, okHttpFactory)
+        exoPlayer = SimpleExoPlayer.Builder(appContext)
+            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .build()
         exoPlayer.addListener(exoEventListener)
     }
 
@@ -98,6 +109,18 @@ class ExoMediaPlayer(
 
     override fun release() {
         exoPlayer.release()
+    }
+
+    override fun onLostHubConnection() {
+        isHubDisconnected = true
+    }
+
+    override fun onHubReconnected() {
+        isHubDisconnected = false
+
+        if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
+            playMedia(currentPlayingMedia!!)
+        }
     }
 
     private fun playHlsExo(mediaItem: MediaItem) {

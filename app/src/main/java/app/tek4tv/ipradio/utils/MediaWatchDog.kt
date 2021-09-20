@@ -47,7 +47,7 @@ class MediaWatchDog(
                 if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
                     if (it.pathBackup.startsWith("http")) it.path = it.pathBackup
                     foundBrokenPath = true
-                    Log.d("aaa",it.name)
+                    //Log.d("aaa",it.name)
                 }
             }
 
