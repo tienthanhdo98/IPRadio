@@ -61,11 +61,14 @@ class PlayersManager(
     }
 
     override fun onLostHubConnection() {
-
+        vlcPlayer.disconnectedHub = true
+        exoPlayer.disconnectedHub = true
         currentPlayer?.onLostHubConnection()
     }
 
     override fun onReconnectedToHub() {
+        vlcPlayer.disconnectedHub = false
+        exoPlayer.disconnectedHub = false
         currentPlayer?.onHubReconnected()
     }
 

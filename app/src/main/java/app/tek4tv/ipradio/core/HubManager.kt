@@ -11,6 +11,7 @@ import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.HubConnectionState
 import com.microsoft.signalr.TransportEnum
 import kotlinx.coroutines.*
 import java.io.File
@@ -42,7 +43,7 @@ class HubManager(
 
     var pingCounter = 69
 
-    val hubConnection: HubConnection
+    var hubConnection: HubConnection
 
     //current response Hub
     var responseHub = ResponseHub()
@@ -73,10 +74,6 @@ class HubManager(
         hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB)
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
-
-        hubConnection.onClosed {
-            Log.e(LOG_TAG, "Hub Connection closed")
-        }
     }
 
 
@@ -107,7 +104,7 @@ class HubManager(
     private suspend fun openConnection(): String? {
         //open connection on another thread
         Log.e(LOG_TAG, "open connection")
-        return withContext(Dispatchers.Default) {
+        return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
                 //networkDb.push().setValue(HubConnectState(state = "CONNECTED"))
@@ -121,6 +118,8 @@ class HubManager(
             }
         }
     }
+
+    private var firstConnect = true
 
     private fun onMessage() {
         if (registerOnMessageListener) return
@@ -138,6 +137,19 @@ class HubManager(
                     if (command != null && message != null) {
                         when (command) {
                             HubCommand.PONG -> {
+
+                                if(pingCounter >= 3 && !firstConnect)
+                                {
+                                    Log.e(LOG_TAG, "Hub Reconnected")
+                                    notifyHubReconnected()
+                                    notifyDisconnected.compareAndSet(true, false)
+                                }
+
+                                if(firstConnect)
+                                {
+                                    firstConnect = false
+                                }
+
                                 pingCounter = 0
                             }
 
@@ -265,17 +277,17 @@ class HubManager(
             if(notifyDisconnected.compareAndSet(false, true))
             {
                 notifyHubDisconnected()
-
+                Log.e(LOG_TAG, "Hub Disconnected")
                 logUtils.logHubConnectState(HubConnectState(state = "DISCONNECTED"))
             }
 
 
             //Try to reconnect to hub
-            val cid = openConnection()
-            if (cid != null) {
+            openConnection()
+            /*if (cid != null) {
                 notifyHubReconnected()
                 notifyDisconnected.compareAndSet(true, false)
-            }
+            }*/
         }
     }
 

@@ -110,7 +110,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         mLibVLC.release()
     }
 
-    private var disconnectedHub = false
+    override var disconnectedHub = false
 
     override fun onLostHubConnection() {
         disconnectedHub = true

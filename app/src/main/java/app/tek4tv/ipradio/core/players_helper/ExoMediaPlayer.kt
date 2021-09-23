@@ -15,7 +15,7 @@ import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import okhttp3.OkHttpClient
 import java.util.*
 
-//Mainly  for playing m3u8 stream
+//Mainly for playing m3u8 stream
 class ExoMediaPlayer(
     appContext: Context,
     private val eventListener: IPlayerEventListener) : IMediaPlayer {
@@ -28,7 +28,7 @@ class ExoMediaPlayer(
 
     private var isPlaying = false
 
-    private var isHubDisconnected = false
+    override var disconnectedHub = false
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -54,7 +54,7 @@ class ExoMediaPlayer(
 
             eventListener.onPlayerError(error, true)
 
-            if(isHubDisconnected) return
+            if(disconnectedHub) return
 
             isPlaying = false
             if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!)) {
@@ -112,11 +112,11 @@ class ExoMediaPlayer(
     }
 
     override fun onLostHubConnection() {
-        isHubDisconnected = true
+        disconnectedHub = true
     }
 
     override fun onHubReconnected() {
-        isHubDisconnected = false
+        disconnectedHub = false
 
         if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
             playMedia(currentPlayingMedia!!)
