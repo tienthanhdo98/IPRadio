@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import android.view.View
 import app.tek4tv.ipradio.core.HubEventObserver
+import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.PlayerCallback
 import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.ForceMedia
@@ -34,7 +35,7 @@ class PlayersManager(
     //-1 for random unscheduled media
     //0 for init
     //HH:mm:ss-HH:mm:ss for scheduled media
-    private var currentPlaylistKey = "0"
+    private var playMode = "0"
 
     private var currentPlaylist = listOf<MediaItem>()
 
@@ -60,24 +61,11 @@ class PlayersManager(
     }
 
     override fun onLostHubConnection() {
-        /*if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
-            stopAllPlayer()*/
+
         currentPlayer?.onLostHubConnection()
     }
 
     override fun onReconnectedToHub() {
-        /*if(currentPlayingMedia == null) return
-
-        if(currentPlayingMedia?.getMediaType() == MediaType.LIVE)
-        {
-            val now = Calendar.getInstance()
-
-            val liveEndTime = toCalendar(currentPlayingMedia!!.fixTime).apply {
-                add(Calendar.SECOND, getDurationInSecond(currentPlayingMedia!!.duration))
-            }
-
-            if(now < liveEndTime) playMedia(currentPlayingMedia!!)
-        }*/
         currentPlayer?.onHubReconnected()
     }
 
@@ -108,7 +96,7 @@ class PlayersManager(
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
         playerCallback?.onStartTimeFrame(timeFrame)
-        currentPlaylistKey = timeFrame
+        playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
 
@@ -124,7 +112,7 @@ class PlayersManager(
     }
 
     private fun playNextMedia() {
-        if (currentPlaylistKey == "") return
+        if (playMode == "") return
 
         rootLayout.post {
             playlistIndex++
@@ -225,8 +213,8 @@ class PlayersManager(
     }
 
     fun stopPlaylist(cancelListKey: String) {
-        if (cancelListKey != currentPlaylistKey) return
-        currentPlaylistKey = ""
+        if (cancelListKey != playMode) return
+        playMode = ""
         stopAllPlayer()
 
         playerCallback?.onEndTimeFrame(cancelListKey)
@@ -249,21 +237,21 @@ class PlayersManager(
     }
 
     fun stopForceMedia() {
-        if (currentPlaylistKey != PLAY_MODE_FORCE) return
+        if (playMode != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
         playerCallback?.onEndForceMedia()
     }
 
-    fun onPlayForceCommand(context: Context, responseHub: ResponseHub) {
+    fun onPlayForceCommand(context: Context, responseHub: ResponseHub, mediaScheduler: MediaScheduler) {
         try {
             val duration = responseHub.duration
             val type = responseHub.type
             val level = responseHub.level
             val mediaName = responseHub.name
 
-            //if we are playing a force media that has a higher level, skip playing this
-            if (currentPlaylistKey == PlayerManager.PLAY_MODE_FORCE) {
+            //if we are playing a force media that has a lower level, skip playing this
+            if (playMode == PlayerManager.PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
@@ -280,20 +268,23 @@ class PlayersManager(
                 fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 name = mediaName
             }
-            playForceMedia(context, forceMedia)
+            playForceMedia(context, forceMedia, mediaScheduler)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    fun playForceMedia(context: Context, forceMedia: ForceMedia) {
+    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {
             Log.d("aaa","force")
+            mediaScheduler.cancelAllAlarm()
+
             forceMedia.saveItemToPref(context)
+            mediaScheduler.scheduleForceMediaAlarm()
 
             playerCallback?.onPlayForceMedia()
 
-            currentPlaylistKey = PLAY_MODE_FORCE
+            playMode = PLAY_MODE_FORCE
             stopAllPlayer()
             playMedia(forceMedia.toMediaItem())
 
@@ -311,6 +302,11 @@ class PlayersManager(
     {
         vlcPlayer.release()
         exoPlayer.release()
+    }
+
+    fun resetPlayMode()
+    {
+        playMode = "0"
     }
 
     companion object{

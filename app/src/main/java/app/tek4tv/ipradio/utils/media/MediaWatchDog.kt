@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.media
 
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaType

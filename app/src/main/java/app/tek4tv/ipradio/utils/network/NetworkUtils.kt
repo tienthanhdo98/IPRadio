@@ -1,11 +1,9 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.network
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.content.Context.ACTIVITY_SERVICE
 import android.net.*
 import android.net.ConnectivityManager.NetworkCallback
 import android.net.wifi.WifiManager

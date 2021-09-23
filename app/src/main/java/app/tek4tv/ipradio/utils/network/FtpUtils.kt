@@ -1,7 +1,8 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.network
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.utils.Utils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch

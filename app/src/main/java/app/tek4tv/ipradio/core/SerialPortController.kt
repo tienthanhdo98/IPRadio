@@ -5,7 +5,7 @@ import android.telephony.CellSignalStrength
 import android.util.Log
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.NetworkUtils
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.Utils
 import kotlinx.coroutines.*
 import java.io.File

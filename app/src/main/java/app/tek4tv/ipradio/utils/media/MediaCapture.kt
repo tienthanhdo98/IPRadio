@@ -1,34 +1,18 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.media
 
 
 import android.content.Context
-import android.graphics.Bitmap
-import android.graphics.PixelFormat
-import android.hardware.display.DisplayManager
 import android.media.AudioManager
-import android.media.ImageReader
 import android.media.MediaRecorder
-import android.media.projection.MediaProjection
-import android.os.Build
-import android.os.Handler
-import android.os.Looper
-import android.util.Base64
 import android.util.Log
-import android.view.PixelCopy
-import android.view.SurfaceView
-import android.view.TextureView
-import android.widget.FrameLayout
-import android.widget.Toast
-import androidx.core.graphics.createBitmap
-import androidx.core.view.children
-import app.tek4tv.ipradio.network.PlaylistService
+import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.createFolder
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import org.apache.commons.net.ftp.FTP
 import org.apache.commons.net.ftp.FTPClient
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*

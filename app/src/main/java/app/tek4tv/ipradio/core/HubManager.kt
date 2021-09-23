@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
@@ -72,6 +73,10 @@ class HubManager(
         hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB)
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
+
+        hubConnection.onClosed {
+            Log.e(LOG_TAG, "Hub Connection closed")
+        }
     }
 
 

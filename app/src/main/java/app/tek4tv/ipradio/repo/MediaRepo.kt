@@ -6,6 +6,8 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.media.DownloadHelper2
+import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter

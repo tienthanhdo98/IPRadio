@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.network
 
 import android.Manifest
 import android.content.Context

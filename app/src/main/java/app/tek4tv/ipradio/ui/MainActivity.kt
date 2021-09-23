@@ -17,11 +17,14 @@ import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.media.MediaCapture
+import app.tek4tv.ipradio.utils.network.FtpUtils
+import app.tek4tv.ipradio.utils.network.LocationTracker
+import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -119,6 +122,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
 
+                hubManager.currentMediaItem = mediaItem
+
+                val displayName = mediaItem.name ?: ""
+                hubManager.curMediaName = displayName
+
                 serialPortController.playTuner(pipsData, tunerData)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -150,8 +158,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onPlayForceMedia() {
-            cancelAllAlarm()
-            mediaScheduler.scheduleForceMediaAlarm()
+            /*cancelAllAlarm()
+            mediaScheduler.scheduleForceMediaAlarm()*/
         }
     }
 
@@ -251,7 +259,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllAlarm()
+                mediaScheduler.cancelAllScheduledListAlarm()
 
                 val monthlyScenarioUrl = ConfigUtil.getString(
                     applicationContext,
@@ -290,7 +298,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 if (forceMedia != null)
-                    playerManager.playForceMedia(applicationContext, forceMedia)
+                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
 
                 return@observe
             }
@@ -339,6 +347,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     //playerManager.stopForceMedia()
                     playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
 
                     globalProperties.saveProperties(responseHub)
 
@@ -360,8 +369,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                 }
                 HubCommand.LIVE -> {
-                    serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playerManager.onPlayForceCommand(applicationContext, responseHub)
+                    /*serialPortController.writeForceSetVolume(globalProperties.volume)
+                    playerManager.onPlayForceCommand(applicationContext, responseHub)*/
+                    onPlayForce(responseHub)
                 }
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
@@ -383,8 +393,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.hardRestart()
                 }
                 HubCommand.SWITCH_MODE_FM -> {
-                    serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playerManager.onPlayForceCommand(applicationContext, responseHub)
+                    /*serialPortController.writeForceSetVolume(globalProperties.volume)
+                    playerManager.onPlayForceCommand(applicationContext, responseHub)*/
+
+                    onPlayForce(responseHub)
                 }
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
@@ -543,9 +555,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+    private fun onPlayForce(responseHub: ResponseHub)
+    {
+        serialPortController.writeForceSetVolume(globalProperties.volume)
+        playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
+    }
+
     private fun cancelAllAlarm() {
-        if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-        else mediaScheduler.cancelAllAlarm()
+       /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
+        else mediaScheduler.cancelAllScheduledListAlarm()*/
+        mediaScheduler.cancelAllAlarm()
     }
 
     companion object {
