@@ -1,8 +1,10 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -208,6 +210,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         alarmListener = this
+
+        setMaxVolume()
     }
 
 
@@ -565,6 +569,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
+    }
+
+    private fun setMaxVolume()
+    {
+        try
+        {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        }
+        catch (e : Exception)
+        {
+            Log.e("Main", "Error setting max volume")
+        }
     }
 
     companion object {
