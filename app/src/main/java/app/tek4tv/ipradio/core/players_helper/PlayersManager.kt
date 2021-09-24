@@ -75,7 +75,7 @@ class PlayersManager(
     //Playlist - timeframe
     fun startFirstTimeFrame()
     {
-        //isTimeOver = true
+        var found = false
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
@@ -90,10 +90,15 @@ class PlayersManager(
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
 
+                found = true
+
                 break
             }
         }
-        //checkTimeOver()
+
+        if (!found){
+            playerCallback?.onTimeOver()
+        }
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
@@ -244,6 +249,8 @@ class PlayersManager(
 
         stopAllPlayer()
         playerCallback?.onEndForceMedia()
+
+        playerCallback?.onTimeOver()
     }
 
     fun onPlayForceCommand(context: Context, responseHub: ResponseHub, mediaScheduler: MediaScheduler) {
