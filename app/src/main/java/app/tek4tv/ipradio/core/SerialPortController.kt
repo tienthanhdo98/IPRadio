@@ -78,7 +78,7 @@ class SerialPortController(
                 if (onAir && looseHubConnection) {
                     param = "2"
                 }
-                Log.d(LOG_TAG, "status: $param")
+                //Log.d(LOG_TAG, "status: $param")
 
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
                 val strength = when (networkClass) {
@@ -146,7 +146,7 @@ class SerialPortController(
         // read data
         if(data == null) return
 
-        Log.d(LOG_TAG, "dataFinal: $data")
+        //Log.d(LOG_TAG, "dataFinal: $data")
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {

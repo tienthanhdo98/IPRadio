@@ -50,4 +50,6 @@ object HubCommand {
     const val SET_ENCRYPTED_VOLUME_DEVICE = "SET_ENCRYPTED_VOLUME_DEVICE"
 
     const val STOP_FORCE = "STOP_FORCE"
+
+    const val JOIN_GROUP = "JoinGroup"
 }

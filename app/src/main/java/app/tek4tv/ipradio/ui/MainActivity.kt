@@ -18,7 +18,9 @@ import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -27,6 +29,7 @@ import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
 
@@ -53,6 +56,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     @Inject
     lateinit var moshi: Moshi
+
+    @Inject
+    lateinit var authService: AuthService
 
     private lateinit var hubManager: HubManager
     private lateinit var playerManager: PlayersManager
@@ -185,7 +191,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         logUtils = LogUtils.getInst()
         logUtils.logStartApp()
 
-        hubManager = HubManager(hubComm) { command, message ->
+        hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -212,6 +218,23 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         alarmListener = this
 
         setMaxVolume()
+
+        lifecycleScope.launch {
+            /*val key = MyApp.instance!!.packageName.reversed()
+            var x1 = xorString("Device@123".toByteArray(), key)
+
+            var str = ""
+
+            for (b in x1)
+            {
+                str = str.plus(b.toString()+" ")
+            }
+
+            writeFile("${applicationContext.filesDir.path}/key.txt", str)*/
+
+
+
+        }
     }
 
 

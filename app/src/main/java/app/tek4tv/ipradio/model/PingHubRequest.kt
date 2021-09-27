@@ -17,7 +17,7 @@ class PingHubRequest {
 
     @Json(name = "StartTime")
    
-     var startTine: String? = null
+     var startTime: String? = null
 
     @Json(name = "Status")
    

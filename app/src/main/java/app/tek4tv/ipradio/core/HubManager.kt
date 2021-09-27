@@ -7,12 +7,13 @@ import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.crypto.b64Decode
+import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import com.microsoft.signalr.HubConnection
-import com.microsoft.signalr.HubConnectionBuilder
-import com.microsoft.signalr.HubConnectionState
-import com.microsoft.signalr.TransportEnum
+import com.microsoft.signalr.*
+import io.reactivex.Single
 import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
@@ -21,9 +22,10 @@ import java.util.concurrent.atomic.AtomicBoolean
 
 class HubManager(
     private val hubComm: HubComm,
-    var onMessageListener: (command: String?, message: String?) -> Unit
+    private val authService: AuthService,
+    var onMessageListener: (command: String?, message: String?) -> Unit,
 ) {
-    private val LOG_TAG = "HubConnectionTask"
+    private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 100
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
@@ -64,6 +66,10 @@ class HubManager(
 
     private val logUtils = LogUtils.getInst()
 
+    private var hubToken: String? = null
+
+    val URL_HUB = "https://hub.gateway.httt.tek4tv.vn/hubServer"
+
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
@@ -71,7 +77,25 @@ class HubManager(
             ""
         }
 
-        hubConnection = HubConnectionBuilder.create(NetworkUtils.URL_HUB)
+        /*val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
+        val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)*/
+
+        hubConnection = HubConnectionBuilder.create(URL_HUB)
+            //.withTransport(TransportEnum.WEBSOCKETS)
+            .withAccessTokenProvider(Single.defer {
+                if (hubToken != null) {
+                    Single.just(hubToken)
+                } else {
+                    val token = getHubToken1()
+                    if(token != null)
+                    {
+                        hubToken = token
+                        Single.just(token)
+                    }
+                    else
+                        Single.error(Exception())
+                }
+            })
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
     }
@@ -107,15 +131,61 @@ class HubManager(
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
-                //networkDb.push().setValue(HubConnectState(state = "CONNECTED"))
+
+                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv",Utils.getDeviceId(appContext))
+
                 logUtils.logHubConnectState(
-                    HubConnectState(state = "CONNECTED", networkType = NetworkUtils.getNetworkClass(appContext)))
+                    HubConnectState(
+                        state = "CONNECTED",
+                        networkType = NetworkUtils.getNetworkClass(appContext)
+                    )
+                )
                 hubConnection.connectionId
             } catch (e: Exception) {
-                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""} ")
-                //e.printStackTrace()
+                hubToken = null
+                e.printStackTrace()
+                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
                 null
             }
+        }
+    }
+
+    private fun getHubToken1() : String?
+    {
+        return try {
+
+            //Encrypt auth info
+            val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
+            val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)
+            val u = byteArrayOf(0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65)
+            val p = byteArrayOf(0x50, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64)
+
+            val body = mapOf(
+                String(u) to String(
+                    xorString(unb, MyApp.instance!!.packageName.reversed())
+                ),
+                String(p) to String(
+                    xorString(pwb, MyApp.instance!!.packageName.reversed())
+                )
+            )
+            val call = authService.getToken(body)
+            val response = call.execute()
+
+            if (response.isSuccessful) {
+
+                val token = response.body()!!.token
+
+                val claims = token.split('.')[1]
+                val exp =
+                    "\"exp\":\\d*".toRegex().find(b64Decode(claims))!!.value.split(':')[1]
+                Log.e(LOG_TAG, exp)
+                token
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 
@@ -138,15 +208,13 @@ class HubManager(
                         when (command) {
                             HubCommand.PONG -> {
 
-                                if(pingCounter >= 3 && !firstConnect)
-                                {
+                                if (pingCounter >= 3 && !firstConnect) {
                                     Log.e(LOG_TAG, "Hub Reconnected")
                                     notifyHubReconnected()
                                     notifyDisconnected.compareAndSet(true, false)
                                 }
 
-                                if(firstConnect)
-                                {
+                                if (firstConnect) {
                                     firstConnect = false
                                 }
 
@@ -167,12 +235,13 @@ class HubManager(
                     //Handle command from server in MainActivity
                     onMessageListener.invoke(command, message)
                 }
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }, String::class.java, String::class.java)
+        hubConnection.onClosed {
+            it.printStackTrace()
+        }
     }
 
     fun sendMessage(mess: String, command: String) {
@@ -201,11 +270,10 @@ class HubManager(
         )
     }
 
-    fun sendEncryptedMessage(connectionId: String, command: String, message: String)
-    {
-        Log.d(LOG_TAG,"be4 encrypted: $message")
+    fun sendEncryptedMessage(connectionId: String, command: String, message: String) {
+        Log.d(LOG_TAG, "be4 encrypted: $message")
         val encryptedMessage = encryptData(message, publicKey)
-        val directMessage = DirectMessage(deviceImei, encryptedMessage?:"")
+        val directMessage = DirectMessage(deviceImei, encryptedMessage ?: "")
 
         sendDirectMessage(
             connectionId, command,
@@ -242,7 +310,7 @@ class HubManager(
                 status = "START"
                 connectionId = (hubConnection.connectionId)
                 this.video = videoAdapter.toJson(video)
-                startTine = dateFormat.format(Date())
+                startTime = dateFormat.format(Date())
                 networkInfo = NetworkUtils.getNetworkInfo(appContext)
                 version = versionName
             }
@@ -274,8 +342,8 @@ class HubManager(
         if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
 
-            if(notifyDisconnected.compareAndSet(false, true))
-            {
+            if (notifyDisconnected.compareAndSet(false, true)) {
+                hubToken = null
                 notifyHubDisconnected()
                 Log.e(LOG_TAG, "Hub Disconnected")
                 logUtils.logHubConnectState(HubConnectState(state = "DISCONNECTED"))
@@ -304,6 +372,7 @@ class HubManager(
             hubEventObserver.forEach { it.onLostHubConnection() }
         }
     }
+
     //parse hub command content
     private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
         if (message.isNullOrEmpty()) return
@@ -332,7 +401,8 @@ interface HubEventObserver {
     fun onReconnectedToHub()
 }
 
-val publicKey = "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
+val publicKey =
+    "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
 
 val privateKeyStr =
     "MIICWwIBAAKBgQCUN2A7D+wecFVoH9xQkg1o87hA/DFa8mMTfshyU4mrcvf3w0UkhmvxWJXA4hcvQWjpsXDm1ok7AhB9qeoEbxXYejyQLf9+znaBt2m4rgpSTPNb2ioOFd6d9JuiWJ1oPhPETjoyBdJ37yAZWkoX4nPXK4GcaaW5KPHcMGGRIzP/bQIDAQABAoGARlt7HM5UIablhAYLyVtrbjSzdHXC4A9LpMd8U3kAUxjCSSSyv8Hnn6uTevpYUyBTswt+MrYIcrBqL5zm76/jyCQ/i7wobqO+y089gyOVP6z6ZL2IASFoyEvMeI6Mp673p2EOWEyL/nbaiOmwhk16wsCg3hA9rABZVb3cHOCBzsECQQDKDDRCNYQjqHI9qHqDeq/7nOnQb59bJPb/8/EyxTA/2gFpjaRzyaHg/YUw0XsY9B0wzf+JJXFQ5OOPNusD/yNJAkEAu8tPCX5qSDYY+K/C+JvRob/keB7eXfQlNvDC6e2xs3rl7Qlt5f/bvhv/YdwmHEGQUDgXgsbIl7TW3WtnbebXBQJAen69rCpv64JziIg9hrr6OMzgQLt73LFjgrgt0n8UipGsa4cxXfWvzA1IE9ndDLrre6xYsZhexBGRGUHNaEXl6QJAV43rdJauwKoQLGntsfEb5JjN0T87F3zLmPjZNy1t6ysCZeg+h7wpXFI7WAnG7ueWfAAa3gsF3M0gXC1GFJRKbQJAO932dYpY+Ht5sJMHfQ7KwV8RsIN9vcWfdzoeI1a6/2LjYOoo23z98FCDKYdMV6QZr2JksPRfddMdvnquWxDMlg=="
