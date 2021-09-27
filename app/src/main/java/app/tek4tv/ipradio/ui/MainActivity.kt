@@ -219,9 +219,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         setMaxVolume()
 
-        lifecycleScope.launch {
-            /*val key = MyApp.instance!!.packageName.reversed()
-            var x1 = xorString("Device@123".toByteArray(), key)
+        /*lifecycleScope.launch {
+            val key = MyApp.instance!!.packageName.reversed()
+            var x1 = xorString("Password".toByteArray(), key)
 
             var str = ""
 
@@ -230,11 +230,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 str = str.plus(b.toString()+" ")
             }
 
-            writeFile("${applicationContext.filesDir.path}/key.txt", str)*/
+            writeFile("${applicationContext.filesDir.path}/key.txt", str)
 
 
 
-        }
+        }*/
     }
 
 

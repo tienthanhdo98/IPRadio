@@ -6,6 +6,8 @@ plugins {
     id 'com.google.gms.google-services'
 }
 
+apply plugin: 'com.klaxit.hiddensecrets'
+
 android {
     signingConfigs {
         release {
@@ -55,7 +57,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path "CMakeLists.txt"
+            path "src/main/cpp/CMakeLists.txt"
         }
     }
 }

@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
@@ -87,12 +88,10 @@ class HubManager(
                     Single.just(hubToken)
                 } else {
                     val token = getHubToken1()
-                    if(token != null)
-                    {
+                    if (token != null) {
                         hubToken = token
                         Single.just(token)
-                    }
-                    else
+                    } else
                         Single.error(Exception())
                 }
             })
@@ -132,7 +131,7 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv",Utils.getDeviceId(appContext))
+                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
 
                 logUtils.logHubConnectState(
                     HubConnectState(
@@ -150,23 +149,20 @@ class HubManager(
         }
     }
 
-    private fun getHubToken1() : String?
-    {
+    private fun getHubToken1(): String? {
         return try {
 
             //Encrypt auth info
-            val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
-            val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)
-            val u = byteArrayOf(0x55, 0x73, 0x65, 0x72, 0x6e, 0x61, 0x6d, 0x65)
-            val p = byteArrayOf(0x50, 0x61, 0x73, 0x73, 0x77, 0x6f, 0x72, 0x64)
+            /*val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
+            val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)*/
+            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
-                String(u) to String(
-                    xorString(unb, MyApp.instance!!.packageName.reversed())
-                ),
-                String(p) to String(
-                    xorString(pwb, MyApp.instance!!.packageName.reversed())
-                )
+               String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
             val call = authService.getToken(body)
             val response = call.execute()
