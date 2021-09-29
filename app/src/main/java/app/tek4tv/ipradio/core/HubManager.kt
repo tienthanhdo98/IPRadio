@@ -69,7 +69,9 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    val URL_HUB = "https://hub.gateway.httt.tek4tv.vn/hubServer"
+    //"https://hub.gateway.httt.tek4tv.vn/hubServer"
+
+    private val provider = "Tek4tv"
 
     init {
         versionName = try {
@@ -78,11 +80,15 @@ class HubManager(
             ""
         }
 
-        /*val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
-        val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)*/
+        val hub = byteArrayOf(
+            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
+            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
+            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
+        )
 
-        hubConnection = HubConnectionBuilder.create(URL_HUB)
-            //.withTransport(TransportEnum.WEBSOCKETS)
+        val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
+
+        hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
                     Single.just(hubToken)
@@ -101,6 +107,8 @@ class HubManager(
 
 
     fun connectToHub() {
+        if(!firstConnect) return
+
         openNewConnectionJob?.cancel()
         openNewConnectionJob = coroutineScope.launch {
             var connectionId = openConnection()
@@ -134,7 +142,9 @@ class HubManager(
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
 
                 logUtils.logHubConnectState(
-                    HubConnectState(
+                    HubStateRecord(
+                        deviceImei,
+                        provider,
                         state = "CONNECTED",
                         networkType = NetworkUtils.getNetworkClass(appContext)
                     )
@@ -161,10 +171,12 @@ class HubManager(
             val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
-               String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            val call = authService.getToken(body)
+
+            val url = Secrets().getWJsNVsim(MyApp.instance!!.packageName);
+            val call = authService.getToken(body, url)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -210,9 +222,7 @@ class HubManager(
                                     notifyDisconnected.compareAndSet(true, false)
                                 }
 
-                                if (firstConnect) {
-                                    firstConnect = false
-                                }
+                                if (firstConnect) firstConnect = false
 
                                 pingCounter = 0
                             }
@@ -232,12 +242,10 @@ class HubManager(
                     onMessageListener.invoke(command, message)
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                if (e != null)
+                    e.printStackTrace()
             }
         }, String::class.java, String::class.java)
-        hubConnection.onClosed {
-            it.printStackTrace()
-        }
     }
 
     fun sendMessage(mess: String, command: String) {
@@ -342,16 +350,11 @@ class HubManager(
                 hubToken = null
                 notifyHubDisconnected()
                 Log.e(LOG_TAG, "Hub Disconnected")
-                logUtils.logHubConnectState(HubConnectState(state = "DISCONNECTED"))
+                logUtils.logHubConnectState(HubStateRecord(deviceImei, provider, state = "DISCONNECTED"))
             }
-
 
             //Try to reconnect to hub
             openConnection()
-            /*if (cid != null) {
-                notifyHubReconnected()
-                notifyDisconnected.compareAndSet(true, false)
-            }*/
         }
     }
 

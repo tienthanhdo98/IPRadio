@@ -52,4 +52,6 @@ object HubCommand {
     const val STOP_FORCE = "STOP_FORCE"
 
     const val JOIN_GROUP = "JoinGroup"
+
+    const val GET_LOG_FILE = "GET_LOG_FILE"
 }

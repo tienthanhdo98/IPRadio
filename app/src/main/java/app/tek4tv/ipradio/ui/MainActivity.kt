@@ -16,19 +16,23 @@ import androidx.lifecycle.observe
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
+import app.tek4tv.ipradio.core.players_helper.PlayerCallback
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.network.connectWifi
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -60,6 +64,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @Inject
     lateinit var authService: AuthService
 
+    @Inject
+    lateinit var logService: LogService
+
     private lateinit var hubManager: HubManager
     private lateinit var playerManager: PlayersManager
 
@@ -82,27 +89,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
 
     private val playerCallback = object : PlayerCallback {
-        override fun onPlayNewMedia(index: Int, mediaItem: MediaItem) {
-            if (globalProperties.logEnabled) {
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
-
-                try {
-                    if (viewModel.currentMedia == null) {
-                        logUtils.logPlayMedia(mediaItem, globalProperties.volume, paState)
-                    } else {
-                        if (viewModel.currentMedia!!.id != mediaItem.id)
-                            logUtils.logPlayMedia(mediaItem, globalProperties.volume, paState)
-                    }
-
-                    viewModel.currentMedia = mediaItem
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-
         override fun onTimeOver() {
             serialPortController.turnOffPA()
 
@@ -113,14 +99,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         override fun onStartTimeFrame(frame: String) {
             if (globalProperties.logEnabled) {
                 logUtils.logStartTimeFrame(frame)
-                logUtils.logPerformance(applicationContext, appStorageManager)
             }
         }
 
         override fun onEndTimeFrame(frame: String) {
             if (globalProperties.logEnabled) {
                 logUtils.logEndTimeFrame(frame)
-                logUtils.logPerformance(applicationContext, appStorageManager)
             }
         }
 
@@ -153,6 +137,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
         }
 
+        override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
+            val paState =
+                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                else "0"
+
+            logUtils.logMedia(mediaItem, duration , globalProperties.volume, paState)
+        }
+
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
@@ -163,11 +155,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (mediaItem?.getMediaType() != MediaType.FM) {
                 serialPortController.turnOnPAVod()
             }
-        }
 
-        override fun onPlayForceMedia() {
-            /*cancelAllAlarm()
-            mediaScheduler.scheduleForceMediaAlarm()*/
+            if (globalProperties.logEnabled) {
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                    else "0"
+
+                try {
+                   /* if (viewModel.currentMedia == null) {
+                        logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
+                    } else {
+                        if (viewModel.currentMedia!!.id != mediaItem!!.id)
+                            logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
+                    }*/
+                    logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
+                    viewModel.currentMedia = mediaItem
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+            }
         }
     }
 
@@ -189,7 +195,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         logUtils = LogUtils.getInst()
-        logUtils.logStartApp()
+        logUtils.logService = logService
+        //logUtils.logStartApp()
 
         hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
@@ -219,9 +226,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         setMaxVolume()
 
-        /*lifecycleScope.launch {
-            val key = MyApp.instance!!.packageName.reversed()
-            var x1 = xorString("Password".toByteArray(), key)
+        lifecycleScope.launch {
+            /*val key = MyApp.instance!!.packageName.reversed()
+            var x1 = xorString("https://hub.gateway.httt.tek4tv.vn/hubServer".toByteArray(), key)
 
             var str = ""
 
@@ -230,11 +237,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 str = str.plus(b.toString()+" ")
             }
 
-            writeFile("${applicationContext.filesDir.path}/key.txt", str)
+            writeFile("${applicationContext.filesDir.path}/key.txt", str)*/
 
+            /*delay(5000)
+            connectWifi("rogg512", "12345678")*/
 
-
-        }*/
+        }
     }
 
 
@@ -571,6 +579,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.getPlayerContent("", false)
+                }
+
+                HubCommand.GET_LOG_FILE -> {
+                    val data = responseHub.message?.split('-') ?: return
+                    logUtils.sendLogFile(data[0], data[1])
                 }
             }
 

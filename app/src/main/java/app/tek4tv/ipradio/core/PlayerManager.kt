@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import android.view.View
+import app.tek4tv.ipradio.core.players_helper.PlayerCallback
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -195,8 +196,6 @@ class PlayerManager(
                     currentVlcMedia = null
                 }
             }
-
-            playerCallback?.onPlayNewMedia(playlistIndex, mediaItem)
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -525,18 +524,4 @@ class PlayerManager(
         const val PLAY_MODE_FORCE = "-2"
         var instance: PlayerManager? = null
     }
-}
-
-interface PlayerCallback {
-    fun onPlayNewMedia(index: Int, mediaItem: MediaItem)
-    fun onTimeOver()
-    fun onStartTimeFrame(frame: String)
-    fun onEndTimeFrame(frame: String)
-    fun onPlayTuner(mediaItem: MediaItem)
-    //fun rescheduleMedias()
-    fun onLiveError()
-    //fun requestTurnOnPa()
-    fun onPlayForceMedia()
-    fun onEndForceMedia()
-    fun onPlayMediaSuccess(mediaItem: MediaItem?)
 }

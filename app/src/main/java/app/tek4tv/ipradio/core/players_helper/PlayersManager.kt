@@ -5,7 +5,6 @@ import android.util.Log
 import android.view.View
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.PlayerCallback
 import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
@@ -31,6 +30,8 @@ class PlayersManager(
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaItem? = null
 
+    private var mediaStartTime = 0L
+
     //-2 for force media
     //-1 for random unscheduled media
     //0 for init
@@ -48,15 +49,19 @@ class PlayersManager(
     override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
         if(isLiveError)
         {
+            //To log stream played duration
+            onMediaStopPlaying()
             playerCallback?.onLiveError()
         }
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerCallback?.onPlayMediaSuccess(mediaItem)
+        mediaStartTime = Calendar.getInstance().timeInMillis
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
+        onMediaStopPlaying()
         playNextMedia()
     }
 
@@ -70,6 +75,12 @@ class PlayersManager(
         vlcPlayer.disconnectedHub = false
         exoPlayer.disconnectedHub = false
         currentPlayer?.onHubReconnected()
+    }
+
+    private fun onMediaStopPlaying()
+    {
+        val duration = Calendar.getInstance().timeInMillis - mediaStartTime
+        playerCallback?.onMediaStopPlaying(currentPlayingMedia!!, duration)
     }
 
     //Playlist - timeframe
@@ -142,7 +153,6 @@ class PlayersManager(
     }
 
     fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
-        playerCallback?.onPlayNewMedia(playlistIndex, mediaItem)
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
@@ -154,6 +164,7 @@ class PlayersManager(
                     playLiveStream(mediaItem)
                 }
                 MediaType.FM -> {
+                    mediaStartTime = Calendar.getInstance().timeInMillis
                     playerCallback?.onPlayTuner(mediaItem)
                 }
                 else -> {
@@ -240,6 +251,7 @@ class PlayersManager(
         if (itemToEnd.id != currentPlayingMedia?.id) return
 
         stopAllPlayer()
+        onMediaStopPlaying()
 
         playNextMedia()
     }
@@ -248,8 +260,8 @@ class PlayersManager(
         if (playMode != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
+        onMediaStopPlaying()
         playerCallback?.onEndForceMedia()
-
         playerCallback?.onTimeOver()
     }
 
@@ -292,7 +304,6 @@ class PlayersManager(
             forceMedia.saveItemToPref(context)
             mediaScheduler.scheduleForceMediaAlarm()
 
-            playerCallback?.onPlayForceMedia()
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()

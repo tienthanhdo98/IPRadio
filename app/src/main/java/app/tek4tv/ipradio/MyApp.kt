@@ -11,7 +11,7 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-        Firebase.database.setPersistenceEnabled(true)
+        //Firebase.database.setPersistenceEnabled(true)
     }
 
     companion object {
