@@ -46,6 +46,8 @@ class PlayersManager(
     var playerCallback: PlayerCallback? = null
     var isTimeOver = false
 
+    var played = false
+
     override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
         if(isLiveError)
         {
@@ -58,6 +60,7 @@ class PlayersManager(
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerCallback?.onPlayMediaSuccess(mediaItem)
         mediaStartTime = Calendar.getInstance().timeInMillis
+        played = true
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
@@ -79,8 +82,14 @@ class PlayersManager(
 
     private fun onMediaStopPlaying()
     {
-        val duration = Calendar.getInstance().timeInMillis - mediaStartTime
-        playerCallback?.onMediaStopPlaying(currentPlayingMedia!!, duration)
+        if(played)
+        {
+            Log.e("AAA","Đừng vào đây lần 2")
+            val duration = Calendar.getInstance().timeInMillis - mediaStartTime
+            playerCallback?.onMediaStopPlaying(currentPlayingMedia!!, duration)
+        }
+
+        played = false
     }
 
     //Playlist - timeframe
