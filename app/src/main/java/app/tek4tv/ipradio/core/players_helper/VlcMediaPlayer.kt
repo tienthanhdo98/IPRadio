@@ -10,6 +10,8 @@ import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -26,14 +28,15 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     private var isPlaying = false
 
+    private var lastError = -1
+    private var endCount = 0
+
     override fun isPlaying(): Boolean = isPlaying
 
     private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
-                //vlcPlayer.eventListener = { _, _, _, _, _ -> }
-                Log.d(TAG, "EndReached")
-
+                Log.e(TAG, "EndReached")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
@@ -44,9 +47,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             }
 
             MediaPlayer.Event.EncounteredError -> {
-                //vlcPlayer.eventListener = { _, _, _, _, _ -> }
                 Log.e(TAG, "EncounteredError")
-
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onPlayerError(VlcException("EncounteredError"))
                     isPlaying = false
@@ -54,6 +55,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     if (!disconnectedHub)
                         onLiveErrorVlc()
                 }
+                lastError = event
             }
 
             MediaPlayer.Event.Playing -> {

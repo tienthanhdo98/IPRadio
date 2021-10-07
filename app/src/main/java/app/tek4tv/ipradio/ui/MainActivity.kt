@@ -8,6 +8,9 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
+import android.view.View
 import android.widget.FrameLayout
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -16,23 +19,20 @@ import androidx.lifecycle.observe
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
-import app.tek4tv.ipradio.core.players_helper.PlayerCallback
+import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
-import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.network.connectWifi
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -88,7 +88,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val globalProperties = GlobalProperties.getInst()
 
-    private val playerCallback = object : PlayerCallback {
+    private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
 
@@ -207,7 +207,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(applicationContext, rootLayout, viewModel.mediaRepo) //PlayerManager(applicationContext, viewModel, rootLayout)
-        playerManager.playerCallback = playerCallback
+        playerManager.playerManagerListener = playerCallback
 
         hubManager.hubEventObserver.add(playerManager)
 
@@ -225,6 +225,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         alarmListener = this
 
         setMaxVolume()
+
+        hideSystemUI()
 
         lifecycleScope.launch {
             /*val key = MyApp.instance!!.packageName.reversed()
@@ -304,6 +306,26 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
             }
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
+
+    private fun hideSystemUI() {
+        val decorView: View = window.decorView
+        val uiOptions = decorView.systemUiVisibility
+        var newUiOptions = uiOptions
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        decorView.systemUiVisibility = newUiOptions
     }
 
     private fun needGrantPermission(): Boolean {

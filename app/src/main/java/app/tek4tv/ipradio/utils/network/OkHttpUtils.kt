@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.network
 
 import okhttp3.OkHttpClient
 import java.security.SecureRandom

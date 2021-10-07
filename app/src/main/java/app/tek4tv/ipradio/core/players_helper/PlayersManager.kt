@@ -19,6 +19,13 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
 
+
+/**
+ * Manager all media playback
+ * 2 Mode: Scheduled and force media
+ * Scheduled: Play media in a fixed scheduled
+ * Force Media: Play media by command from server
+ * **/
 class PlayersManager(
     appContext: Context,
     private val rootLayout : View,
@@ -30,20 +37,31 @@ class PlayersManager(
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaItem? = null
 
+    /**
+     * The timestamp when a media begin to play
+     * **/
     private var mediaStartTime = 0L
 
-    //-2 for force media
-    //-1 for random unscheduled media
-    //0 for init
-    //HH:mm:ss-HH:mm:ss for scheduled media
-    private var playMode = "0"
+    /**
+     * -2 for force media
+     * 0 for init
+     * HH:mm:ss-HH:mm:ss for scheduled timeframe
+     * **/
+    private var playMode = PLAY_MODE_INIT//"0"
 
+    /**
+     * List of media for a timeframe
+     * **/
     private var currentPlaylist = listOf<MediaItem>()
 
     var playlistIndex = 0
         private set
 
-    var playerCallback: PlayerCallback? = null
+    var playerManagerListener: IPlayerManagerListener? = null
+
+    /**
+     * Determine if we will not play any media in >= 15s to go
+     * **/
     var isTimeOver = false
 
     var played = false
@@ -53,12 +71,12 @@ class PlayersManager(
         {
             //To log stream played duration
             onMediaStopPlaying()
-            playerCallback?.onLiveError()
+            playerManagerListener?.onLiveError()
         }
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-        playerCallback?.onPlayMediaSuccess(mediaItem)
+        playerManagerListener?.onPlayMediaSuccess(mediaItem)
         mediaStartTime = Calendar.getInstance().timeInMillis
         played = true
     }
@@ -86,13 +104,15 @@ class PlayersManager(
         {
             Log.e("AAA","Đừng vào đây lần 2")
             val duration = Calendar.getInstance().timeInMillis - mediaStartTime
-            playerCallback?.onMediaStopPlaying(currentPlayingMedia!!, duration)
+            playerManagerListener?.onMediaStopPlaying(currentPlayingMedia!!, duration)
         }
 
         played = false
     }
 
-    //Playlist - timeframe
+    /**
+     * Find a timeframe, media and timestamp when the app first load the scheduled list
+     * **/
     fun startFirstTimeFrame()
     {
         var found = false
@@ -117,13 +137,13 @@ class PlayersManager(
         }
 
         if (!found){
-            playerCallback?.onTimeOver()
+            playerManagerListener?.onTimeOver()
         }
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        playerCallback?.onStartTimeFrame(timeFrame)
+        playerManagerListener?.onStartTimeFrame(timeFrame)
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
@@ -161,7 +181,7 @@ class PlayersManager(
         }
     }
 
-    fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
+    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
@@ -174,7 +194,7 @@ class PlayersManager(
                 }
                 MediaType.FM -> {
                     mediaStartTime = Calendar.getInstance().timeInMillis
-                    playerCallback?.onPlayTuner(mediaItem)
+                    playerManagerListener?.onPlayTuner(mediaItem)
                 }
                 else -> {
                     playNextMedia()
@@ -201,13 +221,21 @@ class PlayersManager(
         exoPlayer.stop()
     }
 
+
+    /**
+     * If there are no timeframe to play in the next 15s,
+     * fire an timeover event
+     * **/
     private fun checkTimeOver() {
         coroutineScope.launch {
             delay(15000)
-            if (isTimeOver) playerCallback?.onTimeOver()
+            if (isTimeOver) playerManagerListener?.onTimeOver()
         }
     }
 
+    /**
+     * Find media and the second from start which it should be played at the moment
+     * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
             val mediaList = mediaRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
@@ -245,7 +273,7 @@ class PlayersManager(
         playMode = ""
         stopAllPlayer()
 
-        playerCallback?.onEndTimeFrame(cancelListKey)
+        playerManagerListener?.onEndTimeFrame(cancelListKey)
 
         //check time over
         isTimeOver = true
@@ -270,8 +298,8 @@ class PlayersManager(
 
         stopAllPlayer()
         onMediaStopPlaying()
-        playerCallback?.onEndForceMedia()
-        playerCallback?.onTimeOver()
+        playerManagerListener?.onEndForceMedia()
+        playerManagerListener?.onTimeOver()
     }
 
     fun onPlayForceCommand(context: Context, responseHub: ResponseHub, mediaScheduler: MediaScheduler) {
@@ -336,10 +364,11 @@ class PlayersManager(
 
     fun resetPlayMode()
     {
-        playMode = "0"
+        playMode = PLAY_MODE_INIT//"0"
     }
 
     companion object{
         const val PLAY_MODE_FORCE = "-2"
+        const val PLAY_MODE_INIT = "0"
     }
 }

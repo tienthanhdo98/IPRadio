@@ -3,7 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import android.view.View
-import app.tek4tv.ipradio.core.players_helper.PlayerCallback
+import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -45,7 +45,7 @@ class PlayerManager(
     //HH:mm:ss-HH:mm:ss for scheduled media
     var currentPlaylistKey = "0"
 
-    var playerCallback: PlayerCallback? = null
+    var IPlayerManagerListener: IPlayerManagerListener? = null
 
     var playlistIndex = 0
 
@@ -80,7 +80,7 @@ class PlayerManager(
 
             isLiveStreamError = true
 
-            playerCallback?.onLiveError()
+            IPlayerManagerListener?.onLiveError()
 
             if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!)) {
                 playMedia(currentPlayingMedia!!)
@@ -188,7 +188,7 @@ class PlayerManager(
                     playLiveStream(mediaItem)
                 }
                 MediaType.FM -> {
-                    playerCallback?.onPlayTuner(mediaItem)
+                    IPlayerManagerListener?.onPlayTuner(mediaItem)
                     currentVlcMedia = null
                 }
                 else -> {
@@ -288,7 +288,7 @@ class PlayerManager(
         if (a && reconnectingLiveStreamJob == null)
             tryReconnectLiveStream(mediaItem)
         isLiveStreamError = true
-        playerCallback?.onLiveError()
+        IPlayerManagerListener?.onLiveError()
     }
 
     private fun playHlsExo(mediaItem: MediaItem)
@@ -371,7 +371,7 @@ class PlayerManager(
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        playerCallback?.onStartTimeFrame(timeFrame)
+        IPlayerManagerListener?.onStartTimeFrame(timeFrame)
         currentPlaylistKey = timeFrame
 
         currentPlaylist = playlistRepo.scheduledList[timeFrame] ?: listOf()
@@ -449,7 +449,7 @@ class PlayerManager(
         currentPlaylistKey = ""
         stopAllPlayer()
 
-        playerCallback?.onEndTimeFrame(cancelListKey)
+        IPlayerManagerListener?.onEndTimeFrame(cancelListKey)
 
         //check time over
         isTimeOver = true
@@ -459,7 +459,7 @@ class PlayerManager(
     private fun checkTimeOver() {
         coroutineScope.launch {
             delay(15000)
-            if (isTimeOver) playerCallback?.onTimeOver()
+            if (isTimeOver) IPlayerManagerListener?.onTimeOver()
         }
     }
 
@@ -492,7 +492,7 @@ class PlayerManager(
         if (currentPlaylistKey != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
-        playerCallback?.onEndForceMedia()
+        IPlayerManagerListener?.onEndForceMedia()
     }
 
     fun requestRescheduleMedias() {

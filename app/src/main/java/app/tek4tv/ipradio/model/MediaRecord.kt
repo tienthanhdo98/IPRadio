@@ -23,7 +23,9 @@ data class MediaRecord(
     @Json(name = "Start")
     var start : Long = Date().time,
     @Json(name = "Duration")
-    var duration : Long = 0
+    var duration : Long = 0,
+    @Json(name = "Path")
+    var path: String = ""
 ) : LogRecord()
 {
     @Json(name = "Provider")

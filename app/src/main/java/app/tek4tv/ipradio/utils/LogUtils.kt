@@ -108,7 +108,7 @@ class LogUtils private constructor() {
     fun logMedia(mediaItem: MediaItem, duration: Long, volume : String, paState : String) {
         val filePath = getLogFilePath(playerLogFolderPath)
         val reportObj = MediaRecord(imei, mediaItem.name ?: "",
-            mediaItem.type ,mediaItem.fileId.toString(), volume, paState, duration = duration)
+            mediaItem.type ,mediaItem.fileId.toString(), volume, paState, duration = duration, path = mediaItem.path)
         val str =  getRecordStr(reportObj)
 
         if(str != null)
@@ -119,6 +119,7 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 logService?.postMediaInfo(reportObj)
+                Log.d(LOG_TAG, "Logmedia succeess")
             }
             catch (e : Exception)
             {
@@ -142,7 +143,7 @@ class LogUtils private constructor() {
             }
             catch (e : Exception)
             {
-                Log.d(LOG_TAG, "Error send log timeframe")
+                Log.d(LOG_TAG, "Error send log connection state")
             }
         }
     }

@@ -2,7 +2,10 @@ package app.tek4tv.ipradio.core.players_helper
 
 import app.tek4tv.ipradio.model.MediaItem
 
-interface PlayerCallback {
+/**
+ * Event listener for PlayersManager
+ * **/
+interface IPlayerManagerListener {
     fun onTimeOver()
     fun onStartTimeFrame(frame: String)
     fun onEndTimeFrame(frame: String)

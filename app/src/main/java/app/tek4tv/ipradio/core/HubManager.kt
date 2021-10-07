@@ -21,6 +21,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
+/**
+ * Manager hub connection: Connect to hub, ping,
+ * receive command, ping
+ * **/
 class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
@@ -73,12 +77,16 @@ class HubManager(
 
     private val provider = "Tek4tv"
 
+    private var firstConnect = true
+
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
         } catch (e: Exception) {
             ""
         }
+
+        //Encrypted hub url: xor with key is reversed package name
 
         val hub = byteArrayOf(
             7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
@@ -93,7 +101,7 @@ class HubManager(
                 if (hubToken != null) {
                     Single.just(hubToken)
                 } else {
-                    val token = getHubToken1()
+                    val token = getHubToken()
                     if (token != null) {
                         hubToken = token
                         Single.just(token)
@@ -159,15 +167,14 @@ class HubManager(
         }
     }
 
-    private fun getHubToken1(): String? {
+    private fun getHubToken(): String? {
         return try {
-
-            //Encrypt auth info
-            /*val unb = byteArrayOf(11, 12, 18, 8, 17, 21)
-            val pwb = byteArrayOf(43, 12, 18, 8, 17, 21, 41, 31, 68, 71)*/
+            //Encrypted json variable name
             val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
+            //Auth info encrypted in c++ library
+            //Username-Password
             val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
@@ -175,6 +182,7 @@ class HubManager(
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
 
+            //Auth Url encrypted in c++ lib
             val url = Secrets().getWJsNVsim(MyApp.instance!!.packageName);
             val call = authService.getToken(body, url)
             val response = call.execute()
@@ -183,10 +191,10 @@ class HubManager(
 
                 val token = response.body()!!.token
 
-                val claims = token.split('.')[1]
+              /*  val claims = token.split('.')[1]
                 val exp =
                     "\"exp\":\\d*".toRegex().find(b64Decode(claims))!!.value.split(':')[1]
-                Log.e(LOG_TAG, exp)
+                Log.e(LOG_TAG, exp)*/
                 token
             } else {
                 null
@@ -197,8 +205,9 @@ class HubManager(
         }
     }
 
-    private var firstConnect = true
-
+    /**
+     * Receive command from server
+     * **/
     private fun onMessage() {
         if (registerOnMessageListener) return
 
@@ -216,6 +225,7 @@ class HubManager(
                         when (command) {
                             HubCommand.PONG -> {
 
+                                //Check if reconnect after disconnected
                                 if (pingCounter >= 3 && !firstConnect) {
                                     Log.e(LOG_TAG, "Hub Reconnected")
                                     notifyHubReconnected()
@@ -248,7 +258,7 @@ class HubManager(
         }, String::class.java, String::class.java)
     }
 
-    fun sendMessage(mess: String, command: String) {
+    private fun sendMessage(mess: String, command: String) {
         try {
             hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
         } catch (e: Exception) {
@@ -338,7 +348,6 @@ class HubManager(
     }
 
     private suspend fun checkConnection() {
-        //Danger here
         if (pingCounter >= CONNECT_COUNTER_LIMIT) {
             hubComm.forceRestartApp()
         }

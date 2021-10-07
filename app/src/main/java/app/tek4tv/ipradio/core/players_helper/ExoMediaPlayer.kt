@@ -4,7 +4,7 @@ import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.ignoreAllSSLErrors
+import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlaybackException
 import com.google.android.exoplayer2.Player
@@ -69,6 +69,8 @@ class ExoMediaPlayer(
 
     init {
         val okHttpClient = OkHttpClient.Builder().apply {
+            //need to ignore all ssl error because the server certificate does not valid
+            //on this type of device
             ignoreAllSSLErrors()
         }.build()
         val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
@@ -130,6 +132,9 @@ class ExoMediaPlayer(
         exoPlayer.prepare()
     }
 
+    /**
+     * Check if a stream is still in time to play
+     * **/
     private fun checkHls(mediaItem: MediaItem): Boolean {
         val now = Calendar.getInstance()
 
