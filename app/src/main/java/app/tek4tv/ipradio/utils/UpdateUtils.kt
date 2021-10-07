@@ -52,7 +52,7 @@ import java.io.File
 fun downloadUpdateApk(url: String, context: Context, controller: SerialPortController) {
     var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         .toString() + "/"
-    val fileName = "AppName.apk"
+    val fileName = "ipradio.apk"
     destination += fileName
     val uri = Uri.parse("file://$destination")
 

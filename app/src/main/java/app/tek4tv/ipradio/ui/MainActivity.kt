@@ -33,6 +33,7 @@ import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.*
 import javax.inject.Inject
@@ -243,7 +244,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             /*delay(5000)
             connectWifi("rogg512", "12345678")*/
-
         }
     }
 

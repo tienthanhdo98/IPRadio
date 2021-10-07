@@ -55,7 +55,7 @@ data class TimeFrameRecord(
     @Json(name = "Status")
     var status : String? = null,
     @Json(name = "Time")
-    var time: Long = Date().time
+    var time: Long = Date().time,
 ) : LogRecord()
 {
     @Json(name = "Provider")

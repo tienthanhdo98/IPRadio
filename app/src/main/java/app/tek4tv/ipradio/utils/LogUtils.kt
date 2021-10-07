@@ -97,10 +97,12 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 logService?.postTimeframeInfo(reportObj)
+                Log.d("LogUtils", "log timeframe success")
             }
             catch (e : Exception)
             {
                 Log.d("LogUtils", "Error send log timeframe")
+                e.printStackTrace()
             }
         }
     }
@@ -123,7 +125,8 @@ class LogUtils private constructor() {
             }
             catch (e : Exception)
             {
-                Log.d(LOG_TAG, "Error send log timeframe")
+                Log.d(LOG_TAG, "Error send log media")
+                e.printStackTrace()
             }
         }
     }
@@ -140,10 +143,12 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 logService?.postHubStateInfo(stateRecord)
+                Log.d("LogUtils", "log connect success")
             }
             catch (e : Exception)
             {
                 Log.d(LOG_TAG, "Error send log connection state")
+                e.printStackTrace()
             }
         }
     }
