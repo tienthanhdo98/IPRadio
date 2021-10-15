@@ -10,7 +10,8 @@ import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.*
-import app.tek4tv.ipradio.utils.crypto.b64Decode
+import app.tek4tv.ipradio.utils.crypto.decryptData
+import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.*
@@ -190,11 +191,6 @@ class HubManager(
             if (response.isSuccessful) {
 
                 val token = response.body()!!.token
-
-              /*  val claims = token.split('.')[1]
-                val exp =
-                    "\"exp\":\\d*".toRegex().find(b64Decode(claims))!!.value.split(':')[1]
-                Log.e(LOG_TAG, exp)*/
                 token
             } else {
                 null

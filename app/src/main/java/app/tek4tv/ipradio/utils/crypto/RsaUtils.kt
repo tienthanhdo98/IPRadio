@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.crypto
 
 import android.util.Base64
 import java.security.*
@@ -9,11 +9,9 @@ import javax.crypto.Cipher
 
 fun encryptData(text: String, publicKeyStr: String): String? {
     return try {
-        //val data = Base64.decode(text, Base64.DEFAULT)
         val publicKey = getPublicKey(Base64.decode(publicKeyStr.toByteArray(Charsets.US_ASCII), Base64.DEFAULT))
         val cipher = Cipher.getInstance("RSA/ECB/PKCS1Padding")
         cipher.init(Cipher.ENCRYPT_MODE, publicKey)
-        //val restult = String(cipher.doFinal(data), Charsets.US_ASCII)
         String(Base64.encode(cipher.doFinal(text.toByteArray()), Base64.DEFAULT))
     } catch (e: java.lang.Exception) {
         e.printStackTrace()
