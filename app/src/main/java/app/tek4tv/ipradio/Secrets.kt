@@ -14,4 +14,6 @@ class Secrets {
     external fun getAQNIjugs(packageName: String): String
 
     external fun getWJsNVsim(packageName: String): String
+
+    external fun getHubPrivateKey(packageName: String): String
 }

@@ -74,6 +74,9 @@ class SerialPortController(
             try {
 
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
+                //0: không có mạng
+                //1: có mạng, kết nối được đến hub
+                //2: không xác định
                 var param = if (onAir) "1" else "0"
                 if (onAir && looseHubConnection) {
                     param = "2"

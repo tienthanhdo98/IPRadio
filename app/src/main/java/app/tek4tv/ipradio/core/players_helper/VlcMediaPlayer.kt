@@ -71,6 +71,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     init {
         val args = ArrayList<String>()
+        //bật log vlc
         //args.add("-vvv")
 
         mLibVLC = LibVLC(appContext, args)
@@ -147,7 +148,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         vlcPlayer.play(stream)
     }
 
-    //check to see if there is an error when playing livestream
+    //check xem có đang trong giờ phát luồng live
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
         if (currentMedia != null && currentMedia!!.path != mediaItem.path) return false
 

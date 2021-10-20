@@ -68,6 +68,7 @@ class ExoMediaPlayer(
     }
 
     init {
+        //tắt xác thực ssl để phát luồng m3u8
         val okHttpClient = OkHttpClient.Builder().apply {
             //need to ignore all ssl error because the server certificate does not valid
             //on this type of device

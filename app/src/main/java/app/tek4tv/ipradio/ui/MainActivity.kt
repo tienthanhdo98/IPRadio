@@ -97,18 +97,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.currentMediaItem = null
         }
 
+        //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
             if (globalProperties.logEnabled) {
                 logUtils.logStartTimeFrame(frame)
             }
         }
 
+        //Kết thúc khung gian
         override fun onEndTimeFrame(frame: String) {
             if (globalProperties.logEnabled) {
                 logUtils.logEndTimeFrame(frame)
             }
         }
 
+        //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
@@ -126,11 +129,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
+        //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
         }
 
+        //Lỗi luồng live
         override fun onLiveError() {
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
@@ -143,7 +148,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
 
-            logUtils.logMedia(mediaItem, duration, globalProperties.volume, paState)
+            logUtils.logMedia(mediaItem, duration , globalProperties.volume, paState)
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -163,13 +168,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     else "0"
 
                 try {
-                    /* if (viewModel.currentMedia == null) {
-                         logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
-                     } else {
-                         if (viewModel.currentMedia!!.id != mediaItem!!.id)
-                             logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
-                     }*/
-                    logUtils.logMedia(mediaItem!!, 0, globalProperties.volume, paState)
+                    logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -204,15 +203,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        //ket noi port
         serialPortController.connectToSerialPort()
 
         rootLayout = findViewById(R.id.root_layout)
-        playerManager = PlayersManager(
-            applicationContext,
-            rootLayout,
-            viewModel.mediaRepo
-        ) //PlayerManager(applicationContext, viewModel, rootLayout)
+        playerManager = PlayersManager(applicationContext, rootLayout, viewModel.mediaRepo) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
 
         hubManager.hubEventObserver.add(playerManager)
@@ -233,23 +227,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         hideSystemUI()
-
-        lifecycleScope.launch {
-            /*val key = MyApp.instance!!.packageName.reversed()
-            var x1 = xorString("https://hub.gateway.httt.tek4tv.vn/hubServer".toByteArray(), key)
-
-            var str = ""
-
-            for (b in x1)
-            {
-                str = str.plus(b.toString()+" ")
-            }
-
-            writeFile("${applicationContext.filesDir.path}/key.txt", str)*/
-
-            /*delay(5000)
-            connectWifi("rogg512", "12345678")*/
-        }
     }
 
 
@@ -321,16 +298,53 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         return true
     }
 
+    private fun hideSystemUI() {
+        val decorView: View = window.decorView
+        val uiOptions = decorView.systemUiVisibility
+        var newUiOptions = uiOptions
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        decorView.systemUiVisibility = newUiOptions
+    }
+
+    private fun needGrantPermission(): Boolean {
+        var needGrantPermission = false
+
+        permissions.forEach {
+            if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
+                needGrantPermission = true
+                return@forEach
+            }
+        }
+
+        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
+
+        return needGrantPermission
+    }
+
     private fun registerObservers() {
+        /**
+         * khi cần
+         * **/
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
 
+            //Check xem có đang phát khẩn cấp không
+            //Nếu có thì phát media khẩn cấp
+            //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 if (forceMedia != null)
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
+
                 return@observe
             }
 
@@ -356,7 +370,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
     }
-    //lay comman tu hub
+
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
             if (command == null || command.isEmpty()) {
@@ -371,9 +385,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
 
             if (!isImei) return
-            Log.i("log_command", "Command: $command")
-            when (command) {
 
+            when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
 
@@ -400,9 +413,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.updateMonthlyScenario(mess, true)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                 }
+                //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    /*serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playerManager.onPlayForceCommand(applicationContext, responseHub)*/
                     onPlayForce(responseHub)
                 }
                 HubCommand.UPDATE_STATUS -> {
@@ -425,9 +437,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.hardRestart()
                 }
                 HubCommand.SWITCH_MODE_FM -> {
-                    /*serialPortController.writeForceSetVolume(globalProperties.volume)
-                    playerManager.onPlayForceCommand(applicationContext, responseHub)*/
-
                     onPlayForce(responseHub)
                 }
                 HubCommand.SET_MUTE_DEVICE -> {
@@ -521,8 +530,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.GET_RECORD -> {
                     val connectionId = responseHub.message!!
-                    val recordedAudioList =
-                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
+                    val recordedAudioList = Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
                     hubManager.sendHubDirectMessage(
                         connectionId, Utils.GET_RECORD,
                         recordedAudioList
@@ -593,54 +601,31 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private fun onPlayForce(responseHub: ResponseHub) {
+    private fun onPlayForce(responseHub: ResponseHub)
+    {
+        //Tránh trường hợp âm lượng bị tắt
         serialPortController.writeForceSetVolume(globalProperties.volume)
         playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
     }
 
     private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-         else mediaScheduler.cancelAllScheduledListAlarm()*/
+       /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
+        else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 
-    private fun setMaxVolume() {
-        try {
+    private fun setMaxVolume()
+    {
+        try
+        {
             val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
+        }
+        catch (e : Exception)
+        {
             Log.e("Main", "Error setting max volume")
         }
-    }
-    private fun hideSystemUI() {
-        val decorView: View = window.decorView
-        val uiOptions = decorView.systemUiVisibility
-        var newUiOptions = uiOptions
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        decorView.systemUiVisibility = newUiOptions
-    }
-
-    private fun needGrantPermission(): Boolean {
-        var needGrantPermission = false
-
-        permissions.forEach {
-            if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
-                needGrantPermission = true
-                return@forEach
-            }
-        }
-
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
-
-        return needGrantPermission
     }
 
     companion object {
