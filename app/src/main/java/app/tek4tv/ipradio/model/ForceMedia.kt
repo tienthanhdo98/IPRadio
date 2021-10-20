@@ -21,9 +21,11 @@ data class ForceMedia(
     @Json(name = "Level")
     var level: Int = 0
 ) {
+    //Thời điểm kết thúc
     @Json(name = "EndTime")
     var endTime = ""
 
+    //Thời điểm bắt đầu nhận lệnh
     @Json(name = "FixTime")
     var fixTime = ""
 

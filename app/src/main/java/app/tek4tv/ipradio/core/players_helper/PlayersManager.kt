@@ -111,7 +111,7 @@ class PlayersManager(
     }
 
     /**
-     * Find a timeframe, media and timestamp when the app first load the scheduled list
+     * Tìm khung thơi gian hiện tại cần phát
      * **/
     fun startFirstTimeFrame()
     {
@@ -235,6 +235,7 @@ class PlayersManager(
 
     /**
      * Find media and the second from start which it should be played at the moment
+     * trả về index của media cần phát tịa thời điểm hiện tại và nếu là file thì thời gian tính từ lúc bắt đầu
      * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
@@ -302,6 +303,9 @@ class PlayersManager(
         playerManagerListener?.onTimeOver()
     }
 
+    /**
+     * Nhận lệnh phát khẩn cấp từ hub
+     * **/
     fun onPlayForceCommand(context: Context, responseHub: ResponseHub, mediaScheduler: MediaScheduler) {
         try {
             val duration = responseHub.duration
@@ -309,7 +313,9 @@ class PlayersManager(
             val level = responseHub.level
             val mediaName = responseHub.name
 
-            //if we are playing a force media that has a lower level, skip playing this
+            //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
+            //Nếu có thì bỏ qua không phát
+            //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
             if (playMode == PlayerManager.PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
@@ -336,9 +342,11 @@ class PlayersManager(
     fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {
             Log.d("aaa","force")
+            //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllAlarm()
 
             forceMedia.saveItemToPref(context)
+            //hẹn giờ dừng media khẩn cấp
             mediaScheduler.scheduleForceMediaAlarm()
 
 
