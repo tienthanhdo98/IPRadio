@@ -181,7 +181,6 @@ class SerialPortController(
     fun turnOffPA() {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
         playMode = MODE_NONE
-
         Log.e("PA", "OFF")
     }
 

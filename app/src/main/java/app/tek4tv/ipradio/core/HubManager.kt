@@ -112,7 +112,9 @@ class HubManager(
             })
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
+
     }
+
 
 
     fun connectToHub() {
