@@ -91,14 +91,13 @@ class HubManager(
 
         //Encrypted hub url: xor with key is reversed package name
 
-//        val hub = byteArrayOf(
-//            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
-//            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
-//            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
-//        )
+        val hub = byteArrayOf(
+            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
+            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
+            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
+        )
 
-      //  val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
-        val hubUrl = "https://hub.gateway.httt.vtcplay.vn/hubServer"
+       val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
 
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -194,7 +193,7 @@ class HubManager(
 
             //Auth Url encrypted in c++ lib
             //val url = Secrets().getWJsNVsim(MyApp.instance!!.packageName);
-            val url = "https://api.gateway.httt.vtcplay.vn/api/Auth/Login"
+            val url = "https://api.gateway.httt.tek4tv.vn/api/Auth/Login"
             val call = authService.getToken(body, url)
             val response = call.execute()
 
