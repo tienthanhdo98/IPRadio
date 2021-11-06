@@ -18,6 +18,9 @@ data class MediaRecord(
     var sourceId: String = "",
     @Json(name = "SourceName")
     var sourceName: String = "",
+    @Json(name = "DestinationID") var destinationId: String? = "",
+
+    @Json(name = "DestinationName") var destinationName: String? = "",
     @Json(name = "ID")
     var id: String,
     @Json(name = "Volume")

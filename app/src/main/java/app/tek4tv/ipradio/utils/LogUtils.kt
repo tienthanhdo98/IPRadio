@@ -112,6 +112,8 @@ class LogUtils private constructor() {
             mediaItem.type,
             mediaItem.sourceId!!,
             mediaItem.sourceName!!,
+            mediaItem.destinationId!!,
+            mediaItem.destinationName!!,
             mediaItem.id.toString(),
             volume,
             paState,
