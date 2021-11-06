@@ -12,5 +12,7 @@ data class GetLogFile(
     @Json(name = "Data")
     var data:String = "",
     @Json(name = "Start")
-    var start:Long = 0L
+    var start:Long = 0L,
+    @Json(name = "AppName")
+    var appName: String = "IpRadio"
 )

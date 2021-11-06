@@ -8,15 +8,15 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface LogService {
-    @POST("https://caching.httt.tek4tv.vn/api/Media/add")
+    @POST("https://caching.httt.vtcplay.vn/api/Media/add")
     suspend fun postMediaInfo(@Body record: MediaRecord)
 
-    @POST("https://caching.httt.tek4tv.vn/api/TimeFrame/add")
+    @POST("https://caching.httt.vtcplay.vn/api/TimeFrame/add")
     suspend fun postTimeframeInfo(@Body record: TimeFrameRecord)
 
-    @POST("https://caching.httt.tek4tv.vn/api/Connection/add")
+    @POST("https://caching.httt.vtcplay.vn/api/Connection/add")
     suspend fun postHubStateInfo(@Body record: HubStateRecord)
 
-    @POST("https://caching.httt.tek4tv.vn/api/Device/Synchronize")
+    @POST("https://caching.httt.vtcplay.vn/api/Device/Synchronize")
     suspend fun postLogFile(@Body record: GetLogFile)
 }

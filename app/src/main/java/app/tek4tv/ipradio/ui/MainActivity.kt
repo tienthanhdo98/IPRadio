@@ -89,6 +89,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val globalProperties = GlobalProperties.getInst()
 
+    // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
@@ -148,7 +149,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
 
-            logUtils.logMedia(mediaItem, duration , globalProperties.volume, paState)
+            logUtils.logMedia(mediaItem, duration, globalProperties.volume, paState)
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -166,9 +167,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
-
                 try {
-                    logUtils.logMedia(mediaItem!!, 0,globalProperties.volume, paState)
+                    logUtils.logMedia(mediaItem!!, 0, globalProperties.volume, paState)
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -206,7 +206,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         serialPortController.connectToSerialPort()
 
         rootLayout = findViewById(R.id.root_layout)
-        playerManager = PlayersManager(applicationContext, rootLayout, viewModel.mediaRepo) //PlayerManager(applicationContext, viewModel, rootLayout)
+        playerManager = PlayersManager(
+            applicationContext,
+            rootLayout,
+            viewModel.mediaRepo
+        ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
 
         hubManager.hubEventObserver.add(playerManager)
@@ -394,6 +398,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
 
+                    //lưu thông số vol, pi,
                     globalProperties.saveProperties(responseHub)
 
                     serialPortController.writeForceSetVolume(responseHub.volume)
@@ -530,7 +535,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.GET_RECORD -> {
                     val connectionId = responseHub.message!!
-                    val recordedAudioList = Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
+                    val recordedAudioList =
+                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
                     hubManager.sendHubDirectMessage(
                         connectionId, Utils.GET_RECORD,
                         recordedAudioList
@@ -601,29 +607,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private fun onPlayForce(responseHub: ResponseHub)
-    {
+    private fun onPlayForce(responseHub: ResponseHub) {
         //Tránh trường hợp âm lượng bị tắt
         serialPortController.writeForceSetVolume(globalProperties.volume)
         playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
     }
 
     private fun cancelAllAlarm() {
-       /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-        else mediaScheduler.cancelAllScheduledListAlarm()*/
+        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
+         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 
-    private fun setMaxVolume()
-    {
-        try
-        {
+    private fun setMaxVolume() {
+        try {
             val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        }
-        catch (e : Exception)
-        {
+        } catch (e: Exception) {
             Log.e("Main", "Error setting max volume")
         }
     }

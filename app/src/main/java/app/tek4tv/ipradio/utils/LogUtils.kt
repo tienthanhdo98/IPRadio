@@ -34,12 +34,12 @@ class LogUtils private constructor() {
     private val timeframeLogFolderPath = "$logFolderPath/$TIMEFRAME_LOG_FOLDER_NAME"
     private val commandLogFolderPath = "$logFolderPath/$COMMAND_LOG_FOLDER_NAME"
 
-   /* private val rtDatabase : DatabaseReference
-    private val rootDeviceDb : DatabaseReference
-    private val playlistDb : DatabaseReference
-    private val timeframeDb : DatabaseReference
-    private val deviceStatusDb : DatabaseReference
-    private val networkDb : DatabaseReference*/
+    /* private val rtDatabase : DatabaseReference
+     private val rootDeviceDb : DatabaseReference
+     private val playlistDb : DatabaseReference
+     private val timeframeDb : DatabaseReference
+     private val deviceStatusDb : DatabaseReference
+     private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
 
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
@@ -84,12 +84,11 @@ class LogUtils private constructor() {
         logTimeFrame(reportObj)
     }
 
-    private fun logTimeFrame(reportObj: TimeFrameRecord)
-    {
+    private fun logTimeFrame(reportObj: TimeFrameRecord) {
         val filePath = getLogFilePath(timeframeLogFolderPath)
-        val str =  getRecordStr(reportObj)
+        val str = getRecordStr(reportObj)
 
-        if(str != null)
+        if (str != null)
             writeLogToFile(filePath, str)
 
         //timeframeDb.child(reportObj.time.toString()).setValue(reportObj)
@@ -98,22 +97,30 @@ class LogUtils private constructor() {
             try {
                 logService?.postTimeframeInfo(reportObj)
                 Log.d("LogUtils", "log timeframe success")
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 Log.d("LogUtils", "Error send log timeframe")
                 e.printStackTrace()
             }
         }
     }
 
-    fun logMedia(mediaItem: MediaItem, duration: Long, volume : String, paState : String) {
+    fun logMedia(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
-        val reportObj = MediaRecord(imei, mediaItem.name ?: "",
-            mediaItem.type ,mediaItem.fileId.toString(), volume, paState, duration = duration, path = mediaItem.path)
-        val str =  getRecordStr(reportObj)
+        val reportObj = MediaRecord(
+            imei,
+            mediaItem.name ?: "",
+            mediaItem.type,
+            mediaItem.sourceId!!,
+            mediaItem.sourceName!!,
+            mediaItem.id.toString(),
+            volume,
+            paState,
+            duration = duration,
+            path = mediaItem.path
+        )
+        val str = getRecordStr(reportObj)
 
-        if(str != null)
+        if (str != null)
             writeLogToFile(filePath, str)
 
         //playlistDb.child(reportObj.start.toString()).setValue(reportObj)
@@ -122,31 +129,26 @@ class LogUtils private constructor() {
             try {
                 logService?.postMediaInfo(reportObj)
                 Log.d(LOG_TAG, "Logmedia succeess")
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media")
                 e.printStackTrace()
             }
         }
     }
 
-    fun logHubConnectState(stateRecord : HubStateRecord)
-    {
+    fun logHubConnectState(stateRecord: HubStateRecord) {
         //networkDb.child(stateRecord.start.toString()).setValue(stateRecord)
         val filePath = getLogFilePath(hubLogFolderPath)
-        val str =  getRecordStr(stateRecord)
+        val str = getRecordStr(stateRecord)
 
-        if(str != null)
+        if (str != null)
             writeLogToFile(filePath, str)
 
         coroutineScope.launch {
             try {
                 logService?.postHubStateInfo(stateRecord)
-                Log.d("LogUtils", "log connect success")
-            }
-            catch (e : Exception)
-            {
+                Log.d("LogUtils", "log connect success ")
+            } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log connection state")
                 e.printStackTrace()
             }
@@ -159,7 +161,7 @@ class LogUtils private constructor() {
 
             writeFileJob = launch {
                 val time = dateFormat.format(Date())
-                val content = if(logTime) "$time $line" else line
+                val content = if (logTime) "$time $line" else line
                 writeLine(filePath, content)
             }
         }
@@ -180,10 +182,8 @@ class LogUtils private constructor() {
         return "$folderPath/$logFileName"
     }
 
-    private fun getRecordStr(record: LogRecord) : String?
-    {
-        return when(record)
-        {
+    private fun getRecordStr(record: LogRecord): String? {
+        return when (record) {
             is MediaRecord -> mediaReportAdapter.toJson(record)
             is TimeFrameRecord -> timeframeReportAdapter.toJson(record)
             is HubStateRecord -> hubStateReportAdapter.toJson(record)
@@ -192,12 +192,10 @@ class LogUtils private constructor() {
         }
     }
 
-    fun sendLogFile(type: String, name: String)
-    {
+    fun sendLogFile(type: String, name: String) {
         coroutineScope.launch {
             try {
-                val path = when(type)
-                {
+                val path = when (type) {
                     "media" -> "$playerLogFolderPath/$name.txt"
                     "timeframe" -> "$timeframeLogFolderPath/$name.txt"
                     "connection" -> "$hubLogFolderPath/$name.txt"
@@ -206,25 +204,21 @@ class LogUtils private constructor() {
 
                 val data = b64Encode(readFile(path))
                 val start = fileNameFormat.parse(name).time
-                val record = GetLogFile(name,imei,"Tek4tv",data, start)
+                val record = GetLogFile(name, imei, "Tek4tv", data, start)
                 logService?.postLogFile(record)
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 Log.e(LOG_TAG, "Error uploading log file")
             }
 
         }
     }
 
-    companion object
-    {
-        private var instance : LogUtils? = null
+    companion object {
+        private var instance: LogUtils? = null
 
         @Synchronized
-        fun getInst() : LogUtils
-        {
-            if(instance == null) instance = LogUtils()
+        fun getInst(): LogUtils {
+            if (instance == null) instance = LogUtils()
             return instance!!
         }
     }

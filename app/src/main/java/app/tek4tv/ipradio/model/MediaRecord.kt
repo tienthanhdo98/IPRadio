@@ -11,23 +11,29 @@ data class MediaRecord(
     @Json(name = "Imei")
     var imei: String,
     @Json(name = "Name")
-    var name : String = "",
+    var name: String = "",
     @Json(name = "Type")
-    var type : String = "",
+    var type: String = "",
+    @Json(name = "SourceID")
+    var sourceId: String = "",
+    @Json(name = "SourceName")
+    var sourceName: String = "",
     @Json(name = "ID")
-    var id : String,
+    var id: String,
     @Json(name = "Volume")
-    var volume : String = "",
+    var volume: String = "",
     @Json(name = "PAState")
-    var paState : String = "",
+    var paState: String = "",
     @Json(name = "Start")
-    var start : Long = Date().time,
+    var start: Long = Date().time,
     @Json(name = "Duration")
-    var duration : Long = 0,
+    var duration: Long = 0,
     @Json(name = "Path")
-    var path: String = ""
-) : LogRecord()
-{
+    var path: String = "",
+    @Json(name = "AppName")
+    var appName: String = "IpRadio"
+
+) : LogRecord() {
     @Json(name = "Provider")
     var provider: String = "Tek4tv"
 }
@@ -39,11 +45,13 @@ data class HubStateRecord(
     @Json(name = "Provider")
     var provider: String,
     @Json(name = "State")
-    var state : String = "",
+    var state: String = "",
     @Json(name = "NetworkType")
-    var networkType : String? = null,
+    var networkType: String? = null,
     @Json(name = "Start")
-    var start : Long = Date().time
+    var start: Long = Date().time,
+    @Json(name = "AppName")
+    var appName: String = "IpRadio"
 ) : LogRecord()
 
 @JsonClass(generateAdapter = true)
@@ -51,29 +59,28 @@ data class TimeFrameRecord(
     @Json(name = "Imei")
     var imei: String,
     @Json(name = "TimeframeKey")
-    var timeframeKey : String? = null,
+    var timeframeKey: String? = null,
     @Json(name = "Status")
-    var status : String? = null,
+    var status: String? = null,
     @Json(name = "Time")
     var time: Long = Date().time,
-) : LogRecord()
-{
+    @Json(name = "AppName")
+    var appName: String = "IpRadio"
+) : LogRecord() {
     @Json(name = "Provider")
     var provider: String = "Tek4tv"
 
-    companion object
-    {
+    companion object {
         const val STATUS_START = "START"
         const val STATUS_STOP = "STOP"
     }
 }
 
 data class FbDeviceStatusReport(
-    var status : String? = null,
+    var status: String? = null,
     var time: Long = Date().time
-){
-    companion object
-    {
+) {
+    companion object {
         const val STATUS_ON = "ON"
     }
 }

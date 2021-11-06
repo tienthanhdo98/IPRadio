@@ -15,18 +15,24 @@ data class MediaItem(
 
     @Json(name = "ID") var id: Int = 0,
 
-    @Json(name = "Duration") var duration : String = "00:00:00",
+    @Json(name = "Duration") var duration: String = "00:00:00",
 
     @Json(name = "Path") var path: String = "",
 
     @Json(name = "FixTime") var fixTime: String = "",
 
-    @Json(name = "Type") var type : String = "",
+    @Json(name = "Type") var type: String = "",
 
-    @Json(name = "fileId") var fileId : Int = 0
-) : Serializable {
+    @Json(name = "fileId") var fileId: Int = 0,
 
-    @Json(name = "Level") var level : Int = -1
+    @Json(name = "SourceName") var sourceName: String? = "",
+
+    @Json(name = "SourceID") var sourceId: String? = "",
+
+    ) : Serializable {
+
+    @Json(name = "Level")
+    var level: Int = -1
 
     var pathBackup: String = ""
         set(value) {
@@ -42,7 +48,7 @@ data class MediaItem(
     else File("file://$path").name
 
     fun getMediaType(): MediaType {
-        return when(type) {
+        return when (type) {
             "VOD" -> MediaType.FILE
             "LIVE" -> MediaType.LIVE
             "FM" -> MediaType.FM
@@ -52,8 +58,7 @@ data class MediaItem(
     }
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
-        if(getMediaType() == MediaType.LIVE)
-        {
+        if (getMediaType() == MediaType.LIVE) {
             Log.d("player", "live: $path")
             return Media(mLibVLC, Uri.parse(path))
         }
@@ -67,8 +72,7 @@ data class MediaItem(
         }
     }
 
-    companion object
-    {
+    companion object {
         const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"
     }
 }

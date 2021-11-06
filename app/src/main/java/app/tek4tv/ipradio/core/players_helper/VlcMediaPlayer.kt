@@ -29,7 +29,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var isPlaying = false
 
     private var lastError = -1
-    private var endCount = 0
+   // private var endCount = 0
 
     override fun isPlaying(): Boolean = isPlaying
 
