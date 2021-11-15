@@ -27,10 +27,7 @@ data class MediaItem(
 
     @Json(name = "SourceName") var sourceName: String? = "",
 
-    @Json(name = "SourceID") var sourceId: String? = "",
-    @Json(name = "DestinationID") var destinationId: String? = "",
-
-    @Json(name = "DestinationName") var destinationName: String? = "",
+    @Json(name = "SourceID") var sourceId: String? = ""
 
     ) : Serializable {
 

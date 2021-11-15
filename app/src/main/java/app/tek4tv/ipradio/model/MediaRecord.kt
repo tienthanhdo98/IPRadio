@@ -19,7 +19,6 @@ data class MediaRecord(
     @Json(name = "SourceName")
     var sourceName: String = "",
     @Json(name = "DestinationID") var destinationId: String? = "",
-
     @Json(name = "DestinationName") var destinationName: String? = "",
     @Json(name = "ID")
     var id: String,
@@ -35,6 +34,7 @@ data class MediaRecord(
     var path: String = "",
     @Json(name = "AppName")
     var appName: String = "IpRadio"
+    //AppEncoder/AppMicIp.
 
 ) : LogRecord() {
     @Json(name = "Provider")

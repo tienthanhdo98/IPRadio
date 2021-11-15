@@ -9,6 +9,7 @@ import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
@@ -81,6 +82,7 @@ class HubManager(
     private var firstConnect = true
 
     private val privateKeyStr: String
+    var logService: LogService? = null
 
     init {
         versionName = try {
@@ -97,7 +99,7 @@ class HubManager(
             31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
         )
 
-       val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
+        val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
 
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -123,7 +125,7 @@ class HubManager(
      * bắt đầu kết nối dend hub
      * **/
     fun connectToHub() {
-        if(!firstConnect) return
+        if (!firstConnect) return
 
         openNewConnectionJob?.cancel()
         openNewConnectionJob = coroutineScope.launch {
@@ -324,6 +326,7 @@ class HubManager(
                 }
             }
 
+
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
@@ -332,9 +335,38 @@ class HubManager(
                 startTime = dateFormat.format(Date())
                 networkInfo = NetworkUtils.getNetworkInfo(appContext)
                 version = versionName
+                destinationId = GlobalProperties.getInst().destinationId
+                destinationName = GlobalProperties.getInst().destinationName
+            }
+            sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
+            //post report
+            val currentTime = Calendar.getInstance().time
+            val report = Report(
+                "Ipradio",
+                "report",
+                deviceImei,
+                "Tek4tv",
+                hubConnection.connectionId,
+                GlobalProperties.getInst().destinationId,
+                GlobalProperties.getInst().destinationName,
+                NetworkUtils.getNetworkInfo(appContext),
+                currentTime.time,
+                "START",
+                versionName,
+                videoAdapter.toJson(video),
+                currentTime.time
+            )
+            coroutineScope.launch {
+                try {
+                    logService!!.postReport(report)
+                    Log.d(LOG_TAG, "Send report to hub successs: ${report.destinationID} : ${report.destinationName}")
+                } catch (e: Exception) {
+                    Log.d(LOG_TAG, "Fail to send report to hub successs")
+                    e.printStackTrace()
+                }
+
             }
 
-            sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
@@ -364,7 +396,13 @@ class HubManager(
                 hubToken = null
                 notifyHubDisconnected()
                 Log.e(LOG_TAG, "Hub Disconnected")
-                logUtils.logHubConnectState(HubStateRecord(deviceImei, provider, state = "DISCONNECTED"))
+                logUtils.logHubConnectState(
+                    HubStateRecord(
+                        deviceImei,
+                        provider,
+                        state = "DISCONNECTED"
+                    )
+                )
             }
 
             //Try to reconnect to hub

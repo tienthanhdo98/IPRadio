@@ -106,14 +106,16 @@ class LogUtils private constructor() {
 
     fun logMedia(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
+        val destinationId = GlobalProperties.getInst().destinationId
+        val destinationName = GlobalProperties.getInst().destinationName
         val reportObj = MediaRecord(
             imei,
             mediaItem.name ?: "",
             mediaItem.type,
             mediaItem.sourceId!!,
             mediaItem.sourceName!!,
-            mediaItem.destinationId!!,
-            mediaItem.destinationName!!,
+            destinationId,
+            destinationName,
             mediaItem.id.toString(),
             volume,
             paState,
@@ -130,7 +132,7 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 logService?.postMediaInfo(reportObj)
-                Log.d(LOG_TAG, "Logmedia succeess")
+                Log.d(LOG_TAG, "Logmedia succeess ${reportObj.sourceId} : ${reportObj.destinationName}")
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media")
                 e.printStackTrace()

@@ -6,17 +6,21 @@ import app.tek4tv.ipradio.model.ResponseHub
 
 class GlobalProperties {
 
-    private val appContext : Context = MyApp.instance!!.applicationContext
+    private val appContext: Context = MyApp.instance!!.applicationContext
 
     val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     val DEFAULT_PI_CODE = "DEFAULT_PI_CODE"
     val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
+    val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
+    val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
     val DEFAULT_LOG_ENABLE = "DEFAULT_LOG_ENABLE"
     val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
 
     var volume = "60"
     var piCode = "0"
     var psName = "AAA"
+    var destinationName = ""
+    var destinationId = ""
     var logEnabled = false
     var resumeFromStart = false
 
@@ -24,59 +28,61 @@ class GlobalProperties {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "60") ?: "60"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "") ?: ""
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "") ?: ""
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+
     }
 
-    fun saveProperties(responseHub: ResponseHub)
-    {
-        if(responseHub.volume != "")
-        {
+    fun saveProperties(responseHub: ResponseHub) {
+        if (responseHub.volume != "") {
             saveVolume(responseHub.volume)
         }
 
-        if(responseHub.piCode != "")
-        {
+        if (responseHub.piCode != "") {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
             piCode = responseHub.piCode
         }
 
-        if(responseHub.psName != "")
-        {
+        if (responseHub.psName != "") {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
             psName = responseHub.psName
         }
+        if (responseHub.destinationId != "") {
+            ConfigUtil.putString(appContext, DEFAULT_DESTINATION_ID, responseHub.destinationId)
+            destinationId = responseHub.destinationId!!
+        }
+        if (responseHub.destinationName != "") {
+            ConfigUtil.putString(appContext, DEFAULT_DESTINATION_NAME, responseHub.destinationName)
+            destinationName = responseHub.destinationName!!
+        }
 
-        if(responseHub.logEnabled != null)
-        {
+        if (responseHub.logEnabled != null) {
             ConfigUtil.putBool(appContext, DEFAULT_LOG_ENABLE, responseHub.logEnabled!!)
             logEnabled = responseHub.logEnabled!!
         }
 
-        if(responseHub.resumeFromStart != null)
-        {
+        if (responseHub.resumeFromStart != null) {
             ConfigUtil.putBool(appContext, DEFAULT_RESUME_FROM_START, responseHub.resumeFromStart!!)
             resumeFromStart = responseHub.resumeFromStart!!
         }
     }
 
-    fun saveVolume(vol : String)
-    {
+    fun saveVolume(vol: String) {
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
         volume = vol
     }
 
-    fun setTempVolume(vol : String)
-    {
+    fun setTempVolume(vol: String) {
         volume = vol
     }
 
-    companion object
-    {
-        private var instance : GlobalProperties? = null
+    companion object {
+        private var instance: GlobalProperties? = null
 
-        fun getInst() : GlobalProperties{
-            if(instance == null)
+        fun getInst(): GlobalProperties {
+            if (instance == null)
                 instance = GlobalProperties()
 
             return instance!!

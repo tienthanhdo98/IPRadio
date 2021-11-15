@@ -16,3 +16,43 @@ data class GetLogFile(
     @Json(name = "AppName")
     var appName: String = "IpRadio"
 )
+data class Report(
+    @Json(name = "AppName")
+    val appName: String,
+
+    @Json(name = "LogType")
+    val logType: String,
+
+    @Json(name = "Imei")
+    val imei: String,
+
+    @Json(name = "Provider")
+    val provider: String,
+
+    @Json(name = "ConnectionId")
+    val connectionID: String,
+
+    @Json(name = "DestinationID")
+    val destinationID: String,
+
+    @Json(name = "DestinationName")
+    val destinationName: String,
+
+    @Json(name = "NetworkInfo")
+    val networkInfo: String,
+
+    @Json(name = "StartTime")
+    val startTime: Long,
+
+    @Json(name = "Status")
+    val status: String,
+
+    @Json(name = "Version")
+    val version: String,
+
+    @Json(name = "Video")
+    val video: String,
+
+    @Json(name = "CreateDate")
+    val createDate: Long
+)

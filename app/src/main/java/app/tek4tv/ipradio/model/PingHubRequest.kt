@@ -40,4 +40,10 @@ class PingHubRequest {
 
     @Json(name = "Version")
     var version = ""
+
+    @Json(name = "DestinationID")
+    var destinationId :String ?= ""
+
+    @Json(name = "DestinationName")
+    var destinationName:String ?= ""
 }

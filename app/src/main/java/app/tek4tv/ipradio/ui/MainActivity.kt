@@ -201,6 +201,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
+        hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort()
