@@ -12,6 +12,7 @@ import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
+import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -93,7 +94,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
-
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
         }
@@ -118,13 +118,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
-
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                    else "0"
                 hubManager.currentMediaItem = mediaItem
 
                 val displayName = mediaItem.name ?: ""
                 hubManager.curMediaName = displayName
 
                 serialPortController.playTuner(pipsData, tunerData)
+
+                logUtils.logMedia(mediaItem, 0, globalProperties.volume, paState,"0")
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -149,7 +153,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
 
-            logUtils.logMedia(mediaItem, duration, globalProperties.volume, paState)
+            logUtils.logMedia(mediaItem, duration, globalProperties.volume, paState,"1")
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -168,7 +172,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 try {
-                    logUtils.logMedia(mediaItem!!, 0, globalProperties.volume, paState)
+                    logUtils.logMedia(mediaItem!!, 0, globalProperties.volume, paState,"0")
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -232,6 +236,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         hideSystemUI()
+        showMac()
+    }
+
+    fun showMac() {
+        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val imei = Utils.getDeviceId(this)
+        tvMacAdress.text = imei
     }
 
 

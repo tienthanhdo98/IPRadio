@@ -25,7 +25,7 @@ class SerialPortController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-    private val UART_NAME = "/dev/ttyS4"
+    private val UART_NAME = "/dev/ttyS1"
 
     private val dateformat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private val deviceMac = Utils.getMacAddr()

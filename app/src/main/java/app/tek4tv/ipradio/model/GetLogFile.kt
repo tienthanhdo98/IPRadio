@@ -4,18 +4,23 @@ import com.squareup.moshi.Json
 
 data class GetLogFile(
     @Json(name = "Name")
-    var name: String ="",
+    var name: String = "",
     @Json(name = "Imei")
-    var imei: String="",
+    var imei: String = "",
     @Json(name = "Provider")
-    var provider:String ="",
+    var provider: String = "",
     @Json(name = "Data")
-    var data:String = "",
+    var data: String = "",
     @Json(name = "Start")
-    var start:Long = 0L,
+    var start: Long = 0L,
     @Json(name = "AppName")
-    var appName: String = "IpRadio"
+    var appName: String = "IpRadio",
+    @Json(name = "DestinationID")
+    var destinationID: String = "",
+    @Json(name = "DestinationName")
+    var destinationName: String = ""
 )
+
 data class Report(
     @Json(name = "AppName")
     val appName: String,
@@ -54,5 +59,7 @@ data class Report(
     val video: String,
 
     @Json(name = "CreateDate")
-    val createDate: Long
+    val createDate: Long,
+    @Json(name = "DeviceName")
+    val deviceName: String
 )

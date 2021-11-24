@@ -47,6 +47,8 @@ class LogUtils private constructor() {
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
     var logService: LogService? = null
+    val destinationId = GlobalProperties.getInst().destinationId
+    val destinationName = GlobalProperties.getInst().destinationName
 
     init {
         listOf(
@@ -104,23 +106,31 @@ class LogUtils private constructor() {
         }
     }
 
-    fun logMedia(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
+    fun logMedia(mediaItem: MediaItem, duration: Long, volume: String, paState: String,status : String) {
         val filePath = getLogFilePath(playerLogFolderPath)
-        val destinationId = GlobalProperties.getInst().destinationId
-        val destinationName = GlobalProperties.getInst().destinationName
+        var sourceId = ""
+        var sourceName = ""
+        if (mediaItem.sourceId != null && mediaItem.sourceName != null) {
+            sourceId = mediaItem.sourceId!!
+            sourceName = mediaItem.sourceName!!
+        } else {
+            sourceId = destinationId
+            sourceName = destinationName
+        }
         val reportObj = MediaRecord(
             imei,
             mediaItem.name ?: "",
             mediaItem.type,
-            mediaItem.sourceId!!,
-            mediaItem.sourceName!!,
+            sourceId,
+            sourceName,
             destinationId,
             destinationName,
             mediaItem.id.toString(),
             volume,
             paState,
             duration = duration,
-            path = mediaItem.path
+            path = mediaItem.path,
+            status = status
         )
         val str = getRecordStr(reportObj)
 
@@ -132,7 +142,10 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 logService?.postMediaInfo(reportObj)
-                Log.d(LOG_TAG, "Logmedia succeess ${reportObj.sourceId} : ${reportObj.destinationName}")
+                Log.d(
+                    LOG_TAG,
+                    "Logmedia succeess ${reportObj.name} $sourceId : $sourceName : status ${reportObj.status}"
+                )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media")
                 e.printStackTrace()
@@ -208,7 +221,8 @@ class LogUtils private constructor() {
 
                 val data = b64Encode(readFile(path))
                 val start = fileNameFormat.parse(name).time
-                val record = GetLogFile(name, imei, "Tek4tv", data, start)
+                val record =
+                    GetLogFile(name, imei, "Tek4tv", data, start, destinationId, destinationName)
                 logService?.postLogFile(record)
             } catch (e: Exception) {
                 Log.e(LOG_TAG, "Error uploading log file")

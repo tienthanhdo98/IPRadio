@@ -20,7 +20,7 @@ data class MediaRecord(
     var sourceName: String = "",
     @Json(name = "DestinationID") var destinationId: String? = "",
     @Json(name = "DestinationName") var destinationName: String? = "",
-    @Json(name = "ID")
+    @Json(name = "MediaID")
     var id: String,
     @Json(name = "Volume")
     var volume: String = "",
@@ -33,7 +33,9 @@ data class MediaRecord(
     @Json(name = "Path")
     var path: String = "",
     @Json(name = "AppName")
-    var appName: String = "IpRadio"
+    var appName: String = "IpRadio",
+    @Json(name = "Status")
+    var status: String = ""
     //AppEncoder/AppMicIp.
 
 ) : LogRecord() {
@@ -43,18 +45,16 @@ data class MediaRecord(
 
 @JsonClass(generateAdapter = true)
 data class HubStateRecord(
-    @Json(name = "Imei")
-    var imei: String,
-    @Json(name = "Provider")
-    var provider: String,
-    @Json(name = "State")
-    var state: String = "",
-    @Json(name = "NetworkType")
-    var networkType: String? = null,
-    @Json(name = "Start")
-    var start: Long = Date().time,
-    @Json(name = "AppName")
-    var appName: String = "IpRadio"
+    var appName: String = "IpRadio",
+    val imei: String,
+    val provider: String,
+    val state: String,
+    val networkType: String? = null,
+    val start: String? = null,
+    val destinationID: String,
+    val destinationName: String,
+    val createDate: Long? = null
+
 ) : LogRecord()
 
 @JsonClass(generateAdapter = true)

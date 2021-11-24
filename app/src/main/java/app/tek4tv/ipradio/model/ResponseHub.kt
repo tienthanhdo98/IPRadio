@@ -47,4 +47,7 @@ class ResponseHub : Serializable {
 
     @Json(name = "Name")
     var name: String = ""
+
+    @Json(name = "DeviceName")
+    var deviceName: String ?= ""
 }

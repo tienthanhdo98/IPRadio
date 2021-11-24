@@ -15,10 +15,13 @@ class GlobalProperties {
     val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
     val DEFAULT_LOG_ENABLE = "DEFAULT_LOG_ENABLE"
     val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
+    val NAME_DEVICE = "NAME_DEVICE"
+
 
     var volume = "60"
     var piCode = "0"
     var psName = "AAA"
+    var nameDevice = ""
     var destinationName = ""
     var destinationId = ""
     var logEnabled = false
@@ -30,8 +33,10 @@ class GlobalProperties {
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "") ?: ""
         destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "") ?: ""
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "") ?: ""
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+
 
     }
 
@@ -44,16 +49,20 @@ class GlobalProperties {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
             piCode = responseHub.piCode
         }
+        if (responseHub.deviceName != "" && responseHub.destinationName  != null ) {
+            ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
+            nameDevice = responseHub.deviceName!!
+        }
 
         if (responseHub.psName != "") {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
             psName = responseHub.psName
         }
-        if (responseHub.destinationId != "") {
+        if (responseHub.destinationId != "" && responseHub.destinationId != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_ID, responseHub.destinationId)
             destinationId = responseHub.destinationId!!
         }
-        if (responseHub.destinationName != "") {
+        if (responseHub.destinationName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_NAME, responseHub.destinationName)
             destinationName = responseHub.destinationName!!
         }
@@ -69,6 +78,7 @@ class GlobalProperties {
         }
     }
 
+
     fun saveVolume(vol: String) {
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
         volume = vol
@@ -79,6 +89,7 @@ class GlobalProperties {
     }
 
     companion object {
+
         private var instance: GlobalProperties? = null
 
         fun getInst(): GlobalProperties {
