@@ -129,7 +129,7 @@ class PlayerManager(
 
             val indexInSubList = playlistRepo.scheduledList[frame]!!.indexOf(itemToPlay)
 
-            if (toCalendar(itemToPlay.fixTime) in (start..end) && indexInSubList != -1) {
+            if (toCalendar(itemToPlay.fixTime!!) in (start..end) && indexInSubList != -1) {
                 playlistIndex = indexInSubList
                 break
             }
@@ -146,7 +146,7 @@ class PlayerManager(
         if (mediaIndex >= scheduledItems.size) return
 
         val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.id != currentPlayingMedia?.id) return
+        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
 
         if(reconnectingLiveStreamJob != null)
         {
@@ -244,7 +244,7 @@ class PlayerManager(
 
     private fun playLiveStream(mediaItem: MediaItem) {
 
-        if(mediaItem.path.endsWith("m3u8"))
+        if(mediaItem.body!!.endsWith("m3u8"))
         {
             playHlsExo(mediaItem)
         }
@@ -294,7 +294,7 @@ class PlayerManager(
     private fun playHlsExo(mediaItem: MediaItem)
     {
         isUsingExoPlayer = true
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.path)
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.body!!)
         exoPlayer.addListener(exoEventListener)
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
@@ -308,7 +308,7 @@ class PlayerManager(
             var needReconnect = true
             while (needReconnect) {
 
-                Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
+                Log.d(LOGTAG, "reconnect: ${mediaItem.body}")
 
                 if(connectedToHub)
                     playMedia(mediaItem)
@@ -325,12 +325,12 @@ class PlayerManager(
     }
     //check to see if there is an error when playing livestream
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
-        if(currentPlayingMedia!=null && currentPlayingMedia!!.path != mediaItem.path) return false
+        if(currentPlayingMedia!=null && currentPlayingMedia!!.body != mediaItem.body) return false
 
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
 
         val check = (now <= liveEndTime)
@@ -357,8 +357,8 @@ class PlayerManager(
     private fun checkHls(mediaItem: MediaItem): Boolean {
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
         val check = (now < liveEndTime)
                 //&& (currentExoState != Player.STATE_READY)
@@ -422,7 +422,7 @@ class PlayerManager(
 
             for (i in mediaList.indices) {
                 val media = mediaList[i]
-                val mediaDuration = getDurationInSecond(media.duration)
+                val mediaDuration = getDurationInSecond(media.duration!!)
 
                 t += mediaDuration
 

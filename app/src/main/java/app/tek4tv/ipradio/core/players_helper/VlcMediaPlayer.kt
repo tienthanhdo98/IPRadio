@@ -150,12 +150,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     //check xem có đang trong giờ phát luồng live
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
-        if (currentMedia != null && currentMedia!!.path != mediaItem.path) return false
+        if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
 
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
 
         val check = (now <= liveEndTime)

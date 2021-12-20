@@ -127,7 +127,7 @@ class ExoMediaPlayer(
     }
 
     private fun playHlsExo(mediaItem: MediaItem) {
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.path)
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.body!!)
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
@@ -139,8 +139,8 @@ class ExoMediaPlayer(
     private fun checkHls(mediaItem: MediaItem): Boolean {
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
         val check = (now < liveEndTime)
 

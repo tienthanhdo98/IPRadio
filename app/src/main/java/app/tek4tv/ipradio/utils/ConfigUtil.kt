@@ -19,6 +19,7 @@ object ConfigUtil {
         editor.apply()
     }
 
+
     fun getString(context: Context, key: String?, defaultValue: String?): String? {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getString(key, defaultValue)
@@ -36,6 +37,18 @@ object ConfigUtil {
         return sharedPref.getBoolean(key, defaultValue)
     }
 
+    fun putFloat(context: Context, key: String?, value: Float) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putFloat(key, value)
+        editor.apply()
+    }
+
+    fun getFloat(context: Context, key: String, defaultValue: Float): Float {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        return sharedPref.getFloat(key, defaultValue)
+    }
+
     fun checkSharef(context: Context, key: String): Boolean {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return if (sharedPref.contains(key)) {
@@ -44,7 +57,8 @@ object ConfigUtil {
             false
         }
     }
-    fun removeSharef(context: Context,key: String){
+
+    fun removeSharef(context: Context, key: String) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         sharedPref.edit().remove(key).apply()
     }

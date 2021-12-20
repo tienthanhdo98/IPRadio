@@ -36,6 +36,7 @@ import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -110,6 +111,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (globalProperties.logEnabled) {
                 logUtils.logEndTimeFrame(frame)
             }
+            val sdf = SimpleDateFormat("dd/M/yyyy")
+            val currentDate = sdf.format(Date())
+            val currentDateStr = currentDate.replace("/","")
+            logUtils.sendLogFile("media", currentDateStr)
         }
 
         //Phát FM
@@ -117,18 +122,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             try {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.path},${globalProperties.volume}"
+                val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 hubManager.currentMediaItem = mediaItem
 
-                val displayName = mediaItem.name ?: ""
+                val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
                 serialPortController.playTuner(pipsData, tunerData)
 
-                logUtils.logMedia(mediaItem, 0, globalProperties.volume, paState,"0")
+                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -149,18 +154,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-            val paState =
-                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                else "0"
-
-            logUtils.logMedia(mediaItem, duration, globalProperties.volume, paState,"1")
+            logUtils.logMediaEnd(mediaItem)
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
 
-            val displayName = mediaItem?.name ?: ""
+            val displayName = mediaItem?.title ?: ""
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
@@ -172,7 +173,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 try {
-                    logUtils.logMedia(mediaItem!!, 0, globalProperties.volume, paState,"0")
+                    logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -434,6 +435,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
                 }
+                HubCommand.FM -> {
+                    onPlayForce(responseHub)
+                }
+
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
                 }
@@ -609,6 +614,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val data = responseHub.message?.split('-') ?: return
                     logUtils.sendLogFile(data[0], data[1])
                 }
+
             }
 
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {

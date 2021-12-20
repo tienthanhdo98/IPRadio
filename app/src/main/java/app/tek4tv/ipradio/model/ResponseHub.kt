@@ -28,10 +28,10 @@ class ResponseHub : Serializable {
     var psName = ""
 
     @Json(name = "DestinationID")
-    var destinationId :String ?= ""
+    var destinationId: String? = ""
 
     @Json(name = "DestinationName")
-    var destinationName:String ?= ""
+    var destinationName: String? = ""
 
     @Json(name = "Log")
     var logEnabled: Boolean? = null
@@ -49,5 +49,13 @@ class ResponseHub : Serializable {
     var name: String = ""
 
     @Json(name = "DeviceName")
-    var deviceName: String ?= ""
+    var deviceName: String? = ""
+
+    @Json(name = "Lat")
+    var lat: Float ?= null
+
+    @Json(name = "Lng")
+    var lng: Float?= null
+
+
 }

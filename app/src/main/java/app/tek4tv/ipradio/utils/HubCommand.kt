@@ -12,6 +12,7 @@ object HubCommand {
     const val PREVIEW = "PREVIEW"
     const val JUMP = "JUMP"
     const val LIVE = "LIVE"
+    const val FM = "FM"
     const val UPDATE_STATUS = "UPDATE_STATUS"
     const val SET_VOLUME_DEVICE = "SET_VOLUME_DEVICE"
     const val STOP = "STOP"

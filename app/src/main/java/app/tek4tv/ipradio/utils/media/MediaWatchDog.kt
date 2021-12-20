@@ -41,11 +41,11 @@ class MediaWatchDog(
         try {
             var foundBrokenPath = false
             mediaRepo.broadcastList.forEach {
-                if (it.path == "start" || it.path == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
+                if (it.body == "start" || it.body == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
 
-                val mediaPath = it.path
-                if (mediaPath.isNotEmpty() && !File(mediaPath).exists()) {
-                    if (it.pathBackup.startsWith("http")) it.path = it.pathBackup
+                val mediaPath = it.body
+                if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
+                    if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
                     foundBrokenPath = true
                     //Log.d("aaa",it.name)
                 }
@@ -65,7 +65,7 @@ class MediaWatchDog(
     {
         try {
             val needDownload = mediaRepo.broadcastList.filter {
-                it.getMediaType() == MediaType.FILE && it.path.startsWith("http")
+                it.getMediaType() == MediaType.FILE && it.body!!.startsWith("http")
             }
 
             if (needDownload.isNotEmpty()) {

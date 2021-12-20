@@ -40,8 +40,8 @@ data class ForceMedia(
         val ms = if (m >= 10) "$m" else "0$m"
 
         return MediaItem(
-            path = path,
-            name = name,
+            body = path,
+            title = name,
             type = type,
             fixTime = fixTime,
             duration = "$hs:$ms:00",

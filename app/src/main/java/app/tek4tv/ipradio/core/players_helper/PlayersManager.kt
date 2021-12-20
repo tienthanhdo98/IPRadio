@@ -206,7 +206,7 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        currentPlayer = if(mediaItem.path.endsWith("m3u8")) {
+        currentPlayer = if(mediaItem.body!!.endsWith("m3u8")) {
             exoPlayer.playMedia(mediaItem, -1)
             exoPlayer
         } else {
@@ -247,7 +247,7 @@ class PlayersManager(
 
             for (i in mediaList.indices) {
                 val media = mediaList[i]
-                val mediaDuration = getDurationInSecond(media.duration)
+                val mediaDuration = getDurationInSecond(media.duration!!)
 
                 t += mediaDuration
 
@@ -286,7 +286,7 @@ class PlayersManager(
         if (mediaIndex >= scheduledItems.size) return
 
         val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.id != currentPlayingMedia?.id) return
+        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
 
         stopAllPlayer()
         onMediaStopPlaying()
@@ -306,6 +306,7 @@ class PlayersManager(
     /**
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
+
     fun onPlayForceCommand(context: Context, responseHub: ResponseHub, mediaScheduler: MediaScheduler) {
         try {
             val duration = responseHub.duration

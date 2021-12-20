@@ -61,5 +61,12 @@ data class Report(
     @Json(name = "CreateDate")
     val createDate: Long,
     @Json(name = "DeviceName")
-    val deviceName: String
+    val deviceName: String,
+    @Json(name = "Lat")
+    var lat: Float? = null,
+
+    @Json(name = "Lng")
+    var lng: Float? = null
+
+
 )

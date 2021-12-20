@@ -106,48 +106,126 @@ class LogUtils private constructor() {
         }
     }
 
-    fun logMedia(mediaItem: MediaItem, duration: Long, volume: String, paState: String,status : String) {
+    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
-        var sourceId = ""
-        var sourceName = ""
-        if (mediaItem.sourceId != null && mediaItem.sourceName != null) {
-            sourceId = mediaItem.sourceId!!
-            sourceName = mediaItem.sourceName!!
+        val sourceId: String
+        val sourceName: String
+
+        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
+            sourceId = mediaItem.sourceID
+            sourceName = mediaItem.sourceName
         } else {
             sourceId = destinationId
             sourceName = destinationName
         }
+        val externalSource :String
+        val isExternalSource :Int
+       if (mediaItem.type != "VOD") {
+           externalSource=  mediaItem.pathBackup!!
+           isExternalSource = 1
+        } else {
+           externalSource =  ""
+           isExternalSource =  0
+        }
+        val currentTime = Calendar.getInstance().time
         val reportObj = MediaRecord(
-            imei,
-            mediaItem.name ?: "",
-            mediaItem.type,
-            sourceId,
-            sourceName,
-            destinationId,
-            destinationName,
-            mediaItem.id.toString(),
-            volume,
-            paState,
-            duration = duration,
-            path = mediaItem.path,
-            status = status
+            imei = imei,
+            title = mediaItem.title ?: "",
+            sourceID = sourceId,
+            sourceName = sourceName,
+            destinationId = destinationId,
+            destinationName = destinationName,
+            mediaID = mediaItem.mediaID.toString(),
+            volume = volume,
+            paState = paState,
+            duration = mediaItem.duration,
+            startTime = currentTime.time,
+            body = mediaItem.pathBackup,
+            author = mediaItem.author,
+            category = mediaItem.category,
+            priority = mediaItem.priority,
+            contentType = mediaItem.contentType,
+            description = mediaItem.description,
+            externalSource = externalSource,
+            isExternal = isExternalSource,
+
         )
         val str = getRecordStr(reportObj)
 
         if (str != null)
             writeLogToFile(filePath, str)
 
-        //playlistDb.child(reportObj.start.toString()).setValue(reportObj)
+        coroutineScope.launch {
+            try {
+                logService?.postMediaInfoStart(reportObj)
+                Log.d(
+                    LOG_TAG,
+                    "Log media start ${reportObj.title} $sourceId : $sourceName"
+                )
+            } catch (e: Exception) {
+                Log.d(LOG_TAG, "Error send log media ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
+
+    fun logMediaEnd(
+        mediaItem: MediaItem
+    ) {
+        val filePath = getLogFilePath(playerLogFolderPath)
+        var sourceId = ""
+        var sourceName = ""
+        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
+            sourceId = mediaItem.sourceID
+            sourceName = mediaItem.sourceName
+        } else {
+            sourceId = destinationId
+            sourceName = destinationName
+        }
+        val externalSource :String
+        val isExternalSource :Int
+        if (mediaItem.type != "VOD") {
+            externalSource=  mediaItem.pathBackup
+            isExternalSource = 1
+        } else {
+            externalSource =  ""
+            isExternalSource =  0
+        }
+        val currentTime = Calendar.getInstance().time
+        val reportObj = MediaRecord(
+            imei = imei,
+            title = mediaItem.title ?: "",
+            sourceID = sourceId,
+            sourceName = sourceName,
+            destinationId = destinationId,
+            destinationName = destinationName,
+            mediaID = mediaItem.mediaID.toString(),
+            body = mediaItem.pathBackup,
+            endTime = currentTime.time,
+            status = "1",
+            duration = mediaItem.duration,
+            author = mediaItem.author,
+            category = mediaItem.category,
+            priority = mediaItem.priority,
+            contentType = mediaItem.contentType,
+            description = mediaItem.description,
+            externalSource = externalSource,
+            isExternal = isExternalSource
+        )
+        val str = getRecordStr(reportObj)
+
+        if (str != null)
+            writeLogToFile(filePath, str)
 
         coroutineScope.launch {
             try {
-                logService?.postMediaInfo(reportObj)
+                logService?.postMediaInfoEnd(reportObj)
                 Log.d(
                     LOG_TAG,
-                    "Logmedia succeess ${reportObj.name} $sourceId : $sourceName : status ${reportObj.status}"
+                    "Log media stop ${reportObj.title} $sourceId : $sourceName : status ${reportObj.status}"
                 )
             } catch (e: Exception) {
-                Log.d(LOG_TAG, "Error send log media")
+                Log.d(LOG_TAG, "Error send log media ${e.message}")
                 e.printStackTrace()
             }
         }
@@ -218,14 +296,23 @@ class LogUtils private constructor() {
                     "connection" -> "$hubLogFolderPath/$name.txt"
                     else -> ""
                 }
-
                 val data = b64Encode(readFile(path))
                 val start = fileNameFormat.parse(name).time
                 val record =
-                    GetLogFile(name, imei, "Tek4tv", data, start, destinationId, destinationName)
+                    GetLogFile(
+                        name,
+                        imei,
+                        "Tek4tv",
+                        data = data,
+                        start = start,
+                        destinationID = destinationId,
+                        destinationName = destinationName,
+                        appName = "IPRadio"
+                    )
                 logService?.postLogFile(record)
+                Log.e(LOG_TAG, "uploading log file success")
             } catch (e: Exception) {
-                Log.e(LOG_TAG, "Error uploading log file")
+                Log.e(LOG_TAG, "Error uploading log file: ${e.message}")
             }
 
         }

@@ -3,9 +3,6 @@ package app.tek4tv.ipradio.ui
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.util.Log
-import android.widget.Toast
-import app.tek4tv.ipradio.core.PlayerManager
 
 
 class MediaScheduleReceiver : BroadcastReceiver() {

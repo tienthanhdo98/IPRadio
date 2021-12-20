@@ -12,6 +12,7 @@ import android.widget.Toast
 import androidx.core.content.ContextCompat.getSystemService
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.SerialPortController
+import java.io.DataOutputStream
 import java.io.File
 
 
@@ -76,8 +77,6 @@ fun downloadUpdateApk(url: String, context: Context, controller: SerialPortContr
     val finalDestination = destination
     val onComplete: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctxt: Context, intent: Intent) {
-            //
-            //
             // Install Updated APK
             try {
                 val command = "pm install -r $finalDestination"
@@ -91,15 +90,16 @@ fun downloadUpdateApk(url: String, context: Context, controller: SerialPortContr
 //                        doRestart();
 //                    }
             } catch (e: Exception) {
-                Toast.makeText(context, "failed root",Toast.LENGTH_LONG).show()
+                Toast.makeText(context, "failed root", Toast.LENGTH_LONG).show()
                 e.printStackTrace()
             }
         }
     }
+
     //register receiver for when .apk download is compete
     context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 }
 
-private fun doRestart(controller : SerialPortController) {
-    controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "",true)
+private fun doRestart(controller: SerialPortController) {
+    controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
 }

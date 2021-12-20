@@ -18,4 +18,8 @@ class Secrets {
     external fun getHubPrivateKey(packageName: String): String
 
 
+    external fun gethubUrl(packageName: String): String
+
+    external fun gettokenUrl(packageName: String): String
+
 }

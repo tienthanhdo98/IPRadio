@@ -8,38 +8,31 @@ open class LogRecord {}
 
 @JsonClass(generateAdapter = true)
 data class MediaRecord(
-    @Json(name = "Imei")
-    var imei: String,
-    @Json(name = "Name")
-    var name: String = "",
-    @Json(name = "Type")
-    var type: String = "",
-    @Json(name = "SourceID")
-    var sourceId: String = "",
-    @Json(name = "SourceName")
-    var sourceName: String = "",
-    @Json(name = "DestinationID") var destinationId: String? = "",
-    @Json(name = "DestinationName") var destinationName: String? = "",
-    @Json(name = "MediaID")
-    var id: String,
-    @Json(name = "Volume")
-    var volume: String = "",
-    @Json(name = "PAState")
-    var paState: String = "",
-    @Json(name = "Start")
-    var start: Long = Date().time,
-    @Json(name = "Duration")
-    var duration: Long = 0,
-    @Json(name = "Path")
-    var path: String = "",
-    @Json(name = "AppName")
-    var appName: String = "IpRadio",
-    @Json(name = "Status")
-    var status: String = ""
-    //AppEncoder/AppMicIp.
+    val imei: String? = null,
+    val mediaID: String? = null,
+    val sourceID: String? = null,
+    val sourceName: String? = null,
+    val destinationId: String? = null,
+    val destinationName: String? = null,
+    val title: String? = null,
+    val description: String? = null,
+    val category: Category? = null,
+    val createDate: Long? = null,
+    val duration: String? = null,
+    val author: Author? = null,
+    val startTime: Long? = null,
+    val isExternal: Int? = null,
+    val externalSource: String? = null,
+    val body: String? = null,
+    val volume: String? = null,
+    val paState: String? = null,
+    val priority: Priority? = null,
+    val contentType: ContentType? = null,
+    //thuoc tinh cua end
+    val endTime: Long? = null,
+    val status: String? = null
 
 ) : LogRecord() {
-    @Json(name = "Provider")
     var provider: String = "Tek4tv"
 }
 

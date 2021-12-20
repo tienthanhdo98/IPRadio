@@ -21,6 +21,7 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
+        //app.tek4tv.ipradio
         applicationId "app.tek4tv.ipradio"
         minSdkVersion 23
         targetSdkVersion 28
@@ -28,6 +29,7 @@ android {
         versionName "3.0.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
 
         externalNativeBuild {
             cmake {
