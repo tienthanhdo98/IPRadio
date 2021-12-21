@@ -22,6 +22,6 @@ interface LogService {
     @POST("https://datawarehouse-truyenthanh.tek4tv.vn/LogDevice")
     suspend fun postLogFile(@Body record: GetLogFile)//them sn,si
 
-    @POST("https://caching-truyenthanh.tek4tv.vn/api/Report/add")
-    suspend fun postReport(@Body report: Report)
+//    @POST("https://caching-truyenthanh.tek4tv.vn/api/Report/add")
+//    suspend fun postReport(@Body report: Report)
 }

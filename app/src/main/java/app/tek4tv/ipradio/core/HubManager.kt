@@ -104,7 +104,7 @@ class HubManager(
         //val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
         val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
         //vn.ip
-       //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
+        //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
         Log.e("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -139,7 +139,7 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-           // val body = mapOf("Username" to "device", "Password" to "Device@123")
+            // val body = mapOf("Username" to "device", "Password" to "Device@123")
 
             //Auth Url encrypted in c++ lib
             //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
@@ -306,6 +306,7 @@ class HubManager(
     private fun sendMessage(mess: String, command: String) {
         try {
             hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
+            Log.i("datadevice", "volume: $mess")
         } catch (e: Exception) {
             Log.e(LOG_TAG, e.message)
             e.printStackTrace()
@@ -364,7 +365,7 @@ class HubManager(
                 }
             }
 
-
+            val currentTime = Calendar.getInstance().time
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
@@ -375,41 +376,16 @@ class HubManager(
                 version = versionName
                 destinationId = GlobalProperties.getInst().destinationId
                 destinationName = GlobalProperties.getInst().destinationName
+                appName = "Ipradio"
+                logType = "report"
+                provider = "Tek4tv"
+                lat = GlobalProperties.getInst().lat
+                lng = GlobalProperties.getInst().lng
+                volume = SerialPortController.volume
+                deviceName = GlobalProperties.getInst().nameDevice
+                createDate = currentTime.time
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            //post report
-            val currentTime = Calendar.getInstance().time
-            val report = Report(
-                "Ipradio",
-                "report",
-                deviceImei,
-                "Tek4tv",
-                hubConnection.connectionId,
-                GlobalProperties.getInst().destinationId,
-                GlobalProperties.getInst().destinationName,
-                NetworkUtils.getNetworkInfo(appContext),
-                currentTime.time,
-                "START",
-                versionName,
-                videoAdapter.toJson(video),
-                currentTime.time,
-                GlobalProperties.getInst().nameDevice,
-                lat = GlobalProperties.getInst().lat,
-                lng = GlobalProperties.getInst().lng
-            )
-            coroutineScope.launch {
-                try {
-                    logService!!.postReport(report)
-                    Log.d(
-                        LOG_TAG,
-                        "Send report to hub successs: ${report.destinationID} : ${report.destinationName} : ${report.deviceName}"
-                    )
-                } catch (e: Exception) {
-                    Log.d(LOG_TAG, "Fail to send report to hub $${e.message}")
-                    e.printStackTrace()
-                }
-
-            }
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

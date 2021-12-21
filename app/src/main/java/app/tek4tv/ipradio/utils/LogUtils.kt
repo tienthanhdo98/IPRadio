@@ -121,7 +121,7 @@ class LogUtils private constructor() {
         val externalSource :String
         val isExternalSource :Int
        if (mediaItem.type != "VOD") {
-           externalSource=  mediaItem.pathBackup!!
+           externalSource=  mediaItem.pathBackup
            isExternalSource = 1
         } else {
            externalSource =  ""
