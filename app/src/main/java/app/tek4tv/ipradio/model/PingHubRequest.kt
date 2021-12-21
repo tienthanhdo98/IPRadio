@@ -8,31 +8,31 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 class PingHubRequest {
     @Json(name = "ConnectionId")
-   
-     var connectionId: String? = null
+
+    var connectionId: String? = null
 
     @Json(name = "IMEI")
-   
-     var imei: String? = null
+
+    var imei: String? = null
 
     @Json(name = "StartTime")
-   
-     var startTime: String? = null
+
+    var startTime: String? = null
 
     @Json(name = "Status")
-   
-     var status: String? = null
+
+    var status: String? = null
 
     @Json(name = "Volume")
-   
-     var volume: String? = null
+
+    var volume: String? = null
 
     @Json(name = "Message")
-   
-     var message: String? = null
+
+    var message: String? = null
 
     @Json(name = "Video")
-   
+
     var video: String? = null
 
     @Json(name = "NetworkInfo")
@@ -42,8 +42,47 @@ class PingHubRequest {
     var version = ""
 
     @Json(name = "DestinationID")
-    var destinationId :String ?= ""
+    var destinationId: String? = ""
 
     @Json(name = "DestinationName")
-    var destinationName:String ?= ""
+    var destinationName: String? = ""
+
+    //
+    @Json(name = "Lat")
+    var lat: Float? = null
+
+    @Json(name = "Lng")
+    var lng: Float? = null
+
+    @Json(name = "DeviceName")
+    var deviceName: String? = ""
+
+    @Json(name = "Start")
+    var start: String? = null
+
+    @Json(name = "Duration")
+    var duration: Int = 0
+
+    @Json(name = "PI")
+    var piCode = ""
+
+    @Json(name = "PS")
+    var psName = ""
+
+    @Json(name = "Log")
+    var logEnabled: Boolean? = null
+
+    @Json(name = "Type")
+    var type: String = ""
+
+    @Json(name = "Level")
+    var level: Int = 0
+
+    @Json(name = "Resume")
+    var resumeFromStart: Boolean? = null
+
+    @Json(name = "Name")
+    var name: String = ""
+
+
 }

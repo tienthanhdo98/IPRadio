@@ -101,8 +101,8 @@ class HubManager(
 
         //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
         //val hubUrl = "https://hub.gateway.httt.vtcplay.vn/hubServer"
-        //val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
-        val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
+        val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
+        //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
         //vn.ip
        //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
         Log.e("urlbase", hubUrl)
@@ -129,21 +129,21 @@ class HubManager(
     private fun getHubToken(): String? {
         return try {
             //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
-
-            val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
-            )
-           // val body = mapOf("Username" to "device", "Password" to "Device@123")
+//            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+//
+//            val body = mapOf(
+//                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+//                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+//            )
+           val body = mapOf("Username" to "device", "Password" to "Device@123")
 
             //Auth Url encrypted in c++ lib
-            //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
-            val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
+            val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
+           // val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
             Log.e("urlbase", url)
             val call = authService.getToken(body, url)
             val response = call.execute()
@@ -395,7 +395,7 @@ class HubManager(
                 currentTime.time,
                 GlobalProperties.getInst().nameDevice,
                 lat = GlobalProperties.getInst().lat,
-                lng = GlobalProperties.getInst().lng
+                lng = GlobalProperties.getInst().lng,
             )
             coroutineScope.launch {
                 try {

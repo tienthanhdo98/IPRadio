@@ -135,6 +135,7 @@ class SerialPortController(
                             val s: String = dataFinal.toString()
                             onDataReceived(s)
                             dataFinal = StringBuffer()
+
                         }
                     }
                 } catch (e: IOException) {
@@ -156,6 +157,7 @@ class SerialPortController(
                     hubManager.sendHubDirectMessage(
                         hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
                     )
+
                     isRead = false
                 }
             }

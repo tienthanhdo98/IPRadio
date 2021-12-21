@@ -10,7 +10,6 @@ class MyApp : Application() {
         super.onCreate()
         instance = this
         //
-    // Firebase.database.setPersistenceEnabled(true)
     }
 
     companion object {

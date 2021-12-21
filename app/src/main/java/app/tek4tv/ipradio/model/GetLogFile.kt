@@ -66,7 +66,10 @@ data class Report(
     var lat: Float? = null,
 
     @Json(name = "Lng")
-    var lng: Float? = null
+    var lng: Float? = null,
+
+    @Json(name = "Volume")
+    var volume: String? = null
 
 
 )
