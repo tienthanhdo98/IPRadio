@@ -384,6 +384,7 @@ class HubManager(
                 volume = SerialPortController.volume
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = currentTime.time
+                networkInfo = NetworkUtils.getNetworkClass(appContext)
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
 
