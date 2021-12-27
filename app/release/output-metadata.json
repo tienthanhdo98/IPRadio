@@ -4,14 +4,14 @@
     "type": "APK",
     "kind": "Directory"
   },
-  "applicationId": "vn.tek4tv.radioip",
+  "applicationId": "app.tek4tv.ipradio",
   "variantName": "processReleaseResources",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
       "versionCode": 3,
-      "versionName": "3.0.3",
+      "versionName": "3.0.4",
       "outputFile": "app-release.apk"
     }
   ]

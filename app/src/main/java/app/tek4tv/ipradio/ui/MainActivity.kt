@@ -167,13 +167,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (mediaItem?.getMediaType() != MediaType.FM) {
                 serialPortController.turnOnPAVod()
             }
-
+            val paState =
+                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                else "0"
+            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
             if (globalProperties.logEnabled) {
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
+
                 try {
-                    logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
+
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -424,7 +425,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
-
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)

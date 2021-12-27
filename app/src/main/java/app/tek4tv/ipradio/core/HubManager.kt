@@ -100,9 +100,10 @@ class HubManager(
         )
 
         //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
-        //val hubUrl = "https://hub.gateway.httt.vtcplay.vn/hubServer"
+        val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
         //val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
-        val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
+        //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
+       // val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
         //vn.ip
         //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
         Log.e("urlbase", hubUrl)
@@ -143,7 +144,10 @@ class HubManager(
 
             //Auth Url encrypted in c++ lib
             //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
-            val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
+            //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
+          //  val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
+            val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
+
             Log.e("urlbase", url)
             val call = authService.getToken(body, url)
             val response = call.execute()
@@ -211,6 +215,7 @@ class HubManager(
                     )
                 )
                 Log.e(LOG_TAG, "Log connect to hub success ${currentTime.time}")
+                //send disconn log when connect
                 if (ConfigUtil.checkSharef(
                         appContext,
                         ConfigUtil.DISCONNECT_START_TIME

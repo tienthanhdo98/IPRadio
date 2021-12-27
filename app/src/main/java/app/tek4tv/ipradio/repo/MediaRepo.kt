@@ -32,7 +32,6 @@ class MediaRepo @Inject constructor(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
 
-
     var broadcastList = mutableListOf<MediaItem>()
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()

@@ -123,8 +123,7 @@ class PlayersManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
 
-            val now = Calendar.getInstance().timeInMillis
-
+            val now  = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
 
                 val resumePoint = calculateResumePoint(start, period)
