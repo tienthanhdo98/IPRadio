@@ -18,9 +18,11 @@ class GlobalProperties {
     val NAME_DEVICE = "NAME_DEVICE"
     val LATITUDE = "LATITUDE"
     val LONGTITUDE = "LONGTITUDE"
+    val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
 
 
     var volume = "60"
+    var userNameController = ""
     var piCode = "0"
     var psName = "AAA"
     var nameDevice = ""
@@ -42,6 +44,7 @@ class GlobalProperties {
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
     }
 
     fun saveProperties(responseHub: ResponseHub) {
@@ -52,6 +55,10 @@ class GlobalProperties {
         if (responseHub.piCode != "") {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
             piCode = responseHub.piCode
+        }
+        if (responseHub.userNameControl != "" && responseHub.userNameControl != null) {
+            ConfigUtil.putString(appContext, USER_NAME_CONTROLLER, responseHub.userNameControl)
+            userNameController = responseHub.userNameControl!!
         }
         if (responseHub.deviceName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)

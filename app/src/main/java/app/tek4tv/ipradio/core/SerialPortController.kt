@@ -27,7 +27,6 @@ class SerialPortController(
 
     private val UART_NAME = "/dev/ttyS4"
 
-    private val dateformat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private val deviceMac = Utils.getMacAddr()
 
     private var isRead = false
@@ -72,7 +71,6 @@ class SerialPortController(
             //$$,1,8,1,910,675,5,0,0,1,0,28: 1: fm/am, fm freq, am freq, vol, audio source, pa, mute/unmute, external mic, tempareture
             //$$,1,9,software version, device versionnải
             try {
-
                 val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 //0: không có mạng
                 //1: có mạng, kết nối được đến hub
@@ -82,7 +80,6 @@ class SerialPortController(
                     param = "2"
                 }
                 //Log.d(LOG_TAG, "status: $param")
-
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
                 val strength = when (networkClass) {
                     "2G", "3G", "4G" -> {

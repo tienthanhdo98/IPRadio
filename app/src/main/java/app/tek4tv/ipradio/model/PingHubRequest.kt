@@ -69,4 +69,7 @@ class PingHubRequest {
     @Json(name = "Lng")
     var lng: Float? = null
 
+    @Json(name = "UserNameControl")
+    var userNameControl: String? = null
+
 }

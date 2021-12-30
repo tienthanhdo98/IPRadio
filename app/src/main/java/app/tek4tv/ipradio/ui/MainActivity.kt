@@ -339,8 +339,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
+            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS )
+           // startActivity(intent)
         }
 
         return needGrantPermission

@@ -98,12 +98,12 @@ class HubManager(
             2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
             31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
         )
-
+       // val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
         //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
-        val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
+
         //val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
         //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
-       // val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
+         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
         //vn.ip
         //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
         Log.e("urlbase", hubUrl)
@@ -145,8 +145,8 @@ class HubManager(
             //Auth Url encrypted in c++ lib
             //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
             //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
-          //  val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
-            val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
+                val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
+            //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
 
             Log.e("urlbase", url)
             val call = authService.getToken(body, url)
@@ -371,6 +371,10 @@ class HubManager(
             }
 
             val currentTime = Calendar.getInstance().time
+//            TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
+//            Log.i("Utcss", "sendPing: $currentTime")
+            Log.i("Utcss", "sendPing: ${currentTime}")
+
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
@@ -388,8 +392,10 @@ class HubManager(
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume
                 deviceName = GlobalProperties.getInst().nameDevice
-                createDate = currentTime.time
+                createDate = (currentTime.time/1000)
                 networkInfo = NetworkUtils.getNetworkClass(appContext)
+                userNameControl = GlobalProperties.getInst().userNameController
+
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
 
