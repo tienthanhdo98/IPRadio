@@ -11,6 +11,7 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
@@ -81,7 +82,7 @@ class HubManager(
 
     private var firstConnect = true
 
-    private val privateKeyStr: String
+    var privateKeyStr: String
     var logService: LogService? = null
 
     init {
@@ -98,15 +99,19 @@ class HubManager(
             2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
             31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
         )
-       // val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
+        // val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
         //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
 
-        //val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
+        // val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
         //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
-         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
+//         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
         //vn.ip
         //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
-        Log.e("urlbase", hubUrl)
+        val hubUrl = ConfigUtil.getString(
+            appContext,
+            ConfigUtil.URL_HUB,
+            "https://hub.gateway.httt.tek4tv.vn/hubServer"
+        )
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -124,6 +129,7 @@ class HubManager(
             .build()
 
         privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
+
     }
 
     //lấy token từ hub
@@ -145,11 +151,11 @@ class HubManager(
             //Auth Url encrypted in c++ lib
             //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
             //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
-                val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
+            // val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
             //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
-
+            val url = ConfigUtil.getString(context = appContext, ConfigUtil.URL_TOKEN, "https://api.gateway.httt.tek4tv.vn/api/auth/login")
             Log.e("urlbase", url)
-            val call = authService.getToken(body, url)
+            val call = authService.getToken(body, url!!)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -268,7 +274,7 @@ class HubManager(
                 mainHandler.post {
                     Log.d("command", command ?: "")
                     Log.d("message", message ?: "")
-
+                    var meessDe = ""
                     var needDecrypt = false
 
                     if (command != null && message != null) {
@@ -286,6 +292,10 @@ class HubManager(
 
                                 pingCounter = 0
                             }
+                            HubCommand.UPDATE_CONFIG -> {
+                                meessDe = message
+                                meessDe = b64Decode(message)
+                            }
 
                             HubCommand.UPDATE_STATUS -> {
                                 if (responseHub.message != null) receivedConnectionId =
@@ -297,9 +307,15 @@ class HubManager(
                             }
                         }
                     }
-                    parseHubResponse(message, needDecrypt)
+                    if (meessDe != "") {
+                        parseHubResponse(meessDe, needDecrypt)
+                    } else {
+                        parseHubResponse(message, needDecrypt)
+                    }
                     //Handle command from server in MainActivity
+
                     onMessageListener.invoke(command, message)
+
                 }
             } catch (e: Exception) {
                 if (e != null)
@@ -392,7 +408,7 @@ class HubManager(
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume
                 deviceName = GlobalProperties.getInst().nameDevice
-                createDate = (currentTime.time/1000)
+                createDate = (currentTime.time / 1000)
                 networkInfo = NetworkUtils.getNetworkClass(appContext)
                 userNameControl = GlobalProperties.getInst().userNameController
 

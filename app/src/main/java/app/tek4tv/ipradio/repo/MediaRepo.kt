@@ -84,10 +84,11 @@ class MediaRepo @Inject constructor(
             updateScenario(listUrl)
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-                Log.d("readplaylist", "local")
+                Log.d("readplaylist", "local ")
                 readItemsFromFile()
             } else listOf()
             result
+
         }
 
         broadcastList.clear()
