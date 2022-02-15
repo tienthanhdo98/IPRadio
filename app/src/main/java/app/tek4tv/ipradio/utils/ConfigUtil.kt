@@ -1,6 +1,9 @@
 package app.tek4tv.ipradio.utils
 
 import android.content.Context
+import android.content.SharedPreferences
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import app.tek4tv.ipradio.model.ForceMedia
 
 object ConfigUtil {
@@ -19,6 +22,29 @@ object ConfigUtil {
         val editor = sharedPref.edit()
         editor.putString(key, value)
         editor.apply()
+    }
+
+    fun putStringEncrypt(context: Context, key: String?, value: String?) {
+
+        val editor = getEncryptedSharedPreferences(context).edit()
+        editor.putString(key, value)
+        editor.apply()
+    }
+    fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
+
+        return getEncryptedSharedPreferences(context).getString(key,defaultValue)
+    }
+    private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
+        return EncryptedSharedPreferences.create(
+            context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+    }
+
+    private fun getKey(context: Context): MasterKey {
+        return MasterKey.Builder(context)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
     }
 
 

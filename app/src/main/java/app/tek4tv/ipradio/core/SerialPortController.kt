@@ -12,7 +12,6 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.jvm.Throws
 
@@ -25,7 +24,7 @@ class SerialPortController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-    private val UART_NAME = "/dev/ttyS4"
+
 
     private val deviceMac = Utils.getMacAddr()
 
@@ -33,12 +32,11 @@ class SerialPortController(
 
     var dataFinal = StringBuffer()
     var playMode = ""
-
-    var latestStatus :String? = ""
-
-    fun connectToSerialPort() {
+    var isUart1 = false
+    var latestStatus: String? = ""
+    fun connectToSerialPort(uart: String) {
         try {
-            initSerialPort()
+            initSerialPort(uart)
             readDevice()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -46,10 +44,12 @@ class SerialPortController(
     }
 
     @Throws(IOException::class)
-    private fun initSerialPort() {
-        serialPort = SerialPort(File(UART_NAME), 9600, 0)
+    private fun initSerialPort(uart: String) {
+        serialPort = SerialPort(File(uart), 9600, 0)
+
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
+
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
@@ -116,24 +116,23 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-        coroutineScope.launch(Dispatchers.IO) {
+       coroutineScope.launch(Dispatchers.IO) {
             while (!Thread.currentThread().isInterrupted) {
                 var size: Int
                 try {
                     val buffer = ByteArray(64)
                     if (inputStream == null) return@launch
-
                     size = inputStream!!.read(buffer)
-
+                    isUart1 = true
                     if (size > 0) {
                         val data = String(buffer, 0, size)
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
+                            Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if(list.size > 4)
-                            {
+                            if (list.size > 4) {
                                 volume = list[5]
                             }
                             dataFinal = StringBuffer()
@@ -145,11 +144,12 @@ class SerialPortController(
                 }
             }
         }
+
     }
 
     private fun onDataReceived(data: String?) {
         // read data
-        if(data == null) return
+        if (data == null) return
 
         //Log.d(LOG_TAG, "dataFinal: $data")
         if (data.endsWith("\r\n")) {
@@ -190,68 +190,57 @@ class SerialPortController(
         Log.e("PA", "OFF")
     }
 
-    fun turnOnPAVod()
-    {
+    fun turnOnPAVod() {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
         playMode = MODE_VOD_LIVE
 
         Log.e("PA", "ON")
     }
 
-    fun writeForceSetVolume(data: String)
-    {
+    fun writeForceSetVolume(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_SET_VOLUME, data)
     }
 
-    fun updateStatus()
-    {
+    fun updateStatus() {
         invokeDeviceFunc(Define.FUNC_WRITE_READ_STATUS_PARAM, "", true)
     }
 
-    fun hardRestart()
-    {
+    fun hardRestart() {
+
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
     }
 
-    fun setMuteDevice(data: String)
-    {
+    fun setMuteDevice(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_SET_MUTE, data)
     }
 
-    fun setTimeOver()
-    {
+    fun setTimeOver() {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
     }
 
-    fun setTimeOn(data: String)
-    {
+    fun setTimeOn(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, data, true)
         playMode = MODE_VOD_LIVE
     }
 
-    fun setUpPiPsName(data: String)
-    {
+    fun setUpPiPsName(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, data)
     }
 
-    fun readDeviceInfo()
-    {
+    fun readDeviceInfo() {
         invokeDeviceFunc(Define.FUNC_WRITE_READ_DEVICE_INFO, "", true)
     }
 
-    fun writePlayVodLiveForce(data: String)
-    {
+    fun writePlayVodLiveForce(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE, data)
         playMode = MODE_VOD_LIVE
     }
 
-    fun playTunerLiveForce(data: String)
-    {
+    fun playTunerLiveForce(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER_FORCE, data)
     }
 
-    fun playTuner(pipsData: String, tunerData: String)
-    {
+    fun playTuner(pipsData: String, tunerData: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
         playMode = MODE_TUNER

@@ -78,4 +78,8 @@ class AppStorageManager(appContext: Context) {
     {
         deleteAllFileInFolder(logDirPath)
     }
+    fun deleteAllRecord()
+    {
+        deleteAllFileInFolder(recordedAudioDirPath)
+    }
 }

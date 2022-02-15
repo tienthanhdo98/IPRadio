@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 object HubCommand {
     const val RECORD = "RECORD"
     const val UPLOAD_RECORDED = "UPLOAD_RECORDED"
+    const val DELETE_RECORD = "DELETE_RECORD"
     const val GET_RECORD = "GET_RECORD"
     const val CAPTURE_SCREEN = "CAPTURE_SCREEN"
     const val GET_LIST = "GET_LIST"

@@ -27,6 +27,8 @@ public class SerialPort {
         /* Check access permission */
         if (!device.canRead() || !device.canWrite()) {
             throw new SecurityException();
+
+
         }
 
         mFd = open(device.getAbsolutePath(), baudrate, flags);

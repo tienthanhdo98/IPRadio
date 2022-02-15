@@ -72,4 +72,7 @@ class PingHubRequest {
     @Json(name = "UserNameControl")
     var userNameControl: String? = null
 
+    @Json(name = "IsRecord")
+    var isRecord: String? = null
+
 }

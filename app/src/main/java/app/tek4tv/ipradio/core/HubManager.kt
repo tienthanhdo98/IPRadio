@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
@@ -15,6 +16,7 @@ import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
+import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.*
 import io.reactivex.Single
@@ -31,7 +33,9 @@ import java.util.concurrent.atomic.AtomicBoolean
 class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
+    var mediaCapture : MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
+
 ) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 100
@@ -107,11 +111,12 @@ class HubManager(
 //         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
         //vn.ip
         //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
-        val hubUrl = ConfigUtil.getString(
+        val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hub.gateway.httt.tek4tv.vn/hubServer"
+            "https://hub-truyenthanh.tek4tv.vn/hubServer"
         )
+        Log.e("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -153,7 +158,7 @@ class HubManager(
             //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
             // val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
             //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
-            val url = ConfigUtil.getString(context = appContext, ConfigUtil.URL_TOKEN, "https://api.gateway.httt.tek4tv.vn/api/auth/login")
+            val url = ConfigUtil.getStringEncrypt(context = appContext, ConfigUtil.URL_TOKEN, "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login")
             Log.e("urlbase", url)
             val call = authService.getToken(body, url!!)
             val response = call.execute()
@@ -387,9 +392,10 @@ class HubManager(
             }
 
             val currentTime = Calendar.getInstance().time
-//            TimeZone.setDefault(TimeZone.getTimeZone("UTC"))
-//            Log.i("Utcss", "sendPing: $currentTime")
-            Log.i("Utcss", "sendPing: ${currentTime}")
+
+            val isRecording = if( mediaCapture.isRecordingAudio) "1" else "0"
+
+            Log.i("kaka l", "isRecord: ${isRecording}")
 
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -411,6 +417,7 @@ class HubManager(
                 createDate = (currentTime.time / 1000)
                 networkInfo = NetworkUtils.getNetworkClass(appContext)
                 userNameControl = GlobalProperties.getInst().userNameController
+                isRecord = isRecording
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)

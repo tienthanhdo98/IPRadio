@@ -104,6 +104,18 @@ fun deleteAllFileInFolder(path: String) {
         e.printStackTrace()
     }
 }
+fun deleteAFileInFolder(path: String,filename : String) {
+    val folder = File(path)
+    try {
+        for (f in folder.listFiles()) {
+            if (f.name == filename)
+                f.delete()
+        }
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
 
 fun getFileNameFromUrl(url: String): String {
     var fileName = File(Uri.parse(url).path).name
