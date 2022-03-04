@@ -3,7 +3,6 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-kapt'
     id 'dagger.hilt.android.plugin'
-    id 'com.google.gms.google-services'
 }
 
 apply plugin: 'com.klaxit.hiddensecrets'
@@ -72,6 +71,7 @@ dependencies {
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.security:security-crypto-ktx:1.1.0-alpha02'
+    implementation 'com.google.android.gms:play-services-basement:18.0.0'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
@@ -113,8 +113,4 @@ dependencies {
     implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
     implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
 
-    //firebase logging
-    implementation platform('com.google.firebase:firebase-bom:28.1.0')
-    implementation 'com.google.firebase:firebase-database-ktx'
-    implementation 'com.google.firebase:firebase-analytics'
 }

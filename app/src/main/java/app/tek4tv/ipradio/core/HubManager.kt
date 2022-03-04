@@ -116,7 +116,7 @@ class HubManager(
             ConfigUtil.URL_HUB,
             "https://hub-truyenthanh.tek4tv.vn/hubServer"
         )
-        Log.e("urlbase", hubUrl)
+        Log.i("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -159,7 +159,7 @@ class HubManager(
             // val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
             //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
             val url = ConfigUtil.getStringEncrypt(context = appContext, ConfigUtil.URL_TOKEN, "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login")
-            Log.e("urlbase", url)
+            Log.i("urlbase", url)
             val call = authService.getToken(body, url!!)
             val response = call.execute()
 
@@ -207,7 +207,7 @@ class HubManager(
 
     private suspend fun openConnection(): String? {
         //open connection on another thread
-        Log.e(LOG_TAG, "open connection")
+        Log.i(LOG_TAG, "open connection")
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
@@ -225,7 +225,7 @@ class HubManager(
                         start = currentTime.time.toString()
                     )
                 )
-                Log.e(LOG_TAG, "Log connect to hub success ${currentTime.time}")
+                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
                 //send disconn log when connect
                 if (ConfigUtil.checkSharef(
                         appContext,
@@ -251,7 +251,7 @@ class HubManager(
                             start = disconnectTime
                         )
                     )
-                    Log.e(LOG_TAG, "Log disconnect to hub success $disconnectTime")
+                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
                     ConfigUtil.removeSharef(appContext, keyStartDis)
                     ConfigUtil.removeSharef(appContext, keyState)
 
@@ -298,7 +298,6 @@ class HubManager(
                                 pingCounter = 0
                             }
                             HubCommand.UPDATE_CONFIG -> {
-                                meessDe = message
                                 meessDe = b64Decode(message)
                             }
 
@@ -323,8 +322,7 @@ class HubManager(
 
                 }
             } catch (e: Exception) {
-                if (e != null)
-                    e.printStackTrace()
+                e.printStackTrace()
             }
         }, String::class.java, String::class.java)
     }
