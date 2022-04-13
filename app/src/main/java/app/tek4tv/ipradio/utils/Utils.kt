@@ -3,19 +3,11 @@ package app.tek4tv.ipradio.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
-import android.util.Log
 import androidx.core.content.ContextCompat
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.net.NetworkInterface
-import java.security.GeneralSecurityException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.*
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 class Utils {
     companion object {

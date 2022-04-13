@@ -1,10 +1,9 @@
 package app.tek4tv.ipradio.model
 
 import android.content.Context
-import android.util.Log
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.toCalendar
+import app.tek4tv.ipradio.utils.GlobalProperties
 import com.squareup.moshi.Json
 import java.text.SimpleDateFormat
 import java.util.*
@@ -13,13 +12,15 @@ data class ForceMedia(
     @Json(name = "Message")
     var path: String = "",
     @Json(name = "Duration")
-    var duration: Int = 0,
+    var duration: String ? = null,
 
     @Json(name = "Type")
     var type: String = "",
 
     @Json(name = "Level")
-    var level: Int = 0
+    var level: Int = 0,
+
+    var mediaItem : MediaItem ? = null
 ) {
     //Thời điểm kết thúc
     @Json(name = "EndTime")
@@ -33,18 +34,24 @@ data class ForceMedia(
     var name = ""
 
     fun toMediaItem(): MediaItem {
-        val h = duration / 60
-        val m = duration - h * 60
-
-        val hs = if (h >= 10) "$h" else "0$h"
-        val ms = if (m >= 10) "$m" else "0$m"
+//        val h = duration / 60
+//        val m = duration - h * 60
+//
+//        val hs = if (h >= 10) "$h" else "0$h"
+//        val ms = if (m >= 10) "$m" else "0$m"
 
         return MediaItem(
             body = path,
-            title = name,
+            title = mediaItem!!.title,
             type = type,
             fixTime = fixTime,
-            duration = "$hs:$ms:00",
+            duration = mediaItem!!.duration,
+            author = mediaItem!!.author,
+            mediaID = mediaItem!!.id,
+            category = mediaItem!!.category,
+            priority = mediaItem!!.priority,
+            contentType = mediaItem!!.contentType,
+            description = mediaItem!!.description,
         ).also { it.level = level }
     }
 
@@ -55,6 +62,7 @@ data class ForceMedia(
             putString(appContext, FORCE_MEDIA, value)
         }
     }
+    //duration = "$hs:$ms:00",
 
     companion object {
         val jsonAdapter = MoshiInst.moshi.adapter(ForceMedia::class.java)

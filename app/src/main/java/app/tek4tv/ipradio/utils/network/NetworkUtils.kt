@@ -4,8 +4,11 @@ import android.annotation.SuppressLint
 import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.net.*
+import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Process
@@ -16,7 +19,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import java.util.*
-import kotlin.Exception
 
 
 class NetworkUtils private constructor() {

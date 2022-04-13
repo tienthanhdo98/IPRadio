@@ -1,8 +1,8 @@
 package app.tek4tv.ipradio.utils.network
 
 import android.content.Context.WIFI_SERVICE
-import android.net.wifi.WifiManager
 import android.net.wifi.WifiConfiguration
+import android.net.wifi.WifiManager
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 

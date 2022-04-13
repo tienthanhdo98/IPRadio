@@ -1,6 +1,9 @@
 package app.tek4tv.ipradio.network
 
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.GetLogFile
+import app.tek4tv.ipradio.model.HubStateRecord
+import app.tek4tv.ipradio.model.MediaRecord
+import app.tek4tv.ipradio.model.TimeFrameRecord
 import retrofit2.http.Body
 import retrofit2.http.POST
 

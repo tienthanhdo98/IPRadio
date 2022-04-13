@@ -6,9 +6,6 @@ import com.downloader.OnDownloadListener
 import com.downloader.PRDownloader
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
-import kotlinx.coroutines.sync.Mutex
-import kotlinx.coroutines.sync.withLock
-import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 import kotlin.coroutines.resume
 

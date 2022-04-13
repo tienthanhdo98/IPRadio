@@ -4,7 +4,6 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
-import app.tek4tv.ipradio.model.ForceMedia
 
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
@@ -25,7 +24,6 @@ object ConfigUtil {
     }
 
     fun putStringEncrypt(context: Context, key: String?, value: String?) {
-
         val editor = getEncryptedSharedPreferences(context).edit()
         editor.putString(key, value)
         editor.apply()

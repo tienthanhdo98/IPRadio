@@ -9,6 +9,7 @@ open class LogRecord {}
 @JsonClass(generateAdapter = true)
 data class MediaRecord(
     val imei: String? = null,
+    val deviceName : String ?=null,
     val mediaID: String? = null,
     val sourceID: String? = null,
     val sourceName: String? = null,
@@ -30,7 +31,9 @@ data class MediaRecord(
     val contentType: ContentType? = null,
     //thuoc tinh cua end
     val endTime: Long? = null,
-    val status: String? = null
+    val status: String? = null,
+    val  sourceReference : String ? = null
+
 
 ) : LogRecord() {
     var provider: String = "Tek4tv"

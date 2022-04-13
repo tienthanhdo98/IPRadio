@@ -42,6 +42,30 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         )
     }
 
+    fun setCheckHubAndResetAlarms() {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
+        }
+
+        val time = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 11)
+            set(Calendar.MINUTE,26)
+            set(Calendar.SECOND, 0)
+        }
+
+        Log.d("alarmx", "Set check no hub and reset")
+
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            time.timeInMillis,
+            alarmIntent
+        )
+
+    }
+
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
@@ -171,11 +195,11 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                     PendingIntent.FLAG_NO_CREATE
                 ) != null
                         &&*/ getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.mediaID!!,
-                    PendingIntent.FLAG_NO_CREATE
-                ) != null
+                index,
+                MediaScheduleReceiver.ACTION_END_MEDIA,
+                mediaItem.mediaID!!,
+                PendingIntent.FLAG_NO_CREATE
+            ) != null
 
             if (!isAlarmWorking) {
                 Log.d("alarmx", "set media ${mediaItem.body}")
@@ -216,14 +240,13 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                     PendingIntent.FLAG_NO_CREATE
                 ) != null
                         &&*/ getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.mediaID!!,
-                    PendingIntent.FLAG_NO_CREATE
-                ) != null
+                index,
+                MediaScheduleReceiver.ACTION_END_MEDIA,
+                mediaItem.mediaID!!,
+                PendingIntent.FLAG_NO_CREATE
+            ) != null
 
-            if(isAlarmWorking)
-            {
+            if (isAlarmWorking) {
                 /*val startIntent = getScheduleMediaIntent(
                     index,
                     MediaScheduleReceiver.ACTION_PLAY_MEDIA,
@@ -263,7 +286,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
 
-        if(fmValue ==null || fmValue == "") return
+        if (fmValue == null || fmValue == "") return
 
         val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
 

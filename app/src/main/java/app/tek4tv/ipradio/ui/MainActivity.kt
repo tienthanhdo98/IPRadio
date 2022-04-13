@@ -16,7 +16,6 @@ import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
-import androidx.lifecycle.observe
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.*
@@ -95,6 +94,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -144,8 +144,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         //Dừng phát khẩn cấp
-        override fun onEndForceMedia() {
+        override fun onEndForceMedia(mediaItem: MediaItem?) {
             ForceMedia.deleteForeMediaPref(applicationContext)
+            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
         }
 
@@ -176,9 +177,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 else "0"
             logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
             if (globalProperties.logEnabled) {
-
                 try {
-
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
@@ -190,6 +189,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
+
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
@@ -209,18 +209,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //logUtils.logStartApp()
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService,mediaCapture) { command, message ->
+        hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
             handleFromCommandServer(command, message)
         }
         hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-       // serialPortController.connectToSerialPort("/dev/ttyS4")
+        // serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
-        lifecycleScope.launch{
+        lifecycleScope.launch {
             delay(10000)
-            if(!serialPortController.isUart1)
-            {
+            if (!serialPortController.isUart1) {
                 serialPortController.connectToSerialPort(UART_S4_NAME)
             }
         }
@@ -253,7 +252,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         showMac()
     }
 
-    fun showMac() {
+    private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = imei
@@ -302,7 +301,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-                playerManager.stopForceMedia()
+                playerManager.stopForceMedia(mediaItem = null)
                 Log.d("alarmx", "stop force")
             }
 
@@ -316,6 +315,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 ) ?: return
 
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+            }
+            MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
+                val isConnect = ConfigUtil.getString(this, "connecttohub","false")
+                if (isConnect == "false") {
+                    Log.e("alarm", "Hub restart")
+                    serialPortController.hardRestart()
+
+                }
             }
         }
     }
@@ -380,6 +387,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             //default
             mediaScheduler.scheduleAllAlarms()
+            //check hub
+        //    mediaScheduler.setCheckHubAndResetAlarms()
 
             playerManager.startFirstTimeFrame()
 
@@ -420,11 +429,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
 
-                    //playerManager.stopForceMedia()
+                    //add at 3.0.5
+
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
 
-                    //lưu thông số vol, pi,
+                    //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
 
                     serialPortController.writeForceSetVolume(responseHub.volume)
@@ -450,6 +460,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     onPlayForce(responseHub)
                 }
                 HubCommand.UPDATE_CONFIG -> {
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message)
                     val mess = responseHub.message!!
                     val urlHub = mess.split(",")[0]
@@ -520,11 +531,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         globalProperties.setTempVolume(responseHub.message!!)
                     }
                 }
-
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
-                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
+                        // downloadUpdateApk(responseHub.message!!, this, serialPortController)
+                        downloadUpdateApk(
+                            "https://dl.dropbox.com/s/kiovcqxlt33kai0/Ip%203.0.4%20no%20key.apk?dl=0",
+                            this,
+                            serialPortController
+                        )
+
                     }
                 }
 

@@ -1,10 +1,10 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
+import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
@@ -18,7 +18,9 @@ import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import com.microsoft.signalr.*
+import com.microsoft.signalr.HubConnection
+import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.TransportEnum
 import io.reactivex.Single
 import kotlinx.coroutines.*
 import java.io.File
@@ -33,12 +35,12 @@ import java.util.concurrent.atomic.AtomicBoolean
 class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
-    var mediaCapture : MediaCapture,
+    var mediaCapture: MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 
-) {
+    ) {
     private val LOG_TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 100
+    private val CONNECT_COUNTER_LIMIT = 15
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -72,6 +74,7 @@ class HubManager(
 
     var registerOnMessageListener = false
 
+
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val notifyDisconnected = AtomicBoolean(false)
@@ -88,6 +91,8 @@ class HubManager(
 
     var privateKeyStr: String
     var logService: LogService? = null
+    //check ping to hub
+    var pingToHub = false
 
     init {
         versionName = try {
@@ -98,14 +103,15 @@ class HubManager(
 
         //Encrypted hub url: xor with key is reversed package name
 
-        val hub = byteArrayOf(
-            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
-            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
-            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
-        )
+//        val hub = byteArrayOf(
+//            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
+//            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
+//            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
+//        )
         // val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
         //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
 
+        // val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
         // val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
         //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
 //         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
@@ -114,8 +120,9 @@ class HubManager(
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hub-truyenthanh.tek4tv.vn/hubServer"
+            "https://hubdevtruyenthanh.tek4tv.vn/hubServer"
         )
+        //https://hub-truyenthanh..tek4tv.vn/hubServer
         Log.i("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -158,7 +165,12 @@ class HubManager(
             //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
             // val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
             //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
-            val url = ConfigUtil.getStringEncrypt(context = appContext, ConfigUtil.URL_TOKEN, "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login")
+            val url = ConfigUtil.getStringEncrypt(
+                context = appContext,
+                ConfigUtil.URL_TOKEN,
+                "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
+            )
+            //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
             Log.i("urlbase", url)
             val call = authService.getToken(body, url!!)
             val response = call.execute()
@@ -190,7 +202,6 @@ class HubManager(
             while (connectionId == null) {
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) hubComm.forceRestartApp()
-
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
@@ -200,7 +211,6 @@ class HubManager(
             onMessage()
             startPingTimer()
             //notifyHubConnected()
-
             openNewConnectionJob = null
         }
     }
@@ -391,9 +401,9 @@ class HubManager(
 
             val currentTime = Calendar.getInstance().time
 
-            val isRecording = if( mediaCapture.isRecordingAudio) "1" else "0"
+            val isRecording = if (mediaCapture.isRecordingAudio) "1" else "0"
 
-            Log.i("kaka l", "isRecord: ${isRecording}")
+            Log.i("kaka l", "isRecord: $isRecording")
 
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -419,6 +429,7 @@ class HubManager(
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
+            Log.i("loghub", "log hub: ${request.startTime}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
@@ -431,6 +442,9 @@ class HubManager(
             while (true) {
                 sendPing()
                 Log.d(LOG_TAG, "ping: $pingCounter")
+//                pingToHub  = pingCounter == 1
+//                ConfigUtil.putBool(appContext, "connecttohub", pingToHub)
+//                Log.e("ádassad", "Hub $pingToHub")
                 delay(PING_INTERVAL)
                 checkConnection()
             }

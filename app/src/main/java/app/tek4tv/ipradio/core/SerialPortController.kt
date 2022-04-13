@@ -5,15 +5,14 @@ import android.telephony.CellSignalStrength
 import android.util.Log
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
 import java.util.*
-import kotlin.jvm.Throws
 
 class SerialPortController(
     private val appContext: Context,
@@ -165,7 +164,7 @@ class SerialPortController(
         }
     }
 
-    fun writeToDevice(message: String) {
+    private fun writeToDevice(message: String) {
         if (outputStream != null) {
             try {
                 outputStream!!.write(message.toByteArray())

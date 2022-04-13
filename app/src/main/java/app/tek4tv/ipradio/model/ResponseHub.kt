@@ -19,7 +19,7 @@ class ResponseHub : Serializable {
     var start: String? = null
 
     @Json(name = "Duration")
-    var duration: Int = 0
+    var duration: String = ""
 
     @Json(name = "PI")
     var piCode = ""

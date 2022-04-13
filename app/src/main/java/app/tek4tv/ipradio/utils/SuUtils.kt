@@ -7,7 +7,6 @@ fun execSu(command: String) {
     try {
         val process = Runtime.getRuntime().exec("su")
         val os = DataOutputStream(process.outputStream)
-
         os.writeBytes(command)
         os.flush()
         os.writeBytes("exit\n")

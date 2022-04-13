@@ -7,7 +7,10 @@ import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.crypto.b64Encode
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.PrintWriter
@@ -118,16 +121,23 @@ class LogUtils private constructor() {
             sourceId = destinationId
             sourceName = destinationName
         }
-        val externalSource :String
-        val isExternalSource :Int
-       if (mediaItem.type != "VOD") {
-           externalSource=  mediaItem.pathBackup
-           isExternalSource = 1
+        val externalSource: String
+        val isExternalSource: Int
+        if (mediaItem.type != "VOD") {
+            externalSource = mediaItem.pathBackup
+            isExternalSource = 1
         } else {
-           externalSource =  ""
-           isExternalSource =  0
+            externalSource = ""
+            isExternalSource = 0
         }
+        var link = mediaItem.body
         val currentTime = Calendar.getInstance().time
+        link = if (link!!.startsWith("rtsp")) {
+            "live"
+        } else {
+            mediaItem.pathBackup
+        }
+        Log.i("sdasdsa", "logMediaStart: ${link}")
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
@@ -139,8 +149,8 @@ class LogUtils private constructor() {
             volume = volume,
             paState = paState,
             duration = mediaItem.duration,
-            startTime = currentTime.time,
-            body = mediaItem.pathBackup,
+            startTime = (currentTime.time / 1000),
+            body = link,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,
@@ -148,6 +158,8 @@ class LogUtils private constructor() {
             description = mediaItem.description,
             externalSource = externalSource,
             isExternal = isExternalSource,
+            deviceName = GlobalProperties.getInst().nameDevice,
+            sourceReference = mediaItem.sourceReference
 
         )
         val str = getRecordStr(reportObj)
@@ -160,7 +172,7 @@ class LogUtils private constructor() {
                 logService?.postMediaInfoStart(reportObj)
                 Log.d(
                     LOG_TAG,
-                    "Log media start ${reportObj.title} $sourceId : $sourceName"
+                    "Log media start ${reportObj}"
                 )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")
@@ -182,16 +194,22 @@ class LogUtils private constructor() {
             sourceId = destinationId
             sourceName = destinationName
         }
-        val externalSource :String
-        val isExternalSource :Int
+        val externalSource: String
+        val isExternalSource: Int
         if (mediaItem.type != "VOD") {
-            externalSource=  mediaItem.pathBackup
+            externalSource = mediaItem.pathBackup
             isExternalSource = 1
         } else {
-            externalSource =  ""
-            isExternalSource =  0
+            externalSource = ""
+            isExternalSource = 0
         }
+        var link = ""
         val currentTime = Calendar.getInstance().time
+        link = if (link.startsWith("rtsp")) {
+            "live"
+        } else {
+            mediaItem.pathBackup
+        }
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
@@ -200,7 +218,7 @@ class LogUtils private constructor() {
             destinationId = destinationId,
             destinationName = destinationName,
             mediaID = mediaItem.mediaID.toString(),
-            body = mediaItem.pathBackup,
+            body = link,
             endTime = currentTime.time,
             status = "1",
             duration = mediaItem.duration,
@@ -210,7 +228,9 @@ class LogUtils private constructor() {
             contentType = mediaItem.contentType,
             description = mediaItem.description,
             externalSource = externalSource,
-            isExternal = isExternalSource
+            isExternal = isExternalSource,
+            deviceName = GlobalProperties.getInst().nameDevice,
+            sourceReference =  mediaItem.sourceReference
         )
         val str = getRecordStr(reportObj)
 
