@@ -193,7 +193,6 @@ class PlayersManager(
                 }
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
-                    playerManagerListener?.onPlayMediaSuccess(mediaItem)
                 }
                 MediaType.FM -> {
                     mediaStartTime = Calendar.getInstance().timeInMillis

@@ -32,7 +32,7 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
     var isUart1 = false
-    var latestStatus: String? = ""
+
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)

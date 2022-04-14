@@ -44,6 +44,7 @@ class ExoMediaPlayer(
             }
         }
 
+
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
             Log.d(TAG, "exoerror: ${error.message ?: ""}")

@@ -12,6 +12,7 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
 import java.util.*
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
@@ -46,21 +47,32 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
-
-        val time = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 11)
-            set(Calendar.MINUTE,26)
-            set(Calendar.SECOND, 0)
-        }
-
-        Log.d("alarmx", "Set check no hub and reset")
-
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+            PendingIntent.getBroadcast(appContext, 1, intent, 0)
+
+        val cal_alarm = Calendar.getInstance()
+
+        cal_alarm[Calendar.HOUR_OF_DAY] =0
+        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.SECOND] = 0
+
+        val date = Calendar.getInstance().time
+        var alarmDate = cal_alarm.time
+        if(alarmDate.before(date))
+        {
+            Log.d("alarmx", "yes")
+            cal_alarm.add(Calendar.DATE,1)
+        }
+        alarmDate = cal_alarm.time
+
+        Log.d("alarmx", "Set check no hub and reset  + ${cal_alarm.timeInMillis}")
+        Log.d("alarmx", "Set check no hub and reset  + ${alarmDate}")
+        Log.d("alarmx", "Set check no hub and reset  + ${date}")
+
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
-            time.timeInMillis,
+            cal_alarm.timeInMillis,
             alarmIntent
         )
 

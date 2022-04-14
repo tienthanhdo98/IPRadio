@@ -38,6 +38,7 @@ class HubManager(
     var mediaCapture: MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 
+
     ) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 15
@@ -91,6 +92,7 @@ class HubManager(
 
     var privateKeyStr: String
     var logService: LogService? = null
+
     //check ping to hub
     var pingToHub = false
 
@@ -122,7 +124,8 @@ class HubManager(
             ConfigUtil.URL_HUB,
             "https://hubdevtruyenthanh.tek4tv.vn/hubServer"
         )
-        //https://hub-truyenthanh..tek4tv.vn/hubServer
+        //https://hubdevtruyenthanh.tek4tv.vn/hubServer
+        //https://hub-truyenthanh.tek4tv.vn/hubServer
         Log.i("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -200,8 +203,13 @@ class HubManager(
             var i = 0
 
             while (connectionId == null) {
+                if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
+                    ConfigUtil.putString(appContext, "checkhub", "0")
+                    Log.d("alarmx", "Change 0")
+                }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
-                if (i >= CONNECT_COUNTER_LIMIT) hubComm.forceRestartApp()
+                if (i >= CONNECT_COUNTER_LIMIT){
+                    hubComm.forceRestartApp()}
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
@@ -442,9 +450,12 @@ class HubManager(
             while (true) {
                 sendPing()
                 Log.d(LOG_TAG, "ping: $pingCounter")
-//                pingToHub  = pingCounter == 1
-//                ConfigUtil.putBool(appContext, "connecttohub", pingToHub)
-//                Log.e("ádassad", "Hub $pingToHub")
+                if (ConfigUtil.getString(appContext, "checkhub", "0") == "0") {
+                    if (pingCounter == 1) {
+                        ConfigUtil.putString(appContext, "checkhub", "1")
+                        Log.d("alarmx", "Change 1")
+                    }
+                }
                 delay(PING_INTERVAL)
                 checkConnection()
             }
@@ -454,6 +465,12 @@ class HubManager(
     private suspend fun checkConnection() {
         if (pingCounter >= CONNECT_COUNTER_LIMIT) {
             hubComm.forceRestartApp()
+        }
+        if (pingCounter >= 2) {
+            if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
+                ConfigUtil.putString(appContext, "checkhub", "0")
+                Log.d("alarmx", "Change 0")
+            }
         }
 
         if (pingCounter >= 3) {

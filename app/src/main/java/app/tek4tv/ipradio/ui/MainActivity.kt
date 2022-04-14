@@ -135,7 +135,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
-                serialPortController.playTuner(pipsData, tunerData)
+                if (!serialPortController.isUart1) {
+                    lifecycleScope.launch {
+                        delay(11000)
+                        serialPortController.playTuner(pipsData, tunerData)
+                    }
+                } else {
+                    serialPortController.playTuner(pipsData, tunerData)
+                }
+
+
 
                 logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             } catch (e: Exception) {
@@ -170,7 +179,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
-                serialPortController.turnOnPAVod()
+                if (!serialPortController.isUart1) {
+                    lifecycleScope.launch {
+                        delay(11000)
+                        serialPortController.turnOnPAVod()
+                    }
+                } else {
+                    serialPortController.turnOnPAVod()
+                }
             }
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -196,7 +212,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         val hubComm = object : HubComm {
             override fun forceRestartApp() {
-                CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                lifecycleScope.launch {
+                    serialPortController.turnOffPA()
+                    delay(3000)
+                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                }
+
             }
 
             override fun forceRestartDevice() {
@@ -221,6 +242,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             delay(10000)
             if (!serialPortController.isUart1) {
                 serialPortController.connectToSerialPort(UART_S4_NAME)
+                Log.i("PA", "onCreate: s4")
             }
         }
 
@@ -317,10 +339,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                val isConnect = ConfigUtil.getString(this, "connecttohub","false")
-                if (isConnect == "false") {
-                    Log.e("alarm", "Hub restart")
-                    serialPortController.hardRestart()
+                val isConnect = ConfigUtil.getString(this, "checkhub", "0")
+                if (isConnect == "0") {
+                    lifecycleScope.launch {
+                        serialPortController.turnOffPA()
+                        delay(3000)
+                        Log.e("alarmx", "Hub restart")
+                        serialPortController.hardRestart()
+                    }
+
 
                 }
             }
@@ -388,7 +415,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //default
             mediaScheduler.scheduleAllAlarms()
             //check hub
-        //    mediaScheduler.setCheckHubAndResetAlarms()
+            mediaScheduler.setCheckHubAndResetAlarms()
 
             playerManager.startFirstTimeFrame()
 
@@ -402,12 +429,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun initHubConnect() {
-        NetworkUtils.instance.mNetworkLive.observe(this) { isConnected ->
-            if (isConnected) {
-                hubManager.connectToHub()
-                locationTracker.getLocation(this@MainActivity)
-            }
-        }
+        hubManager.connectToHub()
+        locationTracker.getLocation(this@MainActivity)
+
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
