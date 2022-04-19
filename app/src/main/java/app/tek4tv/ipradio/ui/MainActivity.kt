@@ -558,12 +558,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
-                        // downloadUpdateApk(responseHub.message!!, this, serialPortController)
-                        downloadUpdateApk(
-                            "https://dl.dropbox.com/s/kiovcqxlt33kai0/Ip%203.0.4%20no%20key.apk?dl=0",
-                            this,
-                            serialPortController
-                        )
+                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
 
                     }
                 }
