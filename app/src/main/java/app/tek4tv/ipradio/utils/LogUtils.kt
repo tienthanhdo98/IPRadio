@@ -137,7 +137,6 @@ class LogUtils private constructor() {
         } else {
             mediaItem.pathBackup
         }
-        Log.i("sdasdsa", "logMediaStart: ${link}")
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",

@@ -103,30 +103,15 @@ class HubManager(
             ""
         }
 
-        //Encrypted hub url: xor with key is reversed package name
-
-//        val hub = byteArrayOf(
-//            7, 29, 16, 17, 1, 74, 70, 1, 30, 1, 86, 69,
-//            2, 21, 90, 21, 7, 0, 22, 71, 12, 21, 6, 4, 71, 90, 19, 31, 0,
-//            31, 19, 90, 88, 30, 95, 9, 26, 11, 55, 4, 0, 6, 12, 92
-//        )
-        // val hubUrl = "https://hubgateway.httt.vtcplay.vn/hubServer"
-        //val hubUrl = String(xorString(hub, MyApp.instance!!.packageName.reversed()))
-
-        // val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
-        // val hubUrl = "https://hub-truyenthanh.tek4tv.vn/hubServer"
-        //val hubUrl = Secrets().gethubUrl(MyApp.instance!!.packageName)
-//         val hubUrl = "https://hub.gateway.httt.tek4tv.vn/hubServer"
-        //vn.ip
-        //val hubUrl = Secrets().gethubUrlvn(MyApp.instance!!.packageName)
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdevtruyenthanh.tek4tv.vn/hubServer"
+            "https://hubgatewayhttt.tek4tv.vn/hubServer"
         )
-        //https://hubdevtruyenthanh.tek4tv.vn/hubServer
-        //https://hub-truyenthanh.tek4tv.vn/hubServer
-        Log.i("urlbase", hubUrl)
+        //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
+        //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
+        //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
+        Log.i("urlbase", hubUrl!!)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -171,10 +156,11 @@ class HubManager(
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
+                "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
             )
             //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
-            Log.i("urlbase", url)
+            //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
+            Log.i("urlbase", url!!)
             val call = authService.getToken(body, url!!)
             val response = call.execute()
 
@@ -350,7 +336,7 @@ class HubManager(
             hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
             Log.i("datadevice", "volume: $mess")
         } catch (e: Exception) {
-            Log.e(LOG_TAG, e.message)
+            Log.e(LOG_TAG, e.message!!)
             e.printStackTrace()
         }
     }

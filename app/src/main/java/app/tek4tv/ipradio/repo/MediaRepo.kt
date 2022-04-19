@@ -198,11 +198,11 @@ class MediaRepo @Inject constructor(
                         saveItemsToFile(broadcastList)
                     }
 
-                    Log.d("downloadcomplete", it.body)
+                    Log.d("downloadcomplete", it.body!!)
                 }
 
                 override fun onError(error: Error?) {
-                    Log.d("downloaderror", it.body)
+                    Log.d("downloaderror", it.body!!)
                 }
             }
         })

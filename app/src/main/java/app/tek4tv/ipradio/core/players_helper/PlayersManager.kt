@@ -295,12 +295,12 @@ class PlayersManager(
         playNextMedia()
     }
 
-    fun stopForceMedia(mediaItem: MediaItem?) {
+    fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
         onMediaStopPlaying()
-        playerManagerListener?.onEndForceMedia(mediaItem)
+        playerManagerListener?.onEndForceMedia()
         playerManagerListener?.onTimeOver()
     }
 

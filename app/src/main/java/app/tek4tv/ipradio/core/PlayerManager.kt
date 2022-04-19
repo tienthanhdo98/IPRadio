@@ -492,7 +492,7 @@ class PlayerManager(
         if (currentPlaylistKey != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
-        IPlayerManagerListener?.onEndForceMedia(mediaItem)
+        IPlayerManagerListener?.onEndForceMedia()
     }
 
     fun requestRescheduleMedias() {

@@ -16,7 +16,7 @@ fun toCalendar(time: String): Calendar {
             set(Calendar.SECOND, t[2])
         }
     } catch (e: Exception) {
-        Log.d("toCalendar()", e.message)
+        Log.d("toCalendar()", e.message!!)
         Calendar.getInstance()
     }
 }

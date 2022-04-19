@@ -101,13 +101,13 @@ class SerialPortController(
     }
 
 
-    fun buildWriteMessage(functionId: String, data: String): String {
+    private fun buildWriteMessage(functionId: String, data: String): String {
         val s = "$$,$functionId,$data,\r\n"
         //Log.d(LOG_TAG, s)
         return s
     }
 
-    fun buildReadMessage(functionId: String, message: String): String {
+    private fun buildReadMessage(functionId: String, message: String): String {
         isRead = true
         val s = "$$,$functionId,$message,\r\n"
         //Log.d(LOG_TAG, s)

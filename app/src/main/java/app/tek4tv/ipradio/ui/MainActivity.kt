@@ -153,9 +153,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         //Dừng phát khẩn cấp
-        override fun onEndForceMedia(mediaItem: MediaItem?) {
+        override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
-            logUtils.logMediaEnd(mediaItem!!)
+//            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
         }
 
@@ -303,16 +303,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", listKey)
+                    Log.d("alarmx", listKey)
+                    playerManager.setTimeFrame(listKey, null)
 
-                playerManager.setTimeFrame(listKey, null)
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
 
-                playerManager.stopPlaylist(listKey)
+                playerManager.stopPlaylist(listKey!!)
             }
 
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
@@ -323,7 +323,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-                playerManager.stopForceMedia(mediaItem = null)
+                playerManager.stopForceMedia()
                 Log.d("alarmx", "stop force")
             }
 
@@ -485,7 +485,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    Log.i("UPDATE_CONFIG be", responseHub.message)
+                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
                     val urlHub = mess.split(",")[0]
                     val urlToken = mess.split(",")[1]
@@ -558,12 +558,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
-                        // downloadUpdateApk(responseHub.message!!, this, serialPortController)
-                        downloadUpdateApk(
-                            "https://dl.dropbox.com/s/kiovcqxlt33kai0/Ip%203.0.4%20no%20key.apk?dl=0",
-                            this,
-                            serialPortController
-                        )
+                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
 
                     }
                 }
