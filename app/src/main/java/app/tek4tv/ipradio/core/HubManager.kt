@@ -37,8 +37,6 @@ class HubManager(
     private val authService: AuthService,
     var mediaCapture: MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-
-
     ) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 15
@@ -129,7 +127,6 @@ class HubManager(
             .build()
 
         privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
-
     }
 
     //lấy token từ hub
@@ -176,6 +173,98 @@ class HubManager(
         }
     }
 
+    //check
+    fun getHubToken(urlToken : String): String? {
+        return try {
+            //Encrypted json variable name
+            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+
+            //Thông tin xác thực lưu trong thư viện
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+
+            val body = mapOf(
+                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+            )
+            Log.i("urlbase", urlToken!!)
+            val call = authService.getToken(body, urlToken!!)
+            val response = call.execute()
+
+            if (response.isSuccessful) {
+                val token = response.body()!!.token
+                token
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
+
+     suspend fun openConnection2(hubConnection: HubConnection): String? {
+        //open connection on another thread
+        Log.i(LOG_TAG, "open connection")
+        return withContext(Dispatchers.IO) {
+            try {
+                hubConnection.start().blockingAwait()
+
+                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
+                val currentTime = Calendar.getInstance().time
+                logUtils.logHubConnectState(
+                    HubStateRecord(
+                        imei = deviceImei,
+                        provider = provider,
+                        state = "CONNECTED",
+                        networkType = NetworkUtils.getNetworkClass(appContext),
+                        destinationID = logUtils.destinationId,
+                        destinationName = logUtils.destinationName,
+                        start = currentTime.time.toString()
+                    )
+                )
+                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
+                //send disconn log when connect
+                if (ConfigUtil.checkSharef(
+                        appContext,
+                        ConfigUtil.DISCONNECT_START_TIME
+                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
+                ) {
+                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
+                    val keyState = ConfigUtil.DISCONNECT_STATE
+                    val disconnectTime =
+                        ConfigUtil.getString(appContext, keyStartDis, "0")
+                            ?: "0"
+                    val disconnectState =
+                        ConfigUtil.getString(appContext, keyState, "0")
+                            ?: "DISCONNECT"
+                    logUtils.logHubConnectState(
+                        HubStateRecord(
+                            imei = deviceImei,
+                            provider = provider,
+                            state = disconnectState,
+                            networkType = NetworkUtils.getNetworkClass(appContext),
+                            destinationID = logUtils.destinationId,
+                            destinationName = logUtils.destinationName,
+                            start = disconnectTime
+                        )
+                    )
+                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
+                    ConfigUtil.removeSharef(appContext, keyStartDis)
+                    ConfigUtil.removeSharef(appContext, keyState)
+
+                }
+                hubConnection.connectionId
+            } catch (e: Exception) {
+                hubToken = null
+                e.printStackTrace()
+                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
+                null
+            }
+        }
+    }
+
+    //end check
     /**
      * bắt đầu kết nối dend hub
      * **/
@@ -417,13 +506,13 @@ class HubManager(
                 volume = SerialPortController.volume
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = (currentTime.time / 1000)
-                networkInfo = NetworkUtils.getNetworkClass(appContext)
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = isRecording
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub: ${request.startTime}")
+            Log.i("loghub", "log hub: ${request.networkInfo}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

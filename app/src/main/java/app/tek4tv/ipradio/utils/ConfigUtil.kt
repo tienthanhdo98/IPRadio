@@ -28,6 +28,7 @@ object ConfigUtil {
         editor.putString(key, value)
         editor.apply()
     }
+
     fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
 
         return getEncryptedSharedPreferences(context).getString(key,defaultValue)

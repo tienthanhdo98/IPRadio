@@ -217,7 +217,7 @@ class NetworkUtils private constructor() {
                     helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
                 val allTxByte =
                     helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
-
+                //data nhận, data gửi
                 "$allRxByte,$allTxByte"
             } catch (e: Exception) {
                 e.printStackTrace()

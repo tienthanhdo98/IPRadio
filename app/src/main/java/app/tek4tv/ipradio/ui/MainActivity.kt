@@ -18,10 +18,16 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.*
+import app.tek4tv.ipradio.core.HubComm
+import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
@@ -31,8 +37,11 @@ import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
+import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -272,12 +281,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
+
+
     }
+
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
-        tvMacAdress.text = imei
+        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
     }
 
 
@@ -303,8 +315,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                    Log.d("alarmx", listKey)
-                    playerManager.setTimeFrame(listKey, null)
+                Log.d("alarmx", listKey)
+                playerManager.setTimeFrame(listKey, null)
 
             }
 
@@ -491,6 +503,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val urlToken = mess.split(",")[1]
                     Log.i("UPDATE_CONFIG be", urlHub)
                     Log.i("UPDATE_CONFIG be", urlToken)
+                    var hubToken: String? = null
+                    val hubConnection = HubConnectionBuilder.create(urlHub)
+                        .withAccessTokenProvider(Single.defer {
+
+                            val token = hubManager.getHubToken(urlToken)
+                            if (token != null) {
+                                hubToken = token
+                                Single.just(token)
+                            } else
+                                Single.error(Exception())
+                        })
+                        .withTransport(TransportEnum.WEBSOCKETS)
+                        .build()
+                    hubManager.connectToHub()
+
+
+
+
                     ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_HUB, urlHub)
                     ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_TOKEN, urlToken)
                     lifecycleScope.launch {
@@ -539,7 +569,52 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     } else Log.d("location", "location not found")
                 }
                 HubCommand.RESTART -> {
-                    serialPortController.hardRestart()
+                    //    serialPortController.hardRestart()
+                    //   {"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
+                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
+                    //  val mess = responseHub.message!!
+                    val mess =
+                        "https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"
+                    val urlHub = mess.split(",")[0]
+                    val urlToken = mess.split(",")[1]
+                    Log.i("UPDATE_CONFIG hub", urlHub)
+                    Log.i("UPDATE_CONFIG token", urlToken)
+                    val hubConnection = HubConnectionBuilder.create(urlHub)
+                        .withAccessTokenProvider(Single.defer {
+                            val token = hubManager.getHubToken(urlToken)
+                            if (token != null) {
+                                Single.just(token)
+                            } else
+                                Single.error(Exception())
+                        })
+                        .withTransport(TransportEnum.WEBSOCKETS)
+                        .build()
+                    lifecycleScope.launch {
+                        val id = hubManager.openConnection2(hubConnection)
+                        if (id != null) {
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_HUB,
+                                urlHub
+                            )
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_TOKEN,
+                                urlToken
+                            )
+                            Log.i("config_config", "handleFromCommandServer: reseting")
+                            delay(60000)
+                            serialPortController.hardRestart()
+
+                        }
+                        else
+                        {
+                            delay(2000)
+                            serialPortController.hardRestart()
+                        }
+
+                    }
+
                 }
                 HubCommand.SWITCH_MODE_FM -> {
                     onPlayForce(responseHub)
@@ -559,7 +634,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
                         downloadUpdateApk(responseHub.message!!, this, serialPortController)
-
                     }
                 }
 

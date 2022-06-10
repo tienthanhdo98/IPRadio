@@ -21,7 +21,7 @@ class GlobalProperties {
     val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
 
 
-    var volume = "60"
+    var volume = "100"
     var userNameController = ""
     var piCode = "0"
     var psName = "AAA"
@@ -34,7 +34,7 @@ class GlobalProperties {
     var lng: Float = 0f
 
     init {
-        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "60") ?: "60"
+        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "") ?: ""
