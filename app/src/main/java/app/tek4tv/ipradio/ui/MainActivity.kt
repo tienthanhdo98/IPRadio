@@ -501,32 +501,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
                     val urlHub = mess.split(",")[0]
                     val urlToken = mess.split(",")[1]
-                    Log.i("UPDATE_CONFIG be", urlHub)
-                    Log.i("UPDATE_CONFIG be", urlToken)
-                    var hubToken: String? = null
+                    Log.i("UPDATE_CONFIG hub", urlHub)
+                    Log.i("UPDATE_CONFIG token", urlToken)
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
-
                             val token = hubManager.getHubToken(urlToken)
                             if (token != null) {
-                                hubToken = token
                                 Single.just(token)
                             } else
                                 Single.error(Exception())
                         })
                         .withTransport(TransportEnum.WEBSOCKETS)
                         .build()
-                    hubManager.connectToHub()
-
-
-
-
-                    ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_HUB, urlHub)
-                    ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_TOKEN, urlToken)
                     lifecycleScope.launch {
-                        delay(60000)
-                        serialPortController.hardRestart()
+                        val id = hubManager.openConnection2(hubConnection)
+                        if (id != null) {
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_HUB,
+                                urlHub
+                            )
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_TOKEN,
+                                urlToken
+                            )
+                            Log.i("config_config", "updateconfig success: reseting")
+                            delay(60000)
+                            serialPortController.hardRestart()
+
+                        } else {
+                            Log.i("config_config", "updateconfig fail: reseting")
+                            delay(2000)
+                            serialPortController.hardRestart()
+                        }
+
                     }
+
                 }
                 HubCommand.PLAYLIST_INFO -> {
                     lifecycleScope.launch(Dispatchers.IO) {
@@ -569,52 +580,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     } else Log.d("location", "location not found")
                 }
                 HubCommand.RESTART -> {
-                    //    serialPortController.hardRestart()
-                    //   {"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
-                    //  val mess = responseHub.message!!
-                    val mess =
-                        "https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"
-                    val urlHub = mess.split(",")[0]
-                    val urlToken = mess.split(",")[1]
-                    Log.i("UPDATE_CONFIG hub", urlHub)
-                    Log.i("UPDATE_CONFIG token", urlToken)
-                    val hubConnection = HubConnectionBuilder.create(urlHub)
-                        .withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else
-                                Single.error(Exception())
-                        })
-                        .withTransport(TransportEnum.WEBSOCKETS)
-                        .build()
-                    lifecycleScope.launch {
-                        val id = hubManager.openConnection2(hubConnection)
-                        if (id != null) {
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_HUB,
-                                urlHub
-                            )
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_TOKEN,
-                                urlToken
-                            )
-                            Log.i("config_config", "handleFromCommandServer: reseting")
-                            delay(60000)
-                            serialPortController.hardRestart()
-
-                        }
-                        else
-                        {
-                            delay(2000)
-                            serialPortController.hardRestart()
-                        }
-
-                    }
-
+                    serialPortController.hardRestart()
                 }
                 HubCommand.SWITCH_MODE_FM -> {
                     onPlayForce(responseHub)
