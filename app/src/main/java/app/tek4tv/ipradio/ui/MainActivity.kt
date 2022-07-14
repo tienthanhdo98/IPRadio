@@ -50,6 +50,7 @@ import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
+import kotlin.math.log
 
 
 @AndroidEntryPoint
@@ -101,8 +102,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var rootLayout: FrameLayout
 
     private val globalProperties = GlobalProperties.getInst()
-    private val UART_S1_NAME = "/dev/ttyS1"
-    private val UART_S4_NAME = "/dev/ttyS4"
+
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -144,14 +144,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
+
+                serialPortController.playTuner(pipsData, tunerData)
+
 
 
 
@@ -188,14 +183,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.turnOnPAVod()
-                    }
-                } else {
-                    serialPortController.turnOnPAVod()
-                }
+                serialPortController.turnOnPAVod()
+
             }
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -246,14 +235,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         // serialPortController.connectToSerialPort("/dev/ttyS4")
-        serialPortController.connectToSerialPort(UART_S1_NAME)
-        lifecycleScope.launch {
-            delay(10000)
-            if (!serialPortController.isUart1) {
-                serialPortController.connectToSerialPort(UART_S4_NAME)
-                Log.i("PA", "onCreate: s4")
-            }
-        }
+        serialPortController.connectToSerialPort()
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
@@ -447,6 +429,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
+        val TAG = "UPDATECON"
         try {
             if (command == null || command.isEmpty()) {
                 return
@@ -458,7 +441,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val responseHub = hubManager.responseHub
 
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
-
+            Log.i(TAG, "hub: ${responseHub.imei}")
+            Log.i(TAG, "local: ${Utils.getDeviceId(applicationContext)}")
             if (!isImei) return
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
@@ -497,12 +481,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
+                    Log.i(TAG, responseHub.message!!)
                     val mess = responseHub.message!!
                     val urlHub = mess.split(",")[0]
                     val urlToken = mess.split(",")[1]
-                    Log.i("UPDATE_CONFIG be", urlHub)
-                    Log.i("UPDATE_CONFIG be", urlToken)
+                    Log.i(TAG, urlHub)
+                    Log.i(TAG, urlToken)
                     var hubToken: String? = null
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
@@ -517,9 +501,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         .withTransport(TransportEnum.WEBSOCKETS)
                         .build()
                     hubManager.connectToHub()
-
-
-
 
                     ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_HUB, urlHub)
                     ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.URL_TOKEN, urlToken)
@@ -606,9 +587,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             delay(60000)
                             serialPortController.hardRestart()
 
-                        }
-                        else
-                        {
+                        } else {
                             delay(2000)
                             serialPortController.hardRestart()
                         }

@@ -23,7 +23,7 @@ class SerialPortController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-
+    private val UART_S1_NAME = "/dev/ttyS1"
 
     private val deviceMac = Utils.getMacAddr()
 
@@ -31,11 +31,10 @@ class SerialPortController(
 
     var dataFinal = StringBuffer()
     var playMode = ""
-    var isUart1 = false
 
-    fun connectToSerialPort(uart: String) {
+    fun connectToSerialPort() {
         try {
-            initSerialPort(uart)
+            initSerialPort()
             readDevice()
         } catch (e: Exception) {
             e.printStackTrace()
@@ -43,8 +42,8 @@ class SerialPortController(
     }
 
     @Throws(IOException::class)
-    private fun initSerialPort(uart: String) {
-        serialPort = SerialPort(File(uart), 9600, 0)
+    private fun initSerialPort() {
+        serialPort = SerialPort(File(UART_S1_NAME), 9600, 0)
 
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
@@ -122,7 +121,6 @@ class SerialPortController(
                     val buffer = ByteArray(64)
                     if (inputStream == null) return@launch
                     size = inputStream!!.read(buffer)
-                    isUart1 = true
                     if (size > 0) {
                         val data = String(buffer, 0, size)
                         dataFinal.append(data)

@@ -106,6 +106,11 @@ class HubManager(
             ConfigUtil.URL_HUB,
             "https://hubgatewayhttt.tek4tv.vn/hubServer"
         )
+//        val hubUrl = ConfigUtil.getStringEncrypt(
+//            appContext,
+//            ConfigUtil.URL_HUB,
+//            "https://hubtn-truyenthanh.tek4tv.vn/hubServer"
+//        )
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
         //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
@@ -163,7 +168,9 @@ class HubManager(
 
             if (response.isSuccessful) {
                 val token = response.body()!!.token
+                Log.i("urlbase", token!!)
                 token
+
             } else {
                 null
             }
@@ -187,8 +194,8 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            Log.i("urlbase", urlToken!!)
-            val call = authService.getToken(body, urlToken!!)
+            Log.i("urlbase", urlToken)
+            val call = authService.getToken(body, urlToken)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -390,6 +397,7 @@ class HubManager(
 
                                 pingCounter = 0
                             }
+
                             HubCommand.UPDATE_CONFIG -> {
                                 meessDe = b64Decode(message)
                             }
@@ -590,9 +598,12 @@ class HubManager(
                 val decryptedStr = decryptData(message, privateKeyStr)
                 if (decryptedStr != null && decryptedStr.startsWith("{"))
                     responseHub = responseAdapter.fromJson(decryptedStr)!!
+                Log.i("updatecon", "parseHubResponse: $decryptedStr")
             } else {
+                Log.i("updatecon", "parseHubResponse mess: $message")
                 if (message.startsWith("{"))
                     responseHub = responseAdapter.fromJson(message)!!
+
             }
         } catch (e: Exception) {
             e.printStackTrace()
