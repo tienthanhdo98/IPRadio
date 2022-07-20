@@ -109,6 +109,7 @@ class HubManager(
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
         //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
+        //"https://hubgatewayhttt.tek4tv.vn/hubServer" hub ssl
         Log.i("urlbase", hubUrl!!)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -163,6 +164,7 @@ class HubManager(
 
             if (response.isSuccessful) {
                 val token = response.body()!!.token
+                Log.i("tntntn", "getHubToken: $token")
                 token
             } else {
                 null

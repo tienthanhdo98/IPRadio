@@ -466,7 +466,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
 
                     //add at 3.0.5
-
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
 
