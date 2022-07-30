@@ -44,6 +44,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
@@ -464,6 +465,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
+                    lifecycleScope.launch {
+
+                        viewModel.checkTimeAndLevel(mess).collect {
+
+                            Log.i("timeandlevel", "handleFromCommandServer: $it")
+                        }
+                    }
 
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
@@ -493,6 +501,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
+                }
+                HubCommand.LiveRemoteControl ->{
+                    val mess = responseHub.message!!
+                    Log.i("LiveRemoteControl", "Mess: $mess ")
                 }
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}

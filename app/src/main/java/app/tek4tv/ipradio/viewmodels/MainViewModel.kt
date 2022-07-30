@@ -7,8 +7,14 @@ import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
+import app.tek4tv.ipradio.utils.toCalendar
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.withTestContext
+import kotlinx.coroutines.withContext
+import java.util.*
 
 
 class MainViewModel @ViewModelInject constructor(
@@ -20,10 +26,9 @@ class MainViewModel @ViewModelInject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia : MediaItem? = null
+    var currentMedia: MediaItem? = null
 
-    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
-    {
+    fun getPlayerContent(listUrl: String, needUpdate: Boolean) {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -40,6 +45,17 @@ class MainViewModel @ViewModelInject constructor(
         }
     }
 
+    fun checkTimeAndLevel(url: String) =
+        flow {
+            val mediaItem = mediaRepo.getPlaylist(url)
+            val start = toCalendar(mediaItem.start!!)
+            val end = toCalendar(mediaItem.end!!)
+            val now = Calendar.getInstance().timeInMillis
+            val result = now in start.timeInMillis..end.timeInMillis
+            emit(result)
+
+        }
+
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
     }
@@ -48,8 +64,7 @@ class MainViewModel @ViewModelInject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenario(url : String, forceNewScenario : Boolean = false)
-    {
+    fun updateMonthlyScenario(url: String, forceNewScenario: Boolean = false) {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenario(url, forceNewScenario)
             getPlayerContent("", false)

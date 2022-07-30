@@ -131,6 +131,25 @@ class MediaRepo @Inject constructor(
         })
     }
 
+     suspend fun getPlaylist(url: String): MediaItem {
+        var result: MediaItem ? = null
+        try {
+            val res = playlistService.getPlaylist(url)
+            if (res.isSuccessful) {
+                val resBody = res.body()
+                if (resBody != null) {
+                    result = resBody[0]
+                }
+            } else {
+                Log.e("yee", "Lịch rỗng rồi")
+            }
+        } catch (e: Exception) {
+            Log.e("Error", e.toString())
+
+        }
+        return result!!
+    }
+
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
@@ -143,9 +162,7 @@ class MediaRepo @Inject constructor(
                     result = resBody.onEach { it.mediaID = i++ }
                     saveItemsToFile(result)
                 }
-            }
-            else
-            {
+            } else {
                 Log.e("yee", "Lịch rỗng rồi")
             }
         } catch (e: Exception) {
