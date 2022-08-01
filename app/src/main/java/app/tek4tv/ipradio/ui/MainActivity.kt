@@ -46,6 +46,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.IOException
 import java.text.SimpleDateFormat
@@ -100,6 +101,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var rootLayout: FrameLayout
+    private lateinit var vlcVideoLayout: VLCVideoLayout
 
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
@@ -215,7 +217,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-
+        supportActionBar?.hide()
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
@@ -257,9 +259,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         rootLayout = findViewById(R.id.root_layout)
+        vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         playerManager = PlayersManager(
             applicationContext,
             rootLayout,
+            vlcVideoLayout,
             viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback

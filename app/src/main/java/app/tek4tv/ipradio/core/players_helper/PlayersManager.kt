@@ -2,7 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import android.view.View
+import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.PlayerManager
@@ -20,10 +20,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
-import java.time.LocalTime
 import java.util.*
-import android.R.string.no
 
 
 /**
@@ -34,14 +33,13 @@ import android.R.string.no
  * **/
 class PlayersManager(
     appContext: Context,
-    private val rootLayout: View,
+    private val rootLayout: FrameLayout,
+    private val vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
-    private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
-    private var currentPlayer: IMediaPlayer? = null
+    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
     private var currentPlayingMedia: MediaItem? = null
 
     /**
@@ -94,14 +92,10 @@ class PlayersManager(
 
     override fun onLostHubConnection() {
         vlcPlayer.disconnectedHub = true
-        exoPlayer.disconnectedHub = true
-        currentPlayer?.onLostHubConnection()
     }
 
     override fun onReconnectedToHub() {
         vlcPlayer.disconnectedHub = false
-        exoPlayer.disconnectedHub = false
-        currentPlayer?.onHubReconnected()
     }
 
     private fun onMediaStopPlaying() {
@@ -189,7 +183,7 @@ class PlayersManager(
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     vlcPlayer.playMedia(mediaItem, timeStamp)
-                    currentPlayer = vlcPlayer
+                    vlcPlayer
                 }
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
@@ -208,18 +202,12 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
-            exoPlayer.playMedia(mediaItem, -1)
-            exoPlayer
-        } else {
-            vlcPlayer.playMedia(mediaItem, -1)
-            vlcPlayer
-        }
+     vlcPlayer.playMedia(mediaItem, -1)
+
     }
 
     fun stopAllPlayer() {
         vlcPlayer.stop()
-        exoPlayer.stop()
     }
 
 
@@ -380,12 +368,12 @@ class PlayersManager(
 
     fun onActivityDestroy() {
         vlcPlayer.release()
-        exoPlayer.release()
     }
 
     fun resetPlayMode() {
         playMode = PLAY_MODE_INIT//"0"
     }
+
 
     companion object {
         const val PLAY_MODE_FORCE = "-2"

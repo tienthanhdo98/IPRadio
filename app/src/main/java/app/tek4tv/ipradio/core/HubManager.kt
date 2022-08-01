@@ -101,10 +101,15 @@ class HubManager(
             ""
         }
 
+//        val hubUrl = ConfigUtil.getStringEncrypt(
+//            appContext,
+//            ConfigUtil.URL_HUB,
+//            "https://hubgatewayhttt.tek4tv.vn/hubServer"
+//        )
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubgatewayhttt.tek4tv.vn/hubServer"
+            "https://hub.digital.tek4tv.vn/hubServer"
         )
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
@@ -500,7 +505,7 @@ class HubManager(
                 version = versionName
                 destinationId = GlobalProperties.getInst().destinationId
                 destinationName = GlobalProperties.getInst().destinationName
-                appName = "Ipradio"
+                appName = "DigitalSignage"
                 logType = "report"
                 provider = "Tek4tv"
                 lat = GlobalProperties.getInst().lat

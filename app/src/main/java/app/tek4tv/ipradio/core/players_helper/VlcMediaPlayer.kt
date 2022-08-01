@@ -12,9 +12,14 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
-class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
+class VlcMediaPlayer(
+    appContext: Context,
+    private val playerEventListener: IPlayerEventListener,
+    private val vlcVideoLayout: VLCVideoLayout
+) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private val mLibVLC: LibVLC
@@ -68,11 +73,16 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     init {
         val args = ArrayList<String>()
         //bật log vlc
-        //args.add("-vvv")
+        args.add("-vvv")
+        args.add("--no-drop-late-frames");
+        args.add("--no-skip-frames");
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
+        vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
+
         vlcPlayer.eventListener = vlcEventListener
+
     }
 
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
@@ -140,7 +150,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         stream.addOption(":rtsp-tcp")
 
         currentVlcMedia = stream
-
         vlcPlayer.play(stream)
     }
 
