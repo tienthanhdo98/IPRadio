@@ -155,9 +155,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 } else {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
-
-
-
                 logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -286,7 +283,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
-
+     //   checkTime()
 
     }
 
@@ -472,24 +469,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     lifecycleScope.launch {
 
                         viewModel.checkTimeAndLevel(mess).collect {
+                            Log.i("timeandlevel", "current play: $it")
 
-                            Log.i("timeandlevel", "handleFromCommandServer: $it")
                         }
                     }
+//                    var level = responseHub.level
+//                    var curLevel = GlobalProperties.getInst().level
+//                    Log.i("timeandlevel", "level res hub: $level")
+//                    Log.i("timeandlevel", "level res hub: $curLevel")
+//                    if(curLevel > level) {
+                        //add at 3.0.5
+                        playerManager.stopAllPlayer()
+                        playerManager.resetPlayMode()
 
-                    //add at 3.0.5
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
+                        //lưu thông số vol, pi,...
+                        globalProperties.saveProperties(responseHub)
 
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
+                        serialPortController.writeForceSetVolume(responseHub.volume)
 
-                    serialPortController.writeForceSetVolume(responseHub.volume)
+                        cancelAllAlarm()
+                        ForceMedia.deleteForeMediaPref(applicationContext)
 
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-
-                    viewModel.getPlayerContent(mess, true)
+                        viewModel.getPlayerContent(mess, true)
+                        Log.i("timeandlevel", "level res hub: ok")
+//                    }
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -506,7 +509,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
                 }
-                HubCommand.LiveRemoteControl ->{
+                HubCommand.LiveRemoteControl -> {
                     val mess = responseHub.message!!
                     Log.i("LiveRemoteControl", "Mess: $mess ")
                 }

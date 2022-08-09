@@ -5,7 +5,6 @@ import android.util.Log
 import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
@@ -14,6 +13,7 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.Utils.Companion.convertStringToInt
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
@@ -34,7 +34,7 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     private val rootLayout: FrameLayout,
-    private val vlcVideoLayout: VLCVideoLayout,
+    vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
@@ -157,7 +157,6 @@ class PlayersManager(
 
     private fun playNextMedia() {
         if (playMode == "") return
-
         rootLayout.post {
             playlistIndex++
             if (playlistIndex < currentPlaylist.size) playMediaByIndex(playlistIndex)
@@ -171,7 +170,7 @@ class PlayersManager(
 
             playMedia(mediaItem, timeStamp)
 
-            Log.d(PlayerManager.LOGTAG, "Play media $index")
+            Log.d(LOGTAG, "Play media $index")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -252,7 +251,7 @@ class PlayersManager(
 
             return Pair(0, 0)
         } catch (e: Exception) {
-            Log.e(PlayerManager.LOGTAG, "Error calculate resume")
+            Log.e(LOGTAG, "Error calculate resume")
             e.printStackTrace()
             return Pair(0, 0)
         }
@@ -311,7 +310,7 @@ class PlayersManager(
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-            if (playMode == PlayerManager.PLAY_MODE_FORCE) {
+            if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
@@ -335,13 +334,6 @@ class PlayersManager(
         }
     }
 
-    private fun convertStringToInt(time: String): Int {
-        val listDur = time.split(":")
-        val h = listDur[0].toInt()
-        val m = listDur[1].toInt()
-        val s = listDur[2].toInt()
-        return (h * 3600 + m * 60 + s) / 60
-    }
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {
@@ -376,6 +368,7 @@ class PlayersManager(
 
 
     companion object {
+        const val LOGTAG = "player"
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
     }
