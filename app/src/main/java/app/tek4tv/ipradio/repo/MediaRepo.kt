@@ -199,7 +199,7 @@ class MediaRepo @Inject constructor(
             return
         }
 
-        Log.d("download item", url)
+        Log.d("downloaditem", url)
 
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url

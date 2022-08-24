@@ -2,7 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.core.PlayerManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
@@ -14,6 +14,7 @@ import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
+import kotlin.math.log
 
 class VlcMediaPlayer(
     appContext: Context,
@@ -145,12 +146,19 @@ class VlcMediaPlayer(
         vlcPlayer.play(media)
     }
 
-    private fun playLiveStream(mediaItem: MediaItem) {
-        val stream = mediaItem.getVlcMedia(mLibVLC)
-        stream.addOption(":rtsp-tcp")
 
-        currentVlcMedia = stream
-        vlcPlayer.play(stream)
+    private fun playLiveStream(mediaItem: MediaItem) {
+        try {
+            val stream = mediaItem.getVlcMedia(mLibVLC)
+            stream.addOption(":rtsp-tcp")
+
+            currentVlcMedia = stream
+            vlcPlayer.play(stream)
+        }catch (e : Exception)
+        {
+            Log.e(TAG, "playLiveStream: errror with ${e.message}", )
+        }
+       
     }
 
     //check xem có đang trong giờ phát luồng live
@@ -169,7 +177,7 @@ class VlcMediaPlayer(
         Log.e("check", "${now <= liveEndTime}")
         Log.e("check", "${stream.state != IMedia.State.Playing}")
 
-        Log.d(PlayerManager.LOGTAG, "check: $check")
+        Log.d(LOGTAG, "check: $check")
 
         return check
     }
