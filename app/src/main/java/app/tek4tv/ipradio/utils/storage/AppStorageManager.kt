@@ -1,9 +1,10 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.storage
 
 import android.app.ActivityManager
 import android.content.Context
 import android.os.Environment
 import android.os.StatFs
+import app.tek4tv.ipradio.utils.*
 import java.io.File
 
 
@@ -76,5 +77,9 @@ class AppStorageManager(appContext: Context) {
     fun deleteAllLog()
     {
         deleteAllFileInFolder(logDirPath)
+    }
+    fun deleteAllRecord()
+    {
+        deleteAllFileInFolder(recordedAudioDirPath)
     }
 }

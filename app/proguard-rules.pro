@@ -31,4 +31,4 @@
 -keep class app.tek4tv.ipradio.model.** {*;}
 -keep class org.json.* { *; }
 -dontshrink
--dontoptimize
+#-dontoptimize

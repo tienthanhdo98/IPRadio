@@ -5,9 +5,12 @@ import android.content.Context
 import android.content.Intent
 
 class BootUpReceiver : BroadcastReceiver() {
+    //để bật app khi khởi động thiết bị
     override fun onReceive(context: Context, intent: Intent) {
-        val i = Intent(context, MainActivity::class.java)
-        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-        context.startActivity(i)
+        if (Intent.ACTION_BOOT_COMPLETED == intent.action) {
+            val i = Intent(context, MainActivity::class.java)
+            i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(i)
+        }
     }
 }

@@ -1,0 +1,25 @@
+package app.tek4tv.ipradio
+
+class Secrets {
+
+    //Method calls will be added by gradle task hideSecret
+    //Example : external fun getWellHiddenSecret(packageName: String): String
+
+    companion object {
+        init {
+            System.loadLibrary("secrets")
+        }
+    }
+
+    external fun getAQNIjugs(packageName: String): String
+
+    external fun getWJsNVsim(packageName: String): String
+
+    external fun getHubPrivateKey(packageName: String): String
+
+
+    external fun gethubUrl(packageName: String): String
+
+    external fun gettokenUrl(packageName: String): String
+
+}

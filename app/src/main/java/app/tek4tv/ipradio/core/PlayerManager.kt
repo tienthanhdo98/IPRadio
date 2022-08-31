@@ -1,9 +1,9 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.media.MediaSyncEvent
 import android.util.Log
 import android.view.View
+import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -22,7 +22,6 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
-import java.text.SimpleDateFormat
 import java.util.*
 
 class PlayerManager(
@@ -46,7 +45,7 @@ class PlayerManager(
     //HH:mm:ss-HH:mm:ss for scheduled media
     var currentPlaylistKey = "0"
 
-    var playerCallback: PlayerCallback? = null
+    var IPlayerManagerListener: IPlayerManagerListener? = null
 
     var playlistIndex = 0
 
@@ -81,7 +80,7 @@ class PlayerManager(
 
             isLiveStreamError = true
 
-            playerCallback?.onLiveError()
+            IPlayerManagerListener?.onLiveError()
 
             if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!)) {
                 playMedia(currentPlayingMedia!!)
@@ -107,7 +106,7 @@ class PlayerManager(
             val mediaItem = currentPlaylist[index]
 
             //skip LIVE and TUNER as they will be played by alarm
-            if (mediaItem.getMediaType() == MediaType.VOD)
+            if (mediaItem.getMediaType() == MediaType.FILE)
                 playMedia(mediaItem, timeStamp)
 
             Log.d(LOGTAG, "Play media $index")
@@ -130,7 +129,7 @@ class PlayerManager(
 
             val indexInSubList = playlistRepo.scheduledList[frame]!!.indexOf(itemToPlay)
 
-            if (toCalendar(itemToPlay.fixTime) in (start..end) && indexInSubList != -1) {
+            if (toCalendar(itemToPlay.fixTime!!) in (start..end) && indexInSubList != -1) {
                 playlistIndex = indexInSubList
                 break
             }
@@ -147,7 +146,7 @@ class PlayerManager(
         if (mediaIndex >= scheduledItems.size) return
 
         val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.id != currentPlayingMedia?.id) return
+        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
 
         if(reconnectingLiveStreamJob != null)
         {
@@ -182,14 +181,14 @@ class PlayerManager(
             resetState()
 
             when (mediaItem.getMediaType()) {
-                MediaType.VOD -> {
+                MediaType.FILE -> {
                     playVOD(mediaItem, timeStamp)
                 }
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
                 }
                 MediaType.FM -> {
-                    playerCallback?.onPlayTuner(mediaItem)
+                    IPlayerManagerListener?.onPlayTuner(mediaItem)
                     currentVlcMedia = null
                 }
                 else -> {
@@ -197,8 +196,6 @@ class PlayerManager(
                     currentVlcMedia = null
                 }
             }
-
-            playerCallback?.onPlayNewMedia(playlistIndex, mediaItem)
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -247,7 +244,7 @@ class PlayerManager(
 
     private fun playLiveStream(mediaItem: MediaItem) {
 
-        if(mediaItem.path.endsWith("m3u8"))
+        if(mediaItem.body!!.endsWith("m3u8"))
         {
             playHlsExo(mediaItem)
         }
@@ -291,13 +288,13 @@ class PlayerManager(
         if (a && reconnectingLiveStreamJob == null)
             tryReconnectLiveStream(mediaItem)
         isLiveStreamError = true
-        playerCallback?.onLiveError()
+        IPlayerManagerListener?.onLiveError()
     }
 
     private fun playHlsExo(mediaItem: MediaItem)
     {
         isUsingExoPlayer = true
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.path)
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.body!!)
         exoPlayer.addListener(exoEventListener)
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
@@ -311,7 +308,7 @@ class PlayerManager(
             var needReconnect = true
             while (needReconnect) {
 
-                Log.d(LOGTAG, "reconnect: ${mediaItem.path}")
+                Log.d(LOGTAG, "reconnect: ${mediaItem.body}")
 
                 if(connectedToHub)
                     playMedia(mediaItem)
@@ -328,12 +325,12 @@ class PlayerManager(
     }
     //check to see if there is an error when playing livestream
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
-        if(currentPlayingMedia!=null && currentPlayingMedia!!.path != mediaItem.path) return false
+        if(currentPlayingMedia!=null && currentPlayingMedia!!.body != mediaItem.body) return false
 
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
 
         val check = (now <= liveEndTime)
@@ -353,15 +350,15 @@ class PlayerManager(
         if(isLiveStreamError)
         {
             isLiveStreamError = false
-            playerCallback?.requestTurnOnPa()
+            //playerCallback?.requestTurnOnPa()
         }
     }
 
     private fun checkHls(mediaItem: MediaItem): Boolean {
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration))
+        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
         val check = (now < liveEndTime)
                 //&& (currentExoState != Player.STATE_READY)
@@ -374,7 +371,7 @@ class PlayerManager(
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        playerCallback?.onStartTimeFrame(timeFrame)
+        IPlayerManagerListener?.onStartTimeFrame(timeFrame)
         currentPlaylistKey = timeFrame
 
         currentPlaylist = playlistRepo.scheduledList[timeFrame] ?: listOf()
@@ -425,7 +422,7 @@ class PlayerManager(
 
             for (i in mediaList.indices) {
                 val media = mediaList[i]
-                val mediaDuration = getDurationInSecond(media.duration)
+                val mediaDuration = getDurationInSecond(media.duration!!)
 
                 t += mediaDuration
 
@@ -452,7 +449,7 @@ class PlayerManager(
         currentPlaylistKey = ""
         stopAllPlayer()
 
-        playerCallback?.onEndTimeFrame(cancelListKey)
+        IPlayerManagerListener?.onEndTimeFrame(cancelListKey)
 
         //check time over
         isTimeOver = true
@@ -462,7 +459,7 @@ class PlayerManager(
     private fun checkTimeOver() {
         coroutineScope.launch {
             delay(15000)
-            if (isTimeOver) playerCallback?.onTimeOver()
+            if (isTimeOver) IPlayerManagerListener?.onTimeOver()
         }
     }
 
@@ -491,15 +488,15 @@ class PlayerManager(
         playMedia(forceMedia.toMediaItem())
     }
 
-    fun stopForceMedia() {
+    fun stopForceMedia(mediaItem: MediaItem) {
         if (currentPlaylistKey != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
-        playerCallback?.onEndForceMedia()
+        IPlayerManagerListener?.onEndForceMedia()
     }
 
     fun requestRescheduleMedias() {
-        playerCallback?.rescheduleMedias()
+        //playerCallback?.rescheduleMedias()
     }
 
     fun onActivityStop() {
@@ -517,7 +514,7 @@ class PlayerManager(
         connectedToHub = false
     }
 
-    override fun onConnectedToHub() {
+    override fun onReconnectedToHub() {
         connectedToHub = true
     }
 
@@ -527,16 +524,4 @@ class PlayerManager(
         const val PLAY_MODE_FORCE = "-2"
         var instance: PlayerManager? = null
     }
-}
-
-interface PlayerCallback {
-    fun onPlayNewMedia(index: Int, mediaItem: MediaItem)
-    fun onTimeOver()
-    fun onStartTimeFrame(frame: String)
-    fun onEndTimeFrame(frame: String)
-    fun onPlayTuner(mediaItem: MediaItem)
-    fun onEndForceMedia()
-    fun rescheduleMedias()
-    fun onLiveError()
-    fun requestTurnOnPa()
 }

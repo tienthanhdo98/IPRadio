@@ -8,31 +8,31 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 class PingHubRequest {
     @Json(name = "ConnectionId")
-   
-     var connectionId: String? = null
+
+    var connectionId: String? = null
 
     @Json(name = "IMEI")
-   
-     var imei: String? = null
+
+    var imei: String? = null
 
     @Json(name = "StartTime")
-   
-     var startTine: String? = null
+
+    var startTime: String? = null
 
     @Json(name = "Status")
-   
-     var status: String? = null
+
+    var status: String? = null
 
     @Json(name = "Volume")
-   
-     var volume: String? = null
+
+    var volume: String? = null
 
     @Json(name = "Message")
-   
-     var message: String? = null
+
+    var message: String? = null
 
     @Json(name = "Video")
-   
+
     var video: String? = null
 
     @Json(name = "NetworkInfo")
@@ -40,4 +40,39 @@ class PingHubRequest {
 
     @Json(name = "Version")
     var version = ""
+
+    @Json(name = "DestinationID")
+    var destinationId: String? = ""
+
+    @Json(name = "DestinationName")
+    var destinationName: String? = ""
+
+    //
+    @Json(name = "AppName")
+    var appName: String = ""
+
+    @Json(name = "LogType")
+    var logType: String = ""
+
+    @Json(name = "Provider")
+    var provider: String = ""
+
+    @Json(name = "CreateDate")
+    var createDate: Long = 0
+
+    @Json(name = "DeviceName")
+    var deviceName: String = ""
+
+    @Json(name = "Lat")
+    var lat: Float? = null
+
+    @Json(name = "Lng")
+    var lng: Float? = null
+
+    @Json(name = "UserNameControl")
+    var userNameControl: String? = null
+
+    @Json(name = "IsRecord")
+    var isRecord: String? = null
+
 }

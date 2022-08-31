@@ -3,8 +3,9 @@ plugins {
     id 'kotlin-android'
     id 'kotlin-kapt'
     id 'dagger.hilt.android.plugin'
-    id 'com.google.gms.google-services'
 }
+
+apply plugin: 'com.klaxit.hiddensecrets'
 
 android {
     signingConfigs {
@@ -16,16 +17,20 @@ android {
         }
     }
     compileSdkVersion 28
-    buildToolsVersion "30.0.2"
+    buildToolsVersion "30.0.3"
 
     defaultConfig {
+        //app.tek4tv.ipradio
         applicationId "app.tek4tv.ipradio"
         minSdkVersion 23
         targetSdkVersion 28
-        versionCode 3
-        versionName "2.0.5"
+
+        versionCode 5
+        versionName "3.1.1"
+
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
 
         externalNativeBuild {
             cmake {
@@ -55,7 +60,7 @@ android {
 
     externalNativeBuild {
         cmake {
-            path "CMakeLists.txt"
+            path "src/main/cpp/CMakeLists.txt"
         }
     }
 }
@@ -67,6 +72,8 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.google.android.material:material:1.2.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
+    implementation 'androidx.security:security-crypto-ktx:1.1.0-alpha02'
+    implementation 'com.google.android.gms:play-services-basement:18.0.0'
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
@@ -106,9 +113,9 @@ dependencies {
 
     implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
     implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
 
-    //firebase logging
-    implementation platform('com.google.firebase:firebase-bom:28.1.0')
-    implementation 'com.google.firebase:firebase-database-ktx'
-    implementation 'com.google.firebase:firebase-analytics'
+
+
+
 }

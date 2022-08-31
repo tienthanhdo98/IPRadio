@@ -18,7 +18,7 @@ add_library( # Sets the name of the library.
         # Provides a relative path to your source file(s).
         # Associated headers in the same location as their source
         # file are automatically included.
-        src/main/cpp/SerialPort.cpp)
+        SerialPort.cpp)
 
 # Searches for a specified prebuilt library and stores the path as a
 # variable. Because system libraries are included in the search path by
@@ -43,3 +43,12 @@ target_link_libraries( # Specifies the target library.
         # Links the target library to the log library
         # included in the NDK.
         ${log-lib})
+		
+add_library( # Specifies the name of the library.
+             secrets
+
+             # Sets the library as a shared library.
+             SHARED
+
+             # Provides a relative path to your source file(s).
+             secrets.cpp )

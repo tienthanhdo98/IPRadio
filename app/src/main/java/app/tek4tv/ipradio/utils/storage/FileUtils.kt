@@ -5,7 +5,6 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.*
-import kotlin.jvm.Throws
 
 const val PLAYLIST_FILE_NAME = "playlist.json"
 const val AUDIO_LIST_FILE_NAME = "audio_list.json"
@@ -98,6 +97,18 @@ fun deleteAllFileInFolder(path: String) {
     try {
         for (f in folder.listFiles()) {
             if (f.isFile) f.delete()
+        }
+
+    } catch (e: Exception) {
+        e.printStackTrace()
+    }
+}
+fun deleteAFileInFolder(path: String,filename : String) {
+    val folder = File(path)
+    try {
+        for (f in folder.listFiles()) {
+            if (f.name == filename)
+                f.delete()
         }
 
     } catch (e: Exception) {

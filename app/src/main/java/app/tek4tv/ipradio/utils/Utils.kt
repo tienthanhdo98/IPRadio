@@ -5,15 +5,9 @@ import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import java.net.NetworkInterface
-import java.security.GeneralSecurityException
-import java.security.SecureRandom
-import java.security.cert.X509Certificate
 import java.util.*
-import javax.net.ssl.HttpsURLConnection
-import javax.net.ssl.SSLContext
-import javax.net.ssl.TrustManager
-import javax.net.ssl.X509TrustManager
 
 class Utils {
     companion object {
@@ -78,33 +72,11 @@ class Utils {
             val adapter = moshi.adapter(type)
             return adapter.toJson(value)
         }
-    }
-}
 
-fun disableSSL() {
-    val trustAllCerts: Array<TrustManager> = arrayOf(
-        object : X509TrustManager {
-            override fun checkClientTrusted(
-                certs: Array<X509Certificate?>?, authType: String?
-            ) {
-            }
-
-            override fun checkServerTrusted(
-                certs: Array<X509Certificate?>?, authType: String?
-            ) {
-            }
-
-            override fun getAcceptedIssuers(): Array<X509Certificate?>? {
-                return null
-            }
+        fun toJsonList(moshi: Moshi, list: List<String>): String {
+            val listType = Types.newParameterizedType(List::class.java, String::class.java)
+            val adapter = moshi.adapter<List<String>>(listType)
+            return adapter.toJson(list)
         }
-    )
-
-    // Install the all-trusting trust manager
-    try {
-        val sc: SSLContext = SSLContext.getInstance("SSL")
-        sc.init(null, trustAllCerts, SecureRandom())
-        HttpsURLConnection.setDefaultSSLSocketFactory(sc.socketFactory)
-    } catch (e: GeneralSecurityException) {
     }
 }

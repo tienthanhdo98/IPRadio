@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 object HubCommand {
     const val RECORD = "RECORD"
     const val UPLOAD_RECORDED = "UPLOAD_RECORDED"
+    const val DELETE_RECORD = "DELETE_RECORD"
     const val GET_RECORD = "GET_RECORD"
     const val CAPTURE_SCREEN = "CAPTURE_SCREEN"
     const val GET_LIST = "GET_LIST"
@@ -12,6 +13,8 @@ object HubCommand {
     const val PREVIEW = "PREVIEW"
     const val JUMP = "JUMP"
     const val LIVE = "LIVE"
+    const val UPDATE_CONFIG = "UPDATE_CONFIG"
+    const val FM = "FM"
     const val UPDATE_STATUS = "UPDATE_STATUS"
     const val SET_VOLUME_DEVICE = "SET_VOLUME_DEVICE"
     const val STOP = "STOP"
@@ -29,6 +32,7 @@ object HubCommand {
     const val GET_APP_VERSION = "GET_APP_VERSION"
     const val SETUP_PI_PS_NAME = "SETUP_PI_PS_NAME"
     const val NETWORK_INFO = "NETWORK_INFO"
+    const val PLAYLIST_INFO = "PLAYLIST_INFO"
     const val STORAGE_INFO = "STORAGE_INFO"
     const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
     const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
@@ -50,4 +54,8 @@ object HubCommand {
     const val SET_ENCRYPTED_VOLUME_DEVICE = "SET_ENCRYPTED_VOLUME_DEVICE"
 
     const val STOP_FORCE = "STOP_FORCE"
+
+    const val JOIN_GROUP = "JoinGroup"
+
+    const val GET_LOG_FILE = "GET_LOG_FILE"
 }

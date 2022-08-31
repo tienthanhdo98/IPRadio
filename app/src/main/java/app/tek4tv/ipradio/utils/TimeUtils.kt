@@ -2,7 +2,9 @@ package app.tek4tv.ipradio.utils
 
 import android.util.Log
 import java.io.DataOutputStream
+import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.abs
 
 
 fun toCalendar(time: String): Calendar {
@@ -14,7 +16,7 @@ fun toCalendar(time: String): Calendar {
             set(Calendar.SECOND, t[2])
         }
     } catch (e: Exception) {
-        Log.d("toCalendar()", e.message)
+        Log.d("toCalendar()", e.message!!)
         Calendar.getInstance()
     }
 }
@@ -56,5 +58,43 @@ fun setSystemTime(requireTime: String) {
         Log.e("timesync", e.message ?: "")
         e.printStackTrace()
     }
+}
+
+fun checkTime()
+{
+    SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener
+    {
+        override fun onTimeReceived(rawDate: String?) {
+            if(rawDate == null) return
+
+            try {
+                val receiveFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
+                val receivedDate = receiveFormat.parse(rawDate)
+
+                if(abs(receivedDate.time - Date().time) > 30000)
+                {
+
+                    Log.d("Time","Sync")
+
+                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+                    setSystemTime(dateFormat.format(receivedDate))
+
+                    // Uncomment 2 below line be4 use this method
+
+                    //cancelAllAlarm()
+
+                    //CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                }
+            }
+            catch (e : Exception)
+            {
+                e.printStackTrace()
+            }
+        }
+
+        override fun onError(ex: java.lang.Exception?) {
+            ex?.printStackTrace()
+        }
+    })
 }
 

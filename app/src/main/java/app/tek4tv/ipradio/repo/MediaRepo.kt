@@ -5,7 +5,11 @@ import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.isFileExisted
+import app.tek4tv.ipradio.utils.media.DownloadHelper2
+import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
@@ -30,14 +34,13 @@ class MediaRepo @Inject constructor(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
 
-
     var broadcastList = mutableListOf<MediaItem>()
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
 
-    private val downloadHelper = DownloadHelper.getInstance(coroutineScope)
+    private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
 
@@ -83,10 +86,11 @@ class MediaRepo @Inject constructor(
             updateScenario(listUrl)
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-                Log.d("readplaylist", "local")
+                Log.d("readplaylist", "local ")
                 readItemsFromFile()
             } else listOf()
             result
+
         }
 
         broadcastList.clear()
@@ -98,7 +102,7 @@ class MediaRepo @Inject constructor(
 
     private fun filterMedia(mediaList: List<MediaItem>) {
         val dividerIndices = mediaList.indices.filter {
-            mediaList[it].path == "start" || mediaList[it].path == "end"
+            mediaList[it].body == "start" || mediaList[it].body == "end"
         }.chunked(2)
 
         val scheduledIndex = mutableListOf<Int>()
@@ -123,7 +127,7 @@ class MediaRepo @Inject constructor(
         }
 
         scheduledMediaItems.addAll(mediaList.filter {
-            it.path != "start" && it.path != "end" && it.fixTime.isNotEmpty() && it.fixTime != "00:00:00"
+            it.body != "start" && it.body != "end" && it.fixTime!!.isNotEmpty() && it.fixTime != "00:00:00"
         })
     }
 
@@ -136,9 +140,13 @@ class MediaRepo @Inject constructor(
                 val resBody = res.body()
                 if (resBody != null) {
                     var i = 1
-                    result = resBody.onEach { it.id = i++ }
+                    result = resBody.onEach { it.mediaID = i++ }
                     saveItemsToFile(result)
                 }
+            }
+            else
+            {
+                Log.e("yee", "Lịch rỗng rồi")
             }
         } catch (e: Exception) {
             Log.e("yee", e.toString())
@@ -156,16 +164,16 @@ class MediaRepo @Inject constructor(
     }
 
     fun downloadAMediaItem(it: MediaItem) {
-        if (it.getMediaType() != MediaType.VOD) return
+        if (it.getMediaType() != MediaType.FILE) return
 
-        val url = it.path
+        val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
 
-        val fileName = getFileNameFromUrl(url)
+        val fileName = getFileNameFromUrl(url!!)
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
-            if (it.path != "$mediaStoragePath/$fileName") {
-                it.path = "$mediaStoragePath/$fileName"
+            if (it.body != "$mediaStoragePath/$fileName") {
+                it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
                     saveItemsToFile(broadcastList)
                 }
@@ -183,18 +191,18 @@ class MediaRepo @Inject constructor(
             priority = 0
             downloadListener = object : OnDownloadListener {
                 override fun onDownloadComplete() {
-                    it.pathBackup = it.path
-                    it.path = "$mediaStoragePath/$fileName"
+                    it.pathBackup = it.body!!
+                    it.body = "$mediaStoragePath/$fileName"
 
                     coroutineScope.launch {
                         saveItemsToFile(broadcastList)
                     }
 
-                    Log.d("downloadcomplete", it.path)
+                    Log.d("downloadcomplete", it.body!!)
                 }
 
                 override fun onError(error: Error?) {
-                    Log.d("downloaderror", it.path)
+                    Log.d("downloaderror", it.body!!)
                 }
             }
         })

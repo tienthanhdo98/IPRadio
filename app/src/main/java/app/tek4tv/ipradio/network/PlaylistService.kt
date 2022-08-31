@@ -3,7 +3,8 @@ package app.tek4tv.ipradio.network
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ScheduleDay
 import retrofit2.Response
-import retrofit2.http.*
+import retrofit2.http.GET
+import retrofit2.http.Url
 
 interface PlaylistService {
     @GET

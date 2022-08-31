@@ -1,10 +1,11 @@
 package app.tek4tv.ipradio.di
 
+import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.network.PlaylistService
-import app.tek4tv.ipradio.utils.NetworkUtils
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,4 +36,14 @@ object NetworkModule {
     @Singleton
     fun providePlaylistService(retrofit: Retrofit) : PlaylistService =
         retrofit.create(PlaylistService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideAuthService(retrofit: Retrofit) : AuthService =
+        retrofit.create(AuthService::class.java)
+
+    @Provides
+    @Singleton
+    fun provideLogService(retrofit: Retrofit) : LogService =
+        retrofit.create(LogService::class.java)
 }

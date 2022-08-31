@@ -8,9 +8,6 @@ import android.content.IntentFilter
 import android.net.Uri
 import android.os.Environment
 import android.util.Log
-import android.widget.Toast
-import androidx.core.content.ContextCompat.getSystemService
-import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.SerialPortController
 import java.io.File
 
@@ -49,10 +46,14 @@ import java.io.File
     context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 }*/
 
-fun downloadUpdateApk(url: String, context: Context, controller: SerialPortController) {
+fun downloadUpdateApk(
+    url: String,
+    context: Context,
+    controller: SerialPortController,
+) {
     var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         .toString() + "/"
-    val fileName = "AppName.apk"
+    val fileName = "ipradio.apk"
     destination += fileName
     val uri = Uri.parse("file://$destination")
 
@@ -60,46 +61,55 @@ fun downloadUpdateApk(url: String, context: Context, controller: SerialPortContr
     val file = File(destination)
     if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
         file.delete()
+
+    val successMsg = StringBuilder();
+
+    val errorMsg = StringBuilder();
     //set downloadmanager
     val request = DownloadManager.Request(Uri.parse(url))
     request.setDescription("update version")
-    request.setTitle(context.getString(R.string.app_name))
+    request.setTitle("ipradio.apk")
+    request.setMimeType("application/vnd.android.package-archive")
 
     //set destination
     request.setDestinationUri(uri)
 
     // get download service and enqueue file
     val manager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager?
-    val downloadId = manager!!.enqueue(request)
+    manager!!.enqueue(request)
 
     //set BroadcastReceiver to install app when .apk is downloaded
     val finalDestination = destination
     val onComplete: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(ctxt: Context, intent: Intent) {
-            //
-            //
             // Install Updated APK
             try {
+                //pm install -r /storage/emulated/0/Download/ipradio.apk
                 val command = "pm install -r $finalDestination"
                 val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 val test = proc.waitFor() // Error is here.
-                Log.d("ok", test.toString() + "")
-                Thread.sleep(15000)
+                Log.d("install", test.toString() + "")
+                Thread.sleep(30000)
                 doRestart(controller)
-                //                    if (proc.exitValue() == 0) {
-//                        // Successfully installed updated app
-//                        doRestart();
-//                    }
+
             } catch (e: Exception) {
-                Toast.makeText(context, "failed root",Toast.LENGTH_LONG).show()
+                Log.d("install", "failed root")
                 e.printStackTrace()
             }
+
+
+
+
         }
+
+
     }
+
     //register receiver for when .apk download is compete
     context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 }
 
-private fun doRestart(controller : SerialPortController) {
-    controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "",true)
+private fun doRestart(controller: SerialPortController) {
+    controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
 }
+

@@ -1,13 +1,14 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.network
 
 import android.annotation.SuppressLint
-import android.app.ActivityManager
 import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.content.Context.ACTIVITY_SERVICE
-import android.net.*
+import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Process
@@ -18,7 +19,6 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import java.util.*
-import kotlin.Exception
 
 
 class NetworkUtils private constructor() {
@@ -106,7 +106,7 @@ class NetworkUtils private constructor() {
 
     companion object {
         const val BASE_URL = "https://box.dev.tek4tv.vn/"
-        const val URL_HUB = "https://hub.dev.tek4tv.vn/iothub"
+
         private var INSTANCE: NetworkUtils? = null
         val instance: NetworkUtils
             get() {
@@ -217,7 +217,7 @@ class NetworkUtils private constructor() {
                     helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
                 val allTxByte =
                     helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
-
+                //data nhận, data gửi
                 "$allRxByte,$allTxByte"
             } catch (e: Exception) {
                 e.printStackTrace()
