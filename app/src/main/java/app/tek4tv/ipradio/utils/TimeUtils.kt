@@ -55,7 +55,7 @@ fun setSystemTime(requireTime: String) {
         process.waitFor()
         os.close()
     } catch (e: Exception) {
-        Log.e("checktime", e.message ?: "")
+        Log.e("timesync", e.message ?: "")
         e.printStackTrace()
     }
 }
@@ -74,11 +74,11 @@ fun checkTime()
                 if(abs(receivedDate.time - Date().time) > 30000)
                 {
 
-                    Log.d("CheckTime","Sync...")
+                    Log.d("Time","Sync")
 
                     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
                     setSystemTime(dateFormat.format(receivedDate))
-                    Log.d("CheckTime","Sync: ${dateFormat.format(receivedDate)}")
+
                     // Uncomment 2 below line be4 use this method
 
                     //cancelAllAlarm()

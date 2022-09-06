@@ -19,7 +19,6 @@ class GlobalProperties {
     val LATITUDE = "LATITUDE"
     val LONGTITUDE = "LONGTITUDE"
     val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
-    val USER_LEVEL = "USER_LEVEL"
 
 
     var volume = "100"
@@ -33,7 +32,6 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var level : Int = 0
 
     init {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
@@ -47,7 +45,6 @@ class GlobalProperties {
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        level = ConfigUtil.getInt(appContext,USER_LEVEL, 0)
     }
 
     fun saveProperties(responseHub: ResponseHub) {
@@ -98,9 +95,6 @@ class GlobalProperties {
             ConfigUtil.putFloat(appContext, LONGTITUDE, responseHub.lng!!)
             lng = responseHub.lng!!
         }
-
-        ConfigUtil.putInt(appContext, USER_LEVEL, responseHub.level)
-        level = responseHub.level
     }
 
 

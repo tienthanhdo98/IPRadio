@@ -78,13 +78,5 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
-
-         fun convertStringToInt(time: String): Int {
-            val listDur = time.split(":")
-            val h = listDur[0].toInt()
-            val m = listDur[1].toInt()
-            val s = listDur[2].toInt()
-            return (h * 3600 + m * 60 + s) / 60
-        }
     }
 }

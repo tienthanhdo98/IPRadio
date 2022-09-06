@@ -2,7 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
+import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
@@ -169,7 +169,7 @@ class VlcMediaPlayer(
         Log.e("check", "${now <= liveEndTime}")
         Log.e("check", "${stream.state != IMedia.State.Playing}")
 
-        Log.d(LOGTAG, "check: $check")
+        Log.d(PlayerManager.LOGTAG, "check: $check")
 
         return check
     }

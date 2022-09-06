@@ -71,18 +71,6 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun getInt(context: Context, key: String, defaultValue: Int): Int {
-        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        return sharedPref.getInt(key, defaultValue)
-    }
-
-    fun putInt(context: Context, key: String?, value: Int) {
-        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putInt(key, value)
-        editor.apply()
-    }
-
     fun getFloat(context: Context, key: String, defaultValue: Float): Float {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getFloat(key, defaultValue)
