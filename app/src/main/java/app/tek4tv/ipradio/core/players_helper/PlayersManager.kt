@@ -5,7 +5,6 @@ import android.util.Log
 import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
@@ -171,7 +170,7 @@ class PlayersManager(
 
             playMedia(mediaItem, timeStamp)
 
-            Log.d(PlayerManager.LOGTAG, "Play media $index")
+            Log.d("PlayerLog", "Play media $index")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -252,7 +251,7 @@ class PlayersManager(
 
             return Pair(0, 0)
         } catch (e: Exception) {
-            Log.e(PlayerManager.LOGTAG, "Error calculate resume")
+            Log.e("PlayerLog", "Error calculate resume")
             e.printStackTrace()
             return Pair(0, 0)
         }
@@ -311,7 +310,7 @@ class PlayersManager(
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-            if (playMode == PlayerManager.PLAY_MODE_FORCE) {
+            if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
@@ -378,5 +377,7 @@ class PlayersManager(
     companion object {
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
+        const val LOGTAG = "player"
     }
+
 }
