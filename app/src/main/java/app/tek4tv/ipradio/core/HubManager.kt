@@ -104,7 +104,7 @@ class HubManager(
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubgatewayhttt.tek4tv.vn/hubServer"
+            "https://hubbinhdinh.tek4tv.vn/hubServer"
         )
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
@@ -159,7 +159,7 @@ class HubManager(
             //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
             //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
             Log.i("urlbase", url!!)
-            val call = authService.getToken(body, url!!)
+            val call = authService.getToken(body, url)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -189,8 +189,8 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            Log.i("urlbase", urlToken!!)
-            val call = authService.getToken(body, urlToken!!)
+            Log.i("urlbase", urlToken)
+            val call = authService.getToken(body, urlToken)
             val response = call.execute()
 
             if (response.isSuccessful) {
