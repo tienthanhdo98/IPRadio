@@ -41,6 +41,19 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             time.timeInMillis,
             alarmIntent
         )
+
+        //
+
+        val piRestart = PendingIntent.getBroadcast(
+            appContext, 2, intent,
+            0
+        )
+
+        val date = Calendar.getInstance().time
+        //mor
+//       val hourRestart : Int = ConfigUtil.getInt(appContext,ConfigUtil.HOUR_RESTART, 11)
+//        val minusRestart : Int = ConfigUtil.getInt(appContext,ConfigUtil.MINUTE_RESTART, 44)
+        setupAlarmReset(date, alarmManager, piRestart, 6, 3)
     }
 
     fun setCheckHubAndResetAlarms() {
@@ -338,4 +351,30 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         if (ForceMedia.hasValidForceMedia(appContext)) cancelForceMediaAlarm()
         else cancelAllScheduledListAlarm()
     }
+
+    private fun setupAlarmReset(
+        date: Date,
+        alarmManager: AlarmManager,
+        pi: PendingIntent,
+        hour: Int,
+        min: Int,
+    ) {
+        val cal_alarm = Calendar.getInstance()
+        cal_alarm[Calendar.HOUR_OF_DAY] = hour
+        cal_alarm[Calendar.MINUTE] = min
+        cal_alarm[Calendar.SECOND] = 0
+
+        val alarmDate = cal_alarm.time
+        if (alarmDate.before(date)) {
+            Log.d("alarmx", "restart....")
+            cal_alarm.add(Calendar.DATE, 1)
+        }
+        cal_alarm.time
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            cal_alarm.timeInMillis,
+            pi
+        )
+    }
+
 }

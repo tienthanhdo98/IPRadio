@@ -550,6 +550,36 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
 
                 }
+
+                HubCommand.SCHEDULE_RESTART_TIME -> {
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"12,1"}
+                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
+                    val mess = responseHub.message!!
+                    val hour = mess.split(",")[0]
+                    val minute = mess.split(",")[1]
+                    Log.i("Restart_config_time", hour)
+                    Log.i("Restart_config_time token", minute)
+
+                    lifecycleScope.launch {
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.HOUR_RESTART,
+                                hour
+                            )
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.MINUTE_RESTART,
+                                minute
+                            )
+                            Log.i("config_config", "updateconfig success: reseting")
+                            delay(20000)
+                            serialPortController.hardRestart()
+
+                        }
+
+                    }
+
+
                 HubCommand.PLAYLIST_INFO -> {
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {

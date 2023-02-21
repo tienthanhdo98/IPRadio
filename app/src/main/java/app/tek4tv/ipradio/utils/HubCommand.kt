@@ -14,6 +14,7 @@ object HubCommand {
     const val JUMP = "JUMP"
     const val LIVE = "LIVE"
     const val UPDATE_CONFIG = "UPDATE_CONFIG"
+    const val SCHEDULE_RESTART_TIME = "SCHEDULE_RESTART_TIME"
     const val FM = "FM"
     const val UPDATE_STATUS = "UPDATE_STATUS"
     const val SET_VOLUME_DEVICE = "SET_VOLUME_DEVICE"
