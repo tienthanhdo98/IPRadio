@@ -229,7 +229,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
             }
-
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
@@ -360,10 +359,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
                     }
-
-
                 }
             }
+            MediaScheduleReceiver.ACTION_RESET_BY_TIME -> {
+                    lifecycleScope.launch {
+                        serialPortController.turnOffPA()
+                        delay(3000)
+                        Log.e("alarmx", "Hub restart")
+                        serialPortController.hardRestart()
+                    }
+            }
+
         }
     }
 

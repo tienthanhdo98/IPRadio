@@ -33,6 +33,8 @@ class MediaScheduleReceiver : BroadcastReceiver() {
         const val ACTION_RESCHEDULE = "ACTION_RESCHEDULE"
         //check khi 00:30 co hub không, không có thì reset thiết bị
         const val ACTION_CHECKHUB_RESET= "ACTION_CHECKHUB_RESET"
+        //restart config time
+        const val ACTION_RESET_BY_TIME= "ACTION_RESET_BY_TIME"
     }
 }
 

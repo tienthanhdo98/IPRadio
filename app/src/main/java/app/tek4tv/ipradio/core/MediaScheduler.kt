@@ -12,7 +12,6 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.*
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
@@ -44,8 +43,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         //
 
+        val intentResetByTime = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_RESET_BY_TIME
+        }
+
         val piRestart = PendingIntent.getBroadcast(
-            appContext, 2, intent,
+            appContext, 2, intentResetByTime,
             0
         )
 
