@@ -1,33 +1,59 @@
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <org.videolan.libvlc.util.VLCVideoLayout
-        android:id="@+id/vlc_video_layout"
+    <WebView
+        android:id="@+id/webview"
         android:layout_width="match_parent"
-        android:keepScreenOn="true"
         android:layout_height="match_parent" />
-    <FrameLayout
-        android:id="@+id/root_layout"
+
+    <!--ngang-->
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/layoutInfoNgang"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="gone"
-        android:background="@color/black"
-        android:keepScreenOn="true" />
+        android:visibility="visible"
+        android:background="@android:color/transparent">
 
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textColor="@color/white"
-        android:layout_alignParentEnd="true"
-        android:layout_margin="20dp"
-        android:id="@+id/tvMac"
-        android:elevation="10dp"
-        android:text="asdasdsad"
-        android:layout_alignParentBottom="true"/>
+        <TextView
+            android:id="@+id/tvCheckInternet"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="25dp"
+            android:layout_marginBottom="30dp"
+            android:elevation="16dp"
+            android:text="Online"
+            android:textColor="@color/green_online"
+            android:textSize="16sp"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent" />
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:id="@+id/tvMacAddress"
+            android:layout_marginEnd="20dp"
+            android:text="00:00:00"
+            android:textColor="@color/white"
+            app:layout_constraintTop_toTopOf="@id/tvCheckInternet"
+            app:layout_constraintBottom_toBottomOf="@id/tvCheckInternet"
+            app:layout_constraintEnd_toStartOf="@id/tvCheckInternet"/>
+        <TextView
+            android:id="@+id/tvTimeDevice"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_gravity="top|right"
+            android:layout_marginTop="10dp"
+            android:layout_marginEnd="25dp"
+            android:text="00:00 SA"
+            android:textColor="@color/white"
+            android:textSize="16sp"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 
-</RelativeLayout>
+</FrameLayout>
 
 

@@ -5,29 +5,26 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.media.MediaCodecList
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.FrameLayout
+import android.webkit.WebChromeClient
+import android.webkit.WebSettings
+import android.webkit.WebView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.HubManager
-import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.SerialPortController
-import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
+import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
@@ -46,10 +43,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.IOException
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -100,119 +95,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var rootLayout: FrameLayout
-    private lateinit var vlcVideoLayout: VLCVideoLayout
-
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
+    private lateinit var webview: WebView
 
-    // event media
-    private val playerCallback = object : IPlayerManagerListener {
-        override fun onTimeOver() {
-            serialPortController.turnOffPA()
-            hubManager.curMediaName = ""
-            hubManager.currentMediaItem = null
-        }
-
-        //Bắt đầu khung thời gian
-        override fun onStartTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logStartTimeFrame(frame)
-            }
-        }
-
-        //Kết thúc khung gian
-        override fun onEndTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logEndTimeFrame(frame)
-            }
-            val sdf = SimpleDateFormat("dd/M/yyyy")
-            val currentDate = sdf.format(Date())
-            val currentDateStr = currentDate.replace("/", "")
-            logUtils.sendLogFile("media", currentDateStr)
-        }
-
-        //Phát FM
-        override fun onPlayTuner(mediaItem: MediaItem) {
-            try {
-                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
-                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
-                hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
-
-
-
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        //Dừng phát khẩn cấp
-        override fun onEndForceMedia() {
-            ForceMedia.deleteForeMediaPref(applicationContext)
-//            logUtils.logMediaEnd(mediaItem!!)
-            startPlayingMedia()
-        }
-
-        //Lỗi luồng live
-        override fun onLiveError() {
-            hubManager.curMediaName = ""
-            hubManager.currentMediaItem = null
-
-            serialPortController.turnOffPA()
-        }
-
-        override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-            logUtils.logMediaEnd(mediaItem)
-        }
-
-        override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-            hubManager.playlistIndex = playerManager.playlistIndex
-            hubManager.currentMediaItem = mediaItem
-
-            val displayName = mediaItem?.title ?: ""
-            hubManager.curMediaName = displayName
-
-            if (mediaItem?.getMediaType() != MediaType.FM) {
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.turnOnPAVod()
-                    }
-                } else {
-                    serialPortController.turnOnPAVod()
-                }
-            }
-            val paState =
-                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                else "0"
-            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
-            if (globalProperties.logEnabled) {
-                try {
-                    viewModel.currentMedia = mediaItem
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-        }
-    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -247,6 +134,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         hubManager.logService = logService
 
+        initWebview()
+
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         // serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -258,24 +147,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        rootLayout = findViewById(R.id.root_layout)
-        vlcVideoLayout = findViewById(R.id.vlc_video_layout)
-        playerManager = PlayersManager(
-            applicationContext,
-            rootLayout,
-            vlcVideoLayout,
-            viewModel.mediaRepo
-        ) //PlayerManager(applicationContext, viewModel, rootLayout)
-        playerManager.playerManagerListener = playerCallback
-
-        hubManager.hubEventObserver.add(playerManager)
 
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
         registerObservers()
+        playWebview()
 
-        appStorageManager = AppStorageManager(applicationContext)
+
+        //appStorageManager = AppStorageManager(applicationContext)
 
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
@@ -290,31 +170,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     }
 
+    private fun initWebview() {
+        webview = findViewById(R.id.webview)
+        webview.settings.apply {
+            allowContentAccess = true
+            allowFileAccess = true
+            domStorageEnabled = true
+            javaScriptEnabled = true
+            loadsImagesAutomatically = true
+            setRenderPriority(WebSettings.RenderPriority.HIGH)
+            /*loadWithOverviewMode = true
+            useWideViewPort = true*/
+        }
+        val userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit" +
+                "/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3"
+        webview.settings.setUserAgentString(userAgent)
+
+        webview.webChromeClient = WebChromeClient()
+        webview.addJavascriptInterface(WebViewJsInterface(webview), "MainActivity")
+
+//        webview.webViewClient = object : WebViewClient() {
+//            override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
+//                return false
+//            }
+//        }
+    }
+
 
     private fun showMac() {
-        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val tvMacAdress = findViewById<TextView>(R.id.tvMacAddress)
+
         val imei = Utils.getDeviceId(this)
+        Log.i("tvMacAdress", "showMac: $imei")
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
     }
 
 
-    override fun onStop() {
-        super.onStop()
-        playerManager.onActivityStop()
-        cancelAllAlarm()
-    }
 
-    override fun onDestroy() {
-        super.onDestroy()
-        playerManager.onActivityDestroy()
-        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-
-    }
-
-    override fun onStart() {
-        super.onStart()
-        startPlayingMedia()
-    }
 
     override fun onAlarm(intent: Intent) {
         when (intent.action) {
@@ -371,13 +263,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -409,41 +301,60 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         return needGrantPermission
     }
 
+    private fun playWebview() {
+
+        //webview.loadUrl("http://digitalweb.httt.vtcplay.vn/")
+        webview.loadUrl("https://webdigital.httt.vtcplay.vn/")
+
+//        Handler().postDelayed({
+//            webview.loadUrl("javascript:getCommandDivice('Template','2')")
+//            Log.d("WebviewHandle", "sendCommand: sendLive ")
+//            //doSomethingHere()
+//        }, 7000)
+
+//        Handler().postDelayed({
+//            webview.loadUrl("javascript:getCommandDivice('Template','1')")
+//            Log.d("WebviewHandle", "sendCommand: sendLive ")
+//            //doSomethingHere()
+//        }, 15000)
+
+        val codecList = MediaCodecList(MediaCodecList.ALL_CODECS)
+
+// Get an array of MediaCodecInfo objects representing the available codecs
+
+// Get an array of MediaCodecInfo objects representing the available codecs
+        val codecInfos = codecList.codecInfos
+
+// Loop through the codecs and print their names and supported types
+
+// Loop through the codecs and print their names and supported types
+        for (codecInfo in codecInfos) {
+            if (!codecInfo.isEncoder) { // Only check decoder codecs
+                val codecName = codecInfo.name
+                val types = codecInfo.supportedTypes
+                // Print the codec name and supported types
+                Log.d("Codec", "Codec: " + codecName + ", types: " + Arrays.toString(types))
+            }
+        }
+
+    }
+
     private fun registerObservers() {
-        /**
-         * khi cần
-         * **/
         viewModel.content.observe(this)
         {
+            playWebview()
             viewModel.downloadMedias()
 
-            //Check xem có đang phát khẩn cấp không
-            //Nếu có thì phát media khẩn cấp
-            //Media khẩn cấp lưu share pref
-            if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                mediaScheduler.scheduleForceMediaAlarm()
-                val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                if (forceMedia != null)
-                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
-
-                return@observe
-            }
 
             //default
             mediaScheduler.scheduleAllAlarms()
             //check hub
             mediaScheduler.setCheckHubAndResetAlarms()
 
-            playerManager.startFirstTimeFrame()
 
-            //all load done, check
-            viewModel.checkPlaylist()
         }
     }
 
-    fun startPlayingMedia() {
-        viewModel.getPlayerContent("", false)
-    }
 
     private fun initHubConnect() {
         hubManager.connectToHub()
@@ -468,43 +379,53 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
-                    val mess = responseHub.message!!
-                    lifecycleScope.launch {
+//                    val mess = responseHub.message!!
+//                    lifecycleScope.launch {
+//
+//                        viewModel.checkTimeAndLevel(mess).collect {
+//
+//                            Log.i("timeandlevel", "handleFromCommandServer: $it")
+//                        }
+//                    }
+//
+//                    //add at 3.0.5
+//                    playerManager.stopAllPlayer()
+//                    playerManager.resetPlayMode()
+//
+//                    //lưu thông số vol, pi,...
+//                    globalProperties.saveProperties(responseHub)
+//
+//                    serialPortController.writeForceSetVolume(responseHub.volume)
+//
+//                    cancelAllAlarm()
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
+//
+//                    viewModel.getPlayerContent(mess, true)
 
-                        viewModel.checkTimeAndLevel(mess).collect {
 
-                            Log.i("timeandlevel", "handleFromCommandServer: $it")
-                        }
-                    }
+                        webview.loadUrl("javascript:getCommandDivice('Template','2')")
+                        Log.d("WebviewHandle", "sendCommand: sendLive ")
 
-                    //add at 3.0.5
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
 
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
 
-                    serialPortController.writeForceSetVolume(responseHub.volume)
 
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-
-                    viewModel.getPlayerContent(mess, true)
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                    val mess = responseHub.message!!
-                    playerManager.stopAllPlayer()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-
-                    Log.i("monthlyinfo", "Mess: $mess ")
+//                    val mess = responseHub.message!!
+//                    playerManager.stopAllPlayer()
+//                    cancelAllAlarm()
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
+//                    viewModel.updateMonthlyScenario(mess, true)
+//                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
+//
+//                    Log.i("monthlyinfo", "Mess: $mess ")
+                    webview.loadUrl("javascript:getCommandDivice('Template','1')")
+                    Log.d("WebviewHandle", "sendCommand: sendLive ")
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    onPlayForce(responseHub)
+                    //onPlayForce(responseHub)
                 }
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!
@@ -575,7 +496,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
                 HubCommand.FM -> {
-                    onPlayForce(responseHub)
+                    //onPlayForce(responseHub)
                 }
 
                 HubCommand.UPDATE_STATUS -> {
@@ -595,10 +516,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     } else Log.d("location", "location not found")
                 }
                 HubCommand.RESTART -> {
-                    serialPortController.hardRestart()
+//                    serialPortController.hardRestart()
+                    webview.loadUrl("http://digitalweb.httt.vtcplay.vn/")
                 }
                 HubCommand.SWITCH_MODE_FM -> {
-                    onPlayForce(responseHub)
+                  //  onPlayForce(responseHub)
                 }
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
@@ -794,15 +716,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private fun onPlayForce(responseHub: ResponseHub) {
-        //Tránh trường hợp âm lượng bị tắt
-        serialPortController.writeForceSetVolume(globalProperties.volume)
-        playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
-    }
 
     private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 
