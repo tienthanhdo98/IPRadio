@@ -106,10 +106,7 @@ class HubManager(
             ConfigUtil.URL_HUB,
             "https://hubbinhdinh.tek4tv.vn/hubServer"
         )
-        //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
-        //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
-        //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
-        //"https://hubgatewayhttt.tek4tv.vn/hubServer" hub ssl
+
         Log.i("urlbase", hubUrl!!)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
