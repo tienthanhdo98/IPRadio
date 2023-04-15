@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         //app.tek4tv.ipradio
-        applicationId "app.tek4tv.ipradio"
+        applicationId "app.tek4tv.digital"
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 5
