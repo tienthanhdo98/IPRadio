@@ -22,7 +22,10 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
         if (appInstance != null) {
             logToFile(thread, ex)
 
-            //restartApp(appInstance, activity)
+           // restartApp(appInstance, activity)
+        }
+        if (appInstance != null) {
+            restartApp(appInstance, activity)
         }
     }
 
@@ -35,7 +38,6 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
             out.println("------------------------")
 
             out.println("${df.format(Calendar.getInstance().time)}\n")
-
             out.println("Thread name: ${thread.name}")
             out.println("Message: ${ex.message}")
             out.println("Cause: ${ex.cause}")

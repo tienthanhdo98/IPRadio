@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
@@ -31,6 +33,7 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -226,7 +229,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     delay(3000)
                     CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
-
             }
 
             override fun forceRestartDevice() {
@@ -290,6 +292,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+        //1 % 0
+
+        restartApp(MyApp(),this)
+
+
     }
 
 
