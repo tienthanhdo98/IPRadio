@@ -115,24 +115,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.currentMediaItem = null
         }
 
-        //Bắt đầu khung thời gian
-        override fun onStartTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logStartTimeFrame(frame)
-            }
-        }
-
-        //Kết thúc khung gian
-        override fun onEndTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logEndTimeFrame(frame)
-            }
-            val sdf = SimpleDateFormat("dd/M/yyyy")
-            val currentDate = sdf.format(Date())
-            val currentDateStr = currentDate.replace("/", "")
-            logUtils.sendLogFile("media", currentDateStr)
-        }
-
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
@@ -292,9 +274,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        //1 % 0
-
-        restartApp(MyApp(),this)
 
 
     }
@@ -770,10 +749,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.getPlayerContent("", false)
                 }
 
-                HubCommand.GET_LOG_FILE -> {
-                    val data = responseHub.message?.split('-') ?: return
-                    logUtils.sendLogFile(data[0], data[1])
-                }
+
 
             }
 

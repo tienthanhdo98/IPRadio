@@ -2,12 +2,16 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.PlayerManager
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -17,8 +21,8 @@ import java.util.*
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
-    private val mLibVLC: LibVLC
-    private val vlcPlayer: CustomPlayer
+    private var mLibVLC: LibVLC
+    private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaItem? = null
     private var currentVlcMedia: Media? = null
 
@@ -26,6 +30,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     private var lastError = -1
    // private var endCount = 0
+    var countReplayLive = 0;
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -45,9 +50,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
+                    Log.e(TAG, "EncounteredError File")
                     playerEventListener.onPlayerError(VlcException("EncounteredError"))
                     isPlaying = false
                 } else {
+                    Log.e(TAG, "EncounteredError Live")
                     if (!disconnectedHub)
                         onLiveErrorVlc()
                 }
@@ -136,12 +143,17 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
+      
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
 
         currentVlcMedia = stream
 
         vlcPlayer.play(stream)
+
+      
+
+
     }
 
     //check xem có đang trong giờ phát luồng live
@@ -171,10 +183,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         try {
             val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
 
-            if (isStreamFailed) {
+            if (isStreamFailed && countReplayLive < 3) {
                 isPlaying = false
                 playerEventListener.onPlayerError(VlcException("Stream failed!"), true)
-                playLiveStream(currentMedia!!)
+//                GlobalScope.launch {
+//                    countReplayLive ++;
+//                    delay(2000)
+//                    playMedia(currentMedia!!)
+//                }
             } else {
                 Log.d(TAG, "Stopping from reconnect")
                 stop()

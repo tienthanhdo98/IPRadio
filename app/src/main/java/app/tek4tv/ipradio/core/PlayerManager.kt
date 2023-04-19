@@ -371,7 +371,7 @@ class PlayerManager(
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        IPlayerManagerListener?.onStartTimeFrame(timeFrame)
+
         currentPlaylistKey = timeFrame
 
         currentPlaylist = playlistRepo.scheduledList[timeFrame] ?: listOf()
@@ -449,7 +449,7 @@ class PlayerManager(
         currentPlaylistKey = ""
         stopAllPlayer()
 
-        IPlayerManagerListener?.onEndTimeFrame(cancelListKey)
+
 
         //check time over
         isTimeOver = true

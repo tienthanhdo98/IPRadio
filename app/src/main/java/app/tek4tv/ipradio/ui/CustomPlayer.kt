@@ -21,4 +21,5 @@ class CustomPlayer(libVlc: LibVLC) : MediaPlayer(libVlc)
         mainHandler.post { eventListener.invoke(eventType, arg1, arg2, argf1, args1) }
         return res
     }
+
 }

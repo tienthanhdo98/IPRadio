@@ -145,7 +145,7 @@ class PlayersManager(
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        playerManagerListener?.onStartTimeFrame(timeFrame)
+
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
@@ -275,7 +275,7 @@ class PlayersManager(
         playMode = ""
         stopAllPlayer()
 
-        playerManagerListener?.onEndTimeFrame(cancelListKey)
+
 
         //check time over
         isTimeOver = true

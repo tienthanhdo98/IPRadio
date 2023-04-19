@@ -214,17 +214,6 @@ class HubManager(
 
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
                 val currentTime = Calendar.getInstance().time
-                logUtils.logHubConnectState(
-                    HubStateRecord(
-                        imei = deviceImei,
-                        provider = provider,
-                        state = "CONNECTED",
-                        networkType = NetworkUtils.getNetworkClass(appContext),
-                        destinationID = logUtils.destinationId,
-                        destinationName = logUtils.destinationName,
-                        start = currentTime.time.toString()
-                    )
-                )
                 Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
                 //send disconn log when connect
                 if (ConfigUtil.checkSharef(
@@ -240,17 +229,7 @@ class HubManager(
                     val disconnectState =
                         ConfigUtil.getString(appContext, keyState, "0")
                             ?: "DISCONNECT"
-                    logUtils.logHubConnectState(
-                        HubStateRecord(
-                            imei = deviceImei,
-                            provider = provider,
-                            state = disconnectState,
-                            networkType = NetworkUtils.getNetworkClass(appContext),
-                            destinationID = logUtils.destinationId,
-                            destinationName = logUtils.destinationName,
-                            start = disconnectTime
-                        )
-                    )
+
                     Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
                     ConfigUtil.removeSharef(appContext, keyStartDis)
                     ConfigUtil.removeSharef(appContext, keyState)
@@ -309,17 +288,7 @@ class HubManager(
 
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
                 val currentTime = Calendar.getInstance().time
-                logUtils.logHubConnectState(
-                    HubStateRecord(
-                        imei = deviceImei,
-                        provider = provider,
-                        state = "CONNECTED",
-                        networkType = NetworkUtils.getNetworkClass(appContext),
-                        destinationID = logUtils.destinationId,
-                        destinationName = logUtils.destinationName,
-                        start = currentTime.time.toString()
-                    )
-                )
+
                 Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
                 //send disconn log when connect
                 if (ConfigUtil.checkSharef(
@@ -335,17 +304,7 @@ class HubManager(
                     val disconnectState =
                         ConfigUtil.getString(appContext, keyState, "0")
                             ?: "DISCONNECT"
-                    logUtils.logHubConnectState(
-                        HubStateRecord(
-                            imei = deviceImei,
-                            provider = provider,
-                            state = disconnectState,
-                            networkType = NetworkUtils.getNetworkClass(appContext),
-                            destinationID = logUtils.destinationId,
-                            destinationName = logUtils.destinationName,
-                            start = disconnectTime
-                        )
-                    )
+
                     Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
                     ConfigUtil.removeSharef(appContext, keyStartDis)
                     ConfigUtil.removeSharef(appContext, keyState)
