@@ -53,7 +53,7 @@ class ExoMediaPlayer(
             //if hub connection has been lost, exit then try to reconnect when hub connected again
             //else try to reconnect to livestream immediately
 
-            eventListener.onPlayerError(error, true)
+            eventListener.onPlayerError(error, true,currentPlayingMedia!! )
 
             if(disconnectedHub) return
 

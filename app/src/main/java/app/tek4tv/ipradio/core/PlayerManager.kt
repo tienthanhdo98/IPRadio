@@ -76,16 +76,18 @@ class PlayerManager(
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
 
-            Log.d(LOGTAG,"exoerror: ${error.message?:""}")
-
-            isLiveStreamError = true
-
-            IPlayerManagerListener?.onLiveError()
-
-            if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!)) {
-                playMedia(currentPlayingMedia!!)
-                Log.d(LOGTAG, "aaaaaaaaa")
-            }
+            //and vi dang dung vlc player
+//
+//            Log.d(LOGTAG,"exoerror: ${error.message?:""}")
+//
+//            isLiveStreamError = true
+//
+//            IPlayerManagerListener?.onLiveError()
+//
+//            if(currentPlayingMedia!=null && checkHls(currentPlayingMedia!!)) {
+//                playMedia(currentPlayingMedia!!)
+//                Log.d(LOGTAG, "aaaaaaaaa")
+//            }
         }
     }
 
@@ -288,7 +290,7 @@ class PlayerManager(
         if (a && reconnectingLiveStreamJob == null)
             tryReconnectLiveStream(mediaItem)
         isLiveStreamError = true
-        IPlayerManagerListener?.onLiveError()
+        IPlayerManagerListener?.onLiveError(mediaItem)
     }
 
     private fun playHlsExo(mediaItem: MediaItem)

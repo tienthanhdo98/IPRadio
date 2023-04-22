@@ -51,7 +51,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 Log.e(TAG, "EncounteredError")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     Log.e(TAG, "EncounteredError File")
-                    playerEventListener.onPlayerError(VlcException("EncounteredError"))
+                    playerEventListener.onPlayerError(VlcException("EncounteredError"),false,
+                        currentMedia!!
+                    )
                     isPlaying = false
                 } else {
                     Log.e(TAG, "EncounteredError Live")
@@ -185,7 +187,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
             if (isStreamFailed && countReplayLive < 3) {
                 isPlaying = false
-                playerEventListener.onPlayerError(VlcException("Stream failed!"), true)
+                playerEventListener.onPlayerError(VlcException("Stream failed!"), true,currentMedia!!)
+                //playMedia(currentMedia!!)
 //                GlobalScope.launch {
 //                    countReplayLive ++;
 //                    delay(2000)
