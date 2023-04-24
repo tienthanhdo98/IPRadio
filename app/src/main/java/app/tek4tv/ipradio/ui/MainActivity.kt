@@ -172,9 +172,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         //Lỗi luồng live
-        override fun onLiveError() {
-            hubManager.curMediaName = ""
-            hubManager.currentMediaItem = null
+        override fun onLiveError(mediaItem: MediaItem) {
+            hubManager.curMediaName = "Live Error"
+            hubManager.currentMediaItem = mediaItem
 
             serialPortController.turnOffPA()
         }

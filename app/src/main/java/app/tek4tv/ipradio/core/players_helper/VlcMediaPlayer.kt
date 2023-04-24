@@ -49,7 +49,7 @@ class VlcMediaPlayer(
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
-                    playerEventListener.onPlayerError(VlcException("EncounteredError"))
+                    playerEventListener.onPlayerError(VlcException("EncounteredError"),false,  currentMedia!!)
                     isPlaying = false
                 } else {
                     if (!disconnectedHub)
@@ -181,8 +181,8 @@ class VlcMediaPlayer(
 
             if (isStreamFailed) {
                 isPlaying = false
-                playerEventListener.onPlayerError(VlcException("Stream failed!"), true)
-                playLiveStream(currentMedia!!)
+                playerEventListener.onPlayerError(VlcException("Stream failed!"), true,currentMedia!!)
+              //  playLiveStream(currentMedia!!)
             } else {
                 Log.d(TAG, "Stopping from reconnect")
                 stop()

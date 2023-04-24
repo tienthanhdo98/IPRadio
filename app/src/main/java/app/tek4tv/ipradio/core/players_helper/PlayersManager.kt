@@ -70,11 +70,11 @@ class PlayersManager(
 
     var played = false
 
-    override fun onPlayerError(e: Exception?, isLiveError: Boolean) {
+    override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
             //To log stream played duration
             onMediaStopPlaying()
-            playerManagerListener?.onLiveError()
+            playerManagerListener?.onLiveError(mediaItem)
         }
     }
 

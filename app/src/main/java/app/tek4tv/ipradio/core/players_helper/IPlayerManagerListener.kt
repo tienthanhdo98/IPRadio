@@ -10,7 +10,7 @@ interface IPlayerManagerListener {
     fun onStartTimeFrame(frame: String)
     fun onEndTimeFrame(frame: String)
     fun onPlayTuner(mediaItem: MediaItem)
-    fun onLiveError()
+    fun onLiveError(mediaItem: MediaItem)
     fun onEndForceMedia()
     fun onPlayMediaSuccess(mediaItem: MediaItem?)
     fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long)
