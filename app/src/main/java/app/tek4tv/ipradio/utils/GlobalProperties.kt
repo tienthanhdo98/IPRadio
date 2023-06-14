@@ -58,11 +58,11 @@ class GlobalProperties {
         }
         if (responseHub.userNameControl != "" && responseHub.userNameControl != null) {
             ConfigUtil.putString(appContext, USER_NAME_CONTROLLER, responseHub.userNameControl)
-            userNameController = responseHub.userNameControl!!
+            userNameController = responseHub.userNameControl ?: ""
         }
         if (responseHub.deviceName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
-            nameDevice = responseHub.deviceName!!
+            nameDevice = responseHub.deviceName ?: ""
         }
 
         if (responseHub.psName != "") {
@@ -71,11 +71,11 @@ class GlobalProperties {
         }
         if (responseHub.destinationId != "" && responseHub.destinationId != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_ID, responseHub.destinationId)
-            destinationId = responseHub.destinationId!!
+            destinationId = responseHub.destinationId?: ""
         }
         if (responseHub.destinationName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_NAME, responseHub.destinationName)
-            destinationName = responseHub.destinationName!!
+            destinationName = responseHub.destinationName?: ""
         }
 
         if (responseHub.logEnabled != null) {
@@ -89,11 +89,11 @@ class GlobalProperties {
         }
         if (responseHub.lat != null) {
             ConfigUtil.putFloat(appContext, LATITUDE, responseHub.lat!!)
-            lat = responseHub.lat!!
+            lat = responseHub.lat ?: 0f
         }
         if (responseHub.lng != null) {
             ConfigUtil.putFloat(appContext, LONGTITUDE, responseHub.lng!!)
-            lng = responseHub.lng!!
+            lng = responseHub.lng ?: 0f
         }
     }
 

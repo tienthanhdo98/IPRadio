@@ -35,17 +35,20 @@ class Utils {
         }
 
         fun getMacAddr(): String {
+
+
             try {
                 val all: List<NetworkInterface> =
                     Collections.list(NetworkInterface.getNetworkInterfaces())
                 for (nif in all) {
                     if (!nif.name.equals("wlan0", ignoreCase = true)) continue
-                    val macBytes = nif.hardwareAddress ?: return ""
+                    val macBytes = nif.hardwareAddress
                     val res1 = StringBuilder()
                     for (b in macBytes) {
                         //res1.append(Integer.toHexString(b & 0xFF) + ":");
                         res1.append(String.format("%02X:", b))
                     }
+
                     if (res1.length > 0) {
                         res1.deleteCharAt(res1.length - 1)
                     }
