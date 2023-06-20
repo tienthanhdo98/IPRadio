@@ -469,10 +469,12 @@ class HubManager(
                 createDate = (currentTime.time / 1000)
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = isRecording
+                deviceInfo = SerialPortController.deviceInfo
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub: ${request.startTime}")
+            Log.i("loghub", "log hub: ${request.deviceInfo}")
             Log.i("loghub", "log hub: ${request.networkInfo}")
 
         } catch (e: java.lang.Exception) {

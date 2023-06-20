@@ -129,6 +129,7 @@ class SerialPortController(
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
+                            deviceInfo = s
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (list.size > 4) {
@@ -253,5 +254,6 @@ class SerialPortController(
         const val MODE_NONE = "MODE_NONE"
         const val LOG_TAG = "SerialPortController"
         var volume: String = ""
+        var deviceInfo: String = ""
     }
 }
