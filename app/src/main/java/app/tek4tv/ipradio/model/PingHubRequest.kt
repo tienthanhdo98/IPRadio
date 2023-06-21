@@ -75,4 +75,7 @@ class PingHubRequest {
     @Json(name = "IsRecord")
     var isRecord: String? = null
 
+    @Json(name = "DeviceInfo")
+    var deviceInfo : String? = null
+
 }

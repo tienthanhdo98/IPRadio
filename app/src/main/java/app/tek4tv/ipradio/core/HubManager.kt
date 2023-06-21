@@ -515,6 +515,7 @@ class HubManager(
                 createDate = (currentTime.time / 1000)
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = isRecording
+                deviceInfo = SerialPortController.deviceInfo
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
