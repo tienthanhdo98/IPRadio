@@ -210,7 +210,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 lifecycleScope.launch {
                     serialPortController.turnOffPA()
                     delay(3000)
-                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                    restartApp(MyApp.instance!!, this@MainActivity)
                 }
             }
 
@@ -282,7 +282,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //res1.append(Integer.toHexString(b & 0xFF) + ":");
                     res1.append(String.format("%02X:", b))
                 }
-                if (res1.length > 0) {
+                if (res1.isNotEmpty()) {
                     res1.deleteCharAt(res1.length - 1)
                 }
                 return res1.toString()
@@ -473,6 +473,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
+
                     val mess = responseHub.message!!
 
                     //add at 3.0.5

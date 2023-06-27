@@ -101,6 +101,7 @@ class MediaRepo @Inject constructor(
     }
 
     private fun filterMedia(mediaList: List<MediaItem>) {
+        //chia ta thanh cac cap [0,4], [5,8]
         val dividerIndices = mediaList.indices.filter {
             mediaList[it].body == "start" || mediaList[it].body == "end"
         }.chunked(2)

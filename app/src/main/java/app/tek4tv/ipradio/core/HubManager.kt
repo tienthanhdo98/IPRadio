@@ -429,8 +429,8 @@ class HubManager(
             var mode = "-1"
 
             if (currentMediaItem != null) {
-                val path = currentMediaItem!!.body
-                mode = if (path!!.isNotEmpty() && !File(path).exists()) "1"
+                val path = currentMediaItem!!.pathBackup
+                mode = if (path.isNotEmpty() && !File(path).exists()) "1"
                 else "0"
             }
 
@@ -438,7 +438,7 @@ class HubManager(
 
                 if (currentMediaItem != null) {
                     mediaName = curMediaName
-                    path = currentMediaItem!!.body!!
+                    path = currentMediaItem!!.pathBackup
                     level = currentMediaItem!!.level
                 }
             }
@@ -446,8 +446,6 @@ class HubManager(
             val currentTime = Calendar.getInstance().time
 
             val isRecording = if (mediaCapture.isRecordingAudio) "1" else "0"
-
-            Log.i("kaka l", "isRecord: $isRecording")
 
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -473,9 +471,8 @@ class HubManager(
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.startTime}")
+            Log.i("loghub", "log hub: ${request.video}")
             Log.i("loghub", "log hub: ${request.deviceInfo}")
-            Log.i("loghub", "log hub: ${request.networkInfo}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
