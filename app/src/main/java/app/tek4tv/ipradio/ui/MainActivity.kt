@@ -650,7 +650,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-
                 HubCommand.STORAGE_INFO -> {
                     val connectionId = responseHub.message
                     if (connectionId != null) {
