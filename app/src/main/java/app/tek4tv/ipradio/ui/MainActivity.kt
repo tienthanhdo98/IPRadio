@@ -574,7 +574,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_STATUS -> {
-                    serialPortController.updateStatus()
+//                    serialPortController.updateStatus()
                 }
                 HubCommand.GET_LOCATION -> {
                     val connectionId = responseHub.message

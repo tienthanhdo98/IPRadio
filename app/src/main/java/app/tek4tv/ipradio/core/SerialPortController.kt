@@ -49,6 +49,13 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
+        coroutineScope.launch(Dispatchers.IO) {
+            while (true) {
+                 updateStatus()
+                delay(5000)
+            }
+        }
+
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
                 while (true) {

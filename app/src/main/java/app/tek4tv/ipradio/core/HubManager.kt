@@ -36,7 +36,9 @@ class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
     var mediaCapture: MediaCapture,
+
     var onMessageListener: (command: String?, message: String?) -> Unit,
+
     ) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 15
@@ -347,9 +349,11 @@ class HubManager(
                                     notifyDisconnected.compareAndSet(true, false)
                                 }
 
+
                                 if (firstConnect) firstConnect = false
 
                                 pingCounter = 0
+
                             }
                             HubCommand.UPDATE_CONFIG -> {
                                 meessDe = b64Decode(message)
@@ -401,7 +405,6 @@ class HubManager(
 
     fun sendHubDirectMessage(connectionId: String, command: String, message: String) {
         val directMessage = DirectMessage(deviceImei, message)
-
         sendDirectMessage(
             connectionId, command,
             Utils.toJsonString(moshi, DirectMessage::class.java, directMessage)
