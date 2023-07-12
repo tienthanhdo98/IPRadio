@@ -475,15 +475,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_LIST -> {
 
                     val mess = responseHub.message!!
-
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
 
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
+                    if(responseHub.volume != ""){
+                        serialPortController.writeForceSetVolume(responseHub.volume)
+                    }
+                    else
+                    {
+                        serialPortController.writeForceSetVolume("100")
+                    }
 
-                    serialPortController.writeForceSetVolume(responseHub.volume)
 
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
