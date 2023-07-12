@@ -117,6 +117,7 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
+    var isInTimeFrame = false;
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
@@ -128,14 +129,19 @@ class PlayersManager(
 
             val now = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
-
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
-
+                Log.d(PlayerManager.LOGTAG, "Play media in timeframe")
                 found = true
-
+                isInTimeFrame = true
                 break
             }
+            else
+            {
+                isInTimeFrame = false
+                break
+            }
+
         }
 
         if (!found) {
@@ -163,10 +169,20 @@ class PlayersManager(
 
     private fun playNextMedia() {
         if (playMode == "") return
-
         rootLayout.post {
             playlistIndex++
-            if (playlistIndex < currentPlaylist.size) playMediaByIndex(playlistIndex)
+            if (playlistIndex < currentPlaylist.size) {
+                Log.d(PlayerManager.LOGTAG, "Play media phat tiep")
+                playMediaByIndex(playlistIndex)
+            }
+            else
+            {
+                if(!isInTimeFrame) {
+                    Log.d(PlayerManager.LOGTAG, "Play media het noi dung, dang phat lai")
+                    playlistIndex = 0;
+                    playMediaByIndex(playlistIndex)
+                }
+            }
         }
     }
 
