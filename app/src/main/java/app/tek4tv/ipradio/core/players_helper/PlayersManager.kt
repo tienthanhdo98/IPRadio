@@ -86,6 +86,7 @@ class PlayersManager(
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
         onMediaStopPlaying()
+        checkFirstTimeFrame()
         playNextMedia()
     }
 
@@ -110,6 +111,7 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
+    var isInTimeFrame = false;
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
@@ -121,12 +123,15 @@ class PlayersManager(
 
             val now = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
-
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
-
+                isInTimeFrame = true
                 found = true
-
+                break
+            }
+            else
+            {
+                isInTimeFrame = false
                 break
             }
         }
@@ -134,6 +139,28 @@ class PlayersManager(
         if (!found) {
             playerManagerListener?.onTimeOver()
         }
+    }
+    fun checkFirstTimeFrame() {
+        val scheduledList = mediaRepo.scheduledList
+        for (i in scheduledList.keys.indices) {
+            val period = scheduledList.keys.elementAt(i)
+            val t = period.split("-")
+            val start = toCalendar(t[0])
+            val end = toCalendar(t[1])
+            val now = Calendar.getInstance().timeInMillis
+            if (now in start.timeInMillis..end.timeInMillis) {
+                isInTimeFrame = true
+                Log.d("PlayerLog", "trong lich")
+                break
+            }
+            else
+            {
+                isInTimeFrame = false
+                Log.d("PlayerLog", "end lich")
+                break
+            }
+        }
+
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
@@ -156,10 +183,21 @@ class PlayersManager(
 
     private fun playNextMedia() {
         if (playMode == "") return
-
         rootLayout.post {
             playlistIndex++
-            if (playlistIndex < currentPlaylist.size) playMediaByIndex(playlistIndex)
+            if (playlistIndex < currentPlaylist.size) {
+                Log.d("PlayerLog", "Play media next")
+                playMediaByIndex(playlistIndex)
+            }
+            else
+            {
+                if(isInTimeFrame)
+                {
+                    Log.d("PlayerLog", "Play media loop")
+                    playlistIndex = 0
+                    playMediaByIndex(playlistIndex)
+                }
+            }
         }
     }
 

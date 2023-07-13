@@ -328,7 +328,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
-
                 playerManager.stopPlaylist(listKey!!)
             }
 
