@@ -231,7 +231,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
             }
-
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
@@ -239,7 +238,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
-        //logUtils.logStartApp()
+
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
@@ -248,15 +247,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        // serialPortController.connectToSerialPort("/dev/ttyS4")
-        serialPortController.connectToSerialPort(UART_S1_NAME)
-        lifecycleScope.launch {
-            delay(10000)
-            if (!serialPortController.isUart1) {
-                serialPortController.connectToSerialPort(UART_S4_NAME)
-                Log.i("PA", "onCreate: s4")
-            }
-        }
+        serialPortController.connectToSerialPort("/dev/ttyS4")
+        //serialPortController.connectToSerialPort(UART_S1_NAME)
+//        lifecycleScope.launch {
+//            delay(10000)
+//            if (!serialPortController.isUart1) {
+//                serialPortController.connectToSerialPort(UART_S4_NAME)
+//                Log.i("PA", "onCreate: s4")
+//            }
+//        }
 
         rootLayout = findViewById(R.id.root_layout)
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
@@ -265,7 +264,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             rootLayout,
             vlcVideoLayout,
             viewModel.mediaRepo
-        ) //PlayerManager(applicationContext, viewModel, rootLayout)
+        )
         playerManager.playerManagerListener = playerCallback
 
         hubManager.hubEventObserver.add(playerManager)
@@ -415,7 +414,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
-
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
@@ -468,13 +466,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
-                    lifecycleScope.launch {
-
-                        viewModel.checkTimeAndLevel(mess).collect {
-
-                            Log.i("timeandlevel", "handleFromCommandServer: $it")
-                        }
-                    }
 
                     //add at 3.0.5
                     playerManager.stopAllPlayer()

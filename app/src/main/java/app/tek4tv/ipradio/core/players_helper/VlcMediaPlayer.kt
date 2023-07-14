@@ -79,7 +79,6 @@ class VlcMediaPlayer(
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
-
         vlcPlayer.eventListener = vlcEventListener
 
     }

@@ -87,6 +87,10 @@ class PlayersManager(
     override fun onMediaEndReached(mediaItem: MediaItem?) {
         onMediaStopPlaying()
         checkFirstTimeFrame()
+        if (playMode == PLAY_MODE_FORCE) {
+            playMode = ""
+            stopForceMedia()
+        }
         playNextMedia()
     }
 
@@ -120,7 +124,6 @@ class PlayersManager(
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-
             val now = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
@@ -148,17 +151,8 @@ class PlayersManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
             val now = Calendar.getInstance().timeInMillis
-            if (now in start.timeInMillis..end.timeInMillis) {
-                isInTimeFrame = true
-                Log.d("PlayerLog", "trong lich")
-                break
-            }
-            else
-            {
-                isInTimeFrame = false
-                Log.d("PlayerLog", "end lich")
-                break
-            }
+            isInTimeFrame = now in start.timeInMillis..end.timeInMillis
+
         }
 
     }
@@ -189,14 +183,13 @@ class PlayersManager(
                 Log.d("PlayerLog", "Play media next")
                 playMediaByIndex(playlistIndex)
             }
-            else
-            {
-                if(isInTimeFrame)
-                {
+            else {
+                if (isInTimeFrame) {
                     Log.d("PlayerLog", "Play media loop")
                     playlistIndex = 0
                     playMediaByIndex(playlistIndex)
                 }
+
             }
         }
     }
@@ -356,7 +349,6 @@ class PlayersManager(
                     if (currentForceMedia != null && currentForceMedia.level < level) return
                 }
             }
-
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
 

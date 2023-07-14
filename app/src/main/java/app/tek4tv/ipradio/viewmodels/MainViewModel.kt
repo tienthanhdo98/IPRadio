@@ -45,16 +45,6 @@ class MainViewModel @ViewModelInject constructor(
         }
     }
 
-    fun checkTimeAndLevel(url: String) =
-        flow {
-            val mediaItem = mediaRepo.getPlaylist(url)
-            val start = toCalendar(mediaItem.start!!)
-            val end = toCalendar(mediaItem.end!!)
-            val now = Calendar.getInstance().timeInMillis
-            val result = now in start.timeInMillis..end.timeInMillis
-            emit(result)
-
-        }
 
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()

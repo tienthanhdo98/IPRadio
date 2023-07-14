@@ -181,12 +181,14 @@ class MediaRepo @Inject constructor(
     }
 
     fun downloadAMediaItem(it: MediaItem) {
+        Log.i("download", "downloadAMediaItem: ${it.getMediaType()}")
         if (it.getMediaType() != MediaType.LIVE) return
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
-
+        Log.i("download", "downloadAMediaItem: ${url}")
         val fileName = getFileNameFromUrl(url!!)
+        Log.i("download", "downloadAMediaItem: ${fileName}")
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
