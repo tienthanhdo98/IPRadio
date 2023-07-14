@@ -10,6 +10,8 @@ interface IMediaPlayer {
     fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1)
     fun reset()
     fun stop()
+    fun pause()
+    fun resume()
     fun release()
     fun isPlaying() : Boolean
     fun onLostHubConnection()

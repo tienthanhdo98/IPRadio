@@ -54,7 +54,7 @@ class PlayersManager(
      * 0 for init
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    private var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_INIT//"0"
 
     /**
      * List of media for a timeframe
@@ -167,7 +167,7 @@ class PlayersManager(
         isTimeOver = false
     }
 
-    private fun playNextMedia() {
+    fun playNextMedia() {
         if (playMode == "") return
         rootLayout.post {
             playlistIndex++
@@ -184,6 +184,14 @@ class PlayersManager(
                 }
             }
         }
+    }
+    fun pauseMedia()
+    {
+        vlcPlayer.pause()
+    }
+    fun resumeMedia()
+    {
+        vlcPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
@@ -236,6 +244,7 @@ class PlayersManager(
     fun stopAllPlayer() {
         vlcPlayer.stop()
         exoPlayer.stop()
+        played = false
     }
 
 

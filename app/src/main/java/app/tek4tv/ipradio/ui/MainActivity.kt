@@ -23,6 +23,7 @@ import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.PlayerManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
@@ -553,6 +554,54 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     }
 
+                }
+                HubCommand.TURN_ON_PA -> {
+                    Log.i("CONTROL_MEDIA", responseHub.message!!)
+                    val mess = responseHub.message!!.toInt()
+                    if(mess == 0)
+                    {
+                        serialPortController.turnOnPAVod()
+
+                    }
+                    else
+                    {
+                        serialPortController.turnOffPA()
+
+                    }
+                }
+                HubCommand.CONTROL_MEDIA -> {
+                    //0,1,2,3
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
+                    Log.i("CONTROL_MEDIA", responseHub.message!!)
+                    val mess = responseHub.message!!.toInt()
+                    if(playerManager.playMode != PLAY_MODE_FORCE ) {
+                        when (mess) {
+
+                            //dung phat
+                            0 -> {
+                                playerManager.stopAllPlayer()
+                                playerManager.resetPlayMode()
+                            }
+                            //dung phat va chuyen sang ban tin tiep
+                            1 -> {
+                                if (playerManager.isInTimeFrame) {
+                                    playerManager.playNextMedia()
+                                }
+                            }
+                            //Tạm dừng nội dung đang phát
+                            2 -> {
+                                playerManager.pauseMedia()
+                            }
+                            //Phát tiếp nội dung dừng trước đó
+                            3 -> {
+                                if (playerManager.played) {
+                                    playerManager.resumeMedia()
+                                } else {
+                                    playerManager.startFirstTimeFrame()
+                                }
+                            }
+                        }
+                    }
                 }
                 HubCommand.PLAYLIST_INFO -> {
                     lifecycleScope.launch(Dispatchers.IO) {

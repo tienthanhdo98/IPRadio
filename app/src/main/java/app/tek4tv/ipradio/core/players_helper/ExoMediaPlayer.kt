@@ -111,6 +111,14 @@ class ExoMediaPlayer(
         }
     }
 
+    override fun pause() {
+            exoPlayer.pause()
+    }
+
+    override fun resume() {
+        exoPlayer.play()
+    }
+
     override fun release() {
         exoPlayer.release()
     }

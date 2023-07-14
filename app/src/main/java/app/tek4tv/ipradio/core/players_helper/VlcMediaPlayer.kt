@@ -105,6 +105,15 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     }
 
+    override fun pause() {
+        vlcPlayer.pause()
+    }
+
+    override fun resume() {
+        vlcPlayer.play()
+    }
+
+
     override fun stop() {
         if (vlcPlayer.isPlaying)
             vlcPlayer.stop()
