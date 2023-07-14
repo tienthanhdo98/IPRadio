@@ -182,7 +182,7 @@ class MediaRepo @Inject constructor(
 
     fun downloadAMediaItem(it: MediaItem) {
         Log.i("download", "downloadAMediaItem: ${it.getMediaType()}")
-        if (it.getMediaType() != MediaType.LIVE) return
+        if (it.getMediaType() != MediaType.FILE) return
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return

@@ -87,10 +87,6 @@ class PlayersManager(
     override fun onMediaEndReached(mediaItem: MediaItem?) {
         onMediaStopPlaying()
         checkFirstTimeFrame()
-        if (playMode == PLAY_MODE_FORCE) {
-            playMode = ""
-            stopForceMedia()
-        }
         playNextMedia()
     }
 
@@ -138,7 +134,7 @@ class PlayersManager(
                 break
             }
         }
-
+        Log.d("PlayerLog", "startFirstTimeFrame $isInTimeFrame ")
         if (!found) {
             playerManagerListener?.onTimeOver()
         }
@@ -152,7 +148,6 @@ class PlayersManager(
             val end = toCalendar(t[1])
             val now = Calendar.getInstance().timeInMillis
             isInTimeFrame = now in start.timeInMillis..end.timeInMillis
-
         }
 
     }
@@ -175,7 +170,7 @@ class PlayersManager(
         isTimeOver = false
     }
 
-    private fun playNextMedia() {
+    fun playNextMedia() {
         if (playMode == "") return
         rootLayout.post {
             playlistIndex++
@@ -191,6 +186,7 @@ class PlayersManager(
                 }
 
             }
+
         }
     }
 
@@ -205,6 +201,14 @@ class PlayersManager(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+    fun pauseMedia()
+    {
+        vlcPlayer.pause()
+    }
+    fun resumeMedia()
+    {
+        vlcPlayer.resume()
     }
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
@@ -225,6 +229,7 @@ class PlayersManager(
                 else -> {
                     playNextMedia()
                 }
+
             }
         } catch (e: Exception) {
             e.printStackTrace()
@@ -315,7 +320,6 @@ class PlayersManager(
 
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
-
         stopAllPlayer()
         onMediaStopPlaying()
         playerManagerListener?.onEndForceMedia()

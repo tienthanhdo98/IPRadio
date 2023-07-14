@@ -83,6 +83,14 @@ class VlcMediaPlayer(
 
     }
 
+    override fun pause() {
+        vlcPlayer.pause()
+    }
+
+    override fun resume() {
+        vlcPlayer.play()
+    }
+
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
         if (isPlaying) stop()
 
@@ -141,6 +149,7 @@ class VlcMediaPlayer(
         currentVlcMedia = media
 
         vlcPlayer.play(media)
+
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {

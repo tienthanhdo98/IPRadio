@@ -43,41 +43,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         )
     }
 
-    fun setCheckHubAndResetAlarms() {
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
-        }
-        val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, 0)
-
-        val cal_alarm = Calendar.getInstance()
-
-        cal_alarm[Calendar.HOUR_OF_DAY] =0
-        cal_alarm[Calendar.MINUTE] = 3
-        cal_alarm[Calendar.SECOND] = 0
-
-        val date = Calendar.getInstance().time
-        var alarmDate = cal_alarm.time
-        if(alarmDate.before(date))
-        {
-            Log.d("alarmx", "yes")
-            cal_alarm.add(Calendar.DATE,1)
-        }
-        alarmDate = cal_alarm.time
-
-        Log.d("alarmx", "Set check no hub and reset  + ${cal_alarm.timeInMillis}")
-        Log.d("alarmx", "Set check no hub and reset  + ${alarmDate}")
-        Log.d("alarmx", "Set check no hub and reset  + ${date}")
-
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            cal_alarm.timeInMillis,
-            alarmIntent
-        )
-
-    }
-
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
@@ -289,7 +254,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
-
         return PendingIntent.getBroadcast(appContext, -69, intent, flag)
     }
 
@@ -312,8 +276,36 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             AlarmManager.RTC_WAKEUP,
             mediaEndTimeInMillis, alarmIntent
         )
-
         Log.d("alarmx", "set force")
+    }
+
+    fun setCheckHubAndResetAlarms() {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
+        }
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, 1, intent, 0)
+
+        val cal_alarm = Calendar.getInstance()
+
+        cal_alarm[Calendar.HOUR_OF_DAY] =0
+        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.SECOND] = 0
+
+        val date = Calendar.getInstance().time
+        var alarmDate = cal_alarm.time
+        if(alarmDate.before(date))
+        {
+            cal_alarm.add(Calendar.DATE,1)
+        }
+        alarmDate = cal_alarm.time
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            cal_alarm.timeInMillis,
+            alarmIntent
+        )
+
     }
 
     fun cancelForceMediaAlarm() {

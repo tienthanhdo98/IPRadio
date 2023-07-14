@@ -333,7 +333,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
                 val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
                 Log.d("alarmx", "end media: $mediaIndex")
-
                 playerManager.endScheduledMediaByIndex(mediaIndex)
             }
 
@@ -345,7 +344,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-
                 val monthlyScenarioUrl = ConfigUtil.getString(
                     applicationContext,
                     ConfigUtil.MONTHLY_SCENARIO_URL, ""
@@ -362,8 +360,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
                     }
-
-
                 }
             }
         }
@@ -544,6 +540,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
 
                 }
+
+                HubCommand.TURN_ON_PA -> {
+                    serialPortController.turnOnPAVod()
+                }
+                HubCommand.TURN_OFF_PA -> {
+                    serialPortController.turnOffPA()
+                }
+
+                HubCommand.CONTROL_MEDIA -> {
+                    //0,1,2,3
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
+                    Log.i("CONTROL_MEDIA", responseHub.message!!)
+                    val mess = responseHub.message!!.toInt()
+                    when(mess)
+                    {
+                        //dung phat
+                        0 -> {
+                            playerManager.stopAllPlayer()
+                            playerManager.resetPlayMode()
+                        }
+                        //dung phat va chuyen sang ban tin tiep
+                        1 -> {
+                            if(playerManager.isInTimeFrame)
+                            {
+                                playerManager.playNextMedia()
+                            }
+                        }
+                        //Tạm dừng nội dung đang phát
+                        2 ->{
+                            playerManager.pauseMedia()
+                        }
+                        3 ->{
+                            playerManager.resumeMedia()
+                        }
+                    }
+                }
+
                 HubCommand.PLAYLIST_INFO -> {
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
