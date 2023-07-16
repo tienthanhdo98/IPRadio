@@ -321,7 +321,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", listKey)
                 playerManager.setTimeFrame(listKey, null)
-
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
