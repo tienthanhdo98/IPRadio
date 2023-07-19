@@ -86,7 +86,6 @@ class PlayersManager(
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
         onMediaStopPlaying()
-        checkFirstTimeFrame()
         playNextMedia()
     }
 
@@ -111,7 +110,7 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
-    var isInTimeFrame = false;
+    var isInTimeFrame = false
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
@@ -128,28 +127,10 @@ class PlayersManager(
                 found = true
                 break
             }
-            else
-            {
-                isInTimeFrame = false
-                break
-            }
         }
-        Log.d("PlayerLog", "startFirstTimeFrame $isInTimeFrame ")
         if (!found) {
             playerManagerListener?.onTimeOver()
         }
-    }
-    fun checkFirstTimeFrame() {
-        val scheduledList = mediaRepo.scheduledList
-        for (i in scheduledList.keys.indices) {
-            val period = scheduledList.keys.elementAt(i)
-            val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            val now = Calendar.getInstance().timeInMillis
-            isInTimeFrame = now in start.timeInMillis..end.timeInMillis
-        }
-
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
@@ -171,6 +152,7 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
+        Log.d("alarmx", "Play media next $isInTimeFrame" )
         if (playMode == "") return
         rootLayout.post {
             playlistIndex++
@@ -178,14 +160,17 @@ class PlayersManager(
                 Log.d("PlayerLog", "Play media next")
                 playMediaByIndex(playlistIndex)
             }
-//            else {
-//                if (isInTimeFrame) {
-//                    Log.d("PlayerLog", "Play media loop")
-//                    playlistIndex = 0
-//                    playMediaByIndex(playlistIndex)
+            else {
+                if (isInTimeFrame) {
+                    Log.d("PlayerLog", "Play media loop")
+                    playlistIndex = 0
+                    playMediaByIndex(playlistIndex)
+                }
+//                else
+//                {
+//                    stopAllPlayer()
 //                }
-//
-//            }
+            }
 
         }
     }
@@ -213,6 +198,7 @@ class PlayersManager(
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
+            Log.d("alarmx", "Play media next $isInTimeFrame" )
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {

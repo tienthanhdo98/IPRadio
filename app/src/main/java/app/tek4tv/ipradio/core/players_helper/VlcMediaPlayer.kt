@@ -93,7 +93,6 @@ class VlcMediaPlayer(
 
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
         if (isPlaying) stop()
-
         when (mediaItem.getMediaType()) {
             MediaType.FILE -> {
                 playFile(mediaItem, timeStamp)
