@@ -244,7 +244,6 @@ class PlayersManager(
     fun stopAllPlayer() {
         vlcPlayer.stop()
         exoPlayer.stop()
-        played = false
     }
 
 

@@ -576,7 +576,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!.toInt()
                     if(playerManager.playMode != PLAY_MODE_FORCE ) {
                         when (mess) {
-
                             //dung phat
                             0 -> {
                                 playerManager.stopAllPlayer()

@@ -198,11 +198,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 isPlaying = false
                 playerEventListener.onPlayerError(VlcException("Stream failed!"), true,currentMedia!!)
                 //playMedia(currentMedia!!)
-//                GlobalScope.launch {
-//                    countReplayLive ++;
-//                    delay(2000)
-//                    playMedia(currentMedia!!)
-//                }
+                GlobalScope.launch {
+                    countReplayLive ++;
+                    delay(2000)
+                    Log.d(TAG, "onLiveErrorVlc: Chay lai live")
+                    playMedia(currentMedia!!)
+                }
             } else {
                 Log.d(TAG, "Stopping from reconnect")
                 stop()
