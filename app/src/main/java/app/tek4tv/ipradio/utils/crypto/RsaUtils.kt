@@ -35,10 +35,11 @@ fun decryptData(text: String?, pri_key: String): String? {
         null
     }
 }
+
 @Throws(NoSuchAlgorithmException::class, InvalidKeySpecException::class)
 fun getPrivateKey(keyBytes: ByteArray?): PrivateKey? {
     val keySpec = PKCS8EncodedKeySpec(keyBytes)
-    val keyFactory = KeyFactory.getInstance("RSA", "BC")
+    val keyFactory = KeyFactory.getInstance("RSA")
     return keyFactory.generatePrivate(keySpec)
 }
 
