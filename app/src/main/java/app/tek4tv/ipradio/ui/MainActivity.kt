@@ -281,6 +281,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
+        lifecycleScope.launch {
+            while (true) {
+                Log.d("PingCounter check", "onCreate: ping count ${hubManager.pingCounter}")
+                if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
+                    Log.d("PingCounter check", "onCreate: ping count reset")
+                    serialPortController.hardRestart();
+                }
+                delay(5000)
+            }
+        }
 
 
     }
