@@ -6,8 +6,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
@@ -33,7 +31,6 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
-import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -50,6 +47,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
+import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -284,7 +282,35 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
         showMac()
 
+        lifecycleScope.launch {
+            while (true) {
+                Log.d("PingCounter check", "onCreate: ping count ${hubManager.pingCounter}")
+                if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
+                    Log.d("PingCounter check", "onCreate: ping count reset")
+                    serialPortController.hardRestart();
+                }
+                delay(5000)
+            }
+        }
 
+    }
+
+    fun getHiddenMethod(
+        methodName: String?,
+        fromClass: Class<*>,
+        params: Array<Class<*>?>?
+    ): Method {
+        var method: Method? = null
+        try {
+            val clazz = Class.forName(fromClass.name)
+            method = clazz.getMethod(methodName)
+            method.isAccessible = true
+        } catch (e: ClassNotFoundException) {
+            e.printStackTrace()
+        } catch (e: NoSuchMethodException) {
+            e.printStackTrace()
+        }
+        return method!!
     }
 
 
@@ -294,7 +320,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
         //1 % 0
 
-        restartApp(MyApp(),this)
+//        restartApp(MyApp(),this)
 
 
     }

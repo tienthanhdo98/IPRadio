@@ -129,7 +129,7 @@ class SerialPortController(
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
-                            onDataReceived(s)
+//                            onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (list.size > 4) {
                                 volume = list[5]
@@ -148,20 +148,20 @@ class SerialPortController(
 
     private fun onDataReceived(data: String?) {
         // read data
-        if (data == null) return
-
-        //Log.d(LOG_TAG, "dataFinal: $data")
-        if (data.endsWith("\r\n")) {
-            if (data.isNotEmpty() && data.startsWith("$$,")) {
-                if (isRead) {
-                    hubManager.sendHubDirectMessage(
-                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
-                    )
-
-                    isRead = false
-                }
-            }
-        }
+//        if (data == null) return
+//
+//        //Log.d(LOG_TAG, "dataFinal: $data")
+//        if (data.endsWith("\r\n")) {
+//            if (data.isNotEmpty() && data.startsWith("$$,")) {
+//                if (isRead) {
+//                    hubManager.sendHubDirectMessage(
+//                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
+//                    )
+//
+//                    isRead = false
+//                }
+//            }
+//        }
     }
 
     private fun writeToDevice(message: String) {

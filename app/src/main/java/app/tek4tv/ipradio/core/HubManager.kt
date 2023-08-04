@@ -39,7 +39,7 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
     ) {
     private val LOG_TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 15
+    val CONNECT_COUNTER_LIMIT = 150
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -56,7 +56,7 @@ class HubManager(
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
-    var pingCounter = 69
+    var pingCounter = 0
 
     var hubConnection: HubConnection
 
@@ -286,11 +286,15 @@ class HubManager(
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT){
-                    hubComm.forceRestartApp()}
+//                    hubComm.forceRestartApp()
+//                     serialPortController.hardRestart()
+
+                }
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
                 Log.e(LOG_TAG, "Trying to reconnect... $i")
+                pingCounter++
             }
             Log.d(LOG_TAG, "$connectionId")
             onMessage()
