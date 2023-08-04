@@ -1,0 +1,69 @@
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:orientation="vertical"
+    android:background="@color/white"
+    android:layout_height="match_parent">
+
+    <TextView
+        android:id="@+id/tvSec1"
+        android:paddingEnd="50dp"
+        android:paddingStart="50dp"
+        android:textSize="20sp"
+        android:layout_weight="0.15"
+        android:singleLine="true"
+        android:ellipsize="marquee"
+        android:marqueeRepeatLimit ="marquee_forever"
+        android:focusable="true"
+        android:textAlignment="center"
+        android:scrollHorizontally="true"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:gravity="center"
+        android:background="#CF2D1F"
+        android:text="Nước Cộng hòa xã hội chủ nghĩa Việt Nam muôn năm! Chủ tích Hồ Chí Minh muôn năm"
+        android:textColor="#F1D81F" />
+    <LinearLayout
+        android:layout_weight="0.85"
+        android:layout_width="match_parent"
+        android:orientation="horizontal"
+        android:layout_height="0dp">
+        <ScrollView
+            android:id="@+id/sScroll"
+            android:layout_weight="0.3"
+            android:layout_width="0dp"
+            android:fillViewport="true"
+            android:layout_height="match_parent"
+            tools:ignore="NestedWeights">
+        <TextView
+            android:layout_height="wrap_content"
+            android:id="@+id/tvMac"
+            android:textSize="24sp"
+            android:padding="20dp"
+            android:layout_width="match_parent"
+            android:background="#CF2D1F"
+
+            android:textColor="#F1D81F" />
+        </ScrollView>
+        <FrameLayout
+            android:layout_marginEnd="10dp"
+            android:layout_marginBottom="10dp"
+            android:layout_weight="0.7"
+            android:layout_width="0dp"
+            android:keepScreenOn="true"
+            android:layout_height="match_parent">
+            <org.videolan.libvlc.util.VLCVideoLayout
+                android:id="@+id/vlc_video_layout"
+                android:fitsSystemWindows="false"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:background="@color/black"
+             />
+        </FrameLayout>
+
+    </LinearLayout>
+
+
+</LinearLayout>
+
+

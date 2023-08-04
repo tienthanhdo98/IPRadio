@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
@@ -32,7 +31,6 @@ import java.util.*
  * **/
 class PlayersManager(
     appContext: Context,
-    private val rootLayout: FrameLayout,
     private val vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
@@ -154,8 +152,8 @@ class PlayersManager(
     fun playNextMedia() {
         Log.d("alarmx", "Play media next $isInTimeFrame" )
         if (playMode == "") return
-        rootLayout.post {
-            playlistIndex++
+
+        playlistIndex++
             if (playlistIndex < currentPlaylist.size) {
                 Log.d("PlayerLog", "Play media next")
                 playMediaByIndex(playlistIndex)
@@ -172,7 +170,7 @@ class PlayersManager(
 //                }
             }
 
-        }
+
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
