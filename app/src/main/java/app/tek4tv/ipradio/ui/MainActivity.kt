@@ -295,33 +295,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     }
 
-    fun getHiddenMethod(
-        methodName: String?,
-        fromClass: Class<*>,
-        params: Array<Class<*>?>?
-    ): Method {
-        var method: Method? = null
-        try {
-            val clazz = Class.forName(fromClass.name)
-            method = clazz.getMethod(methodName)
-            method.isAccessible = true
-        } catch (e: ClassNotFoundException) {
-            e.printStackTrace()
-        } catch (e: NoSuchMethodException) {
-            e.printStackTrace()
-        }
-        return method!!
-    }
-
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        //1 % 0
-
-//        restartApp(MyApp(),this)
-
 
     }
 
