@@ -38,7 +38,7 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
     ) {
     private val LOG_TAG = "HubManager"
-    val CONNECT_COUNTER_LIMIT = 150
+    val CONNECT_COUNTER_LIMIT = 20
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -281,8 +281,8 @@ class HubManager(
                     Log.d("alarmx", "Change 0")
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
-                if (i >= CONNECT_COUNTER_LIMIT){
-                    hubComm.forceRestartApp()}
+//                if (i >= CONNECT_COUNTER_LIMIT){
+//                    hubComm.forceRestartApp()}
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
