@@ -35,6 +35,7 @@ import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getNetworkClass
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
@@ -47,7 +48,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
-import java.lang.reflect.Method
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -287,7 +287,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("PingCounter check", "onCreate: ping count ${hubManager.pingCounter}")
                 if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
                     Log.d("PingCounter check", "onCreate: ping count reset")
-                    serialPortController.hardRestart();
+                    setMobileDataEnabled(false)
+                    delay(5000)
+                    setMobileDataEnabled(true)
+                    delay(5000)
+                    hubComm.forceRestartApp()
+
+
                 }
                 delay(5000)
             }
@@ -457,6 +463,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     }
 
+
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
             if (command == null || command.isEmpty()) {
@@ -489,6 +496,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ForceMedia.deleteForeMediaPref(applicationContext)
 
                     viewModel.getPlayerContent(mess, true)
+
+
+                }
+                HubCommand.UPDATE_VERSION -> {
+                    if (responseHub.message != null) {
+                        Log.d("update", responseHub.message!!)
+                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
+                    }
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -606,12 +621,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         globalProperties.setTempVolume(responseHub.message!!)
                     }
                 }
-                HubCommand.UPDATE_VERSION -> {
-                    if (responseHub.message != null) {
-                        Log.d("update", responseHub.message!!)
-                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
-                    }
-                }
+
 
                 HubCommand.SET_TIME_OVER -> {
                     serialPortController.setTimeOver()

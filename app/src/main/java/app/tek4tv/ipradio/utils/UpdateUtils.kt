@@ -88,7 +88,7 @@ fun downloadUpdateApk(
                 val command = "pm install -r $finalDestination"
                 val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 val test = proc.waitFor() // Error is here.
-                Log.d("install", test.toString() + "")
+                Log.d("install 2", test.toString() + "")
                 Thread.sleep(30000)
                 doRestart(controller)
 

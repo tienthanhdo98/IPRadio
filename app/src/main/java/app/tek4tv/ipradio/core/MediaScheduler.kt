@@ -53,7 +53,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val cal_alarm = Calendar.getInstance()
 
         cal_alarm[Calendar.HOUR_OF_DAY] =0
-        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.MINUTE] = 15
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
