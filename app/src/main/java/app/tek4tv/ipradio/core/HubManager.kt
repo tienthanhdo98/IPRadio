@@ -109,7 +109,7 @@ class HubManager(
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hub.digital.tek4tv.vn/hubServer"
+            "https://hubdi-qn.tek4tv.vn/hubServer"
         )
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ

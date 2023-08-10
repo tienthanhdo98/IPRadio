@@ -217,8 +217,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-       //setContentView(R.layout.activity_main)
-       setContentView(R.layout.activity_main_multiple_view)
+       setContentView(R.layout.activity_main)
+       //setContentView(R.layout.activity_main_multiple_view)
         supportActionBar?.hide()
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
@@ -258,8 +258,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                Log.i("PA", "onCreate: s4")
 //            }
 //        }
-        val tvSec1 = findViewById<TextView>(R.id.tvSec1)
-        tvSec1.isSelected = true
+//        val tvSec1 = findViewById<TextView>(R.id.tvSec1)
+//        tvSec1.isSelected = true
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
 
         playerManager = PlayersManager(
@@ -294,16 +294,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-        val sScroll = findViewById<ScrollView>(R.id.sScroll)
+//        val sScroll = findViewById<ScrollView>(R.id.sScroll)
         val imei = Utils.getDeviceId(this)
-        //tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.text = "Báo cáo này cho biết vàng được hưởng lợi từ lượng mua kỷ lục của ngân hàng Trung ương trong nửa đầu năm, cũng như nhận được hỗ trợ từ thị trường đầu tư lành mạnh và nhu cầu trang sức ổn định. Nhu cầu vàng (không bao gồm thị trường OTC) giảm 2% so với cùng kỳ xuống còn 921 tấn trong quý II, mặc dù tổng nhu cầu (bao gồm thị trường OTC) tăng 7% so với cùng kỳ, cho thấy thị trường vàng vẫn ổn định trên toàn cầu.\n" +
-                "\n" +
-                "Tại Việt Nam, nhu cầu của người tiêu dùng vàng trong quý II/2023 giảm 9%, từ 14,0 tấn vào quý II/2022 xuống còn 12,7 tấn. Sự suy giảm này chủ yếu do nhu cầu tiêu thụ vàng thỏi và xu vàng giảm 5% so với cùng kỳ năm ngoái, từ 9,6 tấn trong quý II 2022 xuống còn 9,1 tấn trong quý II/2023. Điều tương tự cũng xảy ra với mảng trang sức khi nhu cầu giảm từ 4,5 tấn trong quý II/2022 xuống còn 3,7 tấn vào quý II/2023, cho thấy mức giảm 18% so cùng kỳ.\n" +
-                "\n" +
-                "Ông Shaokai Fan, Giám đốc điều hành khu vực châu Á - Thái Bình Dương (không bao gồm Trung Quốc) & Giám đốc Ngân hàng Trung ương Toàn cầu tại Hội đồng Vàng Thế giới, cho biết: \"Tương tự như các thị trường khác thuộc khu vực ASEAN, nhu cầu vàng của người tiêu dùng tại Việt Nam cũng giảm trong quý này. Sự suy giảm kinh tế Việt Nam trong hai quý liên tiếp đã tác động đến tâm lý thị trường và nhu cầu tiêu thụ trang sức. Nhu cầu mua vàng thỏi và xu vàng cũng bị hạn chế do tính thanh khoản thấp, chịu tác động từ sự suy thoái của thị trường chứng khoán và bất động sản. \""
+        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+//        tvMacAdress.text = "Báo cáo này cho biết vàng được hưởng lợi từ lượng mua kỷ lục của ngân hàng Trung ương trong nửa đầu năm, cũng như nhận được hỗ trợ từ thị trường đầu tư lành mạnh và nhu cầu trang sức ổn định. Nhu cầu vàng (không bao gồm thị trường OTC) giảm 2% so với cùng kỳ xuống còn 921 tấn trong quý II, mặc dù tổng nhu cầu (bao gồm thị trường OTC) tăng 7% so với cùng kỳ, cho thấy thị trường vàng vẫn ổn định trên toàn cầu.\n" +
+//                "\n" +
+//                "Tại Việt Nam, nhu cầu của người tiêu dùng vàng trong quý II/2023 giảm 9%, từ 14,0 tấn vào quý II/2022 xuống còn 12,7 tấn. Sự suy giảm này chủ yếu do nhu cầu tiêu thụ vàng thỏi và xu vàng giảm 5% so với cùng kỳ năm ngoái, từ 9,6 tấn trong quý II 2022 xuống còn 9,1 tấn trong quý II/2023. Điều tương tự cũng xảy ra với mảng trang sức khi nhu cầu giảm từ 4,5 tấn trong quý II/2022 xuống còn 3,7 tấn vào quý II/2023, cho thấy mức giảm 18% so cùng kỳ.\n" +
+//                "\n" +
+//                "Ông Shaokai Fan, Giám đốc điều hành khu vực châu Á - Thái Bình Dương (không bao gồm Trung Quốc) & Giám đốc Ngân hàng Trung ương Toàn cầu tại Hội đồng Vàng Thế giới, cho biết: \"Tương tự như các thị trường khác thuộc khu vực ASEAN, nhu cầu vàng của người tiêu dùng tại Việt Nam cũng giảm trong quý này. Sự suy giảm kinh tế Việt Nam trong hai quý liên tiếp đã tác động đến tâm lý thị trường và nhu cầu tiêu thụ trang sức. Nhu cầu mua vàng thỏi và xu vàng cũng bị hạn chế do tính thanh khoản thấp, chịu tác động từ sự suy thoái của thị trường chứng khoán và bất động sản. \""
 
-        tvMacAdress.movementMethod = ScrollingMovementMethod()
+        //tvMacAdress.movementMethod = ScrollingMovementMethod()
     }
 
 
