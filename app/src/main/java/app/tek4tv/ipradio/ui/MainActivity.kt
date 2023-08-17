@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -12,6 +13,8 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
+import android.view.ViewTreeObserver
+import android.view.animation.LinearInterpolator
 import android.widget.FrameLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -217,8 +220,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-       setContentView(R.layout.activity_main)
-       //setContentView(R.layout.activity_main_multiple_view)
+       //setContentView(R.layout.activity_main)
+        setContentView(R.layout.activity_main_multiple_view)
         supportActionBar?.hide()
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
@@ -294,16 +297,48 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-//        val sScroll = findViewById<ScrollView>(R.id.sScroll)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-//        tvMacAdress.text = "Báo cáo này cho biết vàng được hưởng lợi từ lượng mua kỷ lục của ngân hàng Trung ương trong nửa đầu năm, cũng như nhận được hỗ trợ từ thị trường đầu tư lành mạnh và nhu cầu trang sức ổn định. Nhu cầu vàng (không bao gồm thị trường OTC) giảm 2% so với cùng kỳ xuống còn 921 tấn trong quý II, mặc dù tổng nhu cầu (bao gồm thị trường OTC) tăng 7% so với cùng kỳ, cho thấy thị trường vàng vẫn ổn định trên toàn cầu.\n" +
-//                "\n" +
-//                "Tại Việt Nam, nhu cầu của người tiêu dùng vàng trong quý II/2023 giảm 9%, từ 14,0 tấn vào quý II/2022 xuống còn 12,7 tấn. Sự suy giảm này chủ yếu do nhu cầu tiêu thụ vàng thỏi và xu vàng giảm 5% so với cùng kỳ năm ngoái, từ 9,6 tấn trong quý II 2022 xuống còn 9,1 tấn trong quý II/2023. Điều tương tự cũng xảy ra với mảng trang sức khi nhu cầu giảm từ 4,5 tấn trong quý II/2022 xuống còn 3,7 tấn vào quý II/2023, cho thấy mức giảm 18% so cùng kỳ.\n" +
-//                "\n" +
-//                "Ông Shaokai Fan, Giám đốc điều hành khu vực châu Á - Thái Bình Dương (không bao gồm Trung Quốc) & Giám đốc Ngân hàng Trung ương Toàn cầu tại Hội đồng Vàng Thế giới, cho biết: \"Tương tự như các thị trường khác thuộc khu vực ASEAN, nhu cầu vàng của người tiêu dùng tại Việt Nam cũng giảm trong quý này. Sự suy giảm kinh tế Việt Nam trong hai quý liên tiếp đã tác động đến tâm lý thị trường và nhu cầu tiêu thụ trang sức. Nhu cầu mua vàng thỏi và xu vàng cũng bị hạn chế do tính thanh khoản thấp, chịu tác động từ sự suy thoái của thị trường chứng khoán và bất động sản. \""
+        val sView = findViewById<ScrollView>(R.id.scrollView)
+        val tvSec1= findViewById<TextView>(R.id.tvSec1)
+        tvMacAdress.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
 
-        //tvMacAdress.movementMethod = ScrollingMovementMethod()
+        tvSec1.text = """"Gần 30 ngân hàng tư nhân đồng loạt giảm tiếp lãi suất tiết kiệm trong nửa đầu tháng 8, đưa mức cao nhất về vùng 7% một năm.
+
+Khảo sát của VnExpress với 34 ngân hàng trong nước tới ngày 16/8 cho thấy gần như toàn bộ ngân hàng tư nhân từ cuối tháng 7 đến nay đều điều chỉnh biểu lãi suất huy động. Riêng 4 ngân hàng quốc doanh vẫn giữ nguyên lãi suất trong một tháng qua.
+
+Lãi suất giảm tập trung ở kỳ hạn từ 6 tháng trở lên với mức giảm bình quân 0,3-0,35% một năm.
+
+Ngân hàng Hàng Hải Việt Nam (MSB) là nhà băng điều chỉnh mạnh tay nhất đợt này. Các khoản tiền gửi kỳ hạn từ 6 tháng trở lên được MSB hạ 1%, đưa mức lãi cao nhất về còn 6% một năm.
+
+Ngân hàng Kỹ thương (Techcombank) cũng giảm đồng loạt 0,7% lãi suất với khoản tiền từ 6 tháng trở lên. Hay một số nhà băng khác như PGBank, GPBank, VietBank, ABBank cũng giảm tới 0,7-0,8% một năm.
+
+Sau đợt giảm này, hiện chỉ còn chục ngân hàng sẵn sàng trả lãi suất từ 7% trở lên cho người gửi tiền (dưới 1 tỷ đồng), gồm VietABank, BaoVietBank, CBBank, NCB, PVComBank, NamABank, HDBank, BacABank, Kienlongbank, DongABank. Khoảng 20 nhà băng còn lại đều niêm yết lãi suất dưới 7% một năm. Như vậy, so với giai đoạn cao điểm vào cuối năm ngoái, lãi suất tiết kiệm đã giảm tới 3-4%, đặc biệt với kỳ hạn từ 6 tháng trở lên. Lãi suất huy động giảm mạnh sau nhiều lần Ngân hàng Nhà nước hạ lãi suất điều hành cộng với bối cảnh ngân hàng "thừa tiền" khi khó cho vay. Mặt bằng lãi suất hiện về ngang với giai đoạn nửa đầu 2022.
+
+Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, Ngân hàng Nhà nước gần đây yêu cầu các nhà băng đồng thời giảm lãi suất khoản vay cũ và mới ít nhất 1,5-2%, theo chỉ đạo của Chính phủ nhằm hỗ trợ doanh nghiệp và người dân.
+
+Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
+
+
+        sView.viewTreeObserver.addOnGlobalLayoutListener(object :
+            ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                val objectAnimator = ObjectAnimator.ofInt(
+                    sView,
+                    "scrollY",
+                    sView.getChildAt(0).height - sView.height
+                )
+                objectAnimator.duration = 140000
+                objectAnimator.interpolator = LinearInterpolator()
+                objectAnimator.repeatCount = ObjectAnimator.INFINITE
+                objectAnimator.repeatMode = ObjectAnimator.RESTART
+                objectAnimator.start()
+
+
+            }
+        })
+
     }
 
 
