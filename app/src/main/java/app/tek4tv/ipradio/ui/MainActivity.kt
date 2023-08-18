@@ -5,21 +5,22 @@ import android.animation.ObjectAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
-import android.text.method.ScrollingMovementMethod
+import android.util.DisplayMetrics
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
-import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -49,7 +50,6 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
@@ -294,15 +294,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     }
 
+    fun getScreenDensityDpi(context: Context): Int {
+        val displayMetrics = context.resources.displayMetrics
+        return displayMetrics.densityDpi
+    }
+    fun convertPixelsToDp(px: Int, context: Context): Int {
+        return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
+    }
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val imgSec1 = findViewById<ImageView>(R.id.imgSec1)
+
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
         val sView = findViewById<ScrollView>(R.id.scrollView)
         val tvSec1= findViewById<TextView>(R.id.tvSec1)
+        imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
         tvMacAdress.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-
+        tvMacAdress.textSize = convertPixelsToDp(48,baseContext).toFloat();
         tvSec1.text = """"Gần 30 ngân hàng tư nhân đồng loạt giảm tiếp lãi suất tiết kiệm trong nửa đầu tháng 8, đưa mức cao nhất về vùng 7% một năm.
 
 Khảo sát của VnExpress với 34 ngân hàng trong nước tới ngày 16/8 cho thấy gần như toàn bộ ngân hàng tư nhân từ cuối tháng 7 đến nay đều điều chỉnh biểu lãi suất huy động. Riêng 4 ngân hàng quốc doanh vẫn giữ nguyên lãi suất trong một tháng qua.
@@ -318,7 +328,8 @@ Sau đợt giảm này, hiện chỉ còn chục ngân hàng sẵn sàng trả l
 Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, Ngân hàng Nhà nước gần đây yêu cầu các nhà băng đồng thời giảm lãi suất khoản vay cũ và mới ít nhất 1,5-2%, theo chỉ đạo của Chính phủ nhằm hỗ trợ doanh nghiệp và người dân.
 
 Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
-
+        val dpi = getScreenDensityDpi(baseContext)
+        tvSec1.textSize = convertPixelsToDp(36,baseContext).toFloat();
 
         sView.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
@@ -334,11 +345,20 @@ Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất
                 objectAnimator.repeatCount = ObjectAnimator.INFINITE
                 objectAnimator.repeatMode = ObjectAnimator.RESTART
                 objectAnimator.start()
-
-
             }
         })
 
+        Log.d("dpiPoint", "showMac: $dpi");
+        val params: ConstraintLayout.LayoutParams =
+            ConstraintLayout.LayoutParams(convertPixelsToDp(400,baseContext), convertPixelsToDp(255,baseContext))
+//        imgSec1.layoutParams.height = convertPixelsToDp(255,baseContext)
+//        imgSec1.layoutParams.width = convertPixelsToDp(400,baseContext)
+        var marginTop =  convertPixelsToDp(64,baseContext)
+        var marginBottom=  convertPixelsToDp(36,baseContext)
+        var marginStart =  convertPixelsToDp(89,baseContext)
+        var marginEnd =  convertPixelsToDp(89,baseContext)
+        params.setMargins(marginStart,marginTop,marginEnd,marginBottom);
+        imgSec1.layoutParams = params
     }
 
 
@@ -875,13 +895,13 @@ Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
 
     companion object {
