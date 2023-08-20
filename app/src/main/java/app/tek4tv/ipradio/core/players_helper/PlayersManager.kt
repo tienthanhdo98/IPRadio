@@ -161,13 +161,20 @@ class PlayersManager(
             else {
                 if (isInTimeFrame) {
                     Log.d("PlayerLog", "Play media loop")
+                    val scheduledList = mediaRepo.scheduledList
+                    for (i in scheduledList.keys.indices) {
+                        val period = scheduledList.keys.elementAt(i)
+                        val t = period.split("-")
+                        val start = toCalendar(t[0])
+                        val end = toCalendar(t[1])
+                        val now = Calendar.getInstance().timeInMillis
+                        if (now in start.timeInMillis..end.timeInMillis) {
+                            currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
+                        }
+                    }
                     playlistIndex = 0
                     playMediaByIndex(playlistIndex)
                 }
-//                else
-//                {
-//                    stopAllPlayer()
-//                }
             }
 
 
