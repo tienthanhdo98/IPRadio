@@ -49,7 +49,7 @@ class PlayersManager(
      * 0 for init
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    private var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_INIT//"0"
 
     /**
      * List of media for a timeframe
@@ -227,6 +227,7 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         vlcPlayer.stop()
+         played = false
     }
 
 
@@ -395,7 +396,6 @@ class PlayersManager(
     companion object {
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
-        const val LOGTAG = "player"
     }
 
 }

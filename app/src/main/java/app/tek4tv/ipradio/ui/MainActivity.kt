@@ -26,6 +26,7 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -564,26 +565,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
-                    when(mess)
-                    {
-                        //dung phat
-                        0 -> {
-                            playerManager.stopAllPlayer()
-                            playerManager.resetPlayMode()
-                        }
-                        //dung phat va chuyen sang ban tin tiep
-                        1 -> {
-                            if(playerManager.isInTimeFrame)
-                            {
-                                playerManager.playNextMedia()
+                    if(playerManager.playMode != PLAY_MODE_FORCE ) {
+                        when (mess) {
+                            //dung phat
+                            0 -> {
+                                playerManager.stopAllPlayer()
+                                playerManager.resetPlayMode()
                             }
-                        }
-                        //Tạm dừng nội dung đang phát
-                        2 ->{
-                            playerManager.pauseMedia()
-                        }
-                        3 ->{
-                            playerManager.resumeMedia()
+                            //dung phat va chuyen sang ban tin tiep
+                            1 -> {
+                                if (playerManager.isInTimeFrame) {
+                                    playerManager.playNextMedia()
+                                }
+                            }
+                            //Tạm dừng nội dung đang phát
+                            2 -> {
+                                playerManager.pauseMedia()
+                            }
+                            3 -> {
+                                if (playerManager.played) {
+                                    playerManager.resumeMedia()
+                                } else {
+                                    playerManager.startFirstTimeFrame()
+                                }
+                            }
                         }
                     }
                 }
