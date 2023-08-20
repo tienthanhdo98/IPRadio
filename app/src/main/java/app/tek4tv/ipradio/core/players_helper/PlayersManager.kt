@@ -137,6 +137,14 @@ class PlayersManager(
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        mediaRepo.scheduledList.forEach { e ->
+            Log.d("Myloglog","s: $e ")
+            Log.d("Myloglog","----- ")
+        }
+        Log.d("Myloglog", "playNextMedia: $timeFrame - $resumePoint ")
+        currentPlaylist.forEach { e ->
+            Log.d("Myloglog", "playNextMedia: $e - $playlistIndex ")
+        }
 
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
@@ -150,32 +158,49 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
-        Log.d("alarmx", "Play media next $isInTimeFrame" )
+        Log.d("alarmx", "Play media next $isInTimeFrame")
         if (playMode == "") return
 
-        playlistIndex++
-            if (playlistIndex < currentPlaylist.size) {
-                Log.d("PlayerLog", "Play media next")
-                playMediaByIndex(playlistIndex)
-            }
-            else {
-                if (isInTimeFrame) {
-                    Log.d("PlayerLog", "Play media loop")
-                    val scheduledList = mediaRepo.scheduledList
-                    for (i in scheduledList.keys.indices) {
-                        val period = scheduledList.keys.elementAt(i)
-                        val t = period.split("-")
-                        val start = toCalendar(t[0])
-                        val end = toCalendar(t[1])
-                        val now = Calendar.getInstance().timeInMillis
-                        if (now in start.timeInMillis..end.timeInMillis) {
-                            currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
-                        }
+//        playlistIndex++
+//            if (playlistIndex < currentPlaylist.size) {
+//                Log.d("PlayerLog", "Play media next")
+//                playMediaByIndex(playlistIndex)
+//            }
+//            else {
+//                if (isInTimeFrame) {
+//                    Log.d("PlayerLog", "Play media loop")
+//                    playlistIndex = 0
+//                    playMediaByIndex(playlistIndex)
+//                }
+//            }
+        val scheduledList = mediaRepo.scheduledList
+        for (i in scheduledList.keys.indices) {
+            val period = scheduledList.keys.elementAt(i)
+            val t = period.split("-")
+            val start = toCalendar(t[0])
+            val end = toCalendar(t[1])
+            val now = Calendar.getInstance().timeInMillis
+            if (now in start.timeInMillis..end.timeInMillis) {
+               // currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
+                var a = mediaRepo.scheduledList[period];
+                if (a != null) {
+                    a.forEach { e ->
+                        Log.d("Myloglog", "playNextMedia: $e ")
                     }
-                    playlistIndex = 0
-                    playMediaByIndex(playlistIndex)
                 }
             }
+            }
+        playlistIndex++
+        if (playlistIndex < currentPlaylist.size) {
+            Log.d("PlayerLog", "Play media next")
+            playMediaByIndex(playlistIndex)
+        } else {
+            if (isInTimeFrame) {
+                Log.d("PlayerLog", "Play media loop")
+                playlistIndex = 0
+                playMediaByIndex(playlistIndex)
+            }
+        }
 
 
     }
