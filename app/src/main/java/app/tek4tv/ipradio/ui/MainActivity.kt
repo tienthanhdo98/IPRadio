@@ -330,7 +330,7 @@ Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, N
 Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
         val dpi = getScreenDensityDpi(baseContext)
         tvSec1.textSize = convertPixelsToDp(36,baseContext).toFloat();
-
+        sView.setFadingEdgeLength(convertPixelsToDp(50,baseContext))
         sView.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
             override fun onGlobalLayout() {
@@ -349,16 +349,6 @@ Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất
         })
 
         Log.d("dpiPoint", "showMac: $dpi");
-        val params: ConstraintLayout.LayoutParams =
-            ConstraintLayout.LayoutParams(convertPixelsToDp(400,baseContext), convertPixelsToDp(255,baseContext))
-//        imgSec1.layoutParams.height = convertPixelsToDp(255,baseContext)
-//        imgSec1.layoutParams.width = convertPixelsToDp(400,baseContext)
-        var marginTop =  convertPixelsToDp(64,baseContext)
-        var marginBottom=  convertPixelsToDp(36,baseContext)
-        var marginStart =  convertPixelsToDp(89,baseContext)
-        var marginEnd =  convertPixelsToDp(89,baseContext)
-        params.setMargins(marginStart,marginTop,marginEnd,marginBottom);
-        imgSec1.layoutParams = params
     }
 
 

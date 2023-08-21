@@ -22,17 +22,17 @@
             app:layout_constraintHorizontal_bias="0.0"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
-
         <ScrollView
             android:paddingTop="20dp"
             app:layout_constraintHeight_percent="0.7"
             android:id="@+id/scrollView"
             android:layout_width="match_parent"
             android:layout_height="0dp"
+            android:layout_marginBottom="10dp"
             app:layout_constraintBottom_toBottomOf="parent"
             android:scrollbars="none"
+            android:requiresFadingEdge="vertical"
             app:layout_constraintTop_toBottomOf="@+id/imgSec1">
-
             <TextView
                 android:id="@+id/tvSec1"
                 android:layout_width="match_parent"
