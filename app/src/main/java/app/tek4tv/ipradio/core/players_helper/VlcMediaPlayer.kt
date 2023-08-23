@@ -1,13 +1,8 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.location.Location
-import android.location.LocationListener
-import android.location.LocationManager
-import android.os.Bundle
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
-import app.tek4tv.ipradio.core.PlayerManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
@@ -187,7 +182,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         Log.e("check", "${now <= liveEndTime}")
         Log.e("check", "${stream.state != IMedia.State.Playing}")
 
-        Log.d(PlayerManager.LOGTAG, "check: $check")
+        Log.d(LOGTAG, "check: $check")
 
         return check
     }

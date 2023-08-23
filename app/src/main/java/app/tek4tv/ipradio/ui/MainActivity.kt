@@ -21,10 +21,10 @@ import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.PlayerManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -111,6 +111,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
+            serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
         }
@@ -485,13 +486,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     globalProperties.saveProperties(responseHub)
                     if(responseHub.volume != ""){
                         serialPortController.writeForceSetVolume(responseHub.volume)
+                        globalProperties.setTempVolume(responseHub.volume!!)
                     }
                     else
                     {
                         serialPortController.writeForceSetVolume("100")
                     }
-
-
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
 
@@ -628,7 +628,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_STATUS -> {
-//                    serialPortController.updateStatus()
+                   // serialPortController.updateStatus()
                 }
                 HubCommand.GET_LOCATION -> {
                     val connectionId = responseHub.message
