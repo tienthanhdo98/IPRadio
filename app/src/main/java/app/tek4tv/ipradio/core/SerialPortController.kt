@@ -251,7 +251,6 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
         playMode = MODE_TUNER
-
         Log.e("PA", "TUNER")
     }
 
