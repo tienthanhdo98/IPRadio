@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.ContextCompat.startActivity
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.ui.MainActivity
 import java.io.BufferedWriter
@@ -16,13 +17,15 @@ import java.util.*
 class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHandler {
     override fun uncaughtException(thread: Thread, ex: Throwable) {
 
+
         val appInstance = MyApp.instance
 
         // TODO : add crash handler to app when building for customer
         if (appInstance != null) {
             logToFile(thread, ex)
-
-            //restartApp(appInstance, activity)
+        }
+        if (appInstance != null) {
+            restartApp(appInstance, activity)
         }
     }
 
@@ -62,6 +65,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
             val mgr =
                 appInstance.baseContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = pendingIntent
+            activity.startActivity(intent)
             activity.finish()
             System.exit(2)
         }

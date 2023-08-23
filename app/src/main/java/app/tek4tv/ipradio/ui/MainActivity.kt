@@ -168,6 +168,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            Log.d("LiveLive", "end live: end ")
             ForceMedia.deleteForeMediaPref(applicationContext)
 //            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
@@ -503,6 +504,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
+                    //CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!

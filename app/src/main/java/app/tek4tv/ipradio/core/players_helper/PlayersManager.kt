@@ -137,13 +137,12 @@ class PlayersManager(
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
-        mediaRepo.scheduledList.forEach { e ->
-            Log.d("Myloglog","s: $e ")
-            Log.d("Myloglog","----- ")
-        }
-        Log.d("Myloglog", "playNextMedia: $timeFrame - $resumePoint ")
+        Log.d("Myloglog", "scheduledList: ${  mediaRepo.scheduledList.keys} ")
+        Log.d("Myloglog", "scheduledList: ${  mediaRepo.scheduledList.values} ")
+        Log.d("Myloglog", "list at time frame: ${ mediaRepo.scheduledList.getValue(timeFrame)} ")
+
         currentPlaylist.forEach { e ->
-            Log.d("Myloglog", "playNextMedia: $e - $playlistIndex ")
+            Log.d("Myloglog", "playNextMedia: ${e.title} ")
         }
 
         if (resumePoint != null) {
@@ -182,12 +181,6 @@ class PlayersManager(
             val now = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
                // currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
-                var a = mediaRepo.scheduledList[period];
-                if (a != null) {
-                    a.forEach { e ->
-                        Log.d("Myloglog", "playNextMedia: $e ")
-                    }
-                }
             }
             }
         playlistIndex++

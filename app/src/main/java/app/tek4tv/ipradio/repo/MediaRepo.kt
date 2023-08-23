@@ -106,7 +106,7 @@ class MediaRepo @Inject constructor(
         }.chunked(2)
 
         val scheduledIndex = mutableListOf<Int>()
-
+        Log.d("Myloglog", "playNextMedia: ${dividerIndices} ")
         dividerIndices.forEach {
             if (it.size == 2) {
                 val startIndex = it[0]
@@ -114,7 +114,6 @@ class MediaRepo @Inject constructor(
 
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
-
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
                 //adding the index of scheduled media
