@@ -172,17 +172,17 @@ class PlayersManager(
 //                    playMediaByIndex(playlistIndex)
 //                }
 //            }
-        val scheduledList = mediaRepo.scheduledList
-        for (i in scheduledList.keys.indices) {
-            val period = scheduledList.keys.elementAt(i)
-            val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            val now = Calendar.getInstance().timeInMillis
-            if (now in start.timeInMillis..end.timeInMillis) {
-               // currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
-            }
-            }
+//        val scheduledList = mediaRepo.scheduledList
+//        for (i in scheduledList.keys.indices) {
+//            val period = scheduledList.keys.elementAt(i)
+//            val t = period.split("-")
+//            val start = toCalendar(t[0])
+//            val end = toCalendar(t[1])
+//            val now = Calendar.getInstance().timeInMillis
+//            if (now in start.timeInMillis..end.timeInMillis) {
+//               // currentPlaylist = mediaRepo.scheduledList[period] ?: listOf()
+//            }
+//            }
         playlistIndex++
         if (playlistIndex < currentPlaylist.size) {
             Log.d("PlayerLog", "Play media next")
