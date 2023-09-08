@@ -21,7 +21,7 @@ android {
 
     defaultConfig {
         //app.tek4tv.ipradio
-        applicationId "app.tek4tv.ipradio"
+        applicationId "app.tek4tv.ipencoder"
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 8
@@ -78,11 +78,11 @@ dependencies {
     implementation "androidx.activity:activity-ktx:1.1.0"
 
     implementation 'org.videolan.android:libvlc-all:3.3.14'
-    //implementation fileTree(include: ['*.aar'], dir: 'libs')
 
     implementation 'com.microsoft.signalr:signalr:5.0.1'
 
-    //implementation 'com.google.code.gson:gson:2.8.6'
+    //rtsp stream
+    implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.1.8'
 
     //Retrofit and Moshi
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'
