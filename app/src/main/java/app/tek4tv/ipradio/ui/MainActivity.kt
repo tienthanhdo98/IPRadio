@@ -656,6 +656,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.SET_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
+                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
                         serialPortController.writeForceSetVolume(responseHub.message!!)
                         globalProperties.setTempVolume(responseHub.message!!)
                     }
