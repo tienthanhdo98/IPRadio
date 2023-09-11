@@ -39,7 +39,7 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
     ) {
     private val LOG_TAG = "HubManager"
-    val CONNECT_COUNTER_LIMIT = 150
+    val CONNECT_COUNTER_LIMIT = 10
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
