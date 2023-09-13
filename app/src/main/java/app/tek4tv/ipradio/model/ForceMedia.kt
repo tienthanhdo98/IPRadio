@@ -52,6 +52,8 @@ data class ForceMedia(
             priority = mediaItem!!.priority,
             contentType = mediaItem!!.contentType,
             description = mediaItem!!.description,
+            sourceName = mediaItem!!.sourceName,
+            sourceID = mediaItem!!.sourceID
         ).also { it.level = level }
     }
 

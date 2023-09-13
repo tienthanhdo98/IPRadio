@@ -24,8 +24,8 @@ android {
         applicationId "app.tek4tv.digital"
         minSdkVersion 23
         targetSdkVersion 28
-        versionCode 5
-        versionName "4.1.0"
+        versionCode 6
+        versionName "4.1.1"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
