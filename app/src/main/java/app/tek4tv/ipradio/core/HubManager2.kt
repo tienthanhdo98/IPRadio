@@ -1,9 +1,7 @@
 package app.tek4tv.ipradio.core
 
 
-import android.preference.PreferenceManager
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.model.DirectMessage
 import app.tek4tv.ipradio.model.encoder_model.PingHubRequestEncoder
 import app.tek4tv.ipradio.model.encoder_model.ResponseHubEncoder
@@ -119,11 +117,11 @@ class HubManagerEncoder : BaseHubManager() {
                                 pingCounter = 0
                             }
 
-                            HubCommand.UPDATE_STATUS -> {
-                                if (latestHubResponse.message != null) receivedConnectionId =
-                                    latestHubResponse.message
-                                        ?: ""
-                            }
+//                            HubCommand.UPDATE_STATUS -> {
+//                                if (latestHubResponse.message != null) receivedConnectionId =
+//                                    latestHubResponse.message
+//                                        ?: ""
+//                            }
                         }
                     }
                     parseHubResponse(message)
@@ -225,7 +223,7 @@ class HubManagerEncoder : BaseHubManager() {
     @Synchronized
     private fun notifyHubConnected() {
         mainHandler.post {
-            hubEventObserver.forEach { it.onConnectedToHub() }
+            hubEventObserver.forEach { it.onReconnectedToHub() }
         }
     }
 
@@ -249,32 +247,6 @@ class HubManagerEncoder : BaseHubManager() {
         }
     }
 
-    fun sendLiveStreamMessage() {
-        deviceRepo.itemCheckArr.filter { it.value }.map { it.key }.forEach {
-
-            val device = deviceRepo.latestDeviceList[it]
-
-            val prefManager = PreferenceManager.getDefaultSharedPreferences(MyApp.instance!!.applicationContext)
-
-            val request = PingHubRequestEncoder().apply {
-                imei = device.imei
-                message = prefManager.getString(SettingsFragment.INPUT_SOURCE_URL_KEY, "")
-                type = "LIVE"
-                duration =
-                    prefManager.getString(SettingsFragment.INPUT_SOURCE_DURATION_KEY, "0")!!.toInt()
-                level = prefManager.getInt(SettingsFragment.INPUT_SOURCE_LEVEL_KEY, 0)
-                name = prefManager.getString(SettingsFragment.INPUT_SOURCE_NAME_KEY, "")!!
-            }
-
-            sendDirectMessage(
-                device.connectionId,
-                "LIVE",
-                Utils.toJsonString(moshi, PingHubRequestEncoder::class.java, request)
-            )
-
-            Log.d("LIVE", Utils.toJsonString(moshi, PingHubRequestEncoder::class.java, request))
-        }
-    }
 
     companion object {
         var instance: HubManagerEncoder? = null

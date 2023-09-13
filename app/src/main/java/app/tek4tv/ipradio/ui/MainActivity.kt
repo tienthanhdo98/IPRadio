@@ -18,10 +18,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.HubManagerEnocder
-import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.*
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
@@ -83,7 +80,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @Inject
     lateinit var logService: LogService
 
-    private lateinit var hubManager: HubManagerEnocder
+    private lateinit var hubManager: HubManager
     private lateinit var playerManager: PlayersManager
 
     private lateinit var serialPortController: SerialPortController
@@ -223,11 +220,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //logUtils.logStartApp()
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManagerEnocder(hubComm, authService, mediaCapture) { command, message ->
+        hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
             handleFromCommandServer(command, message)
         }
-        hubManager.logService = logService
-
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         // serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -238,6 +233,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.i("PA", "onCreate: s4")
             }
         }
+        val hubManagerEncoder = HubManagerEncoder.getInst()
+        hubManager.onMessageListener =
+            { command, message ->
+                handleFromCommandServer(command, message)
+            }
+        hubManagerEncoder.connectToHub()
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(

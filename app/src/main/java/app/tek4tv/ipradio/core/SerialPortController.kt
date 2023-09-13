@@ -17,7 +17,7 @@ import java.util.*
 class SerialPortController(
     private val appContext: Context,
     private val coroutineScope: CoroutineScope,
-    private val hubManager: HubManagerEnocder
+    private val hubManager: HubManager
 ) {
     private var serialPort: SerialPort? = null
     private var inputStream: InputStream? = null
