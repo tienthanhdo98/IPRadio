@@ -118,13 +118,17 @@ class PlayersManager(
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
+        val now = Calendar.getInstance().timeInMillis
+        Log.d(LOGTAG, "${Calendar.getInstance().timeInMillis}")
         for (i in scheduledList.keys.indices) {
+            Log.d(LOGTAG, "${scheduledList.keys}")
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-
-            val now = Calendar.getInstance().timeInMillis
+            Log.d(LOGTAG, "${start.timeInMillis}")
+            Log.d(LOGTAG, "${end.timeInMillis}")
+            Log.d(LOGTAG, "---")
             if (now in start.timeInMillis..end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
@@ -133,15 +137,10 @@ class PlayersManager(
                 isInTimeFrame = true
                 break
             }
-            else
-            {
-                isInTimeFrame = false
-                break
-            }
-
         }
 
         if (!found) {
+            isInTimeFrame = false
             playerManagerListener?.onTimeOver()
         }
     }
@@ -171,14 +170,6 @@ class PlayersManager(
             if (playlistIndex < currentPlaylist.size) {
                 Log.d(LOGTAG, "Play media phat tiep")
                 playMediaByIndex(playlistIndex)
-            }
-            else
-            {
-                if(!isInTimeFrame) {
-                    Log.d(LOGTAG, "Play media het noi dung, dang phat lai")
-                    playlistIndex = 0;
-                    playMediaByIndex(playlistIndex)
-                }
             }
         }
     }
@@ -340,10 +331,10 @@ class PlayersManager(
             val type = responseHub.type
             val level = responseHub.level
             val mediaItemObject = responseAdapter.fromJson(responseHub.name)
-
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
+
             if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {

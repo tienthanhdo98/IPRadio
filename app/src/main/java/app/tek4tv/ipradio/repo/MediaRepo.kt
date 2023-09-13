@@ -10,7 +10,6 @@ import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
-import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -202,9 +201,10 @@ class MediaRepo @Inject constructor(
                     Log.d("downloadcomplete", it.body!!)
                 }
 
-                override fun onError(error: Error?) {
+                override fun onError(error: com.downloader.Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }
