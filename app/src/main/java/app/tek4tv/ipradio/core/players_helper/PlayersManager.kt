@@ -21,6 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.log
 
 
 /**
@@ -114,22 +115,25 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
-    var isInTimeFrame = false;
+    var isInTimeFrame = false
+    var isHaveNextTimeFrameAfter = false
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
-        Log.d(LOGTAG, "${Calendar.getInstance().timeInMillis}")
         for (i in scheduledList.keys.indices) {
-            Log.d(LOGTAG, "${scheduledList.keys}")
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-            Log.d(LOGTAG, "${start.timeInMillis}")
-            Log.d(LOGTAG, "${end.timeInMillis}")
-            Log.d(LOGTAG, "---")
             if (now in start.timeInMillis..end.timeInMillis) {
+                if(i <= scheduledList.size)
+                {
+                    val nextPeriod = scheduledList.keys.elementAt(i + 1)
+                    val nextT = nextPeriod.split("-")
+                    val nextStart = toCalendar(nextT[0])
+                    isHaveNextTimeFrameAfter = nextStart.timeInMillis - end.timeInMillis > 10000
+                }
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 Log.d(LOGTAG, "Play media in timeframe")
@@ -141,7 +145,10 @@ class PlayersManager(
 
         if (!found) {
             isInTimeFrame = false
+            if(isHaveNextTimeFrameAfter)
+            {
             playerManagerListener?.onTimeOver()
+            }
         }
     }
 
@@ -232,6 +239,7 @@ class PlayersManager(
     fun stopAllPlayer() {
         vlcPlayer.stop()
         exoPlayer.stop()
+        played = false
     }
 
 
