@@ -80,11 +80,8 @@ class HubManager(
 
     private val notifyDisconnected = AtomicBoolean(false)
 
-    private val logUtils = LogUtils.getInst()
 
     private var hubToken: String? = null
-
-    //"https://hub.gateway.httt.tek4tv.vn/hubServer"
 
 
     private var firstConnect = true
@@ -93,7 +90,6 @@ class HubManager(
     var logService: LogService? = null
 
     //check ping to hub
-    var pingToHub = false
     var hubUrl = ""
     var providerValue = "Tek4tv"
     init {
