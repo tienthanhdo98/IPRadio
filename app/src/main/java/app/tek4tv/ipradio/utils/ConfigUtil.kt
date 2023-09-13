@@ -16,6 +16,7 @@ object ConfigUtil {
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
     const val URL_TOKEN = "URL_TOKEN"
+    const val PROVIDER = "PROVIDER"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
