@@ -84,7 +84,7 @@ class HubManager(
 
     //"https://hub.gateway.httt.tek4tv.vn/hubServer"
 
-    private val provider = "Tek4tv"
+
 
     private var firstConnect = true
 
@@ -92,8 +92,8 @@ class HubManager(
     var logService: LogService? = null
 
     //check ping to hub
-    var pingToHub = false
     var hubUrl = ""
+    var providerValue = "Tek4tv"
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
@@ -101,11 +101,11 @@ class HubManager(
             ""
         }
 
-//        val hubUrl = ConfigUtil.getStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_HUB,
-//            "https://hubgatewayhttt.tek4tv.vn/hubServer"
-//        )
+        providerValue = ConfigUtil.getStringEncrypt(
+            appContext,
+            ConfigUtil.PROVIDER,"Tek4tv"
+        )!!
+
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
@@ -224,7 +224,7 @@ class HubManager(
                 logUtils.logHubConnectState(
                     HubStateRecord(
                         imei = deviceImei,
-                        provider = provider,
+                        provider = providerValue,
                         state = "CONNECTED",
                         networkType = NetworkUtils.getNetworkClass(appContext),
                         destinationID = logUtils.destinationId,
@@ -250,7 +250,7 @@ class HubManager(
                     logUtils.logHubConnectState(
                         HubStateRecord(
                             imei = deviceImei,
-                            provider = provider,
+                            provider = providerValue,
                             state = disconnectState,
                             networkType = NetworkUtils.getNetworkClass(appContext),
                             destinationID = logUtils.destinationId,
@@ -319,7 +319,7 @@ class HubManager(
                 logUtils.logHubConnectState(
                     HubStateRecord(
                         imei = deviceImei,
-                        provider = provider,
+                        provider = providerValue,
                         state = "CONNECTED",
                         networkType = NetworkUtils.getNetworkClass(appContext),
                         destinationID = logUtils.destinationId,
@@ -345,7 +345,7 @@ class HubManager(
                     logUtils.logHubConnectState(
                         HubStateRecord(
                             imei = deviceImei,
-                            provider = provider,
+                            provider = providerValue,
                             state = disconnectState,
                             networkType = NetworkUtils.getNetworkClass(appContext),
                             destinationID = logUtils.destinationId,
@@ -506,7 +506,7 @@ class HubManager(
                 destinationName = GlobalProperties.getInst().destinationName
                 appName = "DigitalSignage"
                 logType = hubUrl
-                provider = "Tek4tv"
+                provider = providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume

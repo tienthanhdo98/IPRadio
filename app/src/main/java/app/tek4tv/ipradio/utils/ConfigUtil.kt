@@ -15,6 +15,7 @@ object ConfigUtil {
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
+    const val PROVIDER = "PROVIDER"
     const val URL_TOKEN = "URL_TOKEN"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

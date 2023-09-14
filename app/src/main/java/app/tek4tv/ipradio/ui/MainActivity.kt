@@ -514,10 +514,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
-                    val urlHub = mess.split(",")[0]
-                    val urlToken = mess.split(",")[1]
-                    Log.i("UPDATE_CONFIG hub", urlHub)
-                    Log.i("UPDATE_CONFIG token", urlToken)
+                    val listValue = mess.split(",")
+                    val urlHub = listValue[0]
+                    val urlToken = listValue[1]
+                    if(listValue.size == 3 )
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROVIDER,
+                            listValue[2]
+                        )
+                    }
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
