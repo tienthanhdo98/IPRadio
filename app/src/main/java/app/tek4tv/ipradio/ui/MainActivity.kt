@@ -30,6 +30,7 @@ import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
+import app.tek4tv.ipradio.utils.encoder.StreamBaseFrag
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -38,6 +39,8 @@ import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
+import com.pedro.encoder.input.audio.MicrophoneMode
+import com.pedro.rtplibrary.rtmp.RtmpOnlyAudio
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
@@ -266,6 +269,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
+
+        lifecycleScope.launch{
+            delay(10000)
+            val a = StreamBaseFrag()
+            val micStreamRtmp = RtmpOnlyAudio(a)
+            micStreamRtmp.setMicrophoneMode(MicrophoneMode.SYNC)
+            micStreamRtmp.setWriteChunkSize(128)
+            if (micStreamRtmp.prepareAudio(64 * 1024, 44100, true, true, true)) {
+
+                micStreamRtmp.startStream("rtmp://171.244.130.55:1935/live/test2")
+            }
+
+
+
+        }
     }
 
     fun getMacAddr(): String {

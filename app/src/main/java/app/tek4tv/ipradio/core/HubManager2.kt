@@ -30,11 +30,8 @@ class HubManagerEncoder : BaseHubManager() {
     private val responseAdapter = moshi.adapter(ResponseHubEncoder::class.java)
 
 
-
     private val hubEventObserver = mutableListOf<HubEventObserver>()
 
-
-    private val deviceRepo = DeviceRepository.getInstance()
 
     private val hubConnection: HubConnection
 

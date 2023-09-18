@@ -102,7 +102,7 @@ class HubManager(
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubgatewayhttt.tek4tv.vn/hubServer"
+            "https://hubip-qn.tek4tv.vn/hubServer"
         )
         Log.i("urlbase", hubUrl!!)
         hubConnection = HubConnectionBuilder.create(hubUrl)
@@ -461,8 +461,10 @@ class HubManager(
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.video}")
-            Log.i("loghub", "log hub: ${request.deviceInfo}")
+//            Log.i("loghub", "log hub: ${request.video}")
+//
+//            Log.i("loghub", "log hub: ${request.deviceInfo}")
+            Log.i("loghub", "log hub: ${pingRequestAdapter.toJson(request)}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

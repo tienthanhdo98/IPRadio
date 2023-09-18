@@ -1,7 +1,9 @@
 package app.tek4tv.ipradio.core
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -19,6 +21,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
 
+    @SuppressLint("UnspecifiedImmutableFlag")
     private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
@@ -34,7 +37,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "Set reschedule day ${time.get(Calendar.DAY_OF_MONTH)}")
 
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_IMMUTABLE)
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
@@ -48,7 +51,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, 0)
+            PendingIntent.getBroadcast(appContext, 1, intent, FLAG_IMMUTABLE)
 
         val cal_alarm = Calendar.getInstance()
 
@@ -294,7 +297,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_UPDATE_CURRENT) ?: return
+        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_IMMUTABLE) ?: return
 
         val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
 
@@ -318,7 +321,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     fun cancelForceMediaAlarm() {
         Log.d("alarmx", "cancel force")
-        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_NO_CREATE) ?: return
+        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
         alarmManager.cancel(alarmIntent)
         alarmIntent.cancel()
     }

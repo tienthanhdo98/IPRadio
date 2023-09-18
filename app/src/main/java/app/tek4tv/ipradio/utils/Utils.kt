@@ -36,7 +36,6 @@ class Utils {
 
         fun getMacAddr(): String {
 
-
             try {
                 val all: List<NetworkInterface> =
                     Collections.list(NetworkInterface.getNetworkInterfaces())
