@@ -520,6 +520,7 @@ class HubManager(
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub: ${request.startTime}")
             Log.i("loghub", "log hub: ${request.networkInfo}")
+            Log.i("loghub", "log hub: ${request.deviceInfo}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

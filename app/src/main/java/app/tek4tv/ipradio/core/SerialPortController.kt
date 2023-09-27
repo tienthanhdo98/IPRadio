@@ -49,6 +49,13 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
+        coroutineScope.launch(Dispatchers.IO) {
+            while (true) {
+                updateStatus()
+                delay(5000)
+            }
+        }
+
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
@@ -63,7 +70,9 @@ class SerialPortController(
         val looseHubConnection = hubManager.pingCounter >= 3
 
         if (outputStream != null) {
-
+            //ma lenh 1.8: doc trang thai
+            //ma 1,2 :
+            //ma 1,9 :
             //$$,1,8,1,910,675,0,0,0,1,0,25
             //0: not internet, 1: ok , 2: internet, disconnected
             //$$,1,2,0: normal(1: be restarted neet to jump to realtime)
@@ -128,11 +137,12 @@ class SerialPortController(
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
-                            deviceInfo = s
+
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (list.size > 4) {
+                                deviceInfo = s
                                 volume = list[5]
                             }
                             dataFinal = StringBuffer()

@@ -251,8 +251,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        serialPortController.connectToSerialPort("/dev/ttyS4")
-        //serialPortController.connectToSerialPort(UART_S1_NAME)
+        serialPortController.connectToSerialPort(UART_S1_NAME)
 //        lifecycleScope.launch {
 //            delay(10000)
 //            if (!serialPortController.isUart1) {
@@ -260,8 +259,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                Log.i("PA", "onCreate: s4")
 //            }
 //        }
-//        val tvSec1 = findViewById<TextView>(R.id.tvSec1)
-//        tvSec1.isSelected = true
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
 
         playerManager = PlayersManager(
