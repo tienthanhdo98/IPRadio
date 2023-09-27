@@ -37,8 +37,6 @@ class HubManager(
     private val authService: AuthService,
     var mediaCapture: MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-
-
     ) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 15
@@ -122,7 +120,7 @@ class HubManager(
         val hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdevtruyenthanh.tek4tv.vn/hubServer"
+            "https://hub-truyenthanh.tek4tv.vn/hubServer"
         )
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer
         //https://hub-truyenthanh.tek4tv.vn/hubServer
