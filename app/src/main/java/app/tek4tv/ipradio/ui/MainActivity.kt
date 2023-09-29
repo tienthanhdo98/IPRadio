@@ -105,6 +105,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
+    val a = StreamBaseFrag()
+    val micStreamRtmp = RtmpOnlyAudio(a)
+    var urlStream = ""
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -270,20 +273,36 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
         showMac()
 
-        lifecycleScope.launch{
-            delay(10000)
-            val a = StreamBaseFrag()
-            val micStreamRtmp = RtmpOnlyAudio(a)
-            micStreamRtmp.setMicrophoneMode(MicrophoneMode.SYNC)
-            micStreamRtmp.setWriteChunkSize(128)
-            if (micStreamRtmp.prepareAudio(64 * 1024, 44100, true, true, true)) {
-
-                micStreamRtmp.startStream("rtmp://171.244.130.55:1935/live/test2")
+        urlStream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.URL_STREAM,
+            "rtmp://103.139.14.70:1935/live/liveStream"
+        )!!
+        lifecycleScope.launch {
+            while (true) {
+                if (!micStreamRtmp.isStreaming) {
+                    Log.i("pingping:", "micStream.isStreaming:")
+                    if (!micStreamRtmp.isStreaming) {
+                        delay(15000)
+                        startStream()
+                    }
+                }
+                delay(1000)
             }
-
-
-
         }
+    }
+
+    fun startStream() {
+        micStreamRtmp.setMicrophoneMode(MicrophoneMode.SYNC)
+        micStreamRtmp.setWriteChunkSize(128)
+        if (micStreamRtmp.prepareAudio(64 * 1024, 44100, true, true, true)) {
+            micStreamRtmp.startStream(urlStream)
+        }
+    }
+
+    private fun stopStream() {
+        if (!micStreamRtmp.isStreaming) return
+        micStreamRtmp.stopStream()
     }
 
     fun getMacAddr(): String {
@@ -321,6 +340,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
+        stopStream()
         cancelAllAlarm()
     }
 
@@ -528,10 +548,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
-                    val urlHub = mess.split(",")[0]
-                    val urlToken = mess.split(",")[1]
-                    Log.i("UPDATE_CONFIG hub", urlHub)
-                    Log.i("UPDATE_CONFIG token", urlToken)
+                    val listValue = mess.split(",")
+                    val urlHub = listValue[0]
+                    val urlToken = listValue[1]
+                    if(listValue.size == 2 )
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROVIDER,
+                            listValue[2]
+                        )
+                    }
+                    if(listValue.size == 3 )
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.URL_STREAM,
+                            listValue[3]
+                        )
+                    }
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
@@ -543,8 +578,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         .withTransport(TransportEnum.WEBSOCKETS)
                         .build()
                     lifecycleScope.launch {
-                        val id = hubManager.openConnection2(hubConnection)
-                        if (id != null) {
+                        val isRightHUb = hubManager.openConnection2(hubConnection)
+                        if (isRightHUb) {
                             ConfigUtil.putStringEncrypt(
                                 applicationContext,
                                 ConfigUtil.URL_HUB,
@@ -556,6 +591,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 urlToken
                             )
                             Log.i("config_config", "updateconfig success: reseting")
+                            Log.i("config_config", "updateconfig hub: ${listValue[0]}")
+                            Log.i("config_config", "updateconfig token: ${listValue[1]}")
+                            Log.i("config_config", "updateconfig provider: ${listValue[2]}")
+                            Log.i("config_config", "updateconfig urlstream: ${listValue[3]}")
+
                             delay(60000)
                             serialPortController.hardRestart()
 
@@ -566,6 +606,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
 
                     }
+
 
                 }
                 HubCommand.TURN_ON_PA -> {

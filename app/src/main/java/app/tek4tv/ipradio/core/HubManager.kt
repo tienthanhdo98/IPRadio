@@ -89,22 +89,26 @@ class HubManager(
 
 
     private var firstConnect = true
-
+    var providerValue = "Tek4tv"
     var privateKeyStr: String
-
+    var hubUrl = ""
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
         } catch (e: Exception) {
             ""
         }
+        providerValue = ConfigUtil.getStringEncrypt(
+            appContext,
+            ConfigUtil.PROVIDER,"Tek4tv"
+        )!!
 
-        val hubUrl = ConfigUtil.getStringEncrypt(
+        hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-qn.tek4tv.vn/hubServer"
-        )
-        Log.i("urlbase", hubUrl!!)
+            "https://hubip-hanoi.tek4tv.vn/hubServer"
+        )!!
+        Log.i("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -128,11 +132,11 @@ class HubManager(
     fun getHubToken(): String? {
         return try {
             //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+//            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
 //            val body = mapOf(
 //                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
@@ -243,19 +247,8 @@ class HubManager(
 
     fun getHubToken(urlToken : String): String? {
         return try {
-            //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
-
-            val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
-            )
-            Log.i("urlbase", urlToken!!)
-            val call = authService.getToken(body, urlToken!!)
+            val body = mapOf("Username" to "device", "Password" to "Device@123")
+            val call = authService.getToken(body, urlToken)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -270,7 +263,7 @@ class HubManager(
         }
     }
 
-    suspend fun openConnection2(hubConnection: HubConnection): String? {
+    suspend fun openConnection2(hubConnection: HubConnection): Boolean {
         //open connection on another thread
         Log.i(LOG_TAG, "open connection")
         return withContext(Dispatchers.IO) {
@@ -278,34 +271,14 @@ class HubManager(
                 hubConnection.start().blockingAwait()
 
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-                val currentTime = Calendar.getInstance().time
-                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
-                //send disconn log when connect
-                if (ConfigUtil.checkSharef(
-                        appContext,
-                        ConfigUtil.DISCONNECT_START_TIME
-                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-                ) {
-                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-                    val keyState = ConfigUtil.DISCONNECT_STATE
-                    val disconnectTime =
-                        ConfigUtil.getString(appContext, keyStartDis, "0")
-                            ?: "0"
-                    val disconnectState =
-                        ConfigUtil.getString(appContext, keyState, "0")
-                            ?: "DISCONNECT"
 
-                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-                    ConfigUtil.removeSharef(appContext, keyStartDis)
-                    ConfigUtil.removeSharef(appContext, keyState)
-
-                }
                 hubConnection.connectionId
+                true
             } catch (e: Exception) {
                 hubToken = null
                 e.printStackTrace()
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
-                null
+                false
             }
         }
     }
@@ -448,8 +421,8 @@ class HubManager(
                 destinationId = GlobalProperties.getInst().destinationId
                 destinationName = GlobalProperties.getInst().destinationName
                 appName = "Ipradio"
-                logType = "report"
-                provider = "Tek4tv"
+                logType = hubUrl
+                provider = providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume
