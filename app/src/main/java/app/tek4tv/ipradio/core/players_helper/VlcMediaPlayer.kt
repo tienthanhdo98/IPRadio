@@ -146,6 +146,7 @@ class VlcMediaPlayer(
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
 
+
         currentVlcMedia = media
 
         vlcPlayer.play(media)
@@ -155,6 +156,7 @@ class VlcMediaPlayer(
     private fun playLiveStream(mediaItem: MediaItem) {
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
+        stream.addOption(":network-caching = 60000")
 
         currentVlcMedia = stream
         vlcPlayer.play(stream)
