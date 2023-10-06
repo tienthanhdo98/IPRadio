@@ -73,8 +73,8 @@ class VlcMediaPlayer(
         val args = ArrayList<String>()
         //bật log vlc
         args.add("-vvv")
-        args.add("--no-drop-late-frames");
-        args.add("--no-skip-frames");
+        args.add("--no-drop-late-frames")
+        args.add("--no-skip-frames")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
@@ -156,7 +156,8 @@ class VlcMediaPlayer(
     private fun playLiveStream(mediaItem: MediaItem) {
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
-        stream.addOption(":network-caching = 60000")
+        stream.addOption(":no-sub-autodetect-file")
+        stream.addOption(":no-disable-screensaver")
 
         currentVlcMedia = stream
         vlcPlayer.play(stream)
