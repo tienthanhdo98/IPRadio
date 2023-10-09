@@ -9,7 +9,6 @@ import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
@@ -17,7 +16,6 @@ import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
-import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
