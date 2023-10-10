@@ -516,10 +516,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
-                    var listValue = mess.split(",")
+                    val listValue = mess.split(",")
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
-                    if(listValue.size == 3 )
+                    if(listValue.size >= 3 )
                     {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
