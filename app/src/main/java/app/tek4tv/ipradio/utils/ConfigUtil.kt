@@ -18,6 +18,8 @@ object ConfigUtil {
     const val PROVIDER = "PROVIDER"
     const val URL_TOKEN = "URL_TOKEN"
     const val URL_STREAM = "URL_STREAM"
+    const val USER_NAME_STREAM = "USER_NAME_STREAM"
+    const val PASSWORD_STREAM = "PASSWORD_STREAM"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()

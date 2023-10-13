@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.ui
 
+import StreamBaseFrag
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -30,7 +31,6 @@ import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
-import app.tek4tv.ipradio.utils.encoder.StreamBaseFrag
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -40,7 +40,8 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
-import com.pedro.rtplibrary.rtmp.RtmpOnlyAudio
+import com.pedro.rtplibrary.rtsp.RtspOnlyAudio
+import com.pedro.rtsp.rtsp.Protocol
 
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
@@ -56,7 +57,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener {
+class MainActivity : AppCompatActivity(), AlarmListener  {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -106,10 +107,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    val a = StreamBaseFrag()
-    val micStreamRtmp = RtmpOnlyAudio(a)
-    var urlStream = ""
 
+    var urlStream = ""
+    var user_name_stream = ""
+    var password_stream = ""
+     lateinit var micStreamRtsp : RtspOnlyAudio
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -231,7 +233,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             handleFromCommandServer(command, message)
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        // serialPortController.connectToSerialPort("/dev/ttyS4")
+         serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
             delay(10000)
@@ -273,18 +275,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
-        urlStream = ConfigUtil.getStringEncrypt(
-            this,
-            ConfigUtil.URL_STREAM,
-            "rtmp://103.139.14.70:1935/live/liveStream"
-        )!!
+        val streamBase = StreamBaseFrag();
+        val micStreamRtsp = RtspOnlyAudio(streamBase)
+        getSteamInfo()
 
         lifecycleScope.launch {
             Log.i("pingping:", "micStream.isStreaming:  $urlStream")
             while (true) {
-                if (!micStreamRtmp.isStreaming) {
+                if (!micStreamRtsp.isStreaming) {
                     Log.i("pingping:", "micStream.isStreaming:")
-                    if (!micStreamRtmp.isStreaming) {
+                    if (!micStreamRtsp.isStreaming) {
                         delay(15000)
                         startStream()
                     }
@@ -293,18 +293,37 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
     }
+    fun getSteamInfo()
+    {
+        urlStream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.URL_STREAM,
+            "rtsp://radiolive.tek4tv.vn/binhluc/test"
+        )!!
+        user_name_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.USER_NAME_STREAM,
+            "tek4tv1"
+        )!!
+        password_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.PASSWORD_STREAM,
+            "tek4tv123"
+        )!!
+    }
 
-    fun startStream() {
-        micStreamRtmp.setMicrophoneMode(MicrophoneMode.SYNC)
-        micStreamRtmp.setWriteChunkSize(128)
-        if (micStreamRtmp.prepareAudio(64 * 1024, 44100, true, true, true)) {
-            micStreamRtmp.startStream(urlStream)
+    private fun startStream() {
+        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
+        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
+        micStreamRtsp.setProtocol(Protocol.UDP)
+        if (micStreamRtsp.prepareAudio(64 * 1024, 44100, true, true, true)) {
+            micStreamRtsp.startStream(urlStream)
         }
     }
 
     private fun stopStream() {
-        if (!micStreamRtmp.isStreaming) return
-        micStreamRtmp.stopStream()
+        if (!micStreamRtsp.isStreaming) return
+        micStreamRtsp.stopStream()
     }
 
     fun getMacAddr(): String {
@@ -335,7 +354,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-
     }
 
 
@@ -570,6 +588,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             listValue[3]
                         )
                         Log.i("pingping", "handleFromCommandServer: ${listValue[3]}")
+                    }
+                    if(listValue.size >= 5)
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.USER_NAME_STREAM,
+                            listValue[4]
+                        )
+                        Log.i("pingping", "handleFromCommandServer: ${listValue[4]}")
+                    }
+                    if(listValue.size >= 6)
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PASSWORD_STREAM,
+                            listValue[5]
+                        )
+                        Log.i("pingping", "pass: ${listValue[5]}")
                     }
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
