@@ -120,7 +120,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     ) {
         val isAlarmWorking = getScheduleListIntent(
             listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+            PendingIntent.FLAG_ONE_SHOT, shouldEndPlaying
         )
 
         if (isAlarmWorking != null) return

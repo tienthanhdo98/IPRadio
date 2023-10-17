@@ -127,13 +127,13 @@ class PlayersManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
             if (now in start.timeInMillis..end.timeInMillis) {
-                if(i <= scheduledList.size)
-                {
-                    val nextPeriod = scheduledList.keys.elementAt(i + 1)
-                    val nextT = nextPeriod.split("-")
-                    val nextStart = toCalendar(nextT[0])
-                    isHaveNextTimeFrameAfter = nextStart.timeInMillis - end.timeInMillis > 10000
-                }
+//                if(i < scheduledList.size)
+//                {
+//                    val nextPeriod = scheduledList.keys.elementAt(i + 1)
+//                    val nextT = nextPeriod.split("-")
+//                    val nextStart = toCalendar(nextT[0])
+//                    isHaveNextTimeFrameAfter = nextStart.timeInMillis - end.timeInMillis > 10000
+//                }
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 Log.d(LOGTAG, "Play media in timeframe")
@@ -145,10 +145,10 @@ class PlayersManager(
 
         if (!found) {
             isInTimeFrame = false
-            if(isHaveNextTimeFrameAfter)
-            {
-            playerManagerListener?.onTimeOver()
-            }
+//            if(isHaveNextTimeFrameAfter)
+//            {
+//            playerManagerListener?.onTimeOver()
+//            }
         }
     }
 

@@ -5,6 +5,7 @@ import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.os.IBinder.FLAG_ONEWAY
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.ui.MainActivity
 import java.io.BufferedWriter
@@ -60,7 +61,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
             intent.addFlags(
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
             val pendingIntent = PendingIntent.getActivity(
-                appInstance.baseContext, 0, intent, PendingIntent.FLAG_ONE_SHOT)
+                appInstance.baseContext, 0, intent,  PendingIntent.FLAG_NO_CREATE)
             val mgr =
                 appInstance.baseContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = pendingIntent

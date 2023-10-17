@@ -476,7 +476,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
-
                     val mess = responseHub.message!!
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
