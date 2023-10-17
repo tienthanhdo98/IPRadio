@@ -42,7 +42,6 @@ import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
 import com.pedro.rtplibrary.rtsp.RtspOnlyAudio
 import com.pedro.rtsp.rtsp.Protocol
-
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
@@ -201,7 +200,6 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -233,15 +231,15 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
             handleFromCommandServer(command, message)
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-         serialPortController.connectToSerialPort("/dev/ttyS4")
+        // serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
-        lifecycleScope.launch {
-            delay(10000)
-            if (!serialPortController.isUart1) {
-                serialPortController.connectToSerialPort(UART_S4_NAME)
-                Log.i("PA", "onCreate: s4")
-            }
-        }
+//        lifecycleScope.launch {
+//            delay(10000)
+//            if (!serialPortController.isUart1) {
+//                serialPortController.connectToSerialPort(UART_S4_NAME)
+//                Log.i("PA", "onCreate: s4")
+//            }
+//        }
         val hubManagerEncoder = HubManagerEncoder.getInst()
         hubManager.onMessageListener =
             { command, message ->
@@ -276,7 +274,8 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         hideSystemUI()
         showMac()
         val streamBase = StreamBaseFrag();
-        val micStreamRtsp = RtspOnlyAudio(streamBase)
+        micStreamRtsp = RtspOnlyAudio(streamBase)
+        micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
 
         lifecycleScope.launch {
@@ -298,7 +297,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radiolive.tek4tv.vn/binhluc/test"
+            "rtsp://radiolive.tek4tv.vn:1935/binhluc/haiphong1"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -565,7 +564,8 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                 }
 
                 HubCommand.UPDATE_CONFIG -> {
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login,Tek4TV,https://api.gateway.httt.tek4tv.vn/api/streaming/streams/"
+                    // hubserver,apitoken,provider,urlstream,user,pass}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
                     val listValue = mess.split(",")
