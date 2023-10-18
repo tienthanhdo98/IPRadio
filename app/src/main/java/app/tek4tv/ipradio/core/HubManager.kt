@@ -349,7 +349,7 @@ class HubManager(
                                 pingCounter = 0
 
                             }
-                            HubCommand.UPDATE_CONFIG -> {
+                            HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION -> {
                                 meessDe = b64Decode(message)
                             }
 

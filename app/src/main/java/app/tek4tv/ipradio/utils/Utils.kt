@@ -3,11 +3,14 @@ package app.tek4tv.ipradio.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.net.NetworkInterface
 import java.util.*
+import kotlin.reflect.jvm.internal.impl.types.DynamicType
 
 class Utils {
     companion object {
@@ -81,5 +84,9 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+        fun checkIsItemIsAvailable(list : List<String>, index: Int) : Boolean {
+            return (index + 1) < list.size
+        }
+
     }
 }

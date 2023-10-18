@@ -33,7 +33,6 @@ import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
-import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -484,7 +483,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     globalProperties.saveProperties(responseHub)
                     if(responseHub.volume != ""){
                         serialPortController.writeForceSetVolume(responseHub.volume)
-                        globalProperties.setTempVolume(responseHub.volume!!)
+                        globalProperties.setTempVolume(responseHub.volume)
                     }
                     else
                     {
@@ -497,20 +496,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
+                    val listInfoConfig = mess.split(",")
+                    val resposnHub = ResponseHub().apply {
+                        volume = listInfoConfig[0]
+                        lat = listInfoConfig[1].toFloat()
+                        lng = listInfoConfig[2].toFloat()
+                        destinationId = listInfoConfig[3]
+                        destinationName = listInfoConfig[4]
+                    }
+                    globalProperties.saveProperties(resposnHub)
+                    Log.i("config_config", "updateconfig success: reseting")
+                    lifecycleScope.launch {
+                        delay(1000)
+                        serialPortController.hardRestart()
+                    }
 
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
-                    if(responseHub.volume != ""){
-                        serialPortController.writeForceSetVolume(responseHub.volume)
-                        globalProperties.setTempVolume(responseHub.volume!!)
-                    }
-                    else
-                    {
-                        serialPortController.writeForceSetVolume("100")
-                    }
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContent(mess, true)
                 }
 
 
