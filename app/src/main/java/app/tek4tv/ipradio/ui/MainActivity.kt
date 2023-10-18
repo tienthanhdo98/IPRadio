@@ -475,7 +475,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
-
                     val mess = responseHub.message!!
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
@@ -496,6 +495,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     viewModel.getPlayerContent(mess, true)
                 }
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message!!
+
+                    //lưu thông số vol, pi,...
+                    globalProperties.saveProperties(responseHub)
+                    if(responseHub.volume != ""){
+                        serialPortController.writeForceSetVolume(responseHub.volume)
+                        globalProperties.setTempVolume(responseHub.volume!!)
+                    }
+                    else
+                    {
+                        serialPortController.writeForceSetVolume("100")
+                    }
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    viewModel.getPlayerContent(mess, true)
+                }
+
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
