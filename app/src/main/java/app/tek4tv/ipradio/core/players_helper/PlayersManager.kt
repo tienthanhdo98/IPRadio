@@ -129,6 +129,12 @@ class PlayersManager(
             if (now in start.timeInMillis..end.timeInMillis) {
                 if(i <= scheduledList.size)
                 {
+                    if (i + 1 < scheduledList.size) {
+                        int nextItem = myList[i + 1];
+                        print('Item at position ${i + 1} is available: $nextItem');
+                    } else {
+                        print('Item at position ${i + 1} is not available because it's out of range.');
+                    }
                     if(scheduledList.keys.elementAt(i + 1).isNotEmpty()){
                         Log.d(LOGTAG, "have next one time frame")
                     val nextPeriod = scheduledList.keys.elementAt(i + 1)
