@@ -196,12 +196,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 

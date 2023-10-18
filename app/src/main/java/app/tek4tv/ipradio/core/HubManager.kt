@@ -106,7 +106,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-haiphong.tek4tv.vn/hubServer"
+            "https://hubip-qn.tek4tv.vn/hubServer"
         )!!
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
@@ -147,20 +147,13 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            // val body = mapOf("Username" to "device", "Password" to "Device@123")
 
-            //Auth Url encrypted in c++ lib
-            //val url = "https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login"
-            //val url = Secrets().gettokenUrl(MyApp.instance!!.packageName)
-            // val url = "https://api.gateway.httt.tek4tv.vn/api/auth/login"
-            //val url = "https://apigateway.httt.vtcplay.vn/api/auth/login"
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
                 "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
             )
-            //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
-            //https://apigateway-truyenthanh.tek4tv.vn/api/Auth/Login
+
             Log.i("urlbase", url!!)
             val call = authService.getToken(body, url!!)
             val response = call.execute()
