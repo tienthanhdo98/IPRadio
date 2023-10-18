@@ -297,7 +297,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radiolive.tek4tv.vn:1935/binhluc/haiphong1"
+            "rtsp://radiolive.tek4tv.vn:1935/haiphong/demo"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,

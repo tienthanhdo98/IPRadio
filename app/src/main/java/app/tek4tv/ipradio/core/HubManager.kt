@@ -104,7 +104,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-hanoi.tek4tv.vn/hubServer"
+            "https://hubip-haiphong.tek4tv.vn/hubServer"
         )!!
         Log.i("urlbase", hubUrl)
         hubConnection = HubConnectionBuilder.create(hubUrl)
