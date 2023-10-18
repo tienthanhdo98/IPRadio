@@ -233,13 +233,13 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         // serialPortController.connectToSerialPort("/dev/ttyS4")
         serialPortController.connectToSerialPort(UART_S1_NAME)
-//        lifecycleScope.launch {
-//            delay(10000)
-//            if (!serialPortController.isUart1) {
-//                serialPortController.connectToSerialPort(UART_S4_NAME)
-//                Log.i("PA", "onCreate: s4")
-//            }
-//        }
+        lifecycleScope.launch {
+            delay(10000)
+            if (!serialPortController.isUart1) {
+                serialPortController.connectToSerialPort(UART_S4_NAME)
+                Log.i("PA", "onCreate: s4")
+            }
+        }
         val hubManagerEncoder = HubManagerEncoder.getInst()
         hubManager.onMessageListener =
             { command, message ->
