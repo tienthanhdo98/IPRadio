@@ -354,7 +354,6 @@ class PlayersManager(
 
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-
                     val mediaEndTime = Calendar.getInstance().apply {
                         add(Calendar.MINUTE, convertStringToInt(duration))
                     }
