@@ -24,8 +24,8 @@ android {
         applicationId "app.tek4tv.ipradio"
         minSdkVersion 23
         targetSdkVersion 28
-        versionCode 11
-        versionName "v16.4.1.2"
+        versionCode 12
+        versionName "v16.4.1.3"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

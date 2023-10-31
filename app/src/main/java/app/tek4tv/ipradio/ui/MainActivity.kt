@@ -264,6 +264,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
+        lifecycleScope.launch {
+            while (true) {
+                Log.d("PingCounter check", "onCreate: ping count ${hubManager.pingCounter}")
+                if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
+                    Log.d("PingCounter check", "onCreate: ping count reset")
+                    serialPortController.hardRestart();
+                }
+                delay(5000)
+            }
+        }
 //        var textDe = "APxss/POTv3TP4AolIddVbeDEi0p/tO0LvwufzbWggFan+exmwlGrsm1xk56niS2n8Fn2oV9FdW0zM1LErMywnqY6+cVPJmexrkOD9yoWwR6tPGKndHP9se2bcXPQoplsD+JMmVvQONwweRNmp214p77gcQswvJc2VX6mP/Vtz28QWl265ZCXx30fwotIpJAt/UlQZNgvxRNne12TC7kPG/Bp+pew8Fgz2cNc1YMgb3A17dm3zVUM2ojOK3lA7en5AUTUlGPdO/XEDzXHyEPvH3Xr4gZNMf7VlziSyQRuhVjeOJgAdJMVYL9AMRDczbNFDky3zFGpF+Pxuka9zZD1SLyPR3YS+b/jimbhdk9jz8ste1EzW/nTMYNxhuCRuHbrGW4+b4GCHlJZKDsDHa7/T6IHITrkxvjmqL69algz38yvAF2YpRTuVau9Lm2R1fNcdliSjLUu7IZja/oGt8m8rA45HwGXqU1eff9+d6+Nxi42TOQlOGcSTLidtnZddZj"
 //        val data = decryptData(
 //            textDe,
@@ -272,31 +282,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        Log.d("giai ma", "onCreate: $data");
     }
 
-    fun getMacAddr(): String {
-        try {
-            val all: List<NetworkInterface> =
-                Collections.list(NetworkInterface.getNetworkInterfaces())
-            for (nif in all) {
-                if (!nif.name.equals("wlan0", ignoreCase = true)) continue
-                val macBytes = nif.hardwareAddress ?: return ""
-                val res1 = StringBuilder()
-                for (b in macBytes) {
-                    //res1.append(Integer.toHexString(b & 0xFF) + ":");
-                    res1.append(String.format("%02X:", b))
-                }
-                if (res1.isNotEmpty()) {
-                    res1.deleteCharAt(res1.length - 1)
-                }
-                return res1.toString()
-            }
-        } catch (ex: Exception) {
-        }
-        return "02:00:00:00:00:00"
-    }
-
-
     private fun showMac() {
-        Log.d("GetMacGetMac", "showMac: ${getMacAddr()} ")
+
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
@@ -453,7 +440,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToHub()
-        locationTracker.getLocation(this@MainActivity)
+       // locationTracker.getLocation(this@MainActivity)
 
     }
 
@@ -496,6 +483,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
+                    Log.i("config_config", "updateconfig $mess")
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
                         volume = listInfoConfig[0]
@@ -505,11 +493,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         destinationName = listInfoConfig[4]
                     }
                     globalProperties.saveProperties(resposnHub)
-                    Log.i("config_config", "updateconfig success: reseting")
-                    lifecycleScope.launch {
-                        delay(1000)
-                        serialPortController.hardRestart()
-                    }
+                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
+                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
+                    Log.i("config_config", "updateconfig success")
 
                 }
 

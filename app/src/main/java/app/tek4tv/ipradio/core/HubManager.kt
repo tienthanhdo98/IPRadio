@@ -41,7 +41,7 @@ class HubManager(
 
     ) {
     private val LOG_TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 15
+    val CONNECT_COUNTER_LIMIT = 15
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -58,7 +58,7 @@ class HubManager(
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
-    var pingCounter = 69
+    var pingCounter = 0
 
     var hubConnection: HubConnection
 
@@ -266,6 +266,7 @@ class HubManager(
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
                 Log.e(LOG_TAG, "Trying to reconnect... $i")
+                pingCounter++
             }
             Log.d(LOG_TAG, "$connectionId")
             onMessage()
