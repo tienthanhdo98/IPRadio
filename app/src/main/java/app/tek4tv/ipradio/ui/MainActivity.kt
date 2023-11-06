@@ -297,7 +297,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radiolive.tek4tv.vn:1935/haiphong/demo"
+            ""
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -645,6 +645,23 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                         }
 
                     }
+                }
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message!!
+                    Log.i("config_config", "updateconfig $mess")
+                    val listInfoConfig = mess.split(",")
+                    val resposnHub = ResponseHub().apply {
+                        volume = listInfoConfig[0]
+                        lat = listInfoConfig[1].toFloat()
+                        lng = listInfoConfig[2].toFloat()
+                        destinationId = listInfoConfig[3]
+                        destinationName = listInfoConfig[4]
+                    }
+                    globalProperties.saveProperties(resposnHub)
+                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
+                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
+                    Log.i("config_config", "updateconfig success")
+
                 }
                 HubCommand.TURN_ON_PA -> {
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
