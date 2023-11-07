@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            Log.d("onEndForceMedia", "onEndForceMedia")
             ForceMedia.deleteForeMediaPref(applicationContext)
 //            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
@@ -156,6 +157,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
+            Log.d("onLiveError", "onLiveError ")
             hubManager.curMediaName = "Live Error"
             hubManager.currentMediaItem = mediaItem
             serialPortController.turnOffPA()
@@ -379,44 +381,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
-
-    private fun hideSystemUI() {
-        val decorView: View = window.decorView
-        val uiOptions = decorView.systemUiVisibility
-        var newUiOptions = uiOptions
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        decorView.systemUiVisibility = newUiOptions
-    }
-
-    private fun needGrantPermission(): Boolean {
-        var needGrantPermission = false
-
-        permissions.forEach {
-            if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
-                needGrantPermission = true
-                return@forEach
-            }
-        }
-
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
-
-        return needGrantPermission
-    }
-
     private fun registerObservers() {
         /**
          * khi cần
@@ -477,9 +441,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
+                    //
+                    playerManager.stopForceMedia()
+                    //
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
+                    //
 
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
@@ -868,6 +836,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         } catch (e: Exception) {
             Log.e("Main", "Error setting max volume")
         }
+    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
+
+    private fun hideSystemUI() {
+        val decorView: View = window.decorView
+        val uiOptions = decorView.systemUiVisibility
+        var newUiOptions = uiOptions
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
+        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
+        decorView.systemUiVisibility = newUiOptions
+    }
+
+    private fun needGrantPermission(): Boolean {
+        var needGrantPermission = false
+
+        permissions.forEach {
+            if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
+                needGrantPermission = true
+                return@forEach
+            }
+        }
+
+        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
+
+        return needGrantPermission
     }
 
     companion object {
