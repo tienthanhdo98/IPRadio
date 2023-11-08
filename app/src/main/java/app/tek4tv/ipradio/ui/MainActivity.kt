@@ -462,6 +462,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
+                    //add at 4.1.3a
+                    playerManager.stopForceMedia()
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
@@ -486,11 +488,33 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("config_config", "updateconfig $mess")
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
-                        volume = listInfoConfig[0]
-                        lat = listInfoConfig[1].toFloat()
-                        lng = listInfoConfig[2].toFloat()
-                        destinationId = listInfoConfig[3]
-                        destinationName = listInfoConfig[4]
+                        if(listInfoConfig.isNotEmpty()) {
+                            volume = listInfoConfig[0]
+                        }
+                        if(listInfoConfig.size >= 2) {
+                            lat = listInfoConfig[1].toFloat()
+                        }
+                        if(listInfoConfig.size >= 3) {
+                            lng = listInfoConfig[2].toFloat()
+                        }
+                        if(listInfoConfig.size >= 4) {
+                            destinationId = listInfoConfig[3]
+                        }
+                        if(listInfoConfig.size >= 5) {
+                            destinationName = listInfoConfig[4]
+                        }
+                        if(listInfoConfig.size >= 6) {
+                            deviceName = listInfoConfig[5]
+                        }
+                    }
+                    if(listInfoConfig.size >= 7 )
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROVIDER,
+                            listInfoConfig[6]
+                        )
+                        hubManager.providerValue = listInfoConfig[6]
                     }
                     globalProperties.saveProperties(resposnHub)
                     Log.i("config_config", "updateconfig ${resposnHub.lat}")

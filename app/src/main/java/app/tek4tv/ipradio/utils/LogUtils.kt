@@ -102,13 +102,14 @@ class LogUtils private constructor() {
             externalSource = ""
             isExternalSource = 0
         }
-        var link = mediaItem.body
+        // remove at 4.1.3b
+//        var link = mediaItem.body
         val currentTime = Calendar.getInstance().time
-        link = if (link!!.startsWith("rtsp")) {
-            "live"
-        } else {
-            mediaItem.pathBackup
-        }
+//        link = if (link!!.startsWith("rtsp")) {
+//            "live"
+//        } else {
+//            mediaItem.pathBackup
+//        }
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
@@ -121,7 +122,7 @@ class LogUtils private constructor() {
             paState = paState,
             duration = mediaItem.duration,
             startTime = (currentTime.time / 1000),
-            body = link,
+            body =  mediaItem.pathBackup,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,
@@ -131,7 +132,6 @@ class LogUtils private constructor() {
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
             sourceReference = mediaItem.sourceReference
-
         )
         val str = getRecordStr(reportObj)
 
@@ -174,13 +174,15 @@ class LogUtils private constructor() {
             externalSource = ""
             isExternalSource = 0
         }
-        var link = ""
+
         val currentTime = Calendar.getInstance().time
-        link = if (link.startsWith("rtsp")) {
-            "live"
-        } else {
-            mediaItem.pathBackup
-        }
+        // remove at 4.1.3b
+        //        var link = ""
+//        link = if (link.startsWith("rtsp")) {
+//            "live"
+//        } else {
+//            mediaItem.pathBackup
+//        }
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
@@ -189,7 +191,7 @@ class LogUtils private constructor() {
             destinationId = destinationId,
             destinationName = destinationName,
             mediaID = mediaItem.mediaID.toString(),
-            body = link,
+            body = mediaItem.pathBackup,
             endTime = currentTime.time,
             status = "1",
             duration = mediaItem.duration,
