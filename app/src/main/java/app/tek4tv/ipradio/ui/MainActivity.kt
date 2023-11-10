@@ -528,15 +528,16 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
+                    //add at 4.1.3a
+                    playerManager.stopForceMedia()
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
-
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
                     if(responseHub.volume != ""){
                         serialPortController.writeForceSetVolume(responseHub.volume)
-                        globalProperties.setTempVolume(responseHub.volume!!)
+                        globalProperties.setTempVolume(responseHub.volume)
                     }
                     else
                     {
@@ -546,6 +547,45 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                     ForceMedia.deleteForeMediaPref(applicationContext)
 
                     viewModel.getPlayerContent(mess, true)
+                }
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message!!
+                    Log.i("config_config", "updateconfig $mess")
+                    val listInfoConfig = mess.split(",")
+                    val resposnHub = ResponseHub().apply {
+                        if(listInfoConfig.isNotEmpty()) {
+                            volume = listInfoConfig[0]
+                        }
+                        if(listInfoConfig.size >= 2) {
+                            lat = listInfoConfig[1].toFloat()
+                        }
+                        if(listInfoConfig.size >= 3) {
+                            lng = listInfoConfig[2].toFloat()
+                        }
+                        if(listInfoConfig.size >= 4) {
+                            destinationId = listInfoConfig[3]
+                        }
+                        if(listInfoConfig.size >= 5) {
+                            destinationName = listInfoConfig[4]
+                        }
+                        if(listInfoConfig.size >= 6) {
+                            deviceName = listInfoConfig[5]
+                        }
+                    }
+                    if(listInfoConfig.size >= 7 )
+                    {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROVIDER,
+                            listInfoConfig[6]
+                        )
+                        hubManager.providerValue = listInfoConfig[6]
+                    }
+                    globalProperties.saveProperties(resposnHub)
+                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
+                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
+                    Log.i("config_config", "updateconfig success")
+
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -562,10 +602,8 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
                 }
-
                 HubCommand.UPDATE_CONFIG -> {
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login,Tek4TV,https://api.gateway.httt.tek4tv.vn/api/streaming/streams/"
-                    // hubserver,apitoken,provider,urlstream,user,pass}
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
                     val mess = responseHub.message!!
                     val listValue = mess.split(",")
@@ -578,34 +616,6 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                             ConfigUtil.PROVIDER,
                             listValue[2]
                         )
-                        Log.i("pingping", "handleFromCommandServer: ${listValue[2]}")
-                    }
-                    if(listValue.size >= 4)
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.URL_STREAM,
-                            listValue[3]
-                        )
-                        Log.i("pingping", "handleFromCommandServer: ${listValue[3]}")
-                    }
-                    if(listValue.size >= 5)
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.USER_NAME_STREAM,
-                            listValue[4]
-                        )
-                        Log.i("pingping", "handleFromCommandServer: ${listValue[4]}")
-                    }
-                    if(listValue.size >= 6)
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PASSWORD_STREAM,
-                            listValue[5]
-                        )
-                        Log.i("pingping", "pass: ${listValue[5]}")
                     }
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
@@ -618,8 +628,8 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                         .withTransport(TransportEnum.WEBSOCKETS)
                         .build()
                     lifecycleScope.launch {
-                        val isRightHUb = hubManager.openConnection2(hubConnection)
-                        if (isRightHUb) {
+                        val id = hubManager.openConnection2(hubConnection)
+                        if (id != null) {
                             ConfigUtil.putStringEncrypt(
                                 applicationContext,
                                 ConfigUtil.URL_HUB,
@@ -631,13 +641,9 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                                 urlToken
                             )
                             Log.i("config_config", "updateconfig success: reseting")
-                            Log.i("config_config", "updateconfig hub: ${listValue[0]}")
-                            Log.i("config_config", "updateconfig token: ${listValue[1]}")
-                            Log.i("config_config", "updateconfig provider: ${listValue[2]}")
-                            Log.i("config_config", "updateconfig urlstream: ${listValue[3]}")
-
                             delay(60000)
                             serialPortController.hardRestart()
+
                         } else {
                             Log.i("config_config", "updateconfig fail: reseting")
                             delay(2000)
@@ -645,22 +651,6 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                         }
 
                     }
-                }
-                HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message!!
-                    Log.i("config_config", "updateconfig $mess")
-                    val listInfoConfig = mess.split(",")
-                    val resposnHub = ResponseHub().apply {
-                        volume = listInfoConfig[0]
-                        lat = listInfoConfig[1].toFloat()
-                        lng = listInfoConfig[2].toFloat()
-                        destinationId = listInfoConfig[3]
-                        destinationName = listInfoConfig[4]
-                    }
-                    globalProperties.saveProperties(resposnHub)
-                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
-                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
-                    Log.i("config_config", "updateconfig success")
 
                 }
                 HubCommand.TURN_ON_PA -> {
@@ -674,6 +664,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                     else
                     {
                         serialPortController.turnOffPA()
+
                     }
                 }
                 HubCommand.CONTROL_MEDIA -> {
@@ -690,6 +681,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                             }
                             //dung phat va chuyen sang ban tin tiep
                             1 -> {
+                                Log.d("CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isInTimeFrame}")
                                 if (playerManager.isInTimeFrame) {
                                     playerManager.playNextMedia()
                                 }
@@ -734,7 +726,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                 }
 
                 HubCommand.UPDATE_STATUS -> {
-                   // serialPortController.updateStatus()
+                    // serialPortController.updateStatus()
                 }
                 HubCommand.GET_LOCATION -> {
                     val connectionId = responseHub.message
@@ -762,6 +754,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                 }
                 HubCommand.SET_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
+                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
                         serialPortController.writeForceSetVolume(responseHub.message!!)
                         globalProperties.setTempVolume(responseHub.message!!)
                     }
