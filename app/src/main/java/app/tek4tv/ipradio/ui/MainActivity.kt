@@ -467,7 +467,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
-
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
                     if(responseHub.volume != ""){
@@ -523,7 +522,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 }
 
-
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
                     playerManager.stopAllPlayer()
@@ -553,7 +551,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             listValue[2]
                         )
                     }
-
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
@@ -618,6 +615,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             }
                             //dung phat va chuyen sang ban tin tiep
                             1 -> {
+                                Log.d("CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isInTimeFrame}")
                                 if (playerManager.isInTimeFrame) {
                                     playerManager.playNextMedia()
                                 }
@@ -888,13 +886,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
 
     companion object {

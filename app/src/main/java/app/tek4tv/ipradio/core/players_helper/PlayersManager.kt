@@ -21,7 +21,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.log
 
 
 /**
@@ -116,11 +115,13 @@ class PlayersManager(
      * Tìm khung thơi gian hiện tại cần phát
      * **/
     var isInTimeFrame = false
+    var indexOfNowTimeFrame = -1
     var isHaveNextTimeFrameAfter = false
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
+        Log.d("CONTROL_MEDIA", "play mode: ${scheduledList.keys}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
@@ -144,6 +145,7 @@ class PlayersManager(
                 Log.d(LOGTAG, "Play media in timeframe")
                 found = true
                 isInTimeFrame = true
+                indexOfNowTimeFrame = i
                 break
             }
         }
@@ -176,13 +178,26 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
+        Log.d("CONTROL_MEDIA", "play mode: ${playMode}")
+        Log.d("CONTROL_MEDIA", "play mode: ${playlistIndex}-${currentPlaylist.size}")
+        Log.d("CONTROL_MEDIA", "play mode: $indexOfNowTimeFrame}")
         if (playMode == "") return
-        rootLayout.post {
-            playlistIndex++
-            if (playlistIndex < currentPlaylist.size) {
-                Log.d(LOGTAG, "Play media phat tiep")
-                playMediaByIndex(playlistIndex)
-            }
+//            playlistIndex++
+//            if (playlistIndex < currentPlaylist.size) {
+//                Log.d(LOGTAG, "Play media phat tiep")
+//                playMediaByIndex(playlistIndex)
+//            }
+        indexOfNowTimeFrame++
+        if (indexOfNowTimeFrame < mediaRepo.scheduledList.size) {
+            val period = mediaRepo.scheduledList.keys.elementAt(indexOfNowTimeFrame)
+            val t = period.split("-")
+            val start = toCalendar(t[0])
+            val end = toCalendar(t[1])
+            val resumePoint = calculateResumePoint(start, period)
+            setTimeFrame(period, resumePoint)
+            Log.d(LOGTAG, "Next time frame")
+            isInTimeFrame = true
+            indexOfNowTimeFrame = indexOfNowTimeFrame
         }
     }
     fun pauseMedia()
