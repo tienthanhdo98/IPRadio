@@ -240,12 +240,11 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                 Log.i("PA", "onCreate: s4")
             }
         }
-        val hubManagerEncoder = HubManagerEncoder.getInst()
+
         hubManager.onMessageListener =
             { command, message ->
                 handleFromCommandServer(command, message)
             }
-        hubManagerEncoder.connectToHub()
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
@@ -609,14 +608,39 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                     val listValue = mess.split(",")
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
-                    if(listValue.size >= 3 )
-                    {
+                    if (listValue.size >= 3) {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PROVIDER,
                             listValue[2]
                         )
                     }
+                    Log.i("pingping", "handleFromCommandServer: ${listValue[2]}")
+                    if (listValue.size >= 4) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.URL_STREAM,
+                            listValue[3]
+                        )
+                        Log.i("pingping", "handleFromCommandServer: ${listValue[3]}")
+                    }
+                    if (listValue.size >= 5) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.USER_NAME_STREAM,
+                            listValue[4]
+                        )
+                        Log.i("pingping", "handleFromCommandServer: ${listValue[4]}")
+                    }
+                    if (listValue.size >= 6) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PASSWORD_STREAM,
+                            listValue[5]
+                        )
+                        Log.i("pingping", "pass: ${listValue[5]}")
+                    }
+
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
