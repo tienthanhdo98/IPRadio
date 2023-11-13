@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //add at 4.1.3a
                     playerManager.stopForceMedia()
                     //add at 3.0.5
-                    playerManager.stopAllPlayer()
+                    playerManager.stopAllPlayer()list
                     playerManager.resetPlayMode()
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
@@ -886,13 +886,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
 
     companion object {
