@@ -182,23 +182,11 @@ class PlayersManager(
         Log.d("CONTROL_MEDIA", "play mode: ${playlistIndex}-${currentPlaylist.size}")
         Log.d("CONTROL_MEDIA", "play mode: $indexOfNowTimeFrame}")
         if (playMode == "") return
-//            playlistIndex++
-//            if (playlistIndex < currentPlaylist.size) {
-//                Log.d(LOGTAG, "Play media phat tiep")
-//                playMediaByIndex(playlistIndex)
-//            }
-        indexOfNowTimeFrame++
-        if (indexOfNowTimeFrame < mediaRepo.scheduledList.size) {
-            val period = mediaRepo.scheduledList.keys.elementAt(indexOfNowTimeFrame)
-            val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            val resumePoint = calculateResumePoint(start, period)
-            setTimeFrame(period, resumePoint)
-            Log.d(LOGTAG, "Next time frame")
-            isInTimeFrame = true
-            indexOfNowTimeFrame = indexOfNowTimeFrame
-        }
+            playlistIndex++
+            if (playlistIndex < currentPlaylist.size) {
+                Log.d(LOGTAG, "Play media phat tiep")
+                playMediaByIndex(playlistIndex)
+            }
     }
     fun pauseMedia()
     {
