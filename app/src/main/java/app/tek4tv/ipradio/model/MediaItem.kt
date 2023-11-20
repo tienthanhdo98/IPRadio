@@ -86,10 +86,10 @@ data class MediaItem(
     var level: Int = -1
 
     var pathBackup: String = ""
-        set(value) {
-            if (value.startsWith("http"))
-                field = value
-        }
+//        set(value) {
+//            if (value.startsWith("http"))
+//                field = value
+//        }
 
     init {
         pathBackup = body!!

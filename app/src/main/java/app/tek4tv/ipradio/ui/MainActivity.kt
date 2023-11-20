@@ -491,9 +491,9 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
             mediaScheduler.scheduleAllAlarms()
             //check hub
             mediaScheduler.setCheckHubAndResetAlarms()
-
+            Log.d("player2", "registerObservers: Checked")
             playerManager.startFirstTimeFrame()
-
+            Log.d("player2", "registerObservers: Checked2")
             //all load done, check
             viewModel.checkPlaylist()
         }
@@ -589,6 +589,9 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
+                    //add at 4.1.3a
+                    playerManager.stopForceMedia()
+                    //
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
