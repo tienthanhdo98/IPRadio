@@ -103,13 +103,9 @@ class LogUtils private constructor() {
             isExternalSource = 0
         }
         // remove at 4.1.3b
-//        var link = mediaItem.body
+
         val currentTime = Calendar.getInstance().time
-//        link = if (link!!.startsWith("rtsp")) {
-//            "live"
-//        } else {
-//            mediaItem.pathBackup
-//        }
+
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",

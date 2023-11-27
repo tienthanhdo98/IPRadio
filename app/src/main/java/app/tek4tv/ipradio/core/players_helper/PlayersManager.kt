@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import android.view.View
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
@@ -31,7 +30,6 @@ import java.util.*
  * **/
 class PlayersManager(
     appContext: Context,
-    private val rootLayout: View,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
@@ -115,7 +113,6 @@ class PlayersManager(
      * Tìm khung thơi gian hiện tại cần phát
      * **/
     var isInTimeFrame = false
-    var indexOfNowTimeFrame = -1
     var isHaveNextTimeFrameAfter = false
     fun startFirstTimeFrame() {
         var found = false
@@ -145,7 +142,6 @@ class PlayersManager(
                 Log.d(LOGTAG, "Play media in timeframe")
                 found = true
                 isInTimeFrame = true
-                indexOfNowTimeFrame = i
                 break
             }
         }
@@ -178,27 +174,13 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
-        Log.d("CONTROL_MEDIA", "play mode: ${playMode}")
-        Log.d("CONTROL_MEDIA", "play mode: ${playlistIndex}-${currentPlaylist.size}")
-        Log.d("CONTROL_MEDIA", "play mode: $indexOfNowTimeFrame}")
         if (playMode == "") return
-//            playlistIndex++
-//            if (playlistIndex < currentPlaylist.size) {
-//                Log.d(LOGTAG, "Play media phat tiep")
-//                playMediaByIndex(playlistIndex)
-//            }
-        indexOfNowTimeFrame++
-        if (indexOfNowTimeFrame < mediaRepo.scheduledList.size) {
-            val period = mediaRepo.scheduledList.keys.elementAt(indexOfNowTimeFrame)
-            val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            val resumePoint = calculateResumePoint(start, period)
-            setTimeFrame(period, resumePoint)
-            Log.d(LOGTAG, "Next time frame")
-            isInTimeFrame = true
-            indexOfNowTimeFrame = indexOfNowTimeFrame
-        }
+        playlistIndex++
+        if (playlistIndex < currentPlaylist.size) {
+                Log.d(LOGTAG, "Play media phat tiep")
+                playMediaByIndex(playlistIndex)
+            }
+
     }
     fun pauseMedia()
     {

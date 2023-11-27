@@ -49,7 +49,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
-import java.net.NetworkInterface
 import java.util.*
 import javax.inject.Inject
 
@@ -199,7 +198,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -241,7 +240,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext,
-            rootLayout,
             viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
@@ -524,6 +522,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
+                    //add at 4.1.3b
+                    playerManager.stopForceMedia()
+                    //
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
