@@ -465,7 +465,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //add at 4.1.3a
                     playerManager.stopForceMedia()
                     //add at 3.0.5
-                    playerManager.stopAllPlayer()list
+                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     //lưu thông số vol, pi,...
                     globalProperties.saveProperties(responseHub)
