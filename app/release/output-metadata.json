@@ -10,7 +10,7 @@
     {
       "type": "SINGLE",
       "filters": [],
-      "versionCode": 9,
+      "versionCode": 12,
       "versionName": "ECv16.4.1.3b",
       "outputFile": "app-release.apk"
     }
