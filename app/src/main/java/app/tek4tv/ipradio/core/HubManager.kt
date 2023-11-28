@@ -425,7 +425,7 @@ class HubManager(
             Log.d("player:", i.toString())
 
             var mode = "-1"
-
+           
             if (currentMediaItem != null) {
                 val path = currentMediaItem!!.pathBackup
                 mode = if (path.isNotEmpty() && !File(path).exists()) "1"

@@ -108,6 +108,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
+            Log.d("loghub", "onTimeOver: come")
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
@@ -480,6 +481,23 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     viewModel.getPlayerContent(mess, true)
                 }
+
+                HubCommand.UPDATE_MONTHLY_LIST -> {
+                    val mess = responseHub.message!!
+                    //add at 4.1.3b
+                    playerManager.stopForceMedia()
+                    //
+                    playerManager.stopTimeFrame()
+                    playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    viewModel.updateMonthlyScenario(mess, true)
+                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
+
+                    Log.i("monthlyinfo", "Mess: $mess ")
+                }
+
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
                     Log.i("config_config", "updateconfig $mess")
@@ -520,19 +538,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 }
 
-                HubCommand.UPDATE_MONTHLY_LIST -> {
-                    val mess = responseHub.message!!
-                    //add at 4.1.3b
-                    playerManager.stopForceMedia()
-                    //
-                    playerManager.stopAllPlayer()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
 
-                    Log.i("monthlyinfo", "Mess: $mess ")
-                }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
