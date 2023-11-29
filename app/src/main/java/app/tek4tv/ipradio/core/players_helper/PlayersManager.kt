@@ -297,7 +297,10 @@ class PlayersManager(
             return Pair(0, 0)
         }
     }
-
+    fun stopTimeFrame()
+    {
+        playerManagerListener?.onTimeOver()
+    }
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
         playMode = ""

@@ -592,7 +592,9 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
                     //add at 4.1.3a
                     playerManager.stopForceMedia()
                     //
+                    playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
