@@ -7,6 +7,8 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
+import android.util.Base64.DEFAULT
+import android.util.Base64.encodeToString
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -48,9 +50,12 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.FileInputStream
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
+import android.util.Base64
+
 
 
 @AndroidEntryPoint
@@ -279,6 +284,33 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //            "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"
 //        )
 //        Log.d("giai ma", "onCreate: $data");
+        convert()
+    }
+    fun convert() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val path = "${filesDir.path}/pv.mp3"
+                val file = File(path)
+                val a = fileToBase64(file)
+                Log.d("readplaylist", "value2 ${a} ")
+
+            } catch (e: IOException) {
+                Log.e("readplaylist", "error reading playlist!!!")
+            }
+        }
+    }
+    fun fileToBase64(file: File): String? {
+        try {
+            val inputStream = FileInputStream(file)
+            val byteArray = ByteArray(file.length().toInt())
+            inputStream.read(byteArray)
+            inputStream.close()
+            // Convert the byte array to Base64
+            return Base64.encodeToString(byteArray, Base64.DEFAULT)
+        } catch (e: IOException) {
+            e.printStackTrace()
+            return null
+        }
     }
 
     private fun showMac() {
