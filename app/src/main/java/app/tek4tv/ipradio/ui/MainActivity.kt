@@ -463,6 +463,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
                     //add at 4.1.3a
                     playerManager.stopForceMedia()
+                    //add at 4.1.3d
+                    playerManager.stopTimeFrame()
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
@@ -486,7 +488,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
                     //add at 4.1.3b
                     playerManager.stopForceMedia()
-                    //
+                    //  //add at 4.1.3d
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()

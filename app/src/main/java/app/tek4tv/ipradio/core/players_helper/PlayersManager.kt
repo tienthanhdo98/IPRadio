@@ -333,7 +333,7 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
 
-    fun onPlayForceCommand(
+    fun  onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
