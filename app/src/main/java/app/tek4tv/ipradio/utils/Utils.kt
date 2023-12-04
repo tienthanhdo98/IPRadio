@@ -1,13 +1,24 @@
 package app.tek4tv.ipradio.utils
 
 import android.annotation.SuppressLint
+import android.app.PendingIntent
 import android.content.Context
+import android.content.Intent
 import android.os.Environment
+import android.telephony.SmsManager
+import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
+import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileInputStream
+import java.io.IOException
 import java.net.NetworkInterface
 import java.util.*
 import kotlin.reflect.jvm.internal.impl.types.DynamicType
@@ -87,6 +98,53 @@ class Utils {
         fun checkIsItemIsAvailable(list : List<String>, index: Int) : Boolean {
             return (index + 1) < list.size
         }
+        fun convertFileToBase64(path : String) {
+            GlobalScope.launch(Dispatchers.IO) {
+                try {
+                    val file = File(path)
+                    val a = fileToBase64(file)
+                    Log.d("readplaylist", "value2 ${a} ")
 
+                } catch (e: IOException) {
+                    Log.e("readplaylist", "error reading playlist!!!")
+                }
+            }
+        }
+        fun fileToBase64(file: File): String? {
+            try {
+                val inputStream = FileInputStream(file)
+                val byteArray = ByteArray(file.length().toInt())
+                inputStream.read(byteArray)
+                inputStream.close()
+                // Convert the byte array to Base64
+                return Base64.encodeToString(byteArray, Base64.DEFAULT)
+            } catch (e: IOException) {
+                e.printStackTrace()
+                return null
+            }
+        }
+         fun sendSms(phoneNumber: String, message: String,context : Context) {
+            val smsManager = SmsManager.getDefault()
+
+            // If the message is longer than 160 characters, divide it into parts
+            val parts = smsManager.divideMessage(message)
+
+            // Create a PendingIntent to be called back when the SMS has been sent
+            val sentIntent = PendingIntent.getBroadcast( context, 0,Intent("SMS_SENT"), 0)
+
+            // Create a PendingIntent to be called back when the SMS has been delivered
+            val deliveredIntent = PendingIntent.getBroadcast(context, 0, Intent("SMS_DELIVERED"), 0)
+
+            // Send the SMS
+            for (part in parts) {
+                smsManager.sendTextMessage(
+                    phoneNumber,
+                    null,
+                    part,
+                    sentIntent,
+                    deliveredIntent
+                )
+            }
+        }
     }
 }
