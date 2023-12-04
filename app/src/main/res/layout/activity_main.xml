@@ -16,6 +16,8 @@
         android:textColor="@color/white"
         android:layout_alignParentEnd="true"
         android:layout_margin="20dp"
+        android:clickable="true"
+        android:focusable="true"
         android:id="@+id/tvMac"
         android:text="asdasdsad"
         android:layout_alignParentBottom="true"/>

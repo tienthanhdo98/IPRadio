@@ -33,7 +33,7 @@ class MediaCapture(
         return sampleRateString?.toInt() ?: 44100
     }
 
-    fun startCaptureAudio() {
+    fun startCaptureAudio(fileName : String) {
         isRecordingAudio = true
 
         if (!File(recordedAudioPath).exists()) createFolder(recordedAudioPath)
@@ -42,8 +42,8 @@ class MediaCapture(
             setAudioSource(MediaRecorder.AudioSource.DEFAULT)
             setAudioEncodingBitRate(32000)
             setAudioSamplingRate(getBestSampleRate())
-            val dateformat = SimpleDateFormat("ddMMyyyyHHmmss")
-            val fileName = "${dateformat.format(Date())}_${GlobalProperties.getInst().userNameController}.aac"
+
+            val fileName = fileName
             setOutputFile("$recordedAudioPath/$fileName")
             setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
