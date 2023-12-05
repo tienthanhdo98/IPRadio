@@ -10,8 +10,6 @@ import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
-import android.util.Base64.DEFAULT
-import android.util.Base64.encodeToString
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -30,14 +28,14 @@ import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
+import app.tek4tv.ipradio.utils.Utils.Companion.convertFileToBase64
+import app.tek4tv.ipradio.utils.Utils.Companion.formatDuration
+import app.tek4tv.ipradio.utils.Utils.Companion.sendSms
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -53,14 +51,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.FileInputStream
 import java.io.IOException
+import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
-import android.util.Base64
-import app.tek4tv.ipradio.utils.Utils.Companion.convertFileToBase64
-import app.tek4tv.ipradio.utils.Utils.Companion.sendSms
-import java.text.SimpleDateFormat
 
 
 @AndroidEntryPoint
@@ -270,7 +264,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         alarmListener = this
 
         setMaxVolume()
-        sendSms("191","KTTK",baseContext)
+//        sendSms("191","KTTK",baseContext)
         hideSystemUI()
         showMac()
         lifecycleScope.launch {
@@ -309,8 +303,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         return null
     }
-
-
     private fun showMac() {
 
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
@@ -807,30 +799,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.RECORD -> {
-                    val duration = responseHub.message
-//                    val listMess = duration2.split(",")
-                    val shouldStart = responseHub.start!! == "1"
-//                   val shouldStart = listMess.first() == "1"
-//                    val duration = listMess[1]
-                    val dateformat = SimpleDateFormat("ddMMyyyyHHmmss")
-                    val fileName = "${dateformat.format(Date())}_${GlobalProperties.getInst().userNameController}.aac"
-                    if (shouldStart) {
+                    val message = responseHub.message
+                    val listMess = message?.split(",")
+                    val duration = listMess?.firstOrNull()
+                    val userId = listMess?.lastOrNull()
+                    if(duration!!.isNotEmpty() && userId!!.isNotEmpty()) {
+                        val fileName = "RecordLog.aac"
+                        var dataBase64 = ""
+                        Log.i("RecoredLog", "record....${mediaCapture.isRecordingAudio} ")
                         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
                         mediaCapture.startCaptureAudio(fileName)
-                        Log.i("kakaka", "record.... ")
-                    } else {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                    }
-                    Timer().schedule(object : TimerTask() {
-                        override fun run() {
-                            mediaCapture.stopAudioCapture()
-                            Log.i("kakaka", "stop record.... ")
-                        }
-                    }, duration!!.toLong())
-                    val path = "${filesDir.path}/recorded/"
-                    lifecycleScope.launch{
-                        delay(2000)
-                        convertFileToBase64(path)
+                        val path = "${filesDir.path}/recorded/$fileName"
+                        Timer().schedule(object : TimerTask() {
+                            override fun run() {
+                                mediaCapture.stopAudioCapture()
+                                Log.i("RecoredLog", "stop record.... ")
+                                lifecycleScope.launch {
+                                    delay(2000)
+                                    dataBase64 = convertFileToBase64(path) ?: ""
+                                    val recordLog = RecordLogModel(
+                                        data = dataBase64,
+                                        duration = formatDuration((duration.toLong())),
+                                        userID = userId ?: "",
+                                        extension = "aac",
+                                    )
+                                    try {
+                                        logService.postRecordLog(recordLog)
+                                        Log.d(
+                                            "RecoredLog",
+                                            "${recordLog}"
+                                        )
+                                    } catch (e: Exception) {
+                                        Log.d("RecoredLog", "Error send log media ${e.message}")
+                                        e.printStackTrace()
+                                    }
+                                }
+                            }
+                        }, duration!!.toLong() * 1000)
                     }
                 }
 

@@ -9,19 +9,14 @@ import android.telephony.SmsManager
 import android.util.Base64
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.lifecycleScope
-import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import java.io.File
 import java.io.FileInputStream
 import java.io.IOException
 import java.net.NetworkInterface
 import java.util.*
-import kotlin.reflect.jvm.internal.impl.types.DynamicType
+import java.util.concurrent.TimeUnit
 
 class Utils {
     companion object {
@@ -95,21 +90,19 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
-        fun checkIsItemIsAvailable(list : List<String>, index: Int) : Boolean {
+
+        fun checkIsItemIsAvailable(list: List<String>, index: Int): Boolean {
             return (index + 1) < list.size
         }
-        fun convertFileToBase64(path : String) {
-            GlobalScope.launch(Dispatchers.IO) {
-                try {
-                    val file = File(path)
-                    val a = fileToBase64(file)
-                    Log.d("readplaylist", "value2 ${a} ")
 
-                } catch (e: IOException) {
-                    Log.e("readplaylist", "error reading playlist!!!")
-                }
-            }
+        fun convertFileToBase64(path: String): String? {
+
+            val file = File(path)
+            return fileToBase64(file)
+
+
         }
+
         fun fileToBase64(file: File): String? {
             try {
                 val inputStream = FileInputStream(file)
@@ -136,15 +129,23 @@ class Utils {
             val deliveredIntent = PendingIntent.getBroadcast(context, 0, Intent("SMS_DELIVERED"), 0)
 
             // Send the SMS
-            for (part in parts) {
-                smsManager.sendTextMessage(
-                    phoneNumber,
-                    null,
-                    part,
-                    sentIntent,
-                    deliveredIntent
-                )
-            }
+             for (part in parts) {
+                 smsManager.sendTextMessage(
+                     phoneNumber,
+                     null,
+                     part,
+                     sentIntent,
+                     deliveredIntent
+                 )
+             }
+         }
+
+        fun formatDuration(seconds: Long): String {
+            val hours = TimeUnit.SECONDS.toHours(seconds)
+            val minutes = TimeUnit.SECONDS.toMinutes(seconds) % 60
+            val remainingSeconds = seconds % 60
+
+            return String.format("%02d:%02d:%02d", hours, minutes, remainingSeconds)
         }
     }
 }
