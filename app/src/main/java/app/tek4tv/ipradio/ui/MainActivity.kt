@@ -203,7 +203,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -375,8 +375,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.MONTHLY_SCENARIO_URL, ""
                 ) ?: return
 
-                viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+                viewModel.updateMonthlyScenario(monthlyScenarioUrl,false)
             }
+
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 val isConnect = ConfigUtil.getString(this, "checkhub", "0")
                 if (isConnect == "0") {
@@ -437,6 +438,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
+            Log.d("MainLog", "registerObservers: ${it}")
             viewModel.downloadMedias()
 
             //Check xem có đang phát khẩn cấp không
@@ -453,6 +455,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             //default
             mediaScheduler.scheduleAllAlarms()
+
             //check hub
             mediaScheduler.setCheckHubAndResetAlarms()
 
@@ -470,7 +473,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun initHubConnect() {
         hubManager.connectToHub()
        // locationTracker.getLocation(this@MainActivity)
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -522,12 +524,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
+
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
+                    viewModel.updateMonthlyScenario(mess, false)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
 
-                    Log.i("monthlyinfo", "Mess: $mess ")
+
                 }
 
                 HubCommand.UPDATE_DESTINATION -> {
@@ -937,13 +940,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
 
     companion object {

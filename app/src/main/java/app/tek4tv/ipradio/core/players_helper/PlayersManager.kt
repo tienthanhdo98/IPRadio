@@ -347,7 +347,7 @@ class PlayersManager(
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-
+            Log.d("alarmx", "Duration $duration")
             if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
@@ -356,14 +356,22 @@ class PlayersManager(
                     if (currentForceMedia != null && currentForceMedia.level < level) return
                 }
             }
-
+            Log.d("alarmx", "endTime ${Calendar.getInstance().time}")
+            Log.d("alarmx", "convertStringToInt ${convertStringToInt(duration)}")
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-
+                    val listDur = duration.split(":")
+                    val h = listDur[0].toInt()
+                    val m = listDur[1].toInt()
+                    val s = listDur[2].toInt()
                     val mediaEndTime = Calendar.getInstance().apply {
-                        add(Calendar.MINUTE, convertStringToInt(duration))
+                        add(Calendar.HOUR, h)
+                        add(Calendar.MINUTE, m)
+                        add(Calendar.SECOND, s)
                     }
+
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
+                    Log.d("alarmx", "endTime $endTime")
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
             playForceMedia(context, forceMedia, mediaScheduler)
@@ -372,12 +380,16 @@ class PlayersManager(
         }
     }
 
-    private fun convertStringToInt(time: String): Int {
-        val listDur = time.split(":")
-        val h = listDur[0].toInt()
-        val m = listDur[1].toInt()
-        val s = listDur[2].toInt()
-        return (h * 3600 + m * 60 + s) / 60
+    private fun convertStringToInt(time: String): Float {
+        if(time == "Invalid Date" || time == "Infinity:NaN:NaN"){
+            return ((1 * 3600 + 0 * 60 + 0) / 60).toFloat()
+        }else {
+            val listDur = time.split(":")
+            val h = listDur[0].toInt()
+            val m = listDur[1].toInt()
+            val s = listDur[2].toInt()
+            return ((h * 3600 + m * 60 + s) / 60).toFloat()
+        }
     }
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
