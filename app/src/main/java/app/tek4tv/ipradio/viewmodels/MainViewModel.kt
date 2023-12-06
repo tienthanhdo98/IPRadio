@@ -52,7 +52,10 @@ class MainViewModel @ViewModelInject constructor(
     {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenario(url, forceNewScenario)
-            getPlayerContent("", false)
+
+                getPlayerContent("", false)
+
+
         }
     }
 }

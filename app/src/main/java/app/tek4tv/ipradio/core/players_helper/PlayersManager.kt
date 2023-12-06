@@ -356,8 +356,7 @@ class PlayersManager(
                     if (currentForceMedia != null && currentForceMedia.level < level) return
                 }
             }
-            Log.d("alarmx", "endTime ${Calendar.getInstance().time}")
-            Log.d("alarmx", "convertStringToInt ${convertStringToInt(duration)}")
+
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
                     val listDur = duration.split(":")
@@ -371,7 +370,6 @@ class PlayersManager(
                     }
 
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
-                    Log.d("alarmx", "endTime $endTime")
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
             playForceMedia(context, forceMedia, mediaScheduler)
