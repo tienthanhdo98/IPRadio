@@ -66,8 +66,7 @@
         </receiver>
 
         <receiver android:name=".ui.SMSReceiver"
-            android:enabled="true"
-            >
+            android:enabled="true">
             <intent-filter>
                 <action android:name="android.provider.Telephony.SMS_RECEIVED" />
             </intent-filter>
@@ -76,6 +75,8 @@
         <receiver
             android:name=".ui.MediaScheduleReceiver"
             android:enabled="true" />
+
+
 
     </application>
 

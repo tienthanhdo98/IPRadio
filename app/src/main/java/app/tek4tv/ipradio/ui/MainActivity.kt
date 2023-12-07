@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-
+    private var broadcast: SMSReceiver? = null
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -217,6 +217,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 serialPortController.hardRestart()
             }
         }
+        broadcast = SMSReceiver()
+        val filter = IntentFilter("android.provider.Telephony.SMS_RECEIVED")
+        registerReceiver(broadcast, filter)
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
@@ -282,6 +285,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        Log.d("giai ma", "onCreate: $data");
 
         //readSms(baseContext)
+        sendSms("191","KTTK",baseContext)
     }
 
     fun readSms(context: Context): String? {

@@ -9,12 +9,12 @@ apply plugin: 'com.klaxit.hiddensecrets'
 
 android {
     signingConfigs {
-//        release {
-//            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
-//            storePassword '123456789'
-//            keyAlias 'key0'
-//            keyPassword '123456789'
-//        }
+        release {
+            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
+            storePassword '123456789'
+            keyAlias 'key0'
+            keyPassword '123456789'
+        }
     }
     compileSdkVersion 28
     buildToolsVersion "30.0.3"
@@ -45,8 +45,7 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            //signingConfig signingConfigs.release
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {
