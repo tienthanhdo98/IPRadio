@@ -156,6 +156,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
       
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
+        stream.addOption(":network-caching=20")
 
         currentVlcMedia = stream
 
