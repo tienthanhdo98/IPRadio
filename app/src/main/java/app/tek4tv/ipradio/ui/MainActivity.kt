@@ -285,7 +285,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        Log.d("giai ma", "onCreate: $data");
 
         //readSms(baseContext)
-        sendSms("191","KTTK",baseContext)
+        //sendSms("191","KTTK",baseContext)
     }
 
     fun readSms(context: Context): String? {
