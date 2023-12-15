@@ -221,7 +221,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
        //setContentView(R.layout.activity_main)
-        setContentView(R.layout.activity_main_multiple_view)
+        setContentView(R.layout.activity_main_multiple_view2)
         supportActionBar?.hide()
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
