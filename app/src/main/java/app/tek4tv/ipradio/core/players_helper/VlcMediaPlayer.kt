@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -75,6 +76,7 @@ class VlcMediaPlayer(
         args.add("-vvv")
         args.add("--no-drop-late-frames");
         args.add("--no-skip-frames");
+        args.add("--onPlayMediaLog);
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
@@ -149,7 +151,10 @@ class VlcMediaPlayer(
         currentVlcMedia = media
 
         vlcPlayer.play(media)
-
+    }
+    override fun playa()
+    {
+        vlcPlayer.play(Uri.parse("https://storage-ttcs.tek4tv.vn/2023//12//15//PHONG_SU_QUOC_T/22b321f2f7294269959e3c30e6ee7d35.mp4"))
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
@@ -159,6 +164,7 @@ class VlcMediaPlayer(
         currentVlcMedia = stream
         vlcPlayer.play(stream)
     }
+
 
     //check xem có đang trong giờ phát luồng live
     private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {

@@ -185,9 +185,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
             logUtils.logMediaEnd(mediaItem)
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
 
@@ -207,7 +209,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
-            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
+           // logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
             if (globalProperties.logEnabled) {
                 try {
                     viewModel.currentMedia = mediaItem
@@ -223,7 +225,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
        //setContentView(R.layout.activity_main)
         setContentView(R.layout.activity_main_multiple_view2)
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -290,7 +292,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
-
+        playerManager.playa()
 
     }
 
