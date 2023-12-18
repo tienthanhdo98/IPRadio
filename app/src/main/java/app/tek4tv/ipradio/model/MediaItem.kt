@@ -56,6 +56,9 @@ data class MediaItem(
     @Json(name = "Category")
     val category: Category? = null,
 
+    @Json(name = "BroadcastRegion")
+    val broadcastRegion: BroadcastRegion? = null,
+
     @Json(name = "Author")
     val author: Author? = null,
 
@@ -135,6 +138,14 @@ enum class MediaType {
     AM,
     UNKNOWN
 }
+data class BroadcastRegion(
+    @Json(name = "ID")
+    val id: String? = null,
+
+    @Json(name = "Value")
+    val value: String? = null,
+)
+
 
 data class Author(
     @Json(name = "Id")

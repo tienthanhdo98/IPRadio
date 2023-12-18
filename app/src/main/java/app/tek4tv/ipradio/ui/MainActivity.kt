@@ -9,18 +9,14 @@ import android.os.Bundle
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -37,6 +33,9 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
+import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -110,6 +109,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
+    private  var typeScreen :String = ""
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -222,8 +222,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-       //setContentView(R.layout.activity_main)
-        setContentView(R.layout.activity_main_multiple_view2)
+        typeScreen = ConfigUtil.getString(context = baseContext,TYPE_SCREEN_KEY,FULL_SCREEN) ?: FULL_SCREEN
+        if(typeScreen == FULL_SCREEN )
+        {
+            setContentView(R.layout.activity_main)
+        }
+        else
+        {
+            setContentView(R.layout.activity_main_multiple_view2)
+        }
         supportActionBar?.hide()
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
@@ -293,7 +300,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
         showMac()
         playerManager.playa()
+        getMonth()
 
+    }
+    fun getMonth()
+    {
+
+
+
+        viewModel.updateMonthlyScenario("https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b", true)
+        ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b")
     }
 
     fun getScreenDensityDpi(context: Context): Int {
@@ -305,52 +321,117 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun showMac() {
-        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val displayMetrics = DisplayMetrics()
+        windowManager.defaultDisplay.getMetrics(displayMetrics)
+        val height = displayMetrics.heightPixels
+        val width = displayMetrics.widthPixels
+        Log.d("screeninfo", "showMac: $height")
+        Log.d("screeninfo", "showMac: $width")
+
+        if(typeScreen != FULL_SCREEN) {
+            val topArea = findViewById<TextView>(R.id.tvTopArea)
         val imgSec1 = findViewById<ImageView>(R.id.imgSec1)
 
-        val imei = Utils.getDeviceId(this)
-        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        val sView = findViewById<ScrollView>(R.id.scrollView)
-        val tvSec1= findViewById<TextView>(R.id.tvSec1)
-        imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
-        tvMacAdress.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-        tvMacAdress.textSize = convertPixelsToDp(48,baseContext).toFloat();
-        tvSec1.text = """"Gần 30 ngân hàng tư nhân đồng loạt giảm tiếp lãi suất tiết kiệm trong nửa đầu tháng 8, đưa mức cao nhất về vùng 7% một năm.
 
-Khảo sát của VnExpress với 34 ngân hàng trong nước tới ngày 16/8 cho thấy gần như toàn bộ ngân hàng tư nhân từ cuối tháng 7 đến nay đều điều chỉnh biểu lãi suất huy động. Riêng 4 ngân hàng quốc doanh vẫn giữ nguyên lãi suất trong một tháng qua.
+//            val sView = findViewById<ScrollView>(R.id.scrollView)
+//            val tvSec1 = findViewById<TextView>(R.id.tvRightArea)
+//            imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
+//            topArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+//            topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
+////            tvSec1.text =
+////                """"Gần 30 ngân hàng tư nhân đồng loạt giảm tiếp lãi suất tiết kiệm trong nửa đầu tháng 8, đưa mức cao nhất về vùng 7% một năm.
+////
+////Khảo sát của VnExpress với 34 ngân hàng trong nước tới ngày 16/8 cho thấy gần như toàn bộ ngân hàng tư nhân từ cuối tháng 7 đến nay đều điều chỉnh biểu lãi suất huy động. Riêng 4 ngân hàng quốc doanh vẫn giữ nguyên lãi suất trong một tháng qua.
+////
+////Lãi suất giảm tập trung ở kỳ hạn từ 6 tháng trở lên với mức giảm bình quân 0,3-0,35% một năm.
+////
+////Ngân hàng Hàng Hải Việt Nam (MSB) là nhà băng điều chỉnh mạnh tay nhất đợt này. Các khoản tiền gửi kỳ hạn từ 6 tháng trở lên được MSB hạ 1%, đưa mức lãi cao nhất về còn 6% một năm.
+////
+////Ngân hàng Kỹ thương (Techcombank) cũng giảm đồng loạt 0,7% lãi suất với khoản tiền từ 6 tháng trở lên. Hay một số nhà băng khác như PGBank, GPBank, VietBank, ABBank cũng giảm tới 0,7-0,8% một năm.
+////
+////Sau đợt giảm này, hiện chỉ còn chục ngân hàng sẵn sàng trả lãi suất từ 7% trở lên cho người gửi tiền (dưới 1 tỷ đồng), gồm VietABank, BaoVietBank, CBBank, NCB, PVComBank, NamABank, HDBank, BacABank, Kienlongbank, DongABank. Khoảng 20 nhà băng còn lại đều niêm yết lãi suất dưới 7% một năm. Như vậy, so với giai đoạn cao điểm vào cuối năm ngoái, lãi suất tiết kiệm đã giảm tới 3-4%, đặc biệt với kỳ hạn từ 6 tháng trở lên. Lãi suất huy động giảm mạnh sau nhiều lần Ngân hàng Nhà nước hạ lãi suất điều hành cộng với bối cảnh ngân hàng "thừa tiền" khi khó cho vay. Mặt bằng lãi suất hiện về ngang với giai đoạn nửa đầu 2022.
+////
+////Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, Ngân hàng Nhà nước gần đây yêu cầu các nhà băng đồng thời giảm lãi suất khoản vay cũ và mới ít nhất 1,5-2%, theo chỉ đạo của Chính phủ nhằm hỗ trợ doanh nghiệp và người dân.
+////
+////Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
+//            val dpi = getScreenDensityDpi(baseContext)
+//            tvSec1.textSize = convertPixelsToDp(36, baseContext).toFloat();
+//            sView.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
+//            sView.viewTreeObserver.addOnGlobalLayoutListener(object :
+//                ViewTreeObserver.OnGlobalLayoutListener {
+//                override fun onGlobalLayout() {
+//                    sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+//                    val objectAnimator = ObjectAnimator.ofInt(
+//                        sView,
+//                        "scrollY",
+//                        sView.getChildAt(0).height - sView.height
+//                    )
+//                    objectAnimator.duration = 140000
+//                    objectAnimator.interpolator = LinearInterpolator()
+//                    objectAnimator.repeatCount = ObjectAnimator.INFINITE
+//                    objectAnimator.repeatMode = ObjectAnimator.RESTART
+//                    objectAnimator.start()
+//                }
+//            })
+//
+//            Log.d("dpiPoint", "showMac: $dpi");
+        }
+        else{
+            val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+            val imei = Utils.getDeviceId(this)
+            tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+            tvMacAdress.setOnClickListener{
 
-Lãi suất giảm tập trung ở kỳ hạn từ 6 tháng trở lên với mức giảm bình quân 0,3-0,35% một năm.
-
-Ngân hàng Hàng Hải Việt Nam (MSB) là nhà băng điều chỉnh mạnh tay nhất đợt này. Các khoản tiền gửi kỳ hạn từ 6 tháng trở lên được MSB hạ 1%, đưa mức lãi cao nhất về còn 6% một năm.
-
-Ngân hàng Kỹ thương (Techcombank) cũng giảm đồng loạt 0,7% lãi suất với khoản tiền từ 6 tháng trở lên. Hay một số nhà băng khác như PGBank, GPBank, VietBank, ABBank cũng giảm tới 0,7-0,8% một năm.
-
-Sau đợt giảm này, hiện chỉ còn chục ngân hàng sẵn sàng trả lãi suất từ 7% trở lên cho người gửi tiền (dưới 1 tỷ đồng), gồm VietABank, BaoVietBank, CBBank, NCB, PVComBank, NamABank, HDBank, BacABank, Kienlongbank, DongABank. Khoảng 20 nhà băng còn lại đều niêm yết lãi suất dưới 7% một năm. Như vậy, so với giai đoạn cao điểm vào cuối năm ngoái, lãi suất tiết kiệm đã giảm tới 3-4%, đặc biệt với kỳ hạn từ 6 tháng trở lên. Lãi suất huy động giảm mạnh sau nhiều lần Ngân hàng Nhà nước hạ lãi suất điều hành cộng với bối cảnh ngân hàng "thừa tiền" khi khó cho vay. Mặt bằng lãi suất hiện về ngang với giai đoạn nửa đầu 2022.
-
-Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, Ngân hàng Nhà nước gần đây yêu cầu các nhà băng đồng thời giảm lãi suất khoản vay cũ và mới ít nhất 1,5-2%, theo chỉ đạo của Chính phủ nhằm hỗ trợ doanh nghiệp và người dân.
-
-Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
-        val dpi = getScreenDensityDpi(baseContext)
-        tvSec1.textSize = convertPixelsToDp(36,baseContext).toFloat();
-        sView.setFadingEdgeLength(convertPixelsToDp(50,baseContext))
-        sView.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val objectAnimator = ObjectAnimator.ofInt(
-                    sView,
-                    "scrollY",
-                    sView.getChildAt(0).height - sView.height
-                )
-                objectAnimator.duration = 140000
-                objectAnimator.interpolator = LinearInterpolator()
-                objectAnimator.repeatCount = ObjectAnimator.INFINITE
-                objectAnimator.repeatMode = ObjectAnimator.RESTART
-                objectAnimator.start()
+                Log.d("dpiPoint", "showMac: click")
+                if(typeScreen != FULL_SCREEN) {
+                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                } else {
+                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, MULTIPLE_AREA)
+                }
+                recreate();
             }
-        })
+        }
+    }
+    fun showTopArea(media : MediaItem)
+    {
+        val topArea = findViewById<TextView>(R.id.tvTopArea)
 
-        Log.d("dpiPoint", "showMac: $dpi");
+        topArea.text = media.body
+        topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
+        topArea.isSelected = true;
+
+    }
+    fun showLeftArea(media : MediaItem)
+    {
+        val topArea = findViewById<TextView>(R.id.tvTopArea)
+        val imgSec1 = findViewById<ImageView>(R.id.imgSec1)
+        val sView = findViewById<ScrollView>(R.id.scrollView)
+            val tvSec1 = findViewById<TextView>(R.id.tvRightArea)
+            imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
+            topArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+            topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
+            val dpi = getScreenDensityDpi(baseContext)
+            tvSec1.text = media.body
+            tvSec1.textSize = convertPixelsToDp(36, baseContext).toFloat();
+            sView.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
+            sView.viewTreeObserver.addOnGlobalLayoutListener(object :
+                ViewTreeObserver.OnGlobalLayoutListener {
+                override fun onGlobalLayout() {
+                    sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                    val objectAnimator = ObjectAnimator.ofInt(
+                        sView,
+                        "scrollY",
+                        sView.getChildAt(0).height - sView.height
+                    )
+                    objectAnimator.duration = 140000
+                    objectAnimator.interpolator = LinearInterpolator()
+                    objectAnimator.repeatCount = ObjectAnimator.INFINITE
+                    objectAnimator.repeatMode = ObjectAnimator.RESTART
+                    objectAnimator.start()
+                }
+            })
+
+            Log.d("dpiPoint", "showMac: $dpi");
     }
 
 
@@ -423,13 +504,13 @@ Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return false
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return false
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -486,6 +567,18 @@ Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất
             mediaScheduler.setCheckHubAndResetAlarms()
 
             playerManager.startFirstTimeFrame()
+
+            var media = viewModel.mediaRepo.leftScheduledList.find { it.body != null &&it.body != "start" && it.body != "end"}
+
+            if (media != null) {
+                showLeftArea(media)
+            }
+            var mediaTop = viewModel.mediaRepo.topScheduledList.find { it.body != null &&it.body != "start" && it.body != "end"}
+
+            if (mediaTop != null) {
+                showTopArea(mediaTop)
+            }
+
 
             //all load done, check
             viewModel.checkPlaylist()

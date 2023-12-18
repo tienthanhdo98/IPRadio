@@ -110,7 +110,7 @@ class GlobalProperties {
     companion object {
 
         private var instance: GlobalProperties? = null
-
+        val TYPE_SCREEN_KEY = "TYPE_SCREEN_KEY"
         fun getInst(): GlobalProperties {
             if (instance == null)
                 instance = GlobalProperties()

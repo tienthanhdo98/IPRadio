@@ -74,9 +74,8 @@ class VlcMediaPlayer(
         val args = ArrayList<String>()
         //bật log vlc
         args.add("-vvv")
-        args.add("--no-drop-late-frames");
-        args.add("--no-skip-frames");
-        args.add("--onPlayMediaLog);
+        args.add("--no-drop-late-frames")
+        args.add("--no-skip-frames")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)

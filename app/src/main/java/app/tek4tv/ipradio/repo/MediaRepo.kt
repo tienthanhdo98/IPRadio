@@ -1,11 +1,18 @@
 package app.tek4tv.ipradio.repo
 
 import android.content.Context
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
+import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -33,9 +40,13 @@ class MediaRepo @Inject constructor(
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
-
     var broadcastList = mutableListOf<MediaItem>()
+    //right scheduledList
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
+    //left scheduledList
+    var leftScheduledList = listOf<MediaItem>()
+    //top scheduledList
+    var topScheduledList =  listOf<MediaItem>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
@@ -66,6 +77,7 @@ class MediaRepo @Inject constructor(
             else monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
+                ConfigUtil.putString(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital)
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
@@ -131,24 +143,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-     suspend fun getPlaylist(url: String): MediaItem {
-        var result: MediaItem ? = null
-        try {
-            val res = playlistService.getPlaylist(url)
-            if (res.isSuccessful) {
-                val resBody = res.body()
-                if (resBody != null) {
-                    result = resBody[0]
-                }
-            } else {
-                Log.e("yee", "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e("Error", e.toString())
 
-        }
-        return result!!
-    }
 
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
@@ -159,7 +154,16 @@ class MediaRepo @Inject constructor(
                 val resBody = res.body()
                 if (resBody != null) {
                     var i = 1
-                    result = resBody.onEach { it.mediaID = i++ }
+                    //result = resBody.onEach { it.mediaID = i++ }
+                    result =  resBody.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
+
+                    leftScheduledList =  resBody.filter { it.broadcastRegion?.value == LEFT_AREA }
+                    topScheduledList  =  resBody.filter { it.broadcastRegion?.value == LEFT_AREA }
+
+
+                    Log.e("yee", "Lịch rỗng rồi ${result.size}")
+                    Log.e("yee", "Lịch rỗng rồi ${leftScheduledList.size}")
+                    Log.e("yee", "Lịch rỗng rồi ${topScheduledList.size}")
                     saveItemsToFile(result)
                 }
             } else {
