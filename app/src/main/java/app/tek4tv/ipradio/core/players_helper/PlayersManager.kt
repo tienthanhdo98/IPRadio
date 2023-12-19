@@ -226,10 +226,7 @@ class PlayersManager(
      vlcPlayer.playMedia(mediaItem, -1)
 
     }
-    fun playa()
-    {
-        vlcPlayer.playa()
-    }
+
 
     fun stopAllPlayer() {
         vlcPlayer.stop()

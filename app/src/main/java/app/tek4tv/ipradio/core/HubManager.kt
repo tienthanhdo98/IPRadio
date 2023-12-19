@@ -82,17 +82,14 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    //"https://hub.gateway.httt.tek4tv.vn/hubServer"
-
     private val provider = "Tek4tv"
 
     private var firstConnect = true
 
     var privateKeyStr: String
     var logService: LogService? = null
+    private  var hubUrl = ""
 
-    //check ping to hub
-    var pingToHub = false
 
     init {
         versionName = try {
@@ -100,22 +97,11 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-
-//        val hubUrl = ConfigUtil.getStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_HUB,
-//            "https://hubgatewayhttt.tek4tv.vn/hubServer"
-//        )
-        val hubUrl = ConfigUtil.getStringEncrypt(
+        hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hub.digital.tek4tv.vn/hubServer"
-        )
-        //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
-        //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
-        //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
-        //"https://hubgatewayhttt.tek4tv.vn/hubServer" hub ssl
-        Log.i("urlbase", hubUrl!!)
+            "https://hubip-haiphong.tek4tv.vn/hubServer"
+        ).toString()
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -194,8 +180,8 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            Log.i("urlbase", urlToken!!)
-            val call = authService.getToken(body, urlToken!!)
+            Log.i("urlbase", urlToken)
+            val call = authService.getToken(body, urlToken)
             val response = call.execute()
 
             if (response.isSuccessful) {
@@ -503,8 +489,8 @@ class HubManager(
                 destinationId = GlobalProperties.getInst().destinationId
                 destinationName = GlobalProperties.getInst().destinationName
                 appName = "DigitalSignage"
-                logType = "report"
-                provider = "Tek4tv"
+                logType = hubUrl
+                provider = provider
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume

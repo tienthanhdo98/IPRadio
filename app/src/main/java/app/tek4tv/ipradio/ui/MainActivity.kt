@@ -12,7 +12,6 @@ import android.util.Log
 import android.view.View
 import android.view.ViewTreeObserver
 import android.view.animation.LinearInterpolator
-import android.widget.ImageView
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -109,7 +108,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private  var typeScreen :String = ""
+    private var typeScreen: Long = FULL_SCREEN
+    private lateinit var tvTopArea: TextView
+    private lateinit var tvRightArea: TextView
+    private lateinit var scrollRightArea: ScrollView
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -134,7 +136,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
+            hideTopLeftArea()
             logUtils.sendLogFile("media", currentDateStr)
+
         }
 
         //Phát FM
@@ -222,7 +226,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getString(context = baseContext,TYPE_SCREEN_KEY,FULL_SCREEN) ?: FULL_SCREEN
+        typeScreen = ConfigUtil.getLong(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
         if(typeScreen == FULL_SCREEN )
         {
             setContentView(R.layout.activity_main)
@@ -230,6 +234,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         else
         {
             setContentView(R.layout.activity_main_multiple_view2)
+            initDefaultTopAndLeftArea()
         }
         supportActionBar?.hide()
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
@@ -262,16 +267,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort("/dev/ttyS4")
-        //serialPortController.connectToSerialPort(UART_S1_NAME)
-//        lifecycleScope.launch {
-//            delay(10000)
-//            if (!serialPortController.isUart1) {
-//                serialPortController.connectToSerialPort(UART_S4_NAME)
-//                Log.i("PA", "onCreate: s4")
-//            }
-//        }
-//        val tvSec1 = findViewById<TextView>(R.id.tvSec1)
-//        tvSec1.isSelected = true
+        serialPortController.connectToSerialPort(UART_S1_NAME)
+        lifecycleScope.launch {
+            delay(10000)
+            if (!serialPortController.isUart1) {
+                serialPortController.connectToSerialPort(UART_S4_NAME)
+                Log.i("PA", "onCreate: s4")
+            }
+        }
+
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
 
         playerManager = PlayersManager(
@@ -299,24 +303,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         hideSystemUI()
         showMac()
-        playerManager.playa()
+
         getMonth()
 
     }
     fun getMonth()
     {
-
-
-
+        playerManager.stopAllPlayer()
+        cancelAllAlarm()
+        ForceMedia.deleteForeMediaPref(applicationContext)
         viewModel.updateMonthlyScenario("https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b", true)
         ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b")
     }
 
-    fun getScreenDensityDpi(context: Context): Int {
-        val displayMetrics = context.resources.displayMetrics
-        return displayMetrics.densityDpi
-    }
-    fun convertPixelsToDp(px: Int, context: Context): Int {
+    private fun convertPixelsToDp(px: Int, context: Context): Int {
         return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
     }
 
@@ -329,13 +329,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.d("screeninfo", "showMac: $width")
 
         if(typeScreen != FULL_SCREEN) {
-            val topArea = findViewById<TextView>(R.id.tvTopArea)
-        val imgSec1 = findViewById<ImageView>(R.id.imgSec1)
-
-
+//            val topArea = findViewById<TextView>(R.id.tvTopArea)
+//        val ivTop = findViewById<ImageView>(R.id.ivTop)
 //            val sView = findViewById<ScrollView>(R.id.scrollView)
 //            val tvSec1 = findViewById<TextView>(R.id.tvRightArea)
-//            imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
+//            ivTop.scaleType = ImageView.ScaleType.CENTER_CROP
 //            topArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
 //            topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
 ////            tvSec1.text =
@@ -376,6 +374,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //
 //            Log.d("dpiPoint", "showMac: $dpi");
         }
+
         else{
             val tvMacAdress = findViewById<TextView>(R.id.tvMac)
             val imei = Utils.getDeviceId(this)
@@ -383,57 +382,58 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             tvMacAdress.setOnClickListener{
 
                 Log.d("dpiPoint", "showMac: click")
-                if(typeScreen != FULL_SCREEN) {
-                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                if (typeScreen != FULL_SCREEN) {
+                    ConfigUtil.putLong(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
                 } else {
-                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, MULTIPLE_AREA)
+                    ConfigUtil.putLong(baseContext, TYPE_SCREEN_KEY, MULTIPLE_AREA)
                 }
                 recreate();
             }
         }
     }
-    fun showTopArea(media : MediaItem)
-    {
-        val topArea = findViewById<TextView>(R.id.tvTopArea)
 
-        topArea.text = media.body
-        topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
-        topArea.isSelected = true;
+    private fun showTopArea(media: MediaItem) {
+        tvTopArea.maxLines = 1
+        tvTopArea.text = media.body
 
     }
-    fun showLeftArea(media : MediaItem)
-    {
-        val topArea = findViewById<TextView>(R.id.tvTopArea)
-        val imgSec1 = findViewById<ImageView>(R.id.imgSec1)
-        val sView = findViewById<ScrollView>(R.id.scrollView)
-            val tvSec1 = findViewById<TextView>(R.id.tvRightArea)
-            imgSec1.scaleType = ImageView.ScaleType.CENTER_CROP
-            topArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-            topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
-            val dpi = getScreenDensityDpi(baseContext)
-            tvSec1.text = media.body
-            tvSec1.textSize = convertPixelsToDp(36, baseContext).toFloat();
-            sView.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
-            sView.viewTreeObserver.addOnGlobalLayoutListener(object :
-                ViewTreeObserver.OnGlobalLayoutListener {
-                override fun onGlobalLayout() {
-                    sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                    val objectAnimator = ObjectAnimator.ofInt(
-                        sView,
-                        "scrollY",
-                        sView.getChildAt(0).height - sView.height
-                    )
-                    objectAnimator.duration = 140000
-                    objectAnimator.interpolator = LinearInterpolator()
-                    objectAnimator.repeatCount = ObjectAnimator.INFINITE
-                    objectAnimator.repeatMode = ObjectAnimator.RESTART
-                    objectAnimator.start()
-                }
-            })
 
-            Log.d("dpiPoint", "showMac: $dpi");
+    fun hideTopLeftArea() {
+        tvRightArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+        tvRightArea.text = ""
     }
 
+    private fun initDefaultTopAndLeftArea() {
+        scrollRightArea = findViewById(R.id.scrollView)
+        tvTopArea = findViewById(R.id.tvTopArea)
+        tvRightArea = findViewById(R.id.tvRightArea)
+        tvRightArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
+        scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
+            ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                scrollRightArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                val objectAnimator = ObjectAnimator.ofInt(
+                    scrollRightArea,
+                    "scrollY",
+                    scrollRightArea.getChildAt(0).height - scrollRightArea.height
+                )
+                objectAnimator.duration = 120000
+                objectAnimator.interpolator = LinearInterpolator()
+                objectAnimator.repeatCount = ObjectAnimator.INFINITE
+                objectAnimator.repeatMode = ObjectAnimator.RESTART
+                objectAnimator.start()
+            }
+        })
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvTopArea.maxLines = 2
+        tvTopArea.isSelected = true
+
+    }
+
+    private fun showLeftArea(media: MediaItem) {
+        tvRightArea.text = media.body
+    }
 
     override fun onStop() {
         super.onStop()
@@ -568,15 +568,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             playerManager.startFirstTimeFrame()
 
-            var media = viewModel.mediaRepo.leftScheduledList.find { it.body != null &&it.body != "start" && it.body != "end"}
-
-            if (media != null) {
-                showLeftArea(media)
-            }
-            var mediaTop = viewModel.mediaRepo.topScheduledList.find { it.body != null &&it.body != "start" && it.body != "end"}
-
-            if (mediaTop != null) {
-                showTopArea(mediaTop)
+            if (typeScreen == MULTIPLE_AREA) {
+                val media =
+                    viewModel.mediaRepo.leftScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
+                if (media != null) {
+                    showLeftArea(media)
+                }
+                val mediaTop =
+                    viewModel.mediaRepo.topScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
+                if (mediaTop != null) {
+                    showTopArea(mediaTop)
+                }
             }
 
 

@@ -75,6 +75,17 @@ object ConfigUtil {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getFloat(key, defaultValue)
     }
+    fun putLong(context: Context, key: String?, value: Long) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putLong(key, value)
+        editor.apply()
+    }
+
+    fun getLong(context: Context, key: String, defaultValue: Long): Long {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        return sharedPref.getLong(key, defaultValue)
+    }
 
     fun checkSharef(context: Context, key: String): Boolean {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

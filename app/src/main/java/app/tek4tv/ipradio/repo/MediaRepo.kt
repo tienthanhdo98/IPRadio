@@ -13,6 +13,7 @@ import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.TOP_AREA
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -77,7 +78,7 @@ class MediaRepo @Inject constructor(
             else monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                ConfigUtil.putString(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital)
+                ConfigUtil.putLong(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toLong())
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
@@ -155,10 +156,10 @@ class MediaRepo @Inject constructor(
                 if (resBody != null) {
                     var i = 1
                     //result = resBody.onEach { it.mediaID = i++ }
-                    result =  resBody.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
+                    result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
 
                     leftScheduledList =  resBody.filter { it.broadcastRegion?.value == LEFT_AREA }
-                    topScheduledList  =  resBody.filter { it.broadcastRegion?.value == LEFT_AREA }
+                    topScheduledList  =  resBody.filter { it.broadcastRegion?.value == TOP_AREA }
 
 
                     Log.e("yee", "Lịch rỗng rồi ${result.size}")

@@ -151,15 +151,10 @@ class VlcMediaPlayer(
 
         vlcPlayer.play(media)
     }
-    override fun playa()
-    {
-        vlcPlayer.play(Uri.parse("https://storage-ttcs.tek4tv.vn/2023//12//15//PHONG_SU_QUOC_T/22b321f2f7294269959e3c30e6ee7d35.mp4"))
-    }
 
     private fun playLiveStream(mediaItem: MediaItem) {
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
-
         currentVlcMedia = stream
         vlcPlayer.play(stream)
     }

@@ -16,5 +16,5 @@ interface IMediaPlayer {
     fun isPlaying() : Boolean
     fun onLostHubConnection()
     fun onHubReconnected()
-    fun playa()
+
 }

@@ -138,30 +138,30 @@ enum class MediaType {
     AM,
     UNKNOWN
 }
-data class BroadcastRegion(
-    @Json(name = "ID")
-    val id: String? = null,
+data class BroadcastRegion (
+    @Json(name = "Id")
+    val id: Long,
 
     @Json(name = "Value")
-    val value: String? = null,
+    val value: Long
 )
 
 
-data class Author(
+data class Author (
     @Json(name = "Id")
-    val id: String? = null,
+    val id: Long,
 
     @Json(name = "FullName")
-    val fullName: String? = null,
+    val fullName: String,
 
     @Json(name = "UserName")
-    val userName: String? = null,
+    val userName: String,
 
     @Json(name = "Avatar")
-    val avatar: String? = null,
+    val avatar: String,
 
     @Json(name = "Email")
-    val email: String? = null
+    val email: String
 )
 
 data class Category(
