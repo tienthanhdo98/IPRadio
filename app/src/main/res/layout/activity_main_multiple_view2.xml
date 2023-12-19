@@ -11,7 +11,7 @@
         android:src="@drawable/ic_sec1"
         app:layout_constraintWidth_percent="0.3"
         android:paddingTop="20dp"
-        android:paddingBottom="20dp"
+
         app:layout_constraintDimensionRatio="H,400:225"
         app:layout_constraintEnd_toStartOf="@id/tvTopArea"
         app:layout_constraintBottom_toBottomOf="@id/tvTopArea"
@@ -23,9 +23,8 @@
         android:layout_width="0dp"
         android:layout_height="0dp"
         android:gravity="center"
-        android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-        android:textAlignment="center"
-        android:maxLines="1"
+
+        android:maxLines="1"   android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
         android:ellipsize="marquee"
         android:marqueeRepeatLimit ="marquee_forever"
         android:focusable="true"
@@ -34,7 +33,6 @@
         android:textColor="#F2FB0A"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.3"
-        app:layout_constraintWidth_percent="0.7"
         app:layout_constraintStart_toEndOf="@+id/ivTop"
         app:layout_constraintTop_toTopOf="parent" />
 

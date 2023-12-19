@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.math.log
 
 
 /**
@@ -114,6 +115,8 @@ class PlayersManager(
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
+        Log.d("PMLOG", "startFirstTimeFrame: start")
+        Log.d("PMLOG", "startFirstTimeFrame: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
@@ -125,10 +128,12 @@ class PlayersManager(
                 setTimeFrame(period, resumePoint)
                 isInTimeFrame = true
                 found = true
+                Log.d("PMLOG", "startFirstTimeFrame: found, start")
                 break
             }
         }
         if (!found) {
+            Log.d("PMLOG", "startFirstTimeFrame: not found")
             playerManagerListener?.onTimeOver()
         }
     }

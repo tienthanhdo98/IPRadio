@@ -108,7 +108,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: Long = FULL_SCREEN
+    private var typeScreen: Long = MULTIPLE_AREA
     private lateinit var tvTopArea: TextView
     private lateinit var tvRightArea: TextView
     private lateinit var scrollRightArea: ScrollView
@@ -119,6 +119,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+           // hideTopLeftArea()
+            Log.d("PMLOG", "startFirstTimeFrame: time over")
+
         }
 
         //Bắt đầu khung thời gian
@@ -136,7 +139,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
-            hideTopLeftArea()
+            //hideTopLeftArea()
             logUtils.sendLogFile("media", currentDateStr)
 
         }
@@ -226,7 +229,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getLong(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+       // typeScreen = ConfigUtil.getLong(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
         if(typeScreen == FULL_SCREEN )
         {
             setContentView(R.layout.activity_main)
@@ -329,50 +332,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.d("screeninfo", "showMac: $width")
 
         if(typeScreen != FULL_SCREEN) {
-//            val topArea = findViewById<TextView>(R.id.tvTopArea)
-//        val ivTop = findViewById<ImageView>(R.id.ivTop)
-//            val sView = findViewById<ScrollView>(R.id.scrollView)
-//            val tvSec1 = findViewById<TextView>(R.id.tvRightArea)
-//            ivTop.scaleType = ImageView.ScaleType.CENTER_CROP
-//            topArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-//            topArea.textSize = convertPixelsToDp(48, baseContext).toFloat();
-////            tvSec1.text =
-////                """"Gần 30 ngân hàng tư nhân đồng loạt giảm tiếp lãi suất tiết kiệm trong nửa đầu tháng 8, đưa mức cao nhất về vùng 7% một năm.
-////
-////Khảo sát của VnExpress với 34 ngân hàng trong nước tới ngày 16/8 cho thấy gần như toàn bộ ngân hàng tư nhân từ cuối tháng 7 đến nay đều điều chỉnh biểu lãi suất huy động. Riêng 4 ngân hàng quốc doanh vẫn giữ nguyên lãi suất trong một tháng qua.
-////
-////Lãi suất giảm tập trung ở kỳ hạn từ 6 tháng trở lên với mức giảm bình quân 0,3-0,35% một năm.
-////
-////Ngân hàng Hàng Hải Việt Nam (MSB) là nhà băng điều chỉnh mạnh tay nhất đợt này. Các khoản tiền gửi kỳ hạn từ 6 tháng trở lên được MSB hạ 1%, đưa mức lãi cao nhất về còn 6% một năm.
-////
-////Ngân hàng Kỹ thương (Techcombank) cũng giảm đồng loạt 0,7% lãi suất với khoản tiền từ 6 tháng trở lên. Hay một số nhà băng khác như PGBank, GPBank, VietBank, ABBank cũng giảm tới 0,7-0,8% một năm.
-////
-////Sau đợt giảm này, hiện chỉ còn chục ngân hàng sẵn sàng trả lãi suất từ 7% trở lên cho người gửi tiền (dưới 1 tỷ đồng), gồm VietABank, BaoVietBank, CBBank, NCB, PVComBank, NamABank, HDBank, BacABank, Kienlongbank, DongABank. Khoảng 20 nhà băng còn lại đều niêm yết lãi suất dưới 7% một năm. Như vậy, so với giai đoạn cao điểm vào cuối năm ngoái, lãi suất tiết kiệm đã giảm tới 3-4%, đặc biệt với kỳ hạn từ 6 tháng trở lên. Lãi suất huy động giảm mạnh sau nhiều lần Ngân hàng Nhà nước hạ lãi suất điều hành cộng với bối cảnh ngân hàng "thừa tiền" khi khó cho vay. Mặt bằng lãi suất hiện về ngang với giai đoạn nửa đầu 2022.
-////
-////Trong bối cảnh lãi suất đầu vào đã hạ nhiệt nhanh và mạnh, Ngân hàng Nhà nước gần đây yêu cầu các nhà băng đồng thời giảm lãi suất khoản vay cũ và mới ít nhất 1,5-2%, theo chỉ đạo của Chính phủ nhằm hỗ trợ doanh nghiệp và người dân.
-////
-////Một số nhà băng gần đây tung nhiều gói ưu đãi giảm lãi suất khoản vay mới để kích cầu tín dụng trong bối cảnh tăng trưởng cho vay ảm đạm. Lãi suất khoản vay cũ cũng đã có sự điều chỉnh, tuy nhiên giảm chậm hơn so với lãi suất khoản vay mới. Tùy từng nhà băng và nhóm khách hàng, lãi suất khoản vay hiện hữu giảm khoảng 1% đến 2% từ đầu năm tới nay."""
-//            val dpi = getScreenDensityDpi(baseContext)
-//            tvSec1.textSize = convertPixelsToDp(36, baseContext).toFloat();
-//            sView.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
-//            sView.viewTreeObserver.addOnGlobalLayoutListener(object :
-//                ViewTreeObserver.OnGlobalLayoutListener {
-//                override fun onGlobalLayout() {
-//                    sView.viewTreeObserver.removeOnGlobalLayoutListener(this)
-//                    val objectAnimator = ObjectAnimator.ofInt(
-//                        sView,
-//                        "scrollY",
-//                        sView.getChildAt(0).height - sView.height
-//                    )
-//                    objectAnimator.duration = 140000
-//                    objectAnimator.interpolator = LinearInterpolator()
-//                    objectAnimator.repeatCount = ObjectAnimator.INFINITE
-//                    objectAnimator.repeatMode = ObjectAnimator.RESTART
-//                    objectAnimator.start()
-//                }
-//            })
-//
-//            Log.d("dpiPoint", "showMac: $dpi");
+
         }
 
         else{
@@ -395,19 +355,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun showTopArea(media: MediaItem) {
         tvTopArea.maxLines = 1
         tvTopArea.text = media.body
-
+    }
+    private fun showLeftArea(media: MediaItem) {
+        tvRightArea.text = media.body
+        Log.e("AreaLog", "Hub show left")
     }
 
     fun hideTopLeftArea() {
-        tvRightArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+        tvTopArea.maxLines = 2
+        tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
         tvRightArea.text = ""
+        Log.e("AreaLog", "Hub hide left")
     }
 
     private fun initDefaultTopAndLeftArea() {
         scrollRightArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
-        tvRightArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
         scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
         scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
             ViewTreeObserver.OnGlobalLayoutListener {
@@ -428,12 +393,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
         tvTopArea.maxLines = 2
         tvTopArea.isSelected = true
-
     }
 
-    private fun showLeftArea(media: MediaItem) {
-        tvRightArea.text = media.body
-    }
+
 
     override fun onStop() {
         super.onStop()
@@ -569,15 +531,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             playerManager.startFirstTimeFrame()
 
             if (typeScreen == MULTIPLE_AREA) {
-                val media =
-                    viewModel.mediaRepo.leftScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
-                if (media != null) {
-                    showLeftArea(media)
-                }
-                val mediaTop =
-                    viewModel.mediaRepo.topScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
-                if (mediaTop != null) {
-                    showTopArea(mediaTop)
+                if (!playerManager.isInTimeFrame) {
+                    val media =
+                        viewModel.mediaRepo.leftScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
+                    if (media != null) {
+                        showLeftArea(media)
+                    }
+                    val mediaTop =
+                        viewModel.mediaRepo.topScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
+                    if (mediaTop != null) {
+                        showTopArea(mediaTop)
+                    }
+                    Log.e("AreaLog", "Hub show all")
                 }
             }
 
