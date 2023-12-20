@@ -7,6 +7,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
+import android.text.TextUtils
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
@@ -119,7 +120,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-           // hideTopLeftArea()
+            hideTopLeftArea()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
 
         }
@@ -139,7 +140,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
-            //hideTopLeftArea()
+            hideTopLeftArea()
             logUtils.sendLogFile("media", currentDateStr)
 
         }
@@ -353,12 +354,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun showTopArea(media: MediaItem) {
-        tvTopArea.maxLines = 1
-        tvTopArea.text = media.body
+//        tvTopArea.text = media.body
+//        tvTopArea.maxLines = 1
+     //   tvTopArea.isSelected = true
     }
     private fun showLeftArea(media: MediaItem) {
         tvRightArea.text = media.body
         Log.e("AreaLog", "Hub show left")
+        scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
+        scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
+            ViewTreeObserver.OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                scrollRightArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
+                val objectAnimator = ObjectAnimator.ofInt(
+                    scrollRightArea,
+                    "scrollY",
+                    scrollRightArea.getChildAt(0).height - scrollRightArea.height
+                )
+                objectAnimator.duration = 14000
+                objectAnimator.interpolator = LinearInterpolator()
+                objectAnimator.repeatCount = ObjectAnimator.INFINITE
+                objectAnimator.repeatMode = ObjectAnimator.RESTART
+                objectAnimator.start()
+            }
+        })
     }
 
     fun hideTopLeftArea() {
@@ -370,29 +389,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initDefaultTopAndLeftArea() {
         scrollRightArea = findViewById(R.id.scrollView)
-        tvTopArea = findViewById(R.id.tvTopArea)
+                tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
         tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
-        scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
-        scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                scrollRightArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val objectAnimator = ObjectAnimator.ofInt(
-                    scrollRightArea,
-                    "scrollY",
-                    scrollRightArea.getChildAt(0).height - scrollRightArea.height
-                )
-                objectAnimator.duration = 120000
-                objectAnimator.interpolator = LinearInterpolator()
-                objectAnimator.repeatCount = ObjectAnimator.INFINITE
-                objectAnimator.repeatMode = ObjectAnimator.RESTART
-                objectAnimator.start()
-            }
-        })
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
-        tvTopArea.maxLines = 2
-        tvTopArea.isSelected = true
+//        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+//        tvTopArea.maxLines = 2
+     tvTopArea.isSelected = true
+
     }
 
 
@@ -531,11 +534,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             playerManager.startFirstTimeFrame()
 
             if (typeScreen == MULTIPLE_AREA) {
-                if (!playerManager.isInTimeFrame) {
-                    val media =
-                        viewModel.mediaRepo.leftScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
-                    if (media != null) {
-                        showLeftArea(media)
+                if (playerManager.isInTimeFrame) {
+                    val listMediaLeft =
+                        viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
+                    Log.e("AreaLog", "Hub show ${listMediaLeft.size}")
+                    if (listMediaLeft.isNotEmpty()) {
+                        var text = ""
+                        listMediaLeft.forEach{
+                            text += "${it.body}\n"
+                        }
+                        listMediaLeft.first().body = text
+                        showLeftArea(listMediaLeft.first())
                     }
                     val mediaTop =
                         viewModel.mediaRepo.topScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }

@@ -11,30 +11,40 @@
         android:src="@drawable/ic_sec1"
         app:layout_constraintWidth_percent="0.3"
         android:paddingTop="20dp"
-
         app:layout_constraintDimensionRatio="H,400:225"
-        app:layout_constraintEnd_toStartOf="@id/tvTopArea"
-        app:layout_constraintBottom_toBottomOf="@id/tvTopArea"
+        app:layout_constraintEnd_toStartOf="@id/topArea"
+        app:layout_constraintBottom_toBottomOf="@id/topArea"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
-    <TextView
-        android:id="@+id/tvTopArea"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
+        android:id="@+id/topArea"
         android:layout_height="0dp"
-        android:gravity="center"
-
-        android:maxLines="1"   android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-        android:ellipsize="marquee"
-        android:marqueeRepeatLimit ="marquee_forever"
-        android:focusable="true"
-        android:focusableInTouchMode="true"
-        android:scrollHorizontally="true"
-        android:textColor="#F2FB0A"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.3"
         app:layout_constraintStart_toEndOf="@+id/ivTop"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+
+        <TextView
+            android:id="@+id/tvTopArea"
+            android:layout_width="500dp"
+            android:layout_height="wrap_content"
+            android:ellipsize="marquee"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:gravity="center"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:marqueeRepeatLimit="marquee_forever"
+            android:maxLines="1"
+            android:scrollHorizontally="true"
+            android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+            android:textColor="#F2FB0A" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 
     <ScrollView
         app:layout_constraintStart_toStartOf="parent"

@@ -154,7 +154,7 @@ class MediaRepo @Inject constructor(
             if (res.isSuccessful) {
                 val resBody = res.body()
                 if (resBody != null) {
-                    var i = 1
+
                     //result = resBody.onEach { it.mediaID = i++ }
                     result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
 

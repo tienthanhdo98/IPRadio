@@ -165,17 +165,17 @@ class PlayersManager(
                 Log.d("PlayerLog", "Play media next")
                 playMediaByIndex(playlistIndex)
             }
-            else {
-                if (isInTimeFrame) {
-                    Log.d("PlayerLog", "Play media loop")
-                    playlistIndex = 0
-                    playMediaByIndex(playlistIndex)
-                }
-//                else
-//                {
-//                    stopAllPlayer()
+//            else {
+//                if (isInTimeFrame) {
+//                    Log.d("PlayerLog", "Play media loop")
+//                    playlistIndex = 0
+//                    playMediaByIndex(playlistIndex)
 //                }
-            }
+////                else
+////                {
+////                    stopAllPlayer()
+////                }
+//            }
 
 
     }
