@@ -309,6 +309,10 @@ class PlayersManager(
 
         playNextMedia()
     }
+    fun stopTimeFrame()
+    {
+        playerManagerListener?.onTimeOver()
+    }
 
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return

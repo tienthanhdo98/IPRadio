@@ -7,7 +7,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
-import android.text.TextUtils
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
@@ -142,7 +141,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val currentDateStr = currentDate.replace("/", "")
             hideTopLeftArea()
             logUtils.sendLogFile("media", currentDateStr)
-
+            Log.d("screeninfo", "showMac: nEndTimeFrame")
         }
 
         //Phát FM
@@ -354,9 +353,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun showTopArea(media: MediaItem) {
-//        tvTopArea.text = media.body
-//        tvTopArea.maxLines = 1
-     //   tvTopArea.isSelected = true
+        tvTopArea.text = media.body
+        tvTopArea.maxLines = 1
+        tvTopArea.isSelected = true
     }
     private fun showLeftArea(media: MediaItem) {
         tvRightArea.text = media.body
@@ -381,6 +380,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     fun hideTopLeftArea() {
+        tvTopArea.setSingleLine(false)
         tvTopArea.maxLines = 2
         tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
         tvRightArea.text = ""
@@ -389,12 +389,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initDefaultTopAndLeftArea() {
         scrollRightArea = findViewById(R.id.scrollView)
-                tvTopArea = findViewById(R.id.tvTopArea)
+        tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
         tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
-//        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
-//        tvTopArea.maxLines = 2
-     tvTopArea.isSelected = true
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvTopArea.isSelected = true
 
     }
 
@@ -537,21 +536,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (playerManager.isInTimeFrame) {
                     val listMediaLeft =
                         viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-                    Log.e("AreaLog", "Hub show ${listMediaLeft.size}")
                     if (listMediaLeft.isNotEmpty()) {
                         var text = ""
-                        listMediaLeft.forEach{
+                        listMediaLeft.forEach {
                             text += "${it.body}\n"
                         }
                         listMediaLeft.first().body = text
                         showLeftArea(listMediaLeft.first())
                     }
-                    val mediaTop =
-                        viewModel.mediaRepo.topScheduledList.find { it.body != null && it.body != "start" && it.body != "end" }
-                    if (mediaTop != null) {
-                        showTopArea(mediaTop)
+                    val listMediaTop =
+                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
+                    if (listMediaTop.isNotEmpty()) {
+                        var text = ""
+                        listMediaTop.forEach {
+                            text += "${it.body}\n"
+                        }
+                        listMediaTop.first().body = text
+                        showTopArea(listMediaTop.first())
                     }
-                    Log.e("AreaLog", "Hub show all")
+
                 }
             }
 
@@ -589,7 +592,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
-
+                    playerManager.stopForceMedia()
+                    playerManager.stopTimeFrame()
                     //add at 3.0.5
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
@@ -607,12 +611,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
+                    playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-
+                    playerManager.stopForceMedia()
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
                 //Phát khẩn cấp luồng live
