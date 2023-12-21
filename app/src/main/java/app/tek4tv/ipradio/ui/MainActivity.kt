@@ -357,8 +357,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         tvTopArea.maxLines = 1
         tvTopArea.isSelected = true
     }
-    private fun showLeftArea(media: MediaItem) {
-        tvRightArea.text = media.body
+    private fun showLeftArea(listMedia: List<MediaItem>) {
+//        tvRightArea.text = media.body
         Log.e("AreaLog", "Hub show left")
         scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
         scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
@@ -380,9 +380,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     fun hideTopLeftArea() {
-        tvTopArea.setSingleLine(false)
-        tvTopArea.maxLines = 2
-        tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+//        tvTopArea.setSingleLine(false)
+//        tvTopArea.maxLines = 2
+//        tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
         tvRightArea.text = ""
         Log.e("AreaLog", "Hub hide left")
     }
@@ -536,14 +536,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (playerManager.isInTimeFrame) {
                     val listMediaLeft =
                         viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-                    if (listMediaLeft.isNotEmpty()) {
-                        var text = ""
-                        listMediaLeft.forEach {
-                            text += "${it.body}\n"
-                        }
-                        listMediaLeft.first().body = text
-                        showLeftArea(listMediaLeft.first())
-                    }
+                        showLeftArea(listMediaLeft)
 //                    val listMediaTop =
 //                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
 //                    if (listMediaTop.isNotEmpty()) {
