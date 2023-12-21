@@ -4,18 +4,6 @@
     android:layout_height="match_parent"
     android:background="@drawable/bg_main">
 
-    <ImageView
-        android:id="@+id/ivTop"
-        android:layout_width="0dp"
-        android:layout_height="0dp"
-        android:src="@drawable/ic_sec1"
-        app:layout_constraintWidth_percent="0.3"
-        android:paddingTop="20dp"
-        app:layout_constraintDimensionRatio="H,400:225"
-        app:layout_constraintEnd_toStartOf="@id/topArea"
-        app:layout_constraintBottom_toBottomOf="@id/topArea"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
@@ -23,7 +11,7 @@
         android:layout_height="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.3"
-        app:layout_constraintStart_toEndOf="@+id/ivTop"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
@@ -48,26 +36,58 @@
             android:textColor="#F2FB0A" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-
-    <ScrollView
-        app:layout_constraintStart_toStartOf="parent"
-        android:id="@+id/scrollView"
+    <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:paddingStart="20dp"
-        android:paddingEnd="20dp"
-        android:requiresFadingEdge="vertical"
-        android:scrollbars="none"
-        app:layout_constraintTop_toBottomOf="@+id/ivTop"
-        app:layout_constraintEnd_toStartOf="@+id/root_layout"
+        app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintBottom_toBottomOf="@+id/root_layout"
-        >
+        app:layout_constraintEnd_toStartOf="@+id/root_layout"
+        app:layout_constraintTop_toBottomOf="@+id/topArea">
+
+        <ImageView
+            android:id="@+id/ivTop"
+            android:layout_width="150dp"
+            android:layout_height="75dp"
+            android:src="@drawable/logolaichau"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
         <TextView
-            android:id="@+id/tvRightArea"
-            android:layout_width="match_parent"
+            android:id="@+id/tvTitleRight"
+            android:layout_width="0dp"
+            android:gravity="center"
             android:layout_height="wrap_content"
-            android:textColor="#F2FB0A" />
-    </ScrollView>
+            android:maxLines="1"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:fontFamily="@font/verdanabold"
+            app:layout_constraintTop_toBottomOf="@id/ivTop"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:text="Thông báo"
+            android:textColor="#F2FB0A"
+            />
+        <ScrollView
+            android:id="@+id/scrollView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:paddingStart="20dp"
+            android:paddingEnd="20dp"
+            android:requiresFadingEdge="vertical"
+            android:scrollbars="none"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/tvTitleRight">
+
+            <TextView
+                android:id="@+id/tvRightArea"
+                android:fontFamily="@font/verdanregular"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textColor="#F2FB0A" />
+        </ScrollView>
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
 
     <FrameLayout
@@ -78,7 +98,7 @@
         android:keepScreenOn="true"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintDimensionRatio="H,16:9"
-        app:layout_constraintTop_toBottomOf="@+id/ivTop"
+        app:layout_constraintTop_toBottomOf="@+id/topArea"
         app:layout_constraintWidth_percent="0.7"
         >
         <org.videolan.libvlc.util.VLCVideoLayout

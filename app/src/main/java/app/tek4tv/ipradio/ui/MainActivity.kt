@@ -119,7 +119,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-            hideTopLeftArea()
+//            hideTopLeftArea()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
 
         }
@@ -358,7 +358,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         tvTopArea.isSelected = true
     }
     private fun showLeftArea(listMedia: List<MediaItem>) {
-//        tvRightArea.text = media.body
+        tvRightArea.text = listMedia.first().body
         Log.e("AreaLog", "Hub show left")
         scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
         scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
@@ -536,7 +536,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (playerManager.isInTimeFrame) {
                     val listMediaLeft =
                         viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-                        showLeftArea(listMediaLeft)
+                        if(listMediaLeft.isNotEmpty()) {
+                            showLeftArea(listMediaLeft)
+                        }
 //                    val listMediaTop =
 //                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
 //                    if (listMediaTop.isNotEmpty()) {
