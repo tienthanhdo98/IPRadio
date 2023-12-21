@@ -6,7 +6,19 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
+fun secToReadable(sec : Long) : String
+{
+    val h = sec / 3600
+    val m = (sec - h * 3600) / 60
+    val s = sec - h * 3600 - m * 60
 
+    val hs = if (h >= 10) "$h" else "0$h"
+    val ms = if (m >= 10) "$m" else "0$m"
+    val ss = if (s >= 10) "$s" else "0$s"
+
+    return if(h > 0)"$hs:$ms:$ss"
+    else "$ms:$ss"
+}
 fun toCalendar(time: String): Calendar {
     return try {
         Calendar.getInstance().apply {

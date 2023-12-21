@@ -25,7 +25,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "ECv16.4.1.3c"
+        versionName "ECv16.4.1.3e"
 
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -61,6 +61,9 @@ android {
         cmake {
             path "src/main/cpp/CMakeLists.txt"
         }
+    }
+    buildFeatures {
+        viewBinding true
     }
 }
 //kapt {
@@ -111,5 +114,7 @@ dependencies {
     implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
 
     implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.1.8'
+
+
 
 }

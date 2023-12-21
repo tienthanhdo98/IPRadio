@@ -1,6 +1,6 @@
 package app.tek4tv.ipradio.ui
 
-import StreamBaseFrag
+
 import android.Manifest
 import android.content.Context
 import android.content.Intent
@@ -15,14 +15,17 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.*
+import app.tek4tv.ipradio.core.HubComm
+import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
+import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -56,7 +59,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener  {
+class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -106,7 +109,7 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-
+    private lateinit var binding : ActivityMainBinding
     var urlStream = ""
     var user_name_stream = ""
     var password_stream = ""
@@ -202,7 +205,8 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
 
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
@@ -272,20 +276,33 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
 
         hideSystemUI()
         showMac()
-        val streamBase = StreamBaseFrag();
-        micStreamRtsp = RtspOnlyAudio(streamBase)
-        micStreamRtsp.setCheckServerAlive(true)
+
+        micStreamRtsp = RtspOnlyAudio(this)
+        //micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
+        binding.btnRecord.setOnClickListener {
+            if (!micStreamRtsp.isStreaming) {
+                startStream()
+            } else {
+                stopStream()
+            }
+        }
 
         lifecycleScope.launch {
             Log.i("pingping:", "micStream.isStreaming:  $urlStream")
             while (true) {
-                if (!micStreamRtsp.isStreaming) {
-                    Log.i("pingping:", "micStream.isStreaming:")
+                if (hubManager.pingCounter <= 5 ) {
                     if (!micStreamRtsp.isStreaming) {
-                        delay(15000)
-                        startStream()
+                        Log.i("pingping:", "micStream.isStreaming:")
+                        if (!micStreamRtsp.isStreaming) {
+                            delay(15000)
+                            startStream()
+                        }
                     }
+                    Log.i("pingping:", "micStream.isStreaming:  ${micStreamRtsp.isStreaming}")
+                }
+                else {
+                    stopStream()
                 }
                 delay(1000)
             }
@@ -309,8 +326,23 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
             "tek4tv123"
         )!!
     }
-
-    private fun startStream() {
+    override fun startStopWatch() {
+        var secondPassed = 0L
+        lifecycleScope.launch {
+            while (micStreamRtsp.isStreaming) {
+                delay(1000)
+                secondPassed++
+                binding.txtTime.text = secToReadable(secondPassed)
+            }
+            binding.txtTime.text = "00:00"
+        }
+    }
+     override fun startStream() {
+         if (micStreamRtsp.isStreaming) return
+        binding.apply {
+            btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
+            txtStatus.text = "End"
+        }
         micStreamRtsp.setAuthorization(user_name_stream, password_stream)
         micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
         micStreamRtsp.setProtocol(Protocol.UDP)
@@ -319,9 +351,13 @@ class MainActivity : AppCompatActivity(), AlarmListener  {
         }
     }
 
-    private fun stopStream() {
+     override fun stopStream() {
         if (!micStreamRtsp.isStreaming) return
         micStreamRtsp.stopStream()
+        binding.apply {
+            btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
+            txtStatus.text = "Start"
+        }
     }
 
     fun getMacAddr(): String {
