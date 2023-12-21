@@ -140,7 +140,7 @@ enum class MediaType {
 }
 data class BroadcastRegion (
     @Json(name = "Id")
-    val id: Long,
+    val id: Long?,
 
     @Json(name = "Value")
     val value: Long

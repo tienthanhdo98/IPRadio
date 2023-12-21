@@ -544,16 +544,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         listMediaLeft.first().body = text
                         showLeftArea(listMediaLeft.first())
                     }
-                    val listMediaTop =
-                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-                    if (listMediaTop.isNotEmpty()) {
-                        var text = ""
-                        listMediaTop.forEach {
-                            text += "${it.body}\n"
-                        }
-                        listMediaTop.first().body = text
-                        showTopArea(listMediaTop.first())
-                    }
+//                    val listMediaTop =
+//                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
+//                    if (listMediaTop.isNotEmpty()) {
+//                        var text = ""
+//                        listMediaTop.forEach {
+//                            text += "${it.body}\n"
+//                        }
+//                        listMediaTop.first().body = text
+//                        showTopArea(listMediaTop.first())
+//                    }
 
                 }
             }
