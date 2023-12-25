@@ -19,6 +19,7 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
 
     }
     open fun startStopWatch(){}
+
     override fun onAuthErrorRtsp() {
 
     }
@@ -28,7 +29,6 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
     }
 
     override fun onConnectionFailedRtsp(reason: String) {
-
         mainHandler.post {
             Log.e("StreamFileAct", reason)
             Toast.makeText(baseContext,"Stream error $reason",Toast.LENGTH_LONG)
@@ -49,8 +49,11 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
     }
 
     override fun onDisconnectRtsp() {
-        Log.d("RTMP", "onConnectionStartedRtmp:onDisconnectRtsp")
-
+        Log.d("RTMP", "onDisconnectRtsp")
+        mainHandler.post {
+            Toast.makeText(baseContext,"Stream stop. Disconnect to server",Toast.LENGTH_LONG)
+            stopStream()
+        }
     }
 
 

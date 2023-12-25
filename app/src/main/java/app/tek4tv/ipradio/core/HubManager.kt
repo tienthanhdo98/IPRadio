@@ -35,8 +35,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
-    var mediaCapture: MediaCapture,
-
     var onMessageListener: (command: String?, message: String?) -> Unit,
 
     ) {
@@ -443,7 +441,6 @@ class HubManager(
 
             val currentTime = Calendar.getInstance().time
 
-            val isRecording = if (mediaCapture.isRecordingAudio) "1" else "0"
 
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -464,7 +461,7 @@ class HubManager(
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = (currentTime.time / 1000)
                 userNameControl = GlobalProperties.getInst().userNameController
-                isRecord = isRecording
+                isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
 
             }

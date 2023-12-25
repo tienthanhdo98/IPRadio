@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
+import android.os.SystemClock
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
@@ -76,6 +78,27 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             cal_alarm.timeInMillis,
+            alarmIntent
+        )
+
+    }
+
+    fun setAlarmResetStreamEachHour() {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING
+        }
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, 5, intent, FLAG_UPDATE_CURRENT)
+
+        val interval = AlarmManager.INTERVAL_HOUR
+
+        val triggerTime = SystemClock.elapsedRealtime() + interval
+
+
+        alarmManager.setInexactRepeating(
+            AlarmManager.ELAPSED_REALTIME_WAKEUP,
+            triggerTime,
+            interval,
             alarmIntent
         )
 

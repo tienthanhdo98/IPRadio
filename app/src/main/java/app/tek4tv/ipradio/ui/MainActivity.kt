@@ -9,8 +9,6 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -146,8 +144,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-
-
                 logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -231,7 +227,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         //logUtils.logStartApp()
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
+        hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
@@ -281,6 +277,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         //micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
         binding.btnRecord.setOnClickListener {
+
             if (!micStreamRtsp.isStreaming) {
                 startStream()
             } else {
@@ -288,10 +285,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             }
         }
 
-        lifecycleScope.launch {
+        lifecycleScope.launch(Dispatchers.Main) {
             Log.i("pingping:", "micStream.isStreaming:  $urlStream")
             while (true) {
-                if (hubManager.pingCounter <= 5 ) {
+                if (hubManager.pingCounter <= 5) {
                     if (!micStreamRtsp.isStreaming) {
                         Log.i("pingping:", "micStream.isStreaming:")
                         if (!micStreamRtsp.isStreaming) {
@@ -300,16 +297,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         }
                     }
                     Log.i("pingping:", "micStream.isStreaming:  ${micStreamRtsp.isStreaming}")
-                }
-                else {
+                } else {
                     stopStream()
                 }
                 delay(1000)
             }
         }
     }
-    fun getSteamInfo()
-    {
+
+    private fun getSteamInfo() {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
@@ -343,12 +339,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
             txtStatus.text = "End"
         }
-        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
-        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
-        micStreamRtsp.setProtocol(Protocol.UDP)
-        if (micStreamRtsp.prepareAudio(64 * 1024, 44100, true, true, true)) {
-            micStreamRtsp.startStream(urlStream)
-        }
+         micStreamRtsp.setAuthorization(user_name_stream, password_stream)
+         micStreamRtsp.setMicrophoneMode(MicrophoneMode.ASYNC)
+         micStreamRtsp.setProtocol(Protocol.UDP)
+         if (micStreamRtsp.prepareAudio(64 * 1024, 44100, true, true, true)) {
+             micStreamRtsp.startStream(urlStream)
+         } else {
+             Log.d("RTMP", "startStream: micStream not prepare success")
+         }
     }
 
      override fun stopStream() {
@@ -401,6 +399,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
+        stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
     }
@@ -462,16 +461,24 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
                 }
             }
+            MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING -> {
+                lifecycleScope.launch {
+                    serialPortController.turnOffPA()
+                    delay(3000)
+                    restartApp(MyApp.instance!!, this@MainActivity)
+                }
+
+            }
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -527,6 +534,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             mediaScheduler.scheduleAllAlarms()
             //check hub
             mediaScheduler.setCheckHubAndResetAlarms()
+            mediaScheduler.setAlarmResetStreamEachHour()
             Log.d("player2", "registerObservers: Checked")
             playerManager.startFirstTimeFrame()
             Log.d("player2", "registerObservers: Checked2")
