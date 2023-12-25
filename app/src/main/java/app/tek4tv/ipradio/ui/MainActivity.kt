@@ -1,7 +1,10 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.animation.Animator
+import android.animation.AnimatorSet
 import android.animation.ObjectAnimator
+import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -10,8 +13,7 @@ import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
-import android.view.ViewTreeObserver
-import android.view.animation.LinearInterpolator
+import android.view.animation.DecelerateInterpolator
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -308,7 +310,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         showMac()
 
         getMonth()
-
     }
     fun getMonth()
     {
@@ -357,27 +358,67 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         tvTopArea.maxLines = 1
         tvTopArea.isSelected = true
     }
-    private fun showLeftArea(listMedia: List<MediaItem>) {
-        tvRightArea.text = listMedia.first().body
-        Log.e("AreaLog", "Hub show left")
+
+    private fun showLeftArea() {
+        Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
+        tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
+
         scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
-        scrollRightArea.viewTreeObserver.addOnGlobalLayoutListener(object :
-            ViewTreeObserver.OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                scrollRightArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
-                val objectAnimator = ObjectAnimator.ofInt(
-                    scrollRightArea,
-                    "scrollY",
-                    scrollRightArea.getChildAt(0).height - scrollRightArea.height
-                )
-                objectAnimator.duration = 14000
-                objectAnimator.interpolator = LinearInterpolator()
-                objectAnimator.repeatCount = ObjectAnimator.INFINITE
-                objectAnimator.repeatMode = ObjectAnimator.RESTART
-                objectAnimator.start()
+
+        tvRightArea.post {
+            textHeight = tvRightArea.height
+            // Scroll the TextView vertically
+            startVerticalScrollAnimation()
+        }
+    }
+    private var textHeight = 0
+    private var currentLeftMediaIndex = 0
+    private var listLeftMedia = listOf<MediaItem>()
+    private fun startVerticalScrollAnimation() {
+        val animator = ValueAnimator.ofInt(0, textHeight)
+        animator.addUpdateListener { animation ->
+            val value = animation.animatedValue as Int
+            tvRightArea.translationY = -value.toFloat()
+        }
+
+//        animator.repeatCount = ValueAnimator.INFINITE
+//        animator.repeatMode = ValueAnimator.RESTART
+        animator.repeatCount =  0
+        // Calculate the duration based on the height of the text
+        val pixelsPerSecond = 45.0f // Adjust the scrolling speed
+        val duration = (textHeight / pixelsPerSecond * 1500).toLong()
+        animator.duration = duration
+
+        animator.addListener(object : Animator.AnimatorListener {
+            override fun onAnimationStart(p0: Animator) {
+                Log.d("RightTextLog", "onAnimationStart: ")
+            }
+            override fun onAnimationEnd(p0: Animator) {
+                animator.cancel()
+                Log.d("RightTextLog", "onAnimationEnd: ")
+                if (currentLeftMediaIndex == listLeftMedia.size - 1) {
+                    currentLeftMediaIndex = 0
+                } else {
+                    currentLeftMediaIndex++
+                }
+                tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
+                tvRightArea.post {
+                    textHeight = tvRightArea.height
+                    // Scroll the TextView vertically
+                    startVerticalScrollAnimation()
+                }
+            }
+            override fun onAnimationCancel(p0: Animator) {
+                Log.d("RightTextLog", "onAnimationCancel: ")
+            }
+            override fun onAnimationRepeat(p0: Animator) {
+                Log.d("RightTextLog", "onAnimationRepeat: ")
             }
         })
+
+        animator.start()
     }
+
 
     fun hideTopLeftArea() {
 //        tvTopArea.setSingleLine(false)
@@ -391,8 +432,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         scrollRightArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
-        tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvRightArea.textSize = convertPixelsToDp(20, baseContext).toFloat()
+        tvTopArea.textSize = convertPixelsToDp(28, baseContext).toFloat()
         tvTopArea.isSelected = true
 
     }
@@ -414,7 +455,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStart() {
         super.onStart()
-        startPlayingMedia()
+        //startPlayingMedia()
     }
 
     override fun onAlarm(intent: Intent) {
@@ -500,7 +541,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
             val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
+            // startActivity(intent)
         }
 
         return needGrantPermission
@@ -534,10 +575,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             if (typeScreen == MULTIPLE_AREA) {
                 if (playerManager.isInTimeFrame) {
-                    val listMediaLeft =
+                    listLeftMedia =
                         viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-                        if(listMediaLeft.isNotEmpty()) {
-                            showLeftArea(listMediaLeft)
+                        if(listLeftMedia.isNotEmpty()) {
+                            showLeftArea()
                         }
 //                    val listMediaTop =
 //                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
