@@ -2,8 +2,6 @@ package app.tek4tv.ipradio.ui
 
 import android.Manifest
 import android.animation.Animator
-import android.animation.AnimatorSet
-import android.animation.ObjectAnimator
 import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
@@ -14,7 +12,6 @@ import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
-import android.view.animation.DecelerateInterpolator
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -122,14 +119,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-            hideTopLeftArea()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
-
         }
 
         //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
-            showLeftArea()
             if (globalProperties.logEnabled) {
                 logUtils.logStartTimeFrame(frame)
             }
@@ -143,7 +137,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
-            hideTopLeftArea()
             logUtils.sendLogFile("media", currentDateStr)
             Log.d("screeninfo", "showMac: nEndTimeFrame")
         }
@@ -170,8 +163,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 } else {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
-
-
 
                 logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             } catch (e: Exception) {
@@ -325,10 +316,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //    private fun convertPixelsToDp(px: Int, context: Context): Int {
 //        return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
 //    }
-fun convertPixelsToDp(px: Int, context: Context): Int {
-    val density = context.resources.displayMetrics.density
-    return (px / density).toInt()
-}
+
+    fun convertPixelsToDp(px: Int, context: Context): Float {
+        val density = context.resources.displayMetrics.density
+        return (px / density)
+    }
 
     private fun showMac() {
         val displayMetrics = DisplayMetrics()
@@ -359,40 +351,57 @@ fun convertPixelsToDp(px: Int, context: Context): Int {
         }
     }
 
-    private fun showTopArea(media: MediaItem) {
-        tvTopArea.text = media.body
-        tvTopArea.maxLines = 1
-        tvTopArea.isSelected = true
+    private  fun scheduleEndLeftArea()
+    {
+        val scheduledList = viewModel.mediaRepo.scheduledList
+        val t = scheduledList.keys.last().split("-")
+        val endTime = toCalendar(t[1])
+        Log.d("ENdIYime", "scheduleEndLeftArea: ${endTime.timeInMillis}")
     }
-
     private fun showLeftArea() {
         if(listLeftMedia.isEmpty()) return
         tvRightArea.visibility = View.VISIBLE
         Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
-        tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
+//        tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
+        var str = ""
+        var strSpace = "\n\n\n\n\n\n\n\n"
+        listLeftMedia.forEach{
+            str += "${it.body}$strSpace "
+        }
+        tvRightArea.text = str
 
-        scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
+       // scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
 
         tvRightArea.post {
             textHeight = tvRightArea.height
             // Scroll the TextView vertically
             startVerticalScrollAnimation()
         }
+        scheduleEndLeftArea()
     }
+
+    fun hideTopLeftArea() {
+        animator.cancel()
+        tvRightArea.text = ""
+        tvRightArea.visibility = View.INVISIBLE
+        Log.e("AreaLog", "Hub hide left")
+    }
+
     private var textHeight = 0
     private var currentLeftMediaIndex = 0
     private var listLeftMedia = listOf<MediaItem>()
+    private lateinit var animator: ValueAnimator
     private fun startVerticalScrollAnimation() {
-        val animator = ValueAnimator.ofInt(0, textHeight)
+        animator = ValueAnimator.ofInt(0, textHeight)
         animator.addUpdateListener { animation ->
             val value = animation.animatedValue as Int
             tvRightArea.translationY = -value.toFloat()
         }
-
-        animator.repeatCount =  0
+        animator.repeatCount = ValueAnimator.INFINITE
+        animator.repeatMode = ValueAnimator.RESTART
         // Calculate the duration based on the height of the text
-        val pixelsPerSecond = 45.0f // Adjust the scrolling speed
-        val duration = (textHeight / pixelsPerSecond * 1500).toLong()
+        val pixelsPerSecond = 50.0f // Adjust the scrolling speed
+        val duration = (textHeight / pixelsPerSecond * 1200).toLong()
         animator.duration = duration
 
         animator.addListener(object : Animator.AnimatorListener {
@@ -400,18 +409,18 @@ fun convertPixelsToDp(px: Int, context: Context): Int {
                 Log.d("RightTextLog", "onAnimationStart: ")
             }
             override fun onAnimationEnd(p0: Animator) {
-                animator.cancel()
-                Log.d("RightTextLog", "onAnimationEnd: ")
-                if (currentLeftMediaIndex == listLeftMedia.size - 1) {
-                    currentLeftMediaIndex = 0
-                } else {
-                    currentLeftMediaIndex++
-                }
-                tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
-                tvRightArea.post {
-                    textHeight = tvRightArea.height
-                    startVerticalScrollAnimation()
-                }
+//                animator.cancel()
+//                Log.d("RightTextLog", "onAnimationEnd: ")
+//                if (currentLeftMediaIndex == listLeftMedia.size - 1) {
+//                    currentLeftMediaIndex = 0
+//                } else {
+//                    currentLeftMediaIndex++
+//                }
+//                tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
+//                tvRightArea.post {
+//                    textHeight = tvRightArea.height
+//                    startVerticalScrollAnimation()
+//                }
             }
             override fun onAnimationCancel(p0: Animator) {
                 Log.d("RightTextLog", "onAnimationCancel: ")
@@ -425,25 +434,17 @@ fun convertPixelsToDp(px: Int, context: Context): Int {
     }
 
 
-    fun hideTopLeftArea() {
-//        tvTopArea.setSingleLine(false)
-//        tvTopArea.maxLines = 2
-//        tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-        tvRightArea.text = ""
-        tvRightArea.visibility = View.INVISIBLE
-        Log.e("AreaLog", "Hub hide left")
-    }
-
     private fun initDefaultTopAndLeftArea() {
         scrollRightArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
         val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-        tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
-        tvTitleRight.textSize = convertPixelsToDp(36, baseContext).toFloat()
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvRightArea.textSize = convertPixelsToDp(36, baseContext)
+        tvTitleRight.textSize = convertPixelsToDp(36, baseContext)
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
         tvTopArea.isSelected = true
+
     }
 
 
@@ -513,6 +514,9 @@ fun convertPixelsToDp(px: Int, context: Context): Int {
                         serialPortController.hardRestart()
                     }
                 }
+            }
+            MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
+                hideTopLeftArea()
             }
         }
     }

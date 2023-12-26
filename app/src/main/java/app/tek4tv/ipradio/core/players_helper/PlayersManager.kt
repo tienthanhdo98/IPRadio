@@ -106,8 +106,6 @@ class PlayersManager(
         played = false
     }
 
-
-
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -115,8 +113,6 @@ class PlayersManager(
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
-        Log.d("PMLOG", "startFirstTimeFrame: start")
-        Log.d("PMLOG", "startFirstTimeFrame: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
@@ -152,7 +148,6 @@ class PlayersManager(
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
         }
-
         isTimeOver = false
     }
 

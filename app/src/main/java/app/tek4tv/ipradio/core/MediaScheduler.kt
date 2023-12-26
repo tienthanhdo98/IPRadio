@@ -12,7 +12,6 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.*
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
@@ -41,6 +40,26 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             time.timeInMillis,
             alarmIntent
         )
+    }
+
+    private fun scheduleEndLeftArea() {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA
+        }
+
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, 6, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+        val scheduledList = mediaRepo.scheduledList
+        val t = scheduledList.keys.last().split("-")
+        val endTime = toCalendar(t[1])
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            endTime.timeInMillis,
+            alarmIntent
+        )
+
+
     }
 
     private fun scheduleListAlarms() {
@@ -154,6 +173,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
     }
 
+
     private fun scheduleMediaAlarms() {
         mediaRepo.scheduledMediaItems.forEachIndexed { index, mediaItem ->
             val now = Calendar.getInstance()
@@ -236,7 +256,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                     mediaItem.mediaID!!,
                     0
                 )
-
                 //alarmManager.cancel(startIntent)
                 //startIntent?.cancel()
                 alarmManager.cancel(endIntent)
@@ -319,6 +338,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         scheduleListAlarms()
         scheduleMediaAlarms()
         setRescheduleAllAlarms()
+        scheduleEndLeftArea()
     }
 
     fun cancelAllScheduledListAlarm() {
