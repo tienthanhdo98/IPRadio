@@ -8,6 +8,7 @@ import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.DisplayMetrics
@@ -121,13 +122,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-//            hideTopLeftArea()
+            hideTopLeftArea()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
 
         }
 
         //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
+            showLeftArea()
             if (globalProperties.logEnabled) {
                 logUtils.logStartTimeFrame(frame)
             }
@@ -360,6 +362,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun showLeftArea() {
+        if(listLeftMedia.isEmpty()) return
+        tvRightArea.visibility = View.VISIBLE
         Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
         tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
 
@@ -381,8 +385,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             tvRightArea.translationY = -value.toFloat()
         }
 
-//        animator.repeatCount = ValueAnimator.INFINITE
-//        animator.repeatMode = ValueAnimator.RESTART
         animator.repeatCount =  0
         // Calculate the duration based on the height of the text
         val pixelsPerSecond = 45.0f // Adjust the scrolling speed
@@ -404,7 +406,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
                 tvRightArea.post {
                     textHeight = tvRightArea.height
-                    // Scroll the TextView vertically
                     startVerticalScrollAnimation()
                 }
             }
@@ -425,6 +426,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        tvTopArea.maxLines = 2
 //        tvTopArea.text = "Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
         tvRightArea.text = ""
+        tvRightArea.visibility = View.INVISIBLE
         Log.e("AreaLog", "Hub hide left")
     }
 
@@ -432,10 +434,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         scrollRightArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         tvRightArea = findViewById(R.id.tvRightArea)
-        tvRightArea.textSize = convertPixelsToDp(20, baseContext).toFloat()
-        tvTopArea.textSize = convertPixelsToDp(28, baseContext).toFloat()
+        val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
+        tvRightArea.textSize = convertPixelsToDp(36, baseContext).toFloat()
+        tvTitleRight.textSize = convertPixelsToDp(36, baseContext).toFloat()
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
+        tvTopArea.textSize = convertPixelsToDp(48, baseContext).toFloat()
         tvTopArea.isSelected = true
-
     }
 
 
@@ -541,7 +545,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
             val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            // startActivity(intent)
+             startActivity(intent)
         }
 
         return needGrantPermission
@@ -998,13 +1002,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
 
     companion object {
