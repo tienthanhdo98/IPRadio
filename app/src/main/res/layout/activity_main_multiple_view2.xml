@@ -26,7 +26,7 @@
             android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
             app:layout_constraintEnd_toEndOf="parent"
             android:focusable="true"
-            android:textSize="48sp"
+
             android:focusableInTouchMode="true"
             app:layout_constraintTop_toTopOf="parent"
             app:layout_constraintStart_toStartOf="parent"
@@ -53,7 +53,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
         <TextView
-            android:textSize="36sp"
+
             android:id="@+id/tvTitleRight"
             android:layout_width="0dp"
             android:gravity="center"
@@ -82,7 +82,6 @@
             app:layout_constraintTop_toBottomOf="@id/tvTitleRight">
 
             <TextView
-                android:textSize="36sp"
                 android:id="@+id/tvRightArea"
                 android:fontFamily="@font/verdanregular"
                 android:layout_width="match_parent"
@@ -93,7 +92,6 @@
 
 
     <FrameLayout
-
         android:id="@+id/root_layout"
         android:layout_width="0dp"
         android:layout_height="0dp"
@@ -107,6 +105,7 @@
         >
         <org.videolan.libvlc.util.VLCVideoLayout
             android:id="@+id/vlc_video_layout"
+            android:layout_gravity="top"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:background="@color/black"

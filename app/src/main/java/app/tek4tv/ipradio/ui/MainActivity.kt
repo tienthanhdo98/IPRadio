@@ -322,9 +322,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b")
     }
 
-    private fun convertPixelsToDp(px: Int, context: Context): Int {
-        return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
-    }
+//    private fun convertPixelsToDp(px: Int, context: Context): Int {
+//        return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
+//    }
+fun convertPixelsToDp(px: Int, context: Context): Int {
+    val density = context.resources.displayMetrics.density
+    return (px / density).toInt()
+}
 
     private fun showMac() {
         val displayMetrics = DisplayMetrics()
