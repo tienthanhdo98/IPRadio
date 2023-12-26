@@ -51,7 +51,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-
+    var providerValue = ""
     init {
         listOf(
             logFolderPath,
@@ -62,6 +62,10 @@ class LogUtils private constructor() {
         ).forEach {
             if (!isFolderExisted(it)) createFolder(it)
         }
+        providerValue = ConfigUtil.getStringEncrypt(
+            appContext,
+            ConfigUtil.PROVIDER,"Tek4tv"
+        )!!
 
         /*rtDatabase = Firebase.database.reference
         rootDeviceDb = rtDatabase.child("ipradio").child("device").child(imei)
@@ -127,7 +131,8 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference = mediaItem.sourceReference
+            sourceReference = mediaItem.sourceReference,
+            provider = providerValue
         )
         val str = getRecordStr(reportObj)
 
@@ -199,7 +204,8 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference =  mediaItem.sourceReference
+            sourceReference =  mediaItem.sourceReference,
+            provider = providerValue
         )
         val str = getRecordStr(reportObj)
 
