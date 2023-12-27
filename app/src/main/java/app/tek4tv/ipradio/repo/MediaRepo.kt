@@ -45,7 +45,7 @@ class MediaRepo @Inject constructor(
     //right scheduledList
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
     //left scheduledList
-    var leftScheduledList = listOf<MediaItem>()
+    var leftScheduledList = mutableListOf<MediaItem>()
     //top scheduledList
     var topScheduledList =  listOf<MediaItem>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
@@ -158,8 +158,8 @@ class MediaRepo @Inject constructor(
                     //result = resBody.onEach { it.mediaID = i++ }
                     result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
 
-                    leftScheduledList =  resBody.filter { it.broadcastRegion?.value == LEFT_AREA }
-                    topScheduledList  =  resBody.filter { it.broadcastRegion?.value == TOP_AREA }
+                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA } as MutableList<MediaItem>
+                    //topScheduledList  =  resBody.filter { it.broadcastRegion?.value == TOP_AREA }
 
 
                     Log.e("yee", "Lịch rỗng rồi ${result.size}")

@@ -35,15 +35,53 @@
             android:textColor="#F2FB0A" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <ImageView
-        android:id="@+id/ivTop"
-        android:layout_width="200sp"
-        android:layout_height="100sp"
-        android:src="@drawable/logolaichau"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toTopOf="@id/root_layout"
         app:layout_constraintEnd_toStartOf="@id/topArea"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintBottom_toTopOf="@+id/rightArea"
-        app:layout_constraintTop_toTopOf="parent" />
+        app:layout_constraintTop_toTopOf="parent">
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/glLogo10"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.1"/>
+        <androidx.constraintlayout.widget.Guideline
+            android:id="@+id/glLogo90"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            app:layout_constraintGuide_percent="0.9"/>
+        <ImageView
+            android:id="@+id/ivTop"
+            android:layout_width="200dp"
+            android:layout_height="0dp"
+            app:layout_constraintDimensionRatio="H,16:9"
+            android:src="@drawable/logolaichau"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toBottomOf="@id/glLogo10"
+            />
+
+        <TextView
+            android:id="@+id/tvTitleRight"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:fontFamily="@font/verdanabold"
+            android:gravity="center"
+            android:maxLines="1"
+            android:paddingTop="10dp"
+            android:paddingBottom="10dp"
+            android:text="Thông báo"
+            android:textColor="#F2FB0A"
+            app:layout_constraintEnd_toEndOf="@id/ivTop"
+            app:layout_constraintStart_toStartOf="@id/ivTop"
+            app:layout_constraintBottom_toTopOf="@+id/glLogo90" />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/rightArea"
@@ -55,23 +93,9 @@
         app:layout_constraintTop_toTopOf="@id/root_layout"
         app:layout_constraintEnd_toStartOf="@id/root_layout"
         >
-        <TextView
-            android:id="@+id/tvTitleRight"
-            android:layout_width="0dp"
-            android:gravity="center"
-            android:layout_height="wrap_content"
-            android:maxLines="1"
-            android:paddingTop="10dp"
-            android:paddingBottom="10dp"
-            android:fontFamily="@font/verdanabold"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:text="Thông báo"
-            android:textColor="#F2FB0A"
-            />
+
         <ScrollView
-            app:layout_constraintTop_toBottomOf="@id/tvTitleRight"
+            android:layout_marginStart="20sp"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintBottom_toBottomOf="parent"
             android:id="@+id/scrollView"
@@ -80,15 +104,21 @@
             android:layout_height="0dp"
             android:requiresFadingEdge="vertical"
             android:scrollbars="none"
-            >
-            <TextView
-                android:id="@+id/tvRightArea"
-                android:fontFamily="@font/verdanregular"
+            android:layout_marginEnd="20sp"
+            app:layout_constraintTop_toTopOf="parent">
+
+            <LinearLayout
+                android:id="@+id/layoutTvLeft"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginStart="20sp"
-                android:layout_marginEnd="20sp"
-                android:textColor="#F2FB0A" />
+                android:layout_height="match_parent"
+                android:orientation="vertical" />
+            <!--            <TextView-->
+            <!--                android:id="@+id/tvRightArea"-->
+            <!--                android:fontFamily="@font/verdanregular"-->
+            <!--                android:layout_width="match_parent"-->
+            <!--                android:layout_height="wrap_content"-->
+            <!--            -->
+            <!--                android:textColor="#F2FB0A" />-->
         </ScrollView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 

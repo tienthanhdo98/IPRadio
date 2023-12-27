@@ -1,17 +1,18 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.animation.Animator
-import android.animation.ValueAnimator
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
+import android.graphics.Color
 import android.os.Bundle
+import android.os.Handler
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
 import android.view.View
+import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -110,8 +111,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val UART_S4_NAME = "/dev/ttyS4"
     private var typeScreen: Long = MULTIPLE_AREA
     private lateinit var tvTopArea: TextView
-    private lateinit var tvRightArea: TextView
-    private lateinit var scrollRightArea: ScrollView
+
+    //    private lateinit var tvRightArea: TextView
+    private lateinit var scrollLeftArea: ScrollView
+    private lateinit var layoutTvLeft: LinearLayout
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -351,99 +354,89 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private  fun scheduleEndLeftArea()
-    {
-        val scheduledList = viewModel.mediaRepo.scheduledList
-        val t = scheduledList.keys.last().split("-")
-        val endTime = toCalendar(t[1])
-        Log.d("ENdIYime", "scheduleEndLeftArea: ${endTime.timeInMillis}")
-    }
+
     private fun showLeftArea() {
-        if(listLeftMedia.isEmpty()) return
-        tvRightArea.visibility = View.VISIBLE
+        if (listLeftMedia.isEmpty()) return
         Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
-//        tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
-        var str = ""
-        var strSpace = "\n\n\n\n\n\n\n\n"
-        listLeftMedia.forEach{
-            str += "${it.body}$strSpace "
+        //val typeface = resources.getFont(R.font.verdanabold)
+        val layoutParams = LinearLayout.LayoutParams(
+            LinearLayout.LayoutParams.MATCH_PARENT,
+            LinearLayout.LayoutParams.WRAP_CONTENT
+        )
+        listLeftMedia.forEach {
+            val textView = TextView(this)
+            textView.text = it.body
+            textView.setTextColor(Color.parseColor("#F2FB0A"))
+            textView.textSize = convertPixelsToDp(36, baseContext)
+           // textView.typeface = typeface;
+            layoutParams.setMargins(
+                0,
+                convertPixelsToDp(20, baseContext).toInt(),
+                0,
+                convertPixelsToDp(100, baseContext).toInt()
+            ) // Adjust the bottom margin as needed
+            textView.layoutParams = layoutParams
+            listLeftTextView.add(textView)
         }
-        tvRightArea.text = str
-
-       // scrollRightArea.setFadingEdgeLength(convertPixelsToDp(50, baseContext))
-
-        tvRightArea.post {
-            textHeight = tvRightArea.height
-            // Scroll the TextView vertically
-            startVerticalScrollAnimation()
+        listLeftTextView.forEach{
+            layoutTvLeft.addView(it)
         }
-        scheduleEndLeftArea()
+
+        scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                startAutoScroll()
+                scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
+            }
+        })
     }
 
-    fun hideTopLeftArea() {
-        animator.cancel()
-        tvRightArea.text = ""
-        tvRightArea.visibility = View.INVISIBLE
+    private fun startAutoScroll() {
+        val runnable: Runnable = object : Runnable {
+            override fun run() {
+                // Scroll the ScrollView vertically
+                scrollLeftArea.scrollBy(0, scrollSpeed)
+
+                // Check if reached the bottom
+                if (scrollLeftArea.scrollY >= scrollLeftArea.getChildAt(0)
+                        .height - scrollLeftArea.height
+                ) {
+                    // Reset to the top
+                    //scrollLeftArea.smoothScrollTo(0, 0)
+                    val layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+
+                }
+
+                // Repeat the scrolling
+                handler.postDelayed(this, 50) // Adjust the delay as needed
+            }
+        }
+        handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
+    }
+
+    private fun hideTopLeftArea() {
+        listLeftMedia.clear()
+        handler.removeCallbacksAndMessages(null);
         Log.e("AreaLog", "Hub hide left")
     }
 
-    private var textHeight = 0
-    private var currentLeftMediaIndex = 0
-    private var listLeftMedia = listOf<MediaItem>()
-    private lateinit var animator: ValueAnimator
-    private fun startVerticalScrollAnimation() {
-        animator = ValueAnimator.ofInt(0, textHeight)
-        animator.addUpdateListener { animation ->
-            val value = animation.animatedValue as Int
-            tvRightArea.translationY = -value.toFloat()
-        }
-        animator.repeatCount = ValueAnimator.INFINITE
-        animator.repeatMode = ValueAnimator.RESTART
-        // Calculate the duration based on the height of the text
-        val pixelsPerSecond = 50.0f // Adjust the scrolling speed
-        val duration = (textHeight / pixelsPerSecond * 1200).toLong()
-        animator.duration = duration
-
-        animator.addListener(object : Animator.AnimatorListener {
-            override fun onAnimationStart(p0: Animator) {
-                Log.d("RightTextLog", "onAnimationStart: ")
-            }
-            override fun onAnimationEnd(p0: Animator) {
-//                animator.cancel()
-//                Log.d("RightTextLog", "onAnimationEnd: ")
-//                if (currentLeftMediaIndex == listLeftMedia.size - 1) {
-//                    currentLeftMediaIndex = 0
-//                } else {
-//                    currentLeftMediaIndex++
-//                }
-//                tvRightArea.text = listLeftMedia[currentLeftMediaIndex].body
-//                tvRightArea.post {
-//                    textHeight = tvRightArea.height
-//                    startVerticalScrollAnimation()
-//                }
-            }
-            override fun onAnimationCancel(p0: Animator) {
-                Log.d("RightTextLog", "onAnimationCancel: ")
-            }
-            override fun onAnimationRepeat(p0: Animator) {
-                Log.d("RightTextLog", "onAnimationRepeat: ")
-            }
-        })
-
-        animator.start()
-    }
+    private val scrollSpeed = 2 // Adjus
+    private val handler: Handler = Handler()
+    private var listLeftMedia = mutableListOf<MediaItem>()
+    private var listLeftTextView = mutableListOf<TextView>()
 
 
     private fun initDefaultTopAndLeftArea() {
-        scrollRightArea = findViewById(R.id.scrollView)
+        scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
-        tvRightArea = findViewById(R.id.tvRightArea)
         val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-        tvRightArea.textSize = convertPixelsToDp(36, baseContext)
         tvTitleRight.textSize = convertPixelsToDp(36, baseContext)
         tvTopArea.textSize = convertPixelsToDp(48, baseContext)
         tvTopArea.textSize = convertPixelsToDp(48, baseContext)
         tvTopArea.isSelected = true
+        layoutTvLeft = findViewById(R.id.layoutTvLeft)
 
     }
 
@@ -457,6 +450,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        handler.removeCallbacksAndMessages(null);
         playerManager.onActivityDestroy()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
@@ -588,7 +582,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (typeScreen == MULTIPLE_AREA) {
                 if (playerManager.isInTimeFrame) {
                     listLeftMedia =
-                        viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
+                        viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
                         if(listLeftMedia.isNotEmpty()) {
                             showLeftArea()
                         }
@@ -1010,13 +1004,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
 
     companion object {
