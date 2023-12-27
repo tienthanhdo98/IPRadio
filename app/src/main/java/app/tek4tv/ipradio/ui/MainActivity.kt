@@ -17,6 +17,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -377,9 +378,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             ) // Adjust the bottom margin as needed
             textView.layoutParams = layoutParams
             listLeftTextView.add(textView)
-        }
-        listLeftTextView.forEach{
-            layoutTvLeft.addView(it)
+            layoutTvLeft.addView(textView)
         }
 
         scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
@@ -394,19 +393,38 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val runnable: Runnable = object : Runnable {
             override fun run() {
                 // Scroll the ScrollView vertically
-                scrollLeftArea.scrollBy(0, scrollSpeed)
+               // scrollLeftArea.scrollBy(0, scrollSpeed)
 
                 // Check if reached the bottom
                 if (scrollLeftArea.scrollY >= scrollLeftArea.getChildAt(0)
                         .height - scrollLeftArea.height
                 ) {
-                    // Reset to the top
-                    //scrollLeftArea.smoothScrollTo(0, 0)
-                    val layoutParams = LinearLayout.LayoutParams(
-                        LinearLayout.LayoutParams.MATCH_PARENT,
-                        LinearLayout.LayoutParams.WRAP_CONTENT
-                    )
-
+//                    layoutTvLeft.removeViews(0,listLeftTextView.size-1)
+                    listLeftTextView.forEach {
+                        layoutTvLeft.removeView(it)
+                    }
+                    listLeftTextView.clear()
+                    listLeftMedia.forEach {
+                        val textView = TextView(baseContext)
+                        textView.text = it.body
+                        textView.setTextColor(Color.parseColor("#F2FB0A"))
+                        textView.textSize = convertPixelsToDp(36, baseContext)
+                        // textView.typeface = typeface;
+                        val layoutParams = LinearLayout.LayoutParams(
+                            LinearLayout.LayoutParams.MATCH_PARENT,
+                            LinearLayout.LayoutParams.WRAP_CONTENT
+                        )
+                        layoutParams.setMargins(
+                            0,
+                            convertPixelsToDp(20, baseContext).toInt(),
+                            0,
+                            convertPixelsToDp(100, baseContext).toInt()
+                        ) // Adjust the bottom margin as needed
+                        textView.layoutParams = layoutParams
+                        listLeftTextView.add(textView)
+                        layoutTvLeft.addView(textView)
+                    }
+                    Log.d("PLaasdas", "run: ${layoutTvLeft.size}")
                 }
 
                 // Repeat the scrolling
