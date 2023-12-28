@@ -17,22 +17,25 @@
         <TextView
             android:id="@+id/tvTopArea"
             android:layout_width="0dp"
-            android:layout_height="wrap_content"
-            android:textStyle="bold"
+            android:layout_height="match_parent"
             android:ellipsize="marquee"
-            android:gravity="center"
-            android:maxLines="2"
-            android:fontFamily="@font/verdanabold"
-            android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
-            app:layout_constraintEnd_toEndOf="parent"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintBottom_toBottomOf="parent"
+            android:fontFamily="@font/verdanabold"
+            android:gravity="center"
             android:marqueeRepeatLimit="marquee_forever"
+            android:maxLines="2"
             android:scrollHorizontally="true"
-            android:textColor="#F2FB0A" />
+            android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
+            android:textColor="#F2FB0A"
+            android:textSize="@dimen/_14sdp"
+            android:textStyle="bold"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintHorizontal_bias="1.0"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintVertical_bias="0.0" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
     <androidx.constraintlayout.widget.ConstraintLayout
@@ -66,6 +69,7 @@
             />
 
         <TextView
+            android:textSize="@dimen/_10sdp"
             android:id="@+id/tvTitleRight"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"

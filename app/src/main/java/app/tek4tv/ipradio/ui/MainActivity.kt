@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -307,6 +308,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         showMac()
 
         getMonth()
+        convertPixelsToDp(20,baseContext)
     }
     fun getMonth()
     {
@@ -322,7 +324,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //    }
 
     fun convertPixelsToDp(px: Int, context: Context): Float {
+        val h = Resources.getSystem().displayMetrics.heightPixels
+        val w = Resources.getSystem().displayMetrics.widthPixels
+        Log.d("convertPixelsToDp", "convertPixelsToDp: ${w}-${h}")
         val density = context.resources.displayMetrics.density
+        Log.d("convertPixelsToDp", "convertPixelsToDp: ${density}")
         return (px / density)
     }
 
@@ -350,7 +356,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 } else {
                     ConfigUtil.putLong(baseContext, TYPE_SCREEN_KEY, MULTIPLE_AREA)
                 }
-                recreate();
+                recreate()
             }
         }
     }
@@ -368,14 +374,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val textView = TextView(this)
             textView.text = it.body
             textView.setTextColor(Color.parseColor("#F2FB0A"))
-            textView.textSize = convertPixelsToDp(36, baseContext)
+//            textView.textSize = convertPixelsToDp(36, baseContext)
            // textView.typeface = typeface;
-            layoutParams.setMargins(
-                0,
-                convertPixelsToDp(20, baseContext).toInt(),
-                0,
-                convertPixelsToDp(100, baseContext).toInt()
-            ) // Adjust the bottom margin as needed
+//            layoutParams.setMargins(
+//                0,
+//                convertPixelsToDp(20, baseContext).toInt(),
+//                0,
+//                convertPixelsToDp(100, baseContext).toInt()
+//            ) // Adjust the bottom margin as needed
             textView.layoutParams = layoutParams
             listLeftTextView.add(textView)
             layoutTvLeft.addView(textView)
@@ -408,18 +414,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         val textView = TextView(baseContext)
                         textView.text = it.body
                         textView.setTextColor(Color.parseColor("#F2FB0A"))
-                        textView.textSize = convertPixelsToDp(36, baseContext)
+//                        textView.textSize = convertPixelsToDp(36, baseContext)
                         // textView.typeface = typeface;
                         val layoutParams = LinearLayout.LayoutParams(
                             LinearLayout.LayoutParams.MATCH_PARENT,
                             LinearLayout.LayoutParams.WRAP_CONTENT
                         )
-                        layoutParams.setMargins(
-                            0,
-                            convertPixelsToDp(20, baseContext).toInt(),
-                            0,
-                            convertPixelsToDp(100, baseContext).toInt()
-                        ) // Adjust the bottom margin as needed
+//                        layoutParams.setMargins(
+//                            0,
+//                            convertPixelsToDp(20, baseContext).toInt(),
+//                            0,
+//                            convertPixelsToDp(100, baseContext).toInt()
+//                        ) // Adjust the bottom margin as needed
                         textView.layoutParams = layoutParams
                         listLeftTextView.add(textView)
                         layoutTvLeft.addView(textView)
@@ -436,7 +442,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun hideTopLeftArea() {
         listLeftMedia.clear()
-        handler.removeCallbacksAndMessages(null);
+        handler.removeCallbacksAndMessages(null)
         Log.e("AreaLog", "Hub hide left")
     }
 
@@ -450,9 +456,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-        tvTitleRight.textSize = convertPixelsToDp(36, baseContext)
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
-        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
+//        tvTitleRight.textSize = convertPixelsToDp(36, baseContext)
+//        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
+//        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
         tvTopArea.isSelected = true
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
 
@@ -468,15 +474,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onDestroy() {
         super.onDestroy()
-        handler.removeCallbacksAndMessages(null);
+        handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
-    }
-
-    override fun onStart() {
-        super.onStart()
-        //startPlayingMedia()
     }
 
     override fun onAlarm(intent: Intent) {
@@ -565,7 +566,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
             val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-             startActivity(intent)
+            // startActivity(intent)
         }
 
         return needGrantPermission

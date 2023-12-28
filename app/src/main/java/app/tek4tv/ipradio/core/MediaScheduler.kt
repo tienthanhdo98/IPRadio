@@ -43,6 +43,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     private fun scheduleEndLeftArea() {
+        if(mediaRepo.scheduledList.isEmpty()) return
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA
         }
