@@ -51,7 +51,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = "VtcDigital"
+    var providerValue = "LaiChau"
     init {
         listOf(
             logFolderPath,
@@ -64,7 +64,7 @@ class LogUtils private constructor() {
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"Tek4tv"
+            ConfigUtil.PROVIDER,"LaiChau"
         )!!
 
         /*rtDatabase = Firebase.database.reference
@@ -90,13 +90,13 @@ class LogUtils private constructor() {
         val sourceId: String
         val sourceName: String
 
-        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
-            sourceId = mediaItem.sourceID
-            sourceName = mediaItem.sourceName
-        } else {
-            sourceId = destinationId
-            sourceName = destinationName
-        }
+//        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
+//            sourceId = mediaItem.sourceID
+//            sourceName = mediaItem.sourceName
+//        } else {
+//            sourceId = destinationId
+//            sourceName = destinationName
+//        }
         val externalSource: String
         val isExternalSource: Int
         if (mediaItem.type != "VOD") {
@@ -113,8 +113,8 @@ class LogUtils private constructor() {
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
-            sourceID = sourceId,
-            sourceName = sourceName,
+            sourceID = destinationId,
+            sourceName = destinationName,
             destinationId = destinationId,
             destinationName = destinationName,
             mediaID = mediaItem.mediaID.toString(),

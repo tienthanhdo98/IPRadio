@@ -537,6 +537,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
                     Log.i("config_config", "updateconfig $mess")
+
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
                         if(listInfoConfig.isNotEmpty()) {

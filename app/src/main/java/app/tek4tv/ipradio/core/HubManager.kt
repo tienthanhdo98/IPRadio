@@ -91,7 +91,7 @@ class HubManager(
 
     //check ping to hub
     var hubUrl = ""
-    var providerValue = "VtcDigital"
+    var providerValue = ""
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
@@ -100,7 +100,7 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"VtcDigital"
+            ConfigUtil.PROVIDER,"LaiChau"
         )!!
 
         hubUrl = ConfigUtil.getStringEncrypt(
@@ -469,8 +469,9 @@ class HubManager(
 
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.video}")
-            Log.i("loghub", "log hub: ${request.deviceInfo}")
+//            Log.i("loghub", "log hub: ${request.video}")
+//            Log.i("loghub", "log hub: ${request.deviceInfo}")
+            Log.i("loghub", "log hub: ${request}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
