@@ -29,6 +29,7 @@ class Utils {
         const val LEFT_AREA = 2L
         const val RIGHT_AREA = 3L
 
+
         @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
             var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)

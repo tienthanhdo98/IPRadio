@@ -1,16 +1,15 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.content.res.Resources
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.util.DisplayMetrics
 import android.util.Log
+import android.util.TypedValue
 import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
@@ -114,7 +113,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private var typeScreen: Long = MULTIPLE_AREA
     private lateinit var tvTopArea: TextView
 
-    //    private lateinit var tvRightArea: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
 
@@ -308,7 +306,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         showMac()
 
         getMonth()
-        convertPixelsToDp(20,baseContext)
+
     }
     fun getMonth()
     {
@@ -319,18 +317,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b")
     }
 
-//    private fun convertPixelsToDp(px: Int, context: Context): Int {
-//        return px / (context.resources.displayMetrics.densityDpi.toFloat() / DisplayMetrics.DENSITY_DEFAULT).toInt()
-//    }
-
-    fun convertPixelsToDp(px: Int, context: Context): Float {
-        val h = Resources.getSystem().displayMetrics.heightPixels
-        val w = Resources.getSystem().displayMetrics.widthPixels
-        Log.d("convertPixelsToDp", "convertPixelsToDp: ${w}-${h}")
-        val density = context.resources.displayMetrics.density
-        Log.d("convertPixelsToDp", "convertPixelsToDp: ${density}")
-        return (px / density)
-    }
 
     private fun showMac() {
         val displayMetrics = DisplayMetrics()
@@ -365,23 +351,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun showLeftArea() {
         if (listLeftMedia.isEmpty()) return
         Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
-        //val typeface = resources.getFont(R.font.verdanabold)
+        val typeface = resources.getFont(R.font.verdanabold)
         val layoutParams = LinearLayout.LayoutParams(
             LinearLayout.LayoutParams.MATCH_PARENT,
             LinearLayout.LayoutParams.WRAP_CONTENT
         )
+        val textSizeInSdp = resources.getDimension(R.dimen.textSizeTitle)
         listLeftMedia.forEach {
             val textView = TextView(this)
             textView.text = it.body
             textView.setTextColor(Color.parseColor("#F2FB0A"))
-//            textView.textSize = convertPixelsToDp(36, baseContext)
-           // textView.typeface = typeface;
-//            layoutParams.setMargins(
-//                0,
-//                convertPixelsToDp(20, baseContext).toInt(),
-//                0,
-//                convertPixelsToDp(100, baseContext).toInt()
-//            ) // Adjust the bottom margin as needed
+            textView.textSize = textSizeInSdp
+            textView.typeface = typeface
+            layoutParams.setMargins(
+                0,
+                textSizeInSdp.toInt(),
+                0,
+                textSizeInSdp.toInt()
+            ) // Adjust the bottom margin as needed
             textView.layoutParams = layoutParams
             listLeftTextView.add(textView)
             layoutTvLeft.addView(textView)
@@ -446,7 +433,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.e("AreaLog", "Hub hide left")
     }
 
-    private val scrollSpeed = 2 // Adjus
     private val handler: Handler = Handler()
     private var listLeftMedia = mutableListOf<MediaItem>()
     private var listLeftTextView = mutableListOf<TextView>()
@@ -456,9 +442,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-//        tvTitleRight.textSize = convertPixelsToDp(36, baseContext)
-//        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
-//        tvTopArea.textSize = convertPixelsToDp(48, baseContext)
         tvTopArea.isSelected = true
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
 
