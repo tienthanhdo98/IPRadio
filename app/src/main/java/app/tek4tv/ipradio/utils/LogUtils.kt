@@ -51,7 +51,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = ""
+    var providerValue = "VtcDigital"
     init {
         listOf(
             logFolderPath,
