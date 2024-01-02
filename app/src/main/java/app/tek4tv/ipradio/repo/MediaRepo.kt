@@ -1,9 +1,10 @@
 package app.tek4tv.ipradio.repo
 
 import android.content.Context
-import android.os.Build
+import android.provider.MediaStore.Audio.Media
 import android.util.Log
-import androidx.annotation.RequiresApi
+import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
@@ -13,7 +14,6 @@ import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.TOP_AREA
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -25,11 +25,11 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.LinkedHashMap
 
 @Singleton
 class MediaRepo @Inject constructor(
@@ -78,7 +78,8 @@ class MediaRepo @Inject constructor(
             else monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                ConfigUtil.putLong(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toLong())
+                ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
+                Log.d("LALALA", "registerObservers: ${ dayScenario.broadcastRegionDigital.toLong()} ")
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
@@ -86,7 +87,7 @@ class MediaRepo @Inject constructor(
             }
 
         } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario")
+            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -105,8 +106,8 @@ class MediaRepo @Inject constructor(
             result
 
         }
-
         broadcastList.clear()
+
         broadcastList.addAll(res)
 
         filterMedia(broadcastList)
@@ -144,8 +145,13 @@ class MediaRepo @Inject constructor(
         })
     }
 
+    val type: Type = Types.newParameterizedType(
+        List::class.java,
+        MediaItem::class.java
+    )
+    val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
 
-
+//    val mediaJsonAdapter = MoshiInst.moshi.adapter<List<MediaItem>>( List::class.java, MediaItem::class.java)
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
@@ -155,16 +161,17 @@ class MediaRepo @Inject constructor(
                 val resBody = res.body()
                 if (resBody != null) {
 
-                    //result = resBody.onEach { it.mediaID = i++ }
+//                    result =  resBody
                     result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
 
                     leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA } as MutableList<MediaItem>
-                    //topScheduledList  =  resBody.filter { it.broadcastRegion?.value == TOP_AREA }
+                    val srt = mediaJsonAdapter.toJson(leftScheduledList)
+                    ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 
-
-                    Log.e("yee", "Lịch rỗng rồi ${result.size}")
-                    Log.e("yee", "Lịch rỗng rồi ${leftScheduledList.size}")
-                    Log.e("yee", "Lịch rỗng rồi ${topScheduledList.size}")
+                    var i = 1
+                    result.forEach{ mediaItem ->
+                        mediaItem.mediaID = i++
+                    }
                     saveItemsToFile(result)
                 }
             } else {

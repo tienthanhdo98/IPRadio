@@ -34,6 +34,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
         //check khi 00:30 co hub không, không có thì reset thiết bị
         const val ACTION_CHECKHUB_RESET= "ACTION_CHECKHUB_RESET"
         const val SCHEDULED_END_LEFT_AREA = "SCHEDULED_END_LEFT_AREA"
+        const val SCHEDULED_SHOW_LEFT_AREA = "SCHEDULED_SHOW_LEFT_AREA"
     }
 }
 

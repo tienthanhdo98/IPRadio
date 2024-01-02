@@ -52,7 +52,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-
+    var providerValue = "Tek4tv"
     init {
         listOf(
             logFolderPath,
@@ -63,6 +63,8 @@ class LogUtils private constructor() {
         ).forEach {
             if (!isFolderExisted(it)) createFolder(it)
         }
+
+
 
         /*rtDatabase = Firebase.database.reference
         rootDeviceDb = rtDatabase.child("ipradio").child("device").child(imei)
@@ -111,16 +113,7 @@ class LogUtils private constructor() {
 
     fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
-        val sourceId: String
-        val sourceName: String
 
-        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
-            sourceId = mediaItem.sourceID
-            sourceName = mediaItem.sourceName
-        } else {
-            sourceId = destinationId
-            sourceName = destinationName
-        }
         val externalSource: String
         val isExternalSource: Int
         if (mediaItem.type != "VOD") {
@@ -130,18 +123,15 @@ class LogUtils private constructor() {
             externalSource = ""
             isExternalSource = 0
         }
-        var link = mediaItem.body
+        // remove at 4.1.3b
+
         val currentTime = Calendar.getInstance().time
-        link = if (link!!.startsWith("rtsp")) {
-            "live"
-        } else {
-            mediaItem.pathBackup
-        }
+
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
-            sourceID = sourceId,
-            sourceName = sourceName,
+            sourceID = destinationId,
+            sourceName = destinationName,
             destinationId = destinationId,
             destinationName = destinationName,
             mediaID = mediaItem.mediaID.toString(),
@@ -149,7 +139,7 @@ class LogUtils private constructor() {
             paState = paState,
             duration = mediaItem.duration,
             startTime = (currentTime.time / 1000),
-            body = link,
+            body =  mediaItem.pathBackup,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,
@@ -158,8 +148,8 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference = mediaItem.sourceReference
-
+            sourceReference = mediaItem.sourceReference,
+            provider = providerValue
         )
         val str = getRecordStr(reportObj)
 

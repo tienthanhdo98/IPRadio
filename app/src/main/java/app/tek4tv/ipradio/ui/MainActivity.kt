@@ -7,9 +7,9 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
-import android.util.DisplayMetrics
 import android.util.Log
-import android.util.TypedValue
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
@@ -34,6 +34,7 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
@@ -45,7 +46,9 @@ import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
@@ -54,6 +57,7 @@ import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.IOException
+import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -110,8 +114,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: Long = MULTIPLE_AREA
+    private var typeScreen: Int = FULL_SCREEN
     private lateinit var tvTopArea: TextView
+    private lateinit var tvTitleRight: TextView
 
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
@@ -214,7 +219,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
-           // logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
+            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
             if (globalProperties.logEnabled) {
                 try {
                     viewModel.currentMedia = mediaItem
@@ -227,7 +232,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-       // typeScreen = ConfigUtil.getLong(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+        typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
         if(typeScreen == FULL_SCREEN )
         {
             setContentView(R.layout.activity_main)
@@ -235,7 +240,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         else
         {
             setContentView(R.layout.activity_main_multiple_view2)
-            initDefaultTopAndLeftArea()
         }
         supportActionBar?.hide()
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
@@ -303,73 +307,33 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         hideSystemUI()
-        showMac()
 
-        getMonth()
+        initDataByScreen()
+
+        Log.d("monthlyinfo", "listLeftMedia: recreate")
 
     }
-    fun getMonth()
-    {
-        playerManager.stopAllPlayer()
-        cancelAllAlarm()
-        ForceMedia.deleteForeMediaPref(applicationContext)
-        viewModel.updateMonthlyScenario("https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b", true)
-        ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/8340a56a-9d80-492b-bb70-d88974a0472b")
-    }
 
-
-    private fun showMac() {
-        val displayMetrics = DisplayMetrics()
-        windowManager.defaultDisplay.getMetrics(displayMetrics)
-        val height = displayMetrics.heightPixels
-        val width = displayMetrics.widthPixels
-        Log.d("screeninfo", "showMac: $height")
-        Log.d("screeninfo", "showMac: $width")
-
-        if(typeScreen != FULL_SCREEN) {
-
-        }
-
-        else{
+    private fun initDataByScreen() {
+        if (typeScreen == FULL_SCREEN) {
             val tvMacAdress = findViewById<TextView>(R.id.tvMac)
             val imei = Utils.getDeviceId(this)
             tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-            tvMacAdress.setOnClickListener{
-
-                Log.d("dpiPoint", "showMac: click")
-                if (typeScreen != FULL_SCREEN) {
-                    ConfigUtil.putLong(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-                } else {
-                    ConfigUtil.putLong(baseContext, TYPE_SCREEN_KEY, MULTIPLE_AREA)
-                }
-                recreate()
-            }
+        } else {
+            initDefaultTopAndLeftArea()
         }
     }
 
 
     private fun showLeftArea() {
         if (listLeftMedia.isEmpty()) return
-        Log.d("RightTextLog", "onAnimationStart: showLeftArea ")
-        val typeface = resources.getFont(R.font.verdanabold)
-        val layoutParams = LinearLayout.LayoutParams(
-            LinearLayout.LayoutParams.MATCH_PARENT,
-            LinearLayout.LayoutParams.WRAP_CONTENT
-        )
-        val textSizeInSdp = resources.getDimension(R.dimen.textSizeTitle)
+        //   val typeface = resources.getFont(R.font.verdanabold)
         listLeftMedia.forEach {
-            val textView = TextView(this)
+            val textView = TextView(baseContext)
             textView.text = it.body
             textView.setTextColor(Color.parseColor("#F2FB0A"))
-            textView.textSize = textSizeInSdp
-            textView.typeface = typeface
-            layoutParams.setMargins(
-                0,
-                textSizeInSdp.toInt(),
-                0,
-                textSizeInSdp.toInt()
-            ) // Adjust the bottom margin as needed
-            textView.layoutParams = layoutParams
+            textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
+            //   textView.typeface = typeface
             listLeftTextView.add(textView)
             layoutTvLeft.addView(textView)
         }
@@ -386,41 +350,31 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val runnable: Runnable = object : Runnable {
             override fun run() {
                 // Scroll the ScrollView vertically
-               // scrollLeftArea.scrollBy(0, scrollSpeed)
+                scrollLeftArea.scrollBy(0, scrollSpeed)
 
                 // Check if reached the bottom
                 if (scrollLeftArea.scrollY >= scrollLeftArea.getChildAt(0)
                         .height - scrollLeftArea.height
                 ) {
-//                    layoutTvLeft.removeViews(0,listLeftTextView.size-1)
-                    listLeftTextView.forEach {
-                        layoutTvLeft.removeView(it)
-                    }
-                    listLeftTextView.clear()
+                    // val typeface = resources.getFont(R.font.verdanabold)
                     listLeftMedia.forEach {
                         val textView = TextView(baseContext)
                         textView.text = it.body
                         textView.setTextColor(Color.parseColor("#F2FB0A"))
-//                        textView.textSize = convertPixelsToDp(36, baseContext)
-                        // textView.typeface = typeface;
-                        val layoutParams = LinearLayout.LayoutParams(
-                            LinearLayout.LayoutParams.MATCH_PARENT,
-                            LinearLayout.LayoutParams.WRAP_CONTENT
-                        )
-//                        layoutParams.setMargins(
-//                            0,
-//                            convertPixelsToDp(20, baseContext).toInt(),
-//                            0,
-//                            convertPixelsToDp(100, baseContext).toInt()
-//                        ) // Adjust the bottom margin as needed
-                        textView.layoutParams = layoutParams
+                        textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
+//                        textView.typeface = typeface
                         listLeftTextView.add(textView)
                         layoutTvLeft.addView(textView)
+                    }
+                    //if(layoutTvLeft.size >= listLeftMedia.size*3)
+                    if (layoutTvLeft.size >= 30) {
+                        layoutTvLeft.removeAllViews()
+                        handler.removeCallbacksAndMessages(null)
+                        showLeftArea()
                     }
                     Log.d("PLaasdas", "run: ${layoutTvLeft.size}")
                 }
 
-                // Repeat the scrolling
                 handler.postDelayed(this, 50) // Adjust the delay as needed
             }
         }
@@ -430,24 +384,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun hideTopLeftArea() {
         listLeftMedia.clear()
         handler.removeCallbacksAndMessages(null)
+        layoutTvLeft.removeAllViews()
+        handler.removeCallbacksAndMessages(null)
         Log.e("AreaLog", "Hub hide left")
     }
 
+    private val scrollSpeed = 2
     private val handler: Handler = Handler()
-    private var listLeftMedia = mutableListOf<MediaItem>()
+    private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
-
 
     private fun initDefaultTopAndLeftArea() {
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
-        val tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
+           tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
         tvTopArea.isSelected = true
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
 
     }
 
-
+    override fun onStart() {
+        super.onStart()
+        startPlayingMedia()
+    }
 
     override fun onStop() {
         super.onStop()
@@ -512,18 +471,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
             }
             MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
+                if(typeScreen == FULL_SCREEN) return
                 hideTopLeftArea()
             }
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return false
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return false
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return false
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return false
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -549,7 +509,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
             val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            // startActivity(intent)
+            startActivity(intent)
         }
 
         return needGrantPermission
@@ -573,7 +533,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 return@observe
             }
-
             //default
             mediaScheduler.scheduleAllAlarms()
             //check hub
@@ -583,33 +542,34 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             if (typeScreen == MULTIPLE_AREA) {
                 if (playerManager.isInTimeFrame) {
-                    listLeftMedia =
-                        viewModel.mediaRepo.leftScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
-                        if(listLeftMedia.isNotEmpty()) {
-                            showLeftArea()
-                        }
-//                    val listMediaTop =
-//                        viewModel.mediaRepo.topScheduledList.filter { it.body != null && it.body != "start" && it.body != "end" }
-//                    if (listMediaTop.isNotEmpty()) {
-//                        var text = ""
-//                        listMediaTop.forEach {
-//                            text += "${it.body}\n"
-//                        }
-//                        listMediaTop.first().body = text
-//                        showTopArea(listMediaTop.first())
-//                    }
+                    if (listLeftMedia.isNotEmpty()) {
+                        Log.d("LALALA", "registerObservers: show ")
+                        showLeftArea()
+                    }
 
                 }
             }
-
 
             //all load done, check
             viewModel.checkPlaylist()
         }
     }
 
+    val type: Type = Types.newParameterizedType(
+        List::class.java,
+        MediaItem::class.java
+    )
+
     fun startPlayingMedia() {
+        if (typeScreen == MULTIPLE_AREA) {
+//            val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
+//                moshi.adapter(type)
+//            val strList = ConfigUtil.getString(baseContext, KEY_LIST_LEFT_PREF, "")
+//            listLeftMedia = mediaJsonAdapter.fromJson(strList!!)
+//                ?.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
+        }
         viewModel.getPlayerContent("", false)
+
     }
 
     private fun initHubConnect() {
@@ -663,11 +623,42 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.updateMonthlyScenario(mess, true)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                     playerManager.stopForceMedia()
+                    //delete pref list left
+                    ConfigUtil.removeSharef(baseContext,KEY_LIST_LEFT_PREF)
+                    lifecycleScope.launch{
+//                        delay(3000)
+////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        finish();
+//                        startActivity(intent);
+//                        overridePendingTransition(0, 0);
+//                        Log.i("monthlyinfo", "Mess: recreate ")
+                    }
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    onPlayForce(responseHub)
+//                    onPlayForce(responseHub)
+                   val mess = """{"IMEI":"72:BE:B5:09:17:98","DeviceName":"TB Xã Dương Hưu","Message":"https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/9a7c4162-d60f-4b58-8f78-63d478116894","Volume":"100","Lat":0.0,"Lng":0.0,"DestinationID":"","DestinationName":"","UserNameControl":""}"""
+                   // val mess = responseHub.message!!
+                    playerManager.stopTimeFrame()
+                    playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    viewModel.updateMonthlyScenario(mess, true)
+                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
+                    playerManager.stopForceMedia()
+                    //delete pref list left
+                    ConfigUtil.removeSharef(baseContext,KEY_LIST_LEFT_PREF)
+                    lifecycleScope.launch{
+//                        delay(3000)
+////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        finish();
+//                        startActivity(intent);
+//                        overridePendingTransition(0, 0);
+                        Log.i("monthlyinfo", "Mess: recreate ")
+                    }
+
                 }
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!

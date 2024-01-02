@@ -140,28 +140,28 @@ enum class MediaType {
 }
 data class BroadcastRegion (
     @Json(name = "Id")
-    val id: Long?,
+    val id: Int?,
 
     @Json(name = "Value")
-    val value: Long
+    val value: Int
 )
 
 
 data class Author (
     @Json(name = "Id")
-    val id: Long,
+    val id: Any,
 
     @Json(name = "FullName")
-    val fullName: String,
+    val fullName: String?,
 
     @Json(name = "UserName")
-    val userName: String,
+    val userName: String?,
 
     @Json(name = "Avatar")
-    val avatar: String,
+    val avatar: String?,
 
     @Json(name = "Email")
-    val email: String
+    val email: String?
 )
 
 data class Category(
@@ -192,20 +192,3 @@ data class Tag(
 )
 
 
-/*
-@JsonClass(generateAdapter = true)
-data class Category(
-
-    @Json(name = "ID")
-    var id: Long = 0,
-
-    @Json(name = "Name")
-    var name: String? = null
-)
-
-
-class ResponseList {
-    @Json(name = "Playlist")
-    var playlists: List<MediaItem>? = null
-}
-*/

@@ -32,11 +32,11 @@ data class MediaRecord(
     //thuoc tinh cua end
     val endTime: Long? = null,
     val status: String? = null,
-    val  sourceReference : String ? = null
-
+    val  sourceReference : String ? = null,
+    var provider: String = "Tek4tv"
 
 ) : LogRecord() {
-    var provider: String = "Tek4tv"
+
 }
 
 @JsonClass(generateAdapter = true)

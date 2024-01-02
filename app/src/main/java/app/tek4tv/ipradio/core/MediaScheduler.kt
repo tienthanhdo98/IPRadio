@@ -59,6 +59,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             endTime.timeInMillis,
             alarmIntent
         )
+        Log.d("alarmx", "Set scheduleEndLeftArea")
 
 
     }
@@ -326,6 +327,26 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             alarmIntent
         )
 
+    }
+    fun scheduleListLeft()
+    {
+        if(mediaRepo.scheduledList.isEmpty()) return
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA
+        }
+
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, 7, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+
+        val scheduledList = mediaRepo.scheduledList
+        val t = scheduledList.keys.first().split("-")
+        val endTime = toCalendar(t[1])
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            endTime.timeInMillis,
+            alarmIntent
+        )
+        Log.d("alarmx", "Set scheduleEndLeftArea")
     }
 
     fun cancelForceMediaAlarm() {

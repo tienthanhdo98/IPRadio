@@ -129,7 +129,6 @@ class SerialPortController(
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
                             deviceInfo = s
-                            Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (list.size > 4) {
