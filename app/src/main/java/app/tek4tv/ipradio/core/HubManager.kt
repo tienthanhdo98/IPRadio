@@ -100,13 +100,13 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"LaiChau"
+            ConfigUtil.PROVIDER,"Tek4tv"
         )!!
 
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-laichau.tek4tv.vn/hubServer"
+            "https://hubip-haiphong.tek4tv.vn/hubServer"
         )!!
         //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
         //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ

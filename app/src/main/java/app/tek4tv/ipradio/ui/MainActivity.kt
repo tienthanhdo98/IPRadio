@@ -166,6 +166,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+            Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl succes ${mediaItem!!.body}")
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
 
@@ -344,11 +345,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", listKey!!)
+                Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl $listKey!!")
                 playerManager.setTimeFrame(listKey, null)
 
             }
-
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
@@ -358,7 +358,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
                 val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "end media: $mediaIndex")
+                Log.d("alarmx", "ACTION_END_MEDIA: $mediaIndex")
 
                 playerManager.endScheduledMediaByIndex(mediaIndex)
             }
@@ -722,6 +722,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
+
                 HubCommand.SWITCH_MODE_FM -> {
                     onPlayForce(responseHub)
                 }
@@ -916,8 +917,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.getPlayerContent("", false)
                 }
-
-
 
             }
 

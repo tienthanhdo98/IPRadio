@@ -51,7 +51,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = "LaiChau"
+    var providerValue = ""
     init {
         listOf(
             logFolderPath,
@@ -64,7 +64,7 @@ class LogUtils private constructor() {
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"LaiChau"
+            ConfigUtil.PROVIDER,""
         )!!
 
         /*rtDatabase = Firebase.database.reference

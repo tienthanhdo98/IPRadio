@@ -168,6 +168,8 @@ class PlayersManager(
         } else {
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
+            Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl cur playlist $currentPlaylist")
+
         }
 
         isTimeOver = false
@@ -199,6 +201,8 @@ class PlayersManager(
             playMedia(mediaItem, timeStamp)
 
             Log.d(LOGTAG, "Play media $index")
+            Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl play index $index")
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
