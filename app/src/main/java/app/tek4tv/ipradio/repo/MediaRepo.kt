@@ -164,12 +164,13 @@ class MediaRepo @Inject constructor(
 //                    result =  resBody
                     result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
 
-                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA } as MutableList<MediaItem>
+                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA  && it.body != null && it.body != "start" && it.body != "end"} as MutableList<MediaItem>
+
                     val srt = mediaJsonAdapter.toJson(leftScheduledList)
                     ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 
                     var i = 1
-                    result.forEach{ mediaItem ->
+                    result.onEach{ mediaItem ->
                         mediaItem.mediaID = i++
                     }
                     saveItemsToFile(result)

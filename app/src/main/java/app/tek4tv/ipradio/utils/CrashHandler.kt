@@ -58,7 +58,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
             intent.addFlags(
                 Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
             val pendingIntent = PendingIntent.getActivity(
-                appInstance.baseContext, 0, intent, PendingIntent.FLAG_ONE_SHOT)
+                appInstance.baseContext, 120, intent, PendingIntent.FLAG_ONE_SHOT)
             val mgr =
                 appInstance.baseContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = pendingIntent

@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.core
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.content.Context
 import android.content.Intent
 import android.util.Log
@@ -17,7 +18,10 @@ import java.util.*
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
+    private val requestCodeRescheduleAllAlarm = 101
+    private val requestCodeCheckHubAndResetAlarms = 102
+    private val requestCodeEndLeftArea = 106
+    private val requestScheduleShowListLeft = 107
     private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
@@ -33,35 +37,18 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "Set reschedule day ${time.get(Calendar.DAY_OF_MONTH)}")
 
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestCodeRescheduleAllAlarm,
+                intent,
+                PendingIntent.FLAG_CANCEL_CURRENT
+            )
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             time.timeInMillis,
             alarmIntent
         )
-    }
-
-    private fun scheduleEndLeftArea() {
-        if(mediaRepo.scheduledList.isEmpty()) return
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA
-        }
-
-        val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 6, intent, PendingIntent.FLAG_CANCEL_CURRENT)
-
-        val scheduledList = mediaRepo.scheduledList
-        val t = scheduledList.keys.last().split("-")
-        val endTime = toCalendar(t[1])
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            endTime.timeInMillis,
-            alarmIntent
-        )
-        Log.d("alarmx", "Set scheduleEndLeftArea")
-
-
     }
 
     private fun scheduleListAlarms() {
@@ -183,6 +170,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val limit = toCalendar(mediaItem.fixTime).apply {
                 add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
             }
+            Log.d("alarmx", "scheduleMediaAlarms limit ${limit}")
+
 
             if (now > limit) return@forEachIndexed
 
@@ -305,7 +294,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, 0)
+            PendingIntent.getBroadcast(appContext, requestCodeCheckHubAndResetAlarms, intent, 0)
 
         val cal_alarm = Calendar.getInstance()
 
@@ -328,25 +317,56 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         )
 
     }
-    fun scheduleListLeft()
-    {
+
+    private fun scheduleEndLeftArea() {
         if(mediaRepo.scheduledList.isEmpty()) return
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA
+            action = MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA
         }
 
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 7, intent, PendingIntent.FLAG_CANCEL_CURRENT)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestCodeEndLeftArea,
+                intent,
+                PendingIntent.FLAG_CANCEL_CURRENT
+            )
 
         val scheduledList = mediaRepo.scheduledList
-        val t = scheduledList.keys.first().split("-")
+        val t = scheduledList.keys.last().split("-")
         val endTime = toCalendar(t[1])
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             endTime.timeInMillis,
             alarmIntent
         )
-        Log.d("alarmx", "Set scheduleEndLeftArea")
+        Log.d("alarmx", "Set scheduleEndLeftArea ${endTime.time}")
+
+
+    }
+
+    fun scheduleShowListLeft() {
+        if (mediaRepo.scheduledList.isEmpty()) return
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA
+        }
+
+        val alarmIntent =
+            PendingIntent.getBroadcast(
+                appContext,
+                requestScheduleShowListLeft,
+                intent,FLAG_IMMUTABLE
+            )
+
+        val scheduledList = mediaRepo.scheduledList
+        val t = scheduledList.keys.first().split("-")
+        val endTime = toCalendar(t[0])
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            endTime.timeInMillis,
+            alarmIntent
+        )
+        Log.d("alarmx", "Set scheduleShowListLeft ${endTime.time}")
     }
 
     fun cancelForceMediaAlarm() {

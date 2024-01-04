@@ -93,6 +93,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     lateinit var logService: LogService
 
     private lateinit var hubManager: HubManager
+
     private lateinit var playerManager: PlayersManager
 
     private lateinit var serialPortController: SerialPortController
@@ -117,10 +118,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private var typeScreen: Int = FULL_SCREEN
     private lateinit var tvTopArea: TextView
     private lateinit var tvTitleRight: TextView
-
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
-
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -242,7 +241,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -255,6 +254,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
             }
+
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
@@ -309,9 +309,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
 
         initDataByScreen()
-
-        Log.d("monthlyinfo", "listLeftMedia: recreate")
-
+        Log.i("monthlyinfo", "Mess: recreate main")
     }
 
     private fun initDataByScreen() {
@@ -326,7 +324,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     private fun showLeftArea() {
+
         if (listLeftMedia.isEmpty()) return
+        Log.d("monthlyinfo", "show left")
         //   val typeface = resources.getFont(R.font.verdanabold)
         listLeftMedia.forEach {
             val textView = TextView(baseContext)
@@ -386,7 +386,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.removeCallbacksAndMessages(null)
         layoutTvLeft.removeAllViews()
         handler.removeCallbacksAndMessages(null)
-        Log.e("AreaLog", "Hub hide left")
+        //delete pref list left
+        ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+        Log.e("monthlyinfo", "Hub hide left")
     }
 
     private val scrollSpeed = 2
@@ -400,21 +402,23 @@ class MainActivity : AppCompatActivity(), AlarmListener {
            tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
         tvTopArea.isSelected = true
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
-
     }
 
     override fun onStart() {
+        Log.e("monthlyinfo", "onStart")
         super.onStart()
         startPlayingMedia()
     }
 
     override fun onStop() {
+        Log.e("monthlyinfo", "onStop")
         super.onStop()
         playerManager.onActivityStop()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
+        Log.e("monthlyinfo", "onDestroy")
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
@@ -471,9 +475,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
             }
             MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
-                if(typeScreen == FULL_SCREEN) return
+                if (typeScreen == FULL_SCREEN) return
                 hideTopLeftArea()
             }
+            MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA -> {
+                if (typeScreen == FULL_SCREEN) return
+                showLeftArea()
+            }
+
         }
     }
 
@@ -521,6 +530,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
+            Log.i("monthlyinfo", "Mess: recreate ober")
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -541,13 +551,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             playerManager.startFirstTimeFrame()
 
             if (typeScreen == MULTIPLE_AREA) {
-                if (playerManager.isInTimeFrame) {
-                    if (listLeftMedia.isNotEmpty()) {
-                        Log.d("LALALA", "registerObservers: show ")
-                        showLeftArea()
+                listLeftMedia = viewModel.mediaRepo.leftScheduledList
+                if (listLeftMedia.isEmpty()) {
+                    val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
+                        moshi.adapter(type)
+                    val strList = ConfigUtil.getString(baseContext, KEY_LIST_LEFT_PREF, "") ?: ""
+                    if (strList != "") {
+                        listLeftMedia = mediaJsonAdapter.fromJson(strList)
+                            ?.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
+                        Log.i("monthlyinfo", "Mess: local ")
                     }
-
+                } else {
+                    Log.i("monthlyinfo", "Mess: online ")
                 }
+                mediaScheduler.scheduleShowListLeft()
+
             }
 
             //all load done, check
@@ -561,13 +579,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     )
 
     fun startPlayingMedia() {
-        if (typeScreen == MULTIPLE_AREA) {
-//            val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
-//                moshi.adapter(type)
-//            val strList = ConfigUtil.getString(baseContext, KEY_LIST_LEFT_PREF, "")
-//            listLeftMedia = mediaJsonAdapter.fromJson(strList!!)
-//                ?.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
-        }
+        Log.i("monthlyinfo", "Mess: recreate start")
         viewModel.getPlayerContent("", false)
 
     }
@@ -624,41 +636,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                     playerManager.stopForceMedia()
                     //delete pref list left
-                    ConfigUtil.removeSharef(baseContext,KEY_LIST_LEFT_PREF)
-                    lifecycleScope.launch{
-//                        delay(3000)
-////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//                        finish();
-//                        startActivity(intent);
-//                        overridePendingTransition(0, 0);
-//                        Log.i("monthlyinfo", "Mess: recreate ")
+                    ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+                    lifecycleScope.launch {
+                        delay(3000)
+                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-//                    onPlayForce(responseHub)
-                   val mess = """{"IMEI":"72:BE:B5:09:17:98","DeviceName":"TB Xã Dương Hưu","Message":"https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/9a7c4162-d60f-4b58-8f78-63d478116894","Volume":"100","Lat":0.0,"Lng":0.0,"DestinationID":"","DestinationName":"","UserNameControl":""}"""
-                   // val mess = responseHub.message!!
-                    playerManager.stopTimeFrame()
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-                    playerManager.stopForceMedia()
-                    //delete pref list left
-                    ConfigUtil.removeSharef(baseContext,KEY_LIST_LEFT_PREF)
-                    lifecycleScope.launch{
-//                        delay(3000)
-////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//                        finish();
-//                        startActivity(intent);
-//                        overridePendingTransition(0, 0);
-                        Log.i("monthlyinfo", "Mess: recreate ")
-                    }
-
+                    onPlayForce(responseHub)
                 }
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!
@@ -973,7 +960,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val data = responseHub.message?.split('-') ?: return
                     logUtils.sendLogFile(data[0], data[1])
                 }
-
             }
 
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
