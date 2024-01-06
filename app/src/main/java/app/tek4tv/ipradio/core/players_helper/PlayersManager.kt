@@ -168,8 +168,6 @@ class PlayersManager(
         } else {
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
-            Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl cur playlist $currentPlaylist")
-
         }
 
         isTimeOver = false
@@ -301,8 +299,6 @@ class PlayersManager(
         playMode = ""
         stopAllPlayer()
 
-
-
         //check time over
         isTimeOver = true
         checkTimeOver()
@@ -382,17 +378,6 @@ class PlayersManager(
         }
     }
 
-    private fun convertStringToInt(time: String): Float {
-        if(time == "Invalid Date" || time == "Infinity:NaN:NaN"){
-            return ((1 * 3600 + 0 * 60 + 0) / 60).toFloat()
-        }else {
-            val listDur = time.split(":")
-            val h = listDur[0].toInt()
-            val m = listDur[1].toInt()
-            val s = listDur[2].toInt()
-            return ((h * 3600 + m * 60 + s) / 60).toFloat()
-        }
-    }
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {

@@ -83,10 +83,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
-            //setAlarmsForFrame(period)
+
             var isNewDayStarted = false
-            val requestCode = mediaRepo.timeDividers[period]!![0].id
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
+            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
 
             val t = period.split("-")
             val start = toCalendar(t[0])
@@ -126,7 +126,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         if (isAlarmWorking != null) return
 
-        Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
+        Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode - ${time.timeInMillis}")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP, time.timeInMillis,
@@ -140,8 +140,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
 
-            val requestCode = mediaRepo.timeDividers[period]!![0].id
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
+            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
 
             cancelListAlarm(period, requestCode!!)
             cancelListAlarm(period, endRequestCode!!, true)
@@ -193,47 +193,30 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private fun scheduleMediaAlarms() {
         mediaRepo.scheduledMediaItems.forEachIndexed { index, mediaItem ->
             val now = Calendar.getInstance()
-            val scheduleTime = toCalendar(mediaItem.fixTime!!)
-            val limit = toCalendar(mediaItem.fixTime).apply {
+
+            val limit = toCalendar(mediaItem.fixTime!!).apply {
                 add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
             }
 
             if (now > limit) return@forEachIndexed
 
             val isAlarmWorking =
-                /*getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_PLAY_MEDIA,
-                    mediaItem.id,
-                    PendingIntent.FLAG_NO_CREATE
-                ) != null
-                        &&*/ getScheduleMediaIntent(
+                getScheduleMediaIntent(
                 index,
                 MediaScheduleReceiver.ACTION_END_MEDIA,
-                mediaItem.id!!,
+                mediaItem.mediaID!!,
                 PendingIntent.FLAG_NO_CREATE
             ) != null
 
             if (!isAlarmWorking) {
                 Log.d("alarmx", "set media ${mediaItem.body}")
 
-                /*val startIntent = getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_PLAY_MEDIA,
-                    mediaItem.id,
-                    0
-                )*/
                 val endIntent = getScheduleMediaIntent(
                     index,
                     MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.id,
+                    mediaItem.mediaID!!,
                     0
                 )
-
-                /*alarmManager.setExactAndAllowWhileIdle(
-                    AlarmManager.RTC_WAKEUP,
-                    scheduleTime.timeInMillis, startIntent
-                )*/
 
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
@@ -246,35 +229,22 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private fun cancelMediaAlarms() {
         mediaRepo.scheduledMediaItems.forEachIndexed { index, mediaItem ->
             val isAlarmWorking =
-                /*getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_PLAY_MEDIA,
-                    mediaItem.id,
-                    PendingIntent.FLAG_NO_CREATE
-                ) != null
-                        &&*/ getScheduleMediaIntent(
+               getScheduleMediaIntent(
                 index,
                 MediaScheduleReceiver.ACTION_END_MEDIA,
-                mediaItem.id!!,
+                mediaItem.mediaID!!,
                 PendingIntent.FLAG_NO_CREATE
             ) != null
 
             if (isAlarmWorking) {
-                /*val startIntent = getScheduleMediaIntent(
-                    index,
-                    MediaScheduleReceiver.ACTION_PLAY_MEDIA,
-                    mediaItem.id,
-                    0
-                )*/
+
                 val endIntent = getScheduleMediaIntent(
                     index,
                     MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.id,
+                    mediaItem.mediaID!!,
                     0
                 )
 
-                //alarmManager.cancel(startIntent)
-                //startIntent?.cancel()
                 alarmManager.cancel(endIntent)
                 endIntent?.cancel()
 

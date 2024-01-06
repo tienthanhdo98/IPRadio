@@ -173,7 +173,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val displayName = mediaItem?.title ?: ""
             hubManager.curMediaName = displayName
 
-            if (mediaItem?.getMediaType() != MediaType.FM) {
+            if (mediaItem.getMediaType() != MediaType.FM) {
                 if (!serialPortController.isUart1) {
                     lifecycleScope.launch {
                         delay(11000)
@@ -186,7 +186,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
-            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
+            logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             if (globalProperties.logEnabled) {
                 try {
                     viewModel.currentMedia = mediaItem
@@ -204,6 +204,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
+
 
         val hubComm = object : HubComm {
             override fun forceRestartApp() {
@@ -346,7 +347,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "ACTION_PLAY_MEDIA_LISTl $listKey!!")
-                playerManager.setTimeFrame(listKey, null)
+                if (listKey != null) {
+                    playerManager.setTimeFrame(listKey, null)
+                }
 
             }
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
@@ -360,7 +363,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
                 Log.d("alarmx", "ACTION_END_MEDIA: $mediaIndex")
 
-                playerManager.endScheduledMediaByIndex(mediaIndex)
+              // playerManager.endScheduledMediaByIndex(mediaIndex)
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -941,13 +944,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
 
     companion object {
