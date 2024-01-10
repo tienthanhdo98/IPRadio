@@ -28,15 +28,15 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var isPlaying = false
 
     private var lastError = -1
-   // private var endCount = 0
-    var countReplayLive = 0;
+    // private var endCount = 0
+    var countReplayLive = 0
 
     override fun isPlaying(): Boolean = isPlaying
 
     private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
-                Log.e(TAG, "EndReached")
+                Log.e(TAG, "EndReached ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
@@ -47,7 +47,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             }
 
             MediaPlayer.Event.EncounteredError -> {
-                Log.e(TAG, "EncounteredError")
+                Log.e(TAG, "EncounteredError  ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     Log.e(TAG, "EncounteredError File")
                     playerEventListener.onPlayerError(VlcException("EncounteredError"),false,
@@ -64,6 +64,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
             MediaPlayer.Event.Playing -> {
                 if (!isPlaying) {
+                    Log.e(TAG, "Playing  ${currentMedia?.title}")
                     isPlaying = true
                     playerEventListener.onPlayMediaSuccess(currentMedia)
                 }
@@ -76,7 +77,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     init {
         val args = ArrayList<String>()
         //bật log vlc
-        //args.add("-vvv")
+//        args.add("-vvv")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
@@ -88,12 +89,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         when (mediaItem.getMediaType()) {
             MediaType.FILE -> {
+
                 playFile(mediaItem, timeStamp)
             }
             MediaType.LIVE -> {
                 playLiveStream(mediaItem)
             }
             else -> {
+                Log.e(TAG, "cant play")
             }
         }
 
@@ -143,7 +146,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
         val media = mediaItem.getVlcMedia(mLibVLC)
-
+        val duration = getDurationInSecond(mediaItem.duration!!)
+        media.addOption(":run-time=${duration}")
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
 
@@ -153,15 +157,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-      
+
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
+        stream.addOption(":network-caching=20")
 
         currentVlcMedia = stream
 
         vlcPlayer.play(stream)
-
-      
 
 
     }

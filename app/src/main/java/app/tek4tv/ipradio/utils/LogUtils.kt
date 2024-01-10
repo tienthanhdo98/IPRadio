@@ -51,6 +51,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
+    val providerValue = GlobalProperties.getInst().providerValue
 
     init {
         listOf(
@@ -131,7 +132,8 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference = mediaItem.sourceReference
+            sourceReference = mediaItem.sourceReference,
+            provider = providerValue
         )
         val str = getRecordStr(reportObj)
 
@@ -203,7 +205,8 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference =  mediaItem.sourceReference
+            sourceReference =  mediaItem.sourceReference,
+            provider = providerValue
         )
         val str = getRecordStr(reportObj)
 

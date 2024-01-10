@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import android.view.View
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
@@ -31,7 +30,6 @@ import java.util.*
  * **/
 class PlayersManager(
     appContext: Context,
-    private val rootLayout: View,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
@@ -115,7 +113,6 @@ class PlayersManager(
      * Tìm khung thơi gian hiện tại cần phát
      * **/
     var isInTimeFrame = false
-    var indexOfNowTimeFrame = -1
     var isHaveNextTimeFrameAfter = false
     fun startFirstTimeFrame() {
         var found = false
@@ -142,10 +139,8 @@ class PlayersManager(
                 }
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
-                Log.d(LOGTAG, "Play media in timeframe")
                 found = true
                 isInTimeFrame = true
-                indexOfNowTimeFrame = i
                 break
             }
         }
@@ -178,15 +173,13 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
-        Log.d("CONTROL_MEDIA", "play mode: ${playMode}")
-        Log.d("CONTROL_MEDIA", "play mode: ${playlistIndex}-${currentPlaylist.size}")
-        Log.d("CONTROL_MEDIA", "play mode: $indexOfNowTimeFrame}")
         if (playMode == "") return
-            playlistIndex++
-            if (playlistIndex < currentPlaylist.size) {
-                Log.d(LOGTAG, "Play media phat tiep")
-                playMediaByIndex(playlistIndex)
-            }
+        playlistIndex++
+        if (playlistIndex < currentPlaylist.size) {
+            Log.d(LOGTAG, "Play media phat tiep")
+            playMediaByIndex(playlistIndex)
+        }
+
     }
     fun pauseMedia()
     {
@@ -205,6 +198,7 @@ class PlayersManager(
             playMedia(mediaItem, timeStamp)
 
             Log.d(LOGTAG, "Play media $index")
+            Log.d("alarmx", "play ${mediaItem.title}")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -220,6 +214,7 @@ class PlayersManager(
                 }
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
+                    currentPlayer = vlcPlayer
                 }
                 MediaType.FM -> {
                     mediaStartTime = Calendar.getInstance().timeInMillis
@@ -235,13 +230,16 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
-            exoPlayer.playMedia(mediaItem, -1)
-            exoPlayer
-        } else {
-            vlcPlayer.playMedia(mediaItem, -1)
-            vlcPlayer
-        }
+//        currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
+//            exoPlayer.playMedia(mediaItem, -1)
+//            exoPlayer
+//        } else {
+//            vlcPlayer.playMedia(mediaItem, -1)
+//            vlcPlayer
+//        }
+
+        vlcPlayer.playMedia(mediaItem, -1)
+        currentPlayer = vlcPlayer
     }
 
     fun stopAllPlayer() {
@@ -297,16 +295,11 @@ class PlayersManager(
             return Pair(0, 0)
         }
     }
-    fun stopTimeFrame()
-    {
-        playerManagerListener?.onTimeOver()
-    }
+
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-
-
 
         //check time over
         isTimeOver = true
@@ -314,18 +307,21 @@ class PlayersManager(
     }
 
     fun endScheduledMediaByIndex(mediaIndex: Int) {
-        val scheduledItems = mediaRepo.scheduledMediaItems
-        if (mediaIndex >= scheduledItems.size) return
+//        val scheduledItems = mediaRepo.scheduledMediaItems
+//        if (mediaIndex >= scheduledItems.size) return
+//
+//        val itemToEnd = scheduledItems[mediaIndex]
+//        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
 
-        val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
-
-        stopAllPlayer()
-        onMediaStopPlaying()
+//        stopAllPlayer()
+//        onMediaStopPlaying()
 
         playNextMedia()
     }
-
+    fun stopTimeFrame()
+    {
+        playerManagerListener?.onTimeOver()
+    }
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
 
@@ -339,7 +335,7 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
 
-    fun onPlayForceCommand(
+    fun  onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
@@ -353,7 +349,7 @@ class PlayersManager(
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-
+            Log.d("alarmx", "Duration $duration")
             if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
@@ -365,10 +361,16 @@ class PlayersManager(
 
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-
+                    val listDur = duration.split(":")
+                    val h = listDur[0].toInt()
+                    val m = listDur[1].toInt()
+                    val s = listDur[2].toInt()
                     val mediaEndTime = Calendar.getInstance().apply {
-                        add(Calendar.MINUTE, convertStringToInt(duration))
+                        add(Calendar.HOUR, h)
+                        add(Calendar.MINUTE, m)
+                        add(Calendar.SECOND, s)
                     }
+
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
@@ -378,13 +380,6 @@ class PlayersManager(
         }
     }
 
-    private fun convertStringToInt(time: String): Int {
-        val listDur = time.split(":")
-        val h = listDur[0].toInt()
-        val m = listDur[1].toInt()
-        val s = listDur[2].toInt()
-        return (h * 3600 + m * 60 + s) / 60
-    }
 
     fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {

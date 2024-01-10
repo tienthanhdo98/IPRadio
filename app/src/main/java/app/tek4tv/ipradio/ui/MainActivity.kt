@@ -9,6 +9,8 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -249,7 +251,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext,
-            rootLayout,
             viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
@@ -314,12 +315,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            "tek4tv1"
+            ""
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            "tek4tv123"
+            ""
         )!!
     }
     override fun startStopWatch() {
@@ -428,8 +429,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
                 val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
                 Log.d("alarmx", "end media: $mediaIndex")
-
-                playerManager.endScheduledMediaByIndex(mediaIndex)
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -457,8 +456,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
                     }
-
-
                 }
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING -> {
@@ -472,13 +469,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -633,18 +630,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
-                    //add at 4.1.3a
-                    playerManager.stopForceMedia()
-                    //
+                    //  //add at 4.1.3d
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
+                    viewModel.updateMonthlyScenario(mess, false)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-
-                    Log.i("monthlyinfo", "Mess: $mess ")
+                    //add at 4.1.3b
+                    playerManager.stopForceMedia()
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
