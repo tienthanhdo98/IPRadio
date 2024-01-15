@@ -39,7 +39,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "Set reschedule day ${time.get(Calendar.DAY_OF_MONTH)}")
 
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, PendingIntent.FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(appContext, 101, intent, PendingIntent.FLAG_IMMUTABLE)
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
@@ -53,7 +53,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 1, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(appContext, 102, intent, FLAG_IMMUTABLE)
 
         val cal_alarm = Calendar.getInstance()
 
@@ -74,7 +74,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "Set check no hub and reset  + ${alarmDate}")
         Log.d("alarmx", "Set check no hub and reset  + ${date}")
 
-
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
             cal_alarm.timeInMillis,
@@ -88,7 +87,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 5, intent, FLAG_UPDATE_CURRENT)
+            PendingIntent.getBroadcast(appContext, 103, intent, FLAG_UPDATE_CURRENT)
 
         val interval = AlarmManager.INTERVAL_HOUR
 

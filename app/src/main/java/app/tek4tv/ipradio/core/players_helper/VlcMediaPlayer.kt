@@ -41,8 +41,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
                 } else {
-                    if (!disconnectedHub)
-                        onLiveErrorVlc()
+//                    if (!disconnectedHub)
+//                        onLiveErrorVlc()
+                    playerEventListener.onMediaForceEndReached(currentMedia)
                 }
             }
 
@@ -84,12 +85,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         vlcPlayer.eventListener = vlcEventListener
     }
 
-    override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
 
         when (mediaItem.getMediaType()) {
             MediaType.FILE -> {
-
                 playFile(mediaItem, timeStamp)
             }
             MediaType.LIVE -> {
@@ -146,14 +146,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
         val media = mediaItem.getVlcMedia(mLibVLC)
-        val duration = getDurationInSecond(mediaItem.duration!!)
-        media.addOption(":run-time=${duration}")
+
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
 
         currentVlcMedia = media
 
         vlcPlayer.play(media)
+
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
@@ -165,7 +165,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         currentVlcMedia = stream
 
         vlcPlayer.play(stream)
-
 
     }
 
@@ -204,7 +203,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     countReplayLive ++;
                     delay(2000)
                     Log.d(TAG, "onLiveErrorVlc: Chay lai live")
-                    playMedia(currentMedia!!)
+                    playMedia(currentMedia!!,false)
                 }
             } else {
                 Log.d(TAG, "Stopping from reconnect")

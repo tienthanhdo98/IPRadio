@@ -2,16 +2,20 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
+import android.view.View
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlaybackException
+import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import kotlinx.coroutines.*
+import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import java.util.*
 
@@ -27,6 +31,7 @@ class ExoMediaPlayer(
     private var currentPlayingMedia : MediaItem? = null
 
     private var isPlaying = false
+    private var isForceValue = false
 
     override var disconnectedHub = false
 
@@ -44,6 +49,22 @@ class ExoMediaPlayer(
             }
         }
 
+        override fun onPlaybackStateChanged(state: Int) {
+            super.onPlaybackStateChanged(state)
+            if(state == Player.STATE_ENDED)
+            {
+                Log.i(TAG, "onPlaybackStateChanged: end reach")
+            }
+            if (state == Player.STATE_BUFFERING) {
+                Log.i(TAG, "onPlaybackStateChanged: Buff")
+            }
+
+            if(state == Player.STATE_READY)
+            {
+                Log.i(TAG, "onPlaybackStateChanged: play")
+            }
+
+        }
 
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
@@ -59,7 +80,7 @@ class ExoMediaPlayer(
 
             isPlaying = false
             if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!)) {
-                playMedia(currentPlayingMedia!!)
+                playMedia(currentPlayingMedia!!,isForceValue)
             }
             else{
                 Log.d(TAG,"stop from reconnecting...")
@@ -83,17 +104,37 @@ class ExoMediaPlayer(
         exoPlayer.addListener(exoEventListener)
     }
 
-    override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
+    override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
         if(isPlaying) stop()
 
         try {
             currentPlayingMedia = mediaItem
+            isForceValue = isForce
             playHlsExo(mediaItem)
         }
         catch (e :Exception)
         {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
+        }
+    }
+    private fun playHlsExo(mediaItem: MediaItem) {
+
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
+
+        exoPlayer.setMediaItem(em)
+        exoPlayer.playWhenReady = true
+        exoPlayer.prepare()
+        if(!isForceValue) {
+            GlobalScope.launch {
+                delay((getDurationInSecond(mediaItem.duration!!) * 1000).toLong())
+                withContext(Dispatchers.Main)
+                {
+                    exoPlayer.stop()
+                    Log.d(TAG, "stop")
+                    eventListener.onMediaEndReached(currentPlayingMedia)
+                }
+            }
         }
     }
 
@@ -112,7 +153,7 @@ class ExoMediaPlayer(
     }
 
     override fun pause() {
-            exoPlayer.pause()
+        exoPlayer.pause()
     }
 
     override fun resume() {
@@ -131,16 +172,11 @@ class ExoMediaPlayer(
         disconnectedHub = false
 
         if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
-            playMedia(currentPlayingMedia!!)
+            playMedia(currentPlayingMedia!!,isForceValue)
         }
     }
 
-    private fun playHlsExo(mediaItem: MediaItem) {
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.body!!)
-        exoPlayer.setMediaItem(em)
-        exoPlayer.playWhenReady = true
-        exoPlayer.prepare()
-    }
+
 
     /**
      * Check if a stream is still in time to play

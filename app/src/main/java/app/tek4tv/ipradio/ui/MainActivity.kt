@@ -117,6 +117,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
+            Log.d("loghub", "onTimeOver: come")
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
@@ -180,7 +181,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             if (mediaItem?.getMediaType() != MediaType.FM) {
                 if (!serialPortController.isUart1) {
                     lifecycleScope.launch {
-                        delay(11000)
+//                        delay(11000)
                         serialPortController.turnOnPAVod()
                     }
                 } else {
@@ -301,7 +302,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 } else {
                     stopStream()
                 }
-                delay(1000)
+                delay(5000)
             }
         }
     }
@@ -426,10 +427,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 playerManager.stopPlaylist(listKey!!)
             }
 
-            MediaScheduleReceiver.ACTION_END_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "end media: $mediaIndex")
-            }
+//            MediaScheduleReceiver.ACTION_END_MEDIA -> {
+//                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
+//                Log.d("alarmx", "end media: $mediaIndex")
+//            }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
                 playerManager.stopForceMedia()
