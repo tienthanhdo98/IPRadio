@@ -52,7 +52,7 @@ class LogUtils private constructor() {
     var logService: LogService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = "Tek4tv"
+    var providerValue = GlobalProperties.getInst().providerValue
     init {
         listOf(
             logFolderPath,

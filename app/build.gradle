@@ -9,12 +9,12 @@ apply plugin: 'com.klaxit.hiddensecrets'
 
 android {
     signingConfigs {
-//        release {
-//            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
-//            storePassword '123456789'
-//            keyAlias 'key0'
-//            keyPassword '123456789'
-//        }
+        release {
+            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
+            storePassword '123456789'
+            keyAlias 'key0'
+            keyPassword '123456789'
+        }
     }
     compileSdkVersion 28
     buildToolsVersion "30.0.3"
@@ -24,8 +24,8 @@ android {
         applicationId "app.tek4tv.digital"
         minSdkVersion 23
         targetSdkVersion 28
-        versionCode 5
-        versionName "4.1.0"
+        versionCode 12
+        versionName "D25.4.1.5"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -45,7 +45,7 @@ android {
         release {
             minifyEnabled true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
         }
     }
     compileOptions {

@@ -82,7 +82,7 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    private val providerValue = "Tek4tv"
+    var providerValue = "LAICHAU"
 
     private var firstConnect = true
 
@@ -97,10 +97,14 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
+        providerValue = ConfigUtil.getStringEncrypt(
+            appContext,
+            ConfigUtil.PROVIDER,"LAICHAU"
+        )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-bacgiang.tek4tv.vn/hubServer"
+            "https://hubdi-laichau.tek4tv.vn/hubServer"
         ).toString()
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -299,49 +303,7 @@ class HubManager(
                 hubConnection.start().blockingAwait()
 
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-                val currentTime = Calendar.getInstance().time
-                logUtils.logHubConnectState(
-                    HubStateRecord(
-                        imei = deviceImei,
-                        provider = providerValue,
-                        state = "CONNECTED",
-                        networkType = NetworkUtils.getNetworkClass(appContext),
-                        destinationID = logUtils.destinationId,
-                        destinationName = logUtils.destinationName,
-                        start = currentTime.time.toString()
-                    )
-                )
-                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
-                //send disconn log when connect
-                if (ConfigUtil.checkSharef(
-                        appContext,
-                        ConfigUtil.DISCONNECT_START_TIME
-                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-                ) {
-                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-                    val keyState = ConfigUtil.DISCONNECT_STATE
-                    val disconnectTime =
-                        ConfigUtil.getString(appContext, keyStartDis, "0")
-                            ?: "0"
-                    val disconnectState =
-                        ConfigUtil.getString(appContext, keyState, "0")
-                            ?: "DISCONNECT"
-                    logUtils.logHubConnectState(
-                        HubStateRecord(
-                            imei = deviceImei,
-                            provider = providerValue,
-                            state = disconnectState,
-                            networkType = NetworkUtils.getNetworkClass(appContext),
-                            destinationID = logUtils.destinationId,
-                            destinationName = logUtils.destinationName,
-                            start = disconnectTime
-                        )
-                    )
-                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-                    ConfigUtil.removeSharef(appContext, keyStartDis)
-                    ConfigUtil.removeSharef(appContext, keyState)
 
-                }
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
