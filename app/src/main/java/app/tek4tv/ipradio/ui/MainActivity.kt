@@ -275,8 +275,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         hideSystemUI()
         showMac()
 
-        micStreamRtsp = RtspOnlyAudio(this)
-        //micStreamRtsp.setCheckServerAlive(true)
+        //micStreamRtsp = RtspOnlyAudio(this)
+        micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
         binding.btnRecord.setOnClickListener {
 
@@ -311,17 +311,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            ""
+            "rtsp://radio.tek4tv.vn:1935/haiphong/alphacom2"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            ""
+            "tek4tv1"
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            ""
+            "tek4tv123"
         )!!
     }
     override fun startStopWatch() {
