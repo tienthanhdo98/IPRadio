@@ -1,12 +1,14 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
+import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -242,7 +244,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         supportActionBar?.hide()
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
-
+        Log.i("monthlyinfo", "Mess: recreate start")
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
@@ -309,7 +311,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
 
         initDataByScreen()
-        Log.i("monthlyinfo", "Mess: recreate main")
+    }
+
+    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
+        Log.d("monthlyinfo", "show onCreateView")
+        return super.onCreateView(name, context, attrs)
     }
 
     private fun initDataByScreen() {
@@ -372,7 +378,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         handler.removeCallbacksAndMessages(null)
                         showLeftArea()
                     }
-                    Log.d("PLaasdas", "run: ${layoutTvLeft.size}")
                 }
 
                 handler.postDelayed(this, 50) // Adjust the delay as needed
@@ -404,10 +409,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
     }
 
-    override fun onStart() {
-        Log.e("monthlyinfo", "onStart")
-        super.onStart()
+//    override fun onStart() {
+//        Log.e("monthlyinfo", "onStart")
+//        super.onStart()
+//        startPlayingMedia()
+//    }
+
+    override fun onResume() {
+        Log.e("monthlyinfo", "onResume")
         startPlayingMedia()
+        super.onResume()
     }
 
     override fun onStop() {
@@ -418,7 +429,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     override fun onDestroy() {
-        Log.e("monthlyinfo", "onDestroy")
+        Log.e("monthlyinfo", "onDestroy ")
         super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
@@ -530,7 +541,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
-            Log.i("monthlyinfo", "Mess: recreate ober")
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -579,7 +589,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     )
 
     fun startPlayingMedia() {
-        Log.i("monthlyinfo", "Mess: recreate start")
+
         viewModel.getPlayerContent("", false)
 
     }
@@ -639,7 +649,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
                     lifecycleScope.launch {
                         delay(3000)
-                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                        finish()
+                        val k = Intent(baseContext, MainActivity::class.java)
+                        startActivity(k)
+//                        startActivity(this@MainActivity);
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
