@@ -275,8 +275,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         hideSystemUI()
         showMac()
 
-        //micStreamRtsp = RtspOnlyAudio(this)
-        micStreamRtsp.setCheckServerAlive(true)
+        micStreamRtsp = RtspOnlyAudio(this)
+        //micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
         binding.btnRecord.setOnClickListener {
 
@@ -311,7 +311,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radio.tek4tv.vn:1935/haiphong/alphacom2"
+            "rtsp://radio.tek4tv.vn:1935/haiphong/alphacom3"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -324,6 +324,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             "tek4tv123"
         )!!
     }
+
     override fun startStopWatch() {
         var secondPassed = 0L
         lifecycleScope.launch {
@@ -462,6 +463,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING -> {
                 lifecycleScope.launch {
                     serialPortController.turnOffPA()
+                    Log.d("alarmx", "onAlarm: Reset each hour")
                     delay(3000)
                     restartApp(MyApp.instance!!, this@MainActivity)
                 }

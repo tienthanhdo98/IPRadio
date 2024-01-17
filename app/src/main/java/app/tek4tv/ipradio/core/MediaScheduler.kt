@@ -86,18 +86,19 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING
         }
+         val  interval = 63 * 60 * 1000
         val alarmIntent =
             PendingIntent.getBroadcast(appContext, 103, intent, FLAG_UPDATE_CURRENT)
 
-        val interval = AlarmManager.INTERVAL_HOUR
+        ///val interval = AlarmManager.INTERVAL_HOUR
 
         val triggerTime = SystemClock.elapsedRealtime() + interval
 
 
-        alarmManager.setInexactRepeating(
+        alarmManager.setRepeating(
             AlarmManager.ELAPSED_REALTIME_WAKEUP,
             triggerTime,
-            interval,
+            interval.toLong(),
             alarmIntent
         )
 
