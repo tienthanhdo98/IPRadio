@@ -649,10 +649,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
                     lifecycleScope.launch {
                         delay(3000)
-//                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                        finish()
-                        val k = Intent(baseContext, MainActivity::class.java)
-                        startActivity(k)
+                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        finish()
+//                        val k = Intent(baseContext, MainActivity::class.java)
+//                        startActivity(k)
 //                        startActivity(this@MainActivity);
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
