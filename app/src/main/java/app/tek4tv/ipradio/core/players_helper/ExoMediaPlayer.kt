@@ -1,21 +1,19 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
 import android.util.Log
-import android.view.View
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlaybackException
-import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.Player
 import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import kotlinx.coroutines.*
-import okhttp3.Dispatcher
 import okhttp3.OkHttpClient
 import java.util.*
 
@@ -110,7 +108,7 @@ class ExoMediaPlayer(
         try {
             currentPlayingMedia = mediaItem
             isForceValue = isForce
-            playHlsExo(mediaItem)
+            playHlsExo(mediaItem,timeStamp)
         }
         catch (e :Exception)
         {
@@ -118,23 +116,22 @@ class ExoMediaPlayer(
             e.printStackTrace()
         }
     }
-    private fun playHlsExo(mediaItem: MediaItem) {
-
+    private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
+        var currentTimeStamp =0
+        if(timeStamp != -1) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
 
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
         if(!isForceValue) {
-            GlobalScope.launch {
-                delay((getDurationInSecond(mediaItem.duration!!) * 1000).toLong())
-                withContext(Dispatchers.Main)
-                {
-                    exoPlayer.stop()
-                    Log.d(TAG, "stop")
-                    eventListener.onMediaEndReached(currentPlayingMedia)
-                }
-            }
+            Handler().postDelayed({
+                Log.e(PlayersManager.LOGTAG, "Player FM start")
+                exoPlayer.stop()
+                Log.d(TAG, "stop")
+                eventListener.onMediaEndReached(currentPlayingMedia)
+                Log.e(PlayersManager.LOGTAG, "Player FM stop")
+            }, (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp*1000)
         }
     }
 

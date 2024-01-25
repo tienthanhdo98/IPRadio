@@ -10,7 +10,6 @@ import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
-import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -21,7 +20,6 @@ import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.collections.LinkedHashMap
 
 @Singleton
 class MediaRepo @Inject constructor(
@@ -73,7 +71,7 @@ class MediaRepo @Inject constructor(
             }
 
         } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario")
+            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -167,6 +165,8 @@ class MediaRepo @Inject constructor(
 
     fun downloadAMediaItem(it: MediaItem) {
         if (it.getMediaType() != MediaType.FILE) return
+        if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
+
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
@@ -203,9 +203,10 @@ class MediaRepo @Inject constructor(
                     Log.d("downloadcomplete", it.body!!)
                 }
 
-                override fun onError(error: Error?) {
+                override fun onError(error: com.downloader.Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }

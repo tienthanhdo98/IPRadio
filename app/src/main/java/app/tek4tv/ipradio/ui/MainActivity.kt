@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -15,6 +16,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.core.content.ContentProviderCompat.requireContext
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -51,6 +53,9 @@ import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.MediaPlayer
 import java.io.File
 import java.io.IOException
 import java.net.NetworkInterface
@@ -234,7 +239,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             handleFromCommandServer(command, message)
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        // serialPortController.connectToSerialPort("/dev/ttyS4")
+
         serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
             delay(10000)
@@ -279,7 +284,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         //micStreamRtsp.setCheckServerAlive(true)
         getSteamInfo()
         binding.btnRecord.setOnClickListener {
-
             if (!micStreamRtsp.isStreaming) {
                 startStream()
             } else {
@@ -311,17 +315,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radio.tek4tv.vn:1935/haiphong/alphacom3"
+            ""
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            "tek4tv1"
+            ""
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            "tek4tv123"
+            ""
         )!!
     }
 
@@ -467,7 +471,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     delay(3000)
                     restartApp(MyApp.instance!!, this@MainActivity)
                 }
-
             }
         }
     }
@@ -535,9 +538,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             //check hub
             mediaScheduler.setCheckHubAndResetAlarms()
             mediaScheduler.setAlarmResetStreamEachHour()
-            Log.d("player2", "registerObservers: Checked")
+
             playerManager.startFirstTimeFrame()
-            Log.d("player2", "registerObservers: Checked2")
+
             //all load done, check
             viewModel.checkPlaylist()
         }
@@ -746,7 +749,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     if(playerManager.playMode != PLAY_MODE_FORCE ) {
                         when (mess) {
                             //dung phat
-                            0 -> {
+                            0,2 -> {
                                 playerManager.stopAllPlayer()
                                 playerManager.resetPlayMode()
                             }
@@ -757,10 +760,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                                     playerManager.playNextMedia()
                                 }
                             }
-                            //Tạm dừng nội dung đang phát
-                            2 -> {
-                                playerManager.pauseMedia()
-                            }
+
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
                                 if (playerManager.played) {

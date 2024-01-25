@@ -138,7 +138,7 @@ class SerialPortController(
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if (list.size > 4) {
+                            if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
                                 volume = list[5]
                             }

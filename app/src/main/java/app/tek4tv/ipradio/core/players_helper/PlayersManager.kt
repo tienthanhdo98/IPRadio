@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
 import android.util.Log
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
@@ -113,6 +114,7 @@ class PlayersManager(
         played = false
     }
 
+
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -121,7 +123,7 @@ class PlayersManager(
         var found = false
         val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
-        Log.d("CONTROL_MEDIA", "play mode: ${scheduledList.keys}")
+        Log.d(LOGTAG, "play mode: ${scheduledList.keys}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
@@ -144,6 +146,7 @@ class PlayersManager(
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
+
         stopAllPlayer()
 
         playMode = timeFrame
@@ -153,6 +156,8 @@ class PlayersManager(
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
             playMediaByIndex(playlistIndex, resumePoint.second)
+            Log.d(LOGTAG, "resumePoint index : ${resumePoint.first}")
+            Log.d(LOGTAG, "resumePoint second: ${resumePoint.second}")
         } else {
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
@@ -163,25 +168,34 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        vlcPlayer.stop()
-        exoPlayer.stop()
+        if(currentPlayer == vlcPlayer) {
+            vlcPlayer.stop()
+        }
+        else {
+            exoPlayer.stop()
+        }
         playlistIndex++
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
         }
-        if(playlistIndex >= currentPlaylist.size)
+        else
         {
             Log.d(LOGTAG, "Play media phat tiep cham dich")
             stopAllPlayer()
             stopTimeFrame()
         }
+//        if(playlistIndex >= currentPlaylist.size)
+//        {
+//
+//        }
     }
-    fun pauseMedia()
-    {
-        vlcPlayer.pause()
-        exoPlayer.pause()
-    }
+
+    //    fun pauseMedia()
+//    {
+//        vlcPlayer.pause()
+//        exoPlayer.pause()
+//    }
     fun resumeMedia()
     {
         vlcPlayer.resume()
@@ -209,7 +223,14 @@ class PlayersManager(
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem,false)
                     } else {
-                        vlcPlayer.playMedia(mediaItem, false,timeStamp)
+                        //wav,mp4,
+                        if(mediaItem.body!!.contains("rtsp") || !mediaItem.body!!.contains(".mp3")  || !mediaItem.body!!.contains(".mp4")  || !mediaItem.body!!.contains(".wav"))
+                        {
+                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+                        }
+                        else {
+                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                        }
                         currentPlayer = vlcPlayer
                     }
                 }
@@ -217,10 +238,20 @@ class PlayersManager(
                     playLiveStream(mediaItem,true)
                 }
                 MediaType.FM -> {
+                    var currentTimeStamp =0
+                    if(timeStamp != -1) currentTimeStamp = timeStamp
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
+                    if(playMode != PLAY_MODE_FORCE){
+                        Handler().postDelayed({
+                            Log.e(LOGTAG, "Player FM start")
+                            onMediaEndReached(mediaItem)
+                            Log.e(LOGTAG, "Player FM stop")
+                        }, getDurationInSecond(mediaItem.duration!!).toLong()*1000 - currentTimeStamp*1000)
+                    }
                 }
                 else -> {
+                    Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
                 }
             }
