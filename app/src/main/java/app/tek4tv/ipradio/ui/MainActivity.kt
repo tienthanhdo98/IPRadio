@@ -118,6 +118,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     var urlStream = ""
     var user_name_stream = ""
     var password_stream = ""
+    var protocol_stream = ""
+    var bitrate_stream = ""
+    var samplerate = ""
      lateinit var micStreamRtsp : RtspOnlyAudio
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -212,7 +215,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -240,7 +243,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
-        serialPortController.connectToSerialPort(UART_S1_NAME)
+        serialPortController.connectToSerialPort(UART_S4_NAME)
         lifecycleScope.launch {
             delay(10000)
             if (!serialPortController.isUart1) {
@@ -315,18 +318,34 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            ""
+            "rtsp://171.244.129.143:8554/livevov2"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            ""
+            "tek4tv1"
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            ""
+            "tek4tv123"
         )!!
+        protocol_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.PROTOCOL_STREAM,
+            "TCP"
+        )!!
+        bitrate_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.BITRATE_STREAM,
+            "65536"
+        )!!
+        samplerate = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.SAMPLERATE_STREAM,
+            "44100"
+        )!!
+
     }
 
     override fun startStopWatch() {
@@ -348,8 +367,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
          micStreamRtsp.setAuthorization(user_name_stream, password_stream)
          micStreamRtsp.setMicrophoneMode(MicrophoneMode.ASYNC)
-         micStreamRtsp.setProtocol(Protocol.UDP)
-         if (micStreamRtsp.prepareAudio(64 * 1024, 44100, true, true, true)) {
+         if(protocol_stream == "TCP")
+         {
+             micStreamRtsp.setProtocol(Protocol.TCP)
+         }
+         else
+         {
+             micStreamRtsp.setProtocol(Protocol.UDP)
+         }
+         if (micStreamRtsp.prepareAudio(bitrate_stream.toInt(), samplerate.toInt(), true, true, true)) {
              micStreamRtsp.startStream(urlStream)
          } else {
              Log.d("RTMP", "startStream: micStream not prepare success")
@@ -689,6 +715,30 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             listValue[5]
                         )
                         Log.i("pingping", "pass: ${listValue[5]}")
+                    }
+                    if (listValue.size >= 7) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROTOCOL_STREAM,
+                            listValue[6]
+                        )
+                        Log.i("pingping", "protocol: ${listValue[5]}")
+                    }
+                    if (listValue.size >= 8) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.BITRATE_STREAM,
+                            listValue[7]
+                        )
+                        Log.i("pingping", "protocol: ${listValue[5]}")
+                    }
+                    if (listValue.size >= 9) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.SAMPLERATE_STREAM,
+                            listValue[8]
+                        )
+                        Log.i("pingping", "protocol: ${listValue[5]}")
                     }
 
                     val hubConnection = HubConnectionBuilder.create(urlHub)

@@ -20,6 +20,9 @@ object ConfigUtil {
     const val URL_STREAM = "URL_STREAM"
     const val USER_NAME_STREAM = "USER_NAME_STREAM"
     const val PASSWORD_STREAM = "PASSWORD_STREAM"
+    const val PROTOCOL_STREAM = "PROTOCOL_STREAM"
+    const val BITRATE_STREAM = "BITRATE_STREAM"
+    const val SAMPLERATE_STREAM = "SAMPLERATE_STREAM"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
