@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
+import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
@@ -845,9 +846,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
                 HubCommand.SET_VOLUME_DEVICE -> {
+//                    if (responseHub.message != null) {
+//                        serialPortController.writeForceSetVolume(responseHub.message!!)
+//                        globalProperties.setTempVolume(responseHub.message!!)
+//                    }
                     if (responseHub.message != null) {
-                        serialPortController.writeForceSetVolume(responseHub.message!!)
-                        globalProperties.setTempVolume(responseHub.message!!)
+                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
+                        changeVolume(responseHub.message!!.toInt())
                     }
                 }
                 HubCommand.UPDATE_VERSION -> {
@@ -1029,6 +1034,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
+    }
+    private fun changeVolume(volumeValue: Int)
+    {
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
     }
 
     private fun onPlayForce(responseHub: ResponseHub) {

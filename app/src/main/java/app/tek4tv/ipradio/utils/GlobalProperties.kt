@@ -35,13 +35,15 @@ class GlobalProperties {
     var lng: Float = 0f
     var providerValue: String = "Tek4tv"
 
+
+
     init {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H35.43") ?: "H35.43"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Huyện Tam Đường") ?: "Huyện Tam Đường"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Huyện Tam Đường") ?: "TB Huyện Tam Đường"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H26.47.20") ?: "H26.47.20"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Định Công") ?: "Phường Định Công"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Phường Định Công") ?: "TB Phường Định Công"
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)

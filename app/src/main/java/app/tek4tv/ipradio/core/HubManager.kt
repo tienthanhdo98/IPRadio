@@ -104,7 +104,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-laichau.tek4tv.vn/hubServer"
+            "https://hubdi-hanoi.tek4tv.vn/hubServer"
         ).toString()
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
