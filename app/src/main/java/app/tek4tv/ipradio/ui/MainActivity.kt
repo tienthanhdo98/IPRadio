@@ -696,7 +696,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("config_config", "updateconfig ${resposnHub.lat}")
                     Log.i("config_config", "updateconfig ${resposnHub.lng}")
                     Log.i("config_config", "updateconfig success")
-
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
@@ -1027,7 +1026,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     logUtils.sendLogFile(data[0], data[1])
                 }
             }
-
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
                 logUtils.logHubCommand(command, responseHub.message ?: "")
             }
