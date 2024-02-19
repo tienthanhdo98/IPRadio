@@ -122,6 +122,8 @@ class VlcMediaPlayer(
     }
 
     override fun release() {
+        Log.i("monthlyinfo", "vlc release")
+//        if(!vlcPlayer.isPlaying)
         vlcPlayer.release()
         mLibVLC.release()
     }

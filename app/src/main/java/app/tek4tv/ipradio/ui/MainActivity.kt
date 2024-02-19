@@ -1,15 +1,14 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
+import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
-import android.util.AttributeSet
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -20,6 +19,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.IntentCompat
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
@@ -314,10 +314,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         initDataByScreen()
     }
 
-    override fun onCreateView(name: String, context: Context, attrs: AttributeSet): View? {
-        Log.d("monthlyinfo", "show onCreateView")
-        return super.onCreateView(name, context, attrs)
-    }
+
 
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
@@ -397,7 +394,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.e("monthlyinfo", "Hub hide left")
     }
 
-    private val scrollSpeed = 2
+    private val scrollSpeed = 1
     private val handler: Handler = Handler()
     private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
@@ -424,17 +421,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
-        super.onStop()
         playerManager.onActivityStop()
         cancelAllAlarm()
+        super.onStop()
+
     }
 
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
-        super.onDestroy()
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+        super.onDestroy()
+
 
     }
 
@@ -649,12 +648,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
                     lifecycleScope.launch {
-                        delay(3000)
-                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        delay(3000)
+////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
 //                        finish()
 //                        val k = Intent(baseContext, MainActivity::class.java)
-//                        startActivity(k)
-//                        startActivity(this@MainActivity);
+//                        overridePendingTransition(0, 0);
+//                        startActivity(k);
+//                        overridePendingTransition(0, 0);
+//                        recreate()
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }

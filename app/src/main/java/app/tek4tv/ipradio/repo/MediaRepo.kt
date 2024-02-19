@@ -1,10 +1,7 @@
 package app.tek4tv.ipradio.repo
 
 import android.content.Context
-import android.provider.MediaStore.Audio.Media
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
-import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
