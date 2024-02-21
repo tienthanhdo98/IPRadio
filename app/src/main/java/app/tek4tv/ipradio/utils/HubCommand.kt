@@ -47,10 +47,8 @@ object HubCommand {
     const val PLAY_TUNER_LIVE_FORCE = "PLAY_TUNER_LIVE_FORCE"
     const val READ_DEVICE_INFO = "READ_DEVICE_INFO"
 
-
     const val DELETE_ALL_LOG = "DELETE_ALL_LOG"
     const val GET_LOG_BY_DAY = "GET_LOG_BY_DAY"
-
 
     const val CONTROL_WIFI_STATE = "CONTROL_WIFI_STATE"
 
