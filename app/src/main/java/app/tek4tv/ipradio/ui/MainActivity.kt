@@ -662,7 +662,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         val info = appStorageManager.run {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
-
+                        //1007173632,660459520,5659574272,5659574272
+                        //1007173632,660459520,5659574272,92168192
+                        //1007173632,660459520,5659574272,292106240
+                        //1007173632,660459520,5659574272,355995648
+                        //1007173632,660459520,5659574272,92200960
+                        //7828058112,4411047936,114491863040,101892272128
                         hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
                     }
                 }
