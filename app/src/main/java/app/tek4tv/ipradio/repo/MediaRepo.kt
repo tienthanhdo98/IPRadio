@@ -76,7 +76,7 @@ class MediaRepo @Inject constructor(
 
             if (dayScenario != null) {
                 ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-                Log.d("LALALA", "registerObservers: ${ dayScenario.broadcastRegionDigital.toLong()} ")
+                Log.d("monthlyinfo", "registerObservers: ${ dayScenario.broadcastRegionDigital.toLong()} ")
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings

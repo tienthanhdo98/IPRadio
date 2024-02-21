@@ -33,8 +33,15 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:sharedUserId="android.uid.system"
         android:theme="@style/Theme.IPRadio"
-        android:usesCleartextTraffic="true">
 
+        android:usesCleartextTraffic="true">
+        <activity
+            android:name=".ui.MainActivityMultipleScreen"
+            android:exported="false">
+            <meta-data
+                android:name="android.app.lib_name"
+                android:value="" />
+        </activity>
         <activity
             android:name=".ui.MainActivity"
             android:screenOrientation="landscape">

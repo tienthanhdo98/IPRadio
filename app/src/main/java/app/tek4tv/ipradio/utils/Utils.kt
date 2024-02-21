@@ -84,5 +84,16 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+        fun roundToNearestNumber(number: Int): Int {
+            // Calculate remainder when dividing by 10
+            val remainder = number % 10
+
+            // Round down if remainder is less than or equal to 5, else round up
+            return if (remainder <= 4) {
+                (number - remainder) / 10
+            } else {
+                ( number + (10 - remainder)) / 10
+            }
+        }
     }
 }

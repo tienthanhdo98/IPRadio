@@ -49,6 +49,13 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
+        coroutineScope.launch(Dispatchers.IO) {
+            while (true) {
+                updateStatus()
+                delay(5000)
+            }
+        }
+
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
@@ -115,7 +122,7 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-       coroutineScope.launch(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             while (!Thread.currentThread().isInterrupted) {
                 var size: Int
                 try {
@@ -128,10 +135,11 @@ class SerialPortController(
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
-                            deviceInfo = s
+                            Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (list.size > 4) {
+                                deviceInfo = s
                                 volume = list[5]
                             }
                             dataFinal = StringBuffer()
@@ -243,7 +251,6 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
         playMode = MODE_TUNER
-
         Log.e("PA", "TUNER")
     }
 

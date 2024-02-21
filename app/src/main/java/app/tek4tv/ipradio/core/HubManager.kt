@@ -455,17 +455,17 @@ class HubManager(
                 provider = providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
-                volume = SerialPortController.volume
+                volume = GlobalProperties.getInst().volume
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = (currentTime.time / 1000)
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = isRecording
                 deviceInfo = SerialPortController.deviceInfo
-
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.startTime}")
-            Log.i("loghub", "log hub: ${request.networkInfo}")
+            Log.i("loghub", "log hub: ${request}")
+            Log.i("loghub", "log hub device info: ${request.volume}")
+            Log.i("loghub", "log hub device info: ${ GlobalProperties.getInst().androidVolume}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

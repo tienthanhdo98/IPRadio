@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.ui
 
 import android.Manifest
 import android.content.Intent
-import android.content.Intent.FLAG_ACTIVITY_CLEAR_TASK
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioManager
@@ -19,7 +18,6 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.IntentCompat
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
@@ -37,10 +35,13 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -385,13 +386,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun hideTopLeftArea() {
-        listLeftMedia.clear()
-        handler.removeCallbacksAndMessages(null)
-        layoutTvLeft.removeAllViews()
-        handler.removeCallbacksAndMessages(null)
-        //delete pref list left
-        ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-        Log.e("monthlyinfo", "Hub hide left")
+        if (typeScreen != FULL_SCREEN) {
+            listLeftMedia.clear()
+            handler.removeCallbacksAndMessages(null)
+            layoutTvLeft.removeAllViews()
+            handler.removeCallbacksAndMessages(null)
+            //delete pref list left
+            ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+            Log.e("monthlyinfo", "Hub hide left")
+        }
     }
 
     private val scrollSpeed = 1
@@ -451,6 +454,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
+                mediaScheduler.scheduleShowListLeft()
+                mediaScheduler.scheduleEndLeftArea()
             }
 
             MediaScheduleReceiver.ACTION_END_MEDIA -> {
@@ -486,7 +491,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
             }
             MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
-                if (typeScreen == FULL_SCREEN) return
                 hideTopLeftArea()
             }
             MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA -> {
@@ -574,7 +578,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 } else {
                     Log.i("monthlyinfo", "Mess: online ")
                 }
-                mediaScheduler.scheduleShowListLeft()
+//                mediaScheduler.scheduleShowListLeft()
 
             }
 
@@ -640,6 +644,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
+                    hideTopLeftArea()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
@@ -647,28 +652,38 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+
                     lifecycleScope.launch {
-//                        delay(3000)
-////                        CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                        delay(2000)
+                        val newTypeScreen = ConfigUtil.getInt(
+                            context = baseContext,
+                            TYPE_SCREEN_KEY,
+                            FULL_SCREEN
+                        )
+                        Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
+                        Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
+                        if (newTypeScreen != typeScreen) {
+//                        val k = Intent(baseContext, MainActivityMultipleScreen::class.java)
 //                        finish()
-//                        val k = Intent(baseContext, MainActivity::class.java)
-//                        overridePendingTransition(0, 0);
 //                        startActivity(k);
-//                        overridePendingTransition(0, 0);
-//                        recreate()
+//                            recreate()
+                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                        }
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
+
+
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
                     Log.i("config_config", "updateconfig $mess")
 
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
-                        if(listInfoConfig.isNotEmpty()) {
+                        if (listInfoConfig.isNotEmpty()) {
                             volume = listInfoConfig[0]
                         }
-                        if(listInfoConfig.size >= 2) {
+                        if (listInfoConfig.size >= 2) {
                             lat = listInfoConfig[1].toFloat()
                         }
                         if(listInfoConfig.size >= 3) {
@@ -759,10 +774,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.TURN_ON_PA -> {
-                    serialPortController.turnOnPAVod()
-                }
-                HubCommand.TURN_OFF_PA -> {
-                    serialPortController.turnOffPA()
+                    if (responseHub.message == "1") {
+                        serialPortController.turnOffPA()
+                    } else {
+                        serialPortController.turnOnPAVod()
+                    }
                 }
 
                 HubCommand.CONTROL_MEDIA -> {
@@ -842,7 +858,33 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
-                        serialPortController.setMuteDevice(responseHub.message!!)
+                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
+                        if (responseHub.message == "1")//tat loa mute
+                        {
+                            changeVolume(0)
+                            globalProperties.setTempVolume("0")
+                            globalProperties.setAndroidPreVolume("0")
+                        } else {
+                            changeVolume(
+                                (ConfigUtil.getString(
+                                    baseContext,
+                                    DEFAULT_ANDROID_VOLUME,
+                                    "10"
+                                ) ?: "10").toInt()
+                            )
+                            globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
+                            globalProperties.setTempVolume(
+                                (ConfigUtil.getString(
+                                    baseContext,
+                                    DEFAULT_VOLUME,
+                                    "100"
+                                ) ?: "100")
+                            )
+                            Log.d(
+                                "UpdateVolume",
+                                "handleFromCommandServer: ${globalProperties.androidVolume.toInt()}"
+                            )
+                        }
                     }
                 }
                 HubCommand.SET_VOLUME_DEVICE -> {
@@ -851,8 +893,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                        globalProperties.setTempVolume(responseHub.message!!)
 //                    }
                     if (responseHub.message != null) {
-                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
-                        changeVolume(responseHub.message!!.toInt())
+                        changeVolume(roundToNearestNumber(responseHub.message!!.toInt()))
+                        globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
+                        globalProperties.setTempVolume(responseHub.message!!.toString())
+                        ConfigUtil.putString(
+                            applicationContext,
+                            DEFAULT_ANDROID_VOLUME,
+                            roundToNearestNumber(responseHub.message!!.toInt()).toString()
+                        )
+                        ConfigUtil.putString(
+                            applicationContext,
+                            DEFAULT_VOLUME,
+                            responseHub.message!!
+                        )
+
                     }
                 }
                 HubCommand.UPDATE_VERSION -> {
@@ -971,7 +1025,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (itemDelete != "" && itemDelete != null) {
                         deleteAFileInFolder(recordPath, itemDelete)
                     } else {
-
                         appStorageManager.deleteAllRecord()
 
                     }
@@ -1054,13 +1107,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
+        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
 
     companion object {

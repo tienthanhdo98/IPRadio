@@ -3,13 +3,14 @@ package app.tek4tv.ipradio.utils
 import android.content.Context
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.PROVIDER
 
 class GlobalProperties {
 
     private val appContext: Context = MyApp.instance!!.applicationContext
 
-    val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     val DEFAULT_PI_CODE = "DEFAULT_PI_CODE"
     val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
     val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
@@ -23,6 +24,8 @@ class GlobalProperties {
 
 
     var volume = "100"
+    var androidVolume = "10"
+
     var userNameController = ""
     var piCode = "0"
     var psName = "AAA"
@@ -39,6 +42,7 @@ class GlobalProperties {
 
     init {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H35.43.2") ?: "H35.43.2"
@@ -110,6 +114,9 @@ class GlobalProperties {
 
     fun setTempVolume(vol: String) {
         volume = vol
+    }
+    fun setAndroidPreVolume(vol: String) {
+        androidVolume = vol
     }
 
     companion object {
