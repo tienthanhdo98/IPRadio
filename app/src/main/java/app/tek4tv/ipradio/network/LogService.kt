@@ -6,7 +6,7 @@ import retrofit2.http.POST
 
 interface LogService {
 
-    @POST("https://datawarehouse-truyenthanh.tek4tv.vn/IpRadioDataLog")
+    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     @POST("https://datawarehouse-truyenthanh.tek4tv.vn/IpRadioDataLogConfirm")
