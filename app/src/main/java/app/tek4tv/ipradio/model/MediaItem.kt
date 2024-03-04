@@ -24,7 +24,7 @@ data class MediaItem(
     val fixTime: String? = null,
 
     @Json(name = "MediaID")
-    var mediaID: Int? = null,
+    var mediaID: String? = null,
 
     @Json(name = "SourceID")
     val sourceID: String? = null,
@@ -74,11 +74,16 @@ data class MediaItem(
     @Json(name = "CreateDate")
     val createDate: String? = null,
 
+    @Json(name = "ProjectID")
+    val projectID: String? = null,
+
     @Json(name = "Metadata")
     val metadata: List<Any?>? = null,
 
     @Json(name = "Tag")
-    val tag: List<Any?>? = null
+    val tag: List<Any?>? = null,
+
+
 
 ) : Serializable {
 
