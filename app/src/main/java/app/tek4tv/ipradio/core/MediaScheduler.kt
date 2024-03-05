@@ -4,10 +4,8 @@ import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
-import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
-import android.os.SystemClock
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
@@ -16,7 +14,6 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
 import java.util.*
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
@@ -82,28 +79,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     }
 
-    fun setAlarmResetStreamEachHour() {
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING
-        }
-         val  interval = 63 * 60 * 1000
-        val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 103, intent, FLAG_UPDATE_CURRENT)
-
-        ///val interval = AlarmManager.INTERVAL_HOUR
-
-        val triggerTime = SystemClock.elapsedRealtime() + interval
-
-
-        alarmManager.setRepeating(
-            AlarmManager.ELAPSED_REALTIME_WAKEUP,
-            triggerTime,
-            interval.toLong(),
-            alarmIntent
-        )
-
-    }
-
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
@@ -140,6 +115,32 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             }
         }
     }
+
+    fun restartBeforeTimeFrame() {
+        Log.i("alarm", "turnOnPAAlarms: start")
+        val scheduledList = mediaRepo.scheduledList
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING
+        }
+        for (i in scheduledList.keys.indices) {
+            val period = scheduledList.keys.elementAt(i)
+            val t = period.split("-")
+            val start = toCalendar(t[0]).timeInMillis - (5*60*1000)
+
+            val alarmIntent =
+                PendingIntent.getBroadcast(appContext, i, intent, FLAG_IMMUTABLE)
+
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                start,
+                alarmIntent
+            )
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+            Log.i("alarm", "turnOnPAAlarms: ${dateFormat.format(start)}")
+        }
+
+    }
+
 
     private fun setAlarmForList(
         listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false

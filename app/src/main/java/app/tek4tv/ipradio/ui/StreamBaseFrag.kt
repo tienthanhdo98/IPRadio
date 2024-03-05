@@ -11,6 +11,7 @@ import com.pedro.rtsp.utils.ConnectCheckerRtsp
 open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
 
     val mainHandler = Handler(Looper.getMainLooper())
+    var isStreaming = false
 
     open fun stopStream() {
 
@@ -33,10 +34,10 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
             Log.e("StreamFileAct", reason)
             Toast.makeText(baseContext,"Stream error $reason",Toast.LENGTH_LONG)
             stopStream()
+            isStreaming = false
         }
 
     }
-
     override fun onConnectionStartedRtsp(rtmpUrl: String) {
         Log.d("RTMP", "onConnectionStartedRtsp: $rtmpUrl")
     }
@@ -45,6 +46,7 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
         mainHandler.post {
             Toast.makeText(baseContext,"Stream succes",Toast.LENGTH_LONG)
             startStopWatch()
+            isStreaming = true
         }
     }
 
@@ -53,6 +55,7 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
         mainHandler.post {
             Toast.makeText(baseContext,"Stream stop. Disconnect to server",Toast.LENGTH_LONG)
             stopStream()
+            isStreaming = false
         }
     }
 
