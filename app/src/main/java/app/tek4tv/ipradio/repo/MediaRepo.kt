@@ -71,7 +71,7 @@ class MediaRepo @Inject constructor(
             }
 
         } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario")
+            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -165,6 +165,8 @@ class MediaRepo @Inject constructor(
 
     fun downloadAMediaItem(it: MediaItem) {
         if (it.getMediaType() != MediaType.FILE) return
+        if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
+
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return

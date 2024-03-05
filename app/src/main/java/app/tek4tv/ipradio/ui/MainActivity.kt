@@ -656,7 +656,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if(playerManager.playMode != PLAY_MODE_FORCE ) {
                         when (mess) {
                             //dung phat
-                            0 -> {
+                            0,2 -> {
                                 playerManager.stopAllPlayer()
                                 playerManager.resetPlayMode()
                             }
@@ -666,10 +666,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 if (playerManager.isInTimeFrame) {
                                     playerManager.playNextMedia()
                                 }
-                            }
-                            //Tạm dừng nội dung đang phát
-                            2 -> {
-                                playerManager.pauseMedia()
                             }
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
@@ -682,6 +678,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.PLAYLIST_INFO -> {
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {

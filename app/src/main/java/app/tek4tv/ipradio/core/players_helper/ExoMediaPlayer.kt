@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
@@ -12,6 +13,7 @@ import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
+import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import java.util.*
 
@@ -27,6 +29,7 @@ class ExoMediaPlayer(
     private var currentPlayingMedia : MediaItem? = null
 
     private var isPlaying = false
+    private var isForceValue = false
 
     override var disconnectedHub = false
 
@@ -44,6 +47,22 @@ class ExoMediaPlayer(
             }
         }
 
+        override fun onPlaybackStateChanged(state: Int) {
+            super.onPlaybackStateChanged(state)
+            if(state == Player.STATE_ENDED)
+            {
+                Log.i(TAG, "onPlaybackStateChanged: end reach")
+            }
+            if (state == Player.STATE_BUFFERING) {
+                Log.i(TAG, "onPlaybackStateChanged: Buff")
+            }
+
+            if(state == Player.STATE_READY)
+            {
+                Log.i(TAG, "onPlaybackStateChanged: play")
+            }
+
+        }
 
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
@@ -59,7 +78,7 @@ class ExoMediaPlayer(
 
             isPlaying = false
             if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!)) {
-                playMedia(currentPlayingMedia!!)
+                playMedia(currentPlayingMedia!!,isForceValue)
             }
             else{
                 Log.d(TAG,"stop from reconnecting...")
@@ -83,17 +102,36 @@ class ExoMediaPlayer(
         exoPlayer.addListener(exoEventListener)
     }
 
-    override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
+    override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
         if(isPlaying) stop()
 
         try {
             currentPlayingMedia = mediaItem
-            playHlsExo(mediaItem)
+            isForceValue = isForce
+            playHlsExo(mediaItem,timeStamp)
         }
         catch (e :Exception)
         {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
+        }
+    }
+    private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
+        var currentTimeStamp =0
+        if(timeStamp != -1) currentTimeStamp = timeStamp
+        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
+
+        exoPlayer.setMediaItem(em)
+        exoPlayer.playWhenReady = true
+        exoPlayer.prepare()
+        if(!isForceValue) {
+            Handler().postDelayed({
+                Log.e(PlayersManager.LOGTAG, "Player FM start")
+                exoPlayer.stop()
+                Log.d(TAG, "stop")
+                eventListener.onMediaEndReached(currentPlayingMedia)
+                Log.e(PlayersManager.LOGTAG, "Player FM stop")
+            }, (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp*1000)
         }
     }
 
@@ -112,7 +150,7 @@ class ExoMediaPlayer(
     }
 
     override fun pause() {
-            exoPlayer.pause()
+        exoPlayer.pause()
     }
 
     override fun resume() {
@@ -131,16 +169,11 @@ class ExoMediaPlayer(
         disconnectedHub = false
 
         if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
-            playMedia(currentPlayingMedia!!)
+            playMedia(currentPlayingMedia!!,isForceValue)
         }
     }
 
-    private fun playHlsExo(mediaItem: MediaItem) {
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.body!!)
-        exoPlayer.setMediaItem(em)
-        exoPlayer.playWhenReady = true
-        exoPlayer.prepare()
-    }
+
 
     /**
      * Check if a stream is still in time to play
