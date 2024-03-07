@@ -135,20 +135,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logStartTimeFrame(frame)
-            }
+//            if (globalProperties.logEnabled) {
+//                logUtils.logStartTimeFrame(frame)
+//            }
         }
 
         //Kết thúc khung gian
         override fun onEndTimeFrame(frame: String) {
-            if (globalProperties.logEnabled) {
-                logUtils.logEndTimeFrame(frame)
-            }
+//            if (globalProperties.logEnabled) {
+//                logUtils.logEndTimeFrame(frame)
+//            }
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
-            logUtils.sendLogFile("media", currentDateStr)
+//            logUtils.sendLogFile("media", currentDateStr)
             Log.d("screeninfo", "showMac: nEndTimeFrame")
         }
 
@@ -197,7 +197,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-            logUtils.logMediaEnd(mediaItem)
+//            logUtils.logMediaEnd(mediaItem)
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
@@ -1077,7 +1077,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.GET_LOG_FILE -> {
                     val data = responseHub.message?.split('-') ?: return
-                    logUtils.sendLogFile(data[0], data[1])
+//                    logUtils.sendLogFile(data[0], data[1])
                 }
             }
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
