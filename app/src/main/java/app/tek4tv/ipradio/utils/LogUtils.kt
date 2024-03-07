@@ -134,7 +134,7 @@ class LogUtils private constructor() {
             sourceName = destinationName,
             destinationId = destinationId,
             destinationName = destinationName,
-            mediaID = mediaItem.mediaID.toString(),
+            mediaID = mediaItem.projectID,
             volume = volume,
             paState = paState,
             duration = mediaItem.duration,
@@ -149,7 +149,7 @@ class LogUtils private constructor() {
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
             sourceReference = mediaItem.sourceReference,
-            provider = providerValue
+            provider = providerValue,
         )
         val str = getRecordStr(reportObj)
 

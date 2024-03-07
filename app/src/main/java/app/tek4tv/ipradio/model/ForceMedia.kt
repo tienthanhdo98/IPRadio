@@ -47,11 +47,18 @@ data class ForceMedia(
             fixTime = fixTime,
             duration = mediaItem!!.duration,
             author = mediaItem!!.author,
-            mediaID = mediaItem!!.id,
+            mediaID = mediaItem!!.mediaID,
             category = mediaItem!!.category,
             priority = mediaItem!!.priority,
             contentType = mediaItem!!.contentType,
             description = mediaItem!!.description,
+            sourceID = mediaItem!!.sourceID,
+            sourceName = mediaItem!!.sourceName,
+            sourceReference = mediaItem!!.sourceReference,
+            startTime = mediaItem!!.startTime,
+            createDate = mediaItem!!.createDate,
+            id = mediaItem!!.id,
+            projectID = mediaItem!!.projectID
         ).also { it.level = level }
     }
 

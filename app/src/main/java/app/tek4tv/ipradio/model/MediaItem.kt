@@ -77,6 +77,9 @@ data class MediaItem(
     @Json(name = "CreateDate")
     val createDate: String? = null,
 
+    @Json(name = "ProjectID")
+    val projectID: String? = null,
+
     @Json(name = "Metadata")
     val metadata: List<Any?>? = null,
 
