@@ -279,6 +279,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 delay(5000)
             }
         }
+        clearDatastore()
 //        var textDe = "APxss/POTv3TP4AolIddVbeDEi0p/tO0LvwufzbWggFan+exmwlGrsm1xk56niS2n8Fn2oV9FdW0zM1LErMywnqY6+cVPJmexrkOD9yoWwR6tPGKndHP9se2bcXPQoplsD+JMmVvQONwweRNmp214p77gcQswvJc2VX6mP/Vtz28QWl265ZCXx30fwotIpJAt/UlQZNgvxRNne12TC7kPG/Bp+pew8Fgz2cNc1YMgb3A17dm3zVUM2ojOK3lA7en5AUTUlGPdO/XEDzXHyEPvH3Xr4gZNMf7VlziSyQRuhVjeOJgAdJMVYL9AMRDczbNFDky3zFGpF+Pxuka9zZD1SLyPR3YS+b/jimbhdk9jz8ste1EzW/nTMYNxhuCRuHbrGW4+b4GCHlJZKDsDHa7/T6IHITrkxvjmqL69algz38yvAF2YpRTuVau9Lm2R1fNcdliSjLUu7IZja/oGt8m8rA45HwGXqU1eff9+d6+Nxi42TOQlOGcSTLidtnZddZj"
 //        val data = decryptData(
 //            textDe,
@@ -478,6 +479,23 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun initHubConnect() {
         hubManager.connectToHub()
        // locationTracker.getLocation(this@MainActivity)
+    }
+    private fun clearDatastore()
+    {
+        //limit free data 1 gb
+        val limit = 1000000000
+        val totalStorage  = appStorageManager.getTotalRomStorage()
+        val usedStorage = appStorageManager.getUsedRomStorage()
+        if(totalStorage - usedStorage <= limit)
+        {
+            Log.d("clearDatastore", "clearDatastore: Must Clear")
+            appStorageManager.deleteAllMedia()
+        }
+        else
+        {
+            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
+        }
+
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -784,7 +802,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         val info = appStorageManager.run {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
-
+                        //1007173632,449028096,5659574272,1757356032
                         hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
                     }
                 }
