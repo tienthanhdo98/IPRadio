@@ -35,13 +35,7 @@
         android:theme="@style/Theme.IPRadio"
 
         android:usesCleartextTraffic="true">
-        <activity
-            android:name=".ui.MainActivityMultipleScreen"
-            android:exported="false">
-            <meta-data
-                android:name="android.app.lib_name"
-                android:value="" />
-        </activity>
+
         <activity
             android:name=".ui.MainActivity"
             android:screenOrientation="landscape">

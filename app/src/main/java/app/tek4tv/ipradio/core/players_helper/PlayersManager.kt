@@ -195,6 +195,9 @@ class PlayersManager(
     {
         vlcPlayer.resume()
     }
+//    fun reset(){
+//        vlcPlayer.reset()
+//    }
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {

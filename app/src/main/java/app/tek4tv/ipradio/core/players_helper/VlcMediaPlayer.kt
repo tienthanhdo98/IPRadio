@@ -103,6 +103,7 @@ class VlcMediaPlayer(
                 playLiveStream(mediaItem)
             }
             else -> {
+
             }
         }
 
@@ -110,7 +111,11 @@ class VlcMediaPlayer(
     }
 
     override fun reset() {
-
+//        val media =  Media(mLibVLC, Uri.parse("https://storage-ttn.laichau.gov.vn/2024//03//09//BIEN_PHONG_LAI_/9db80ac6788a4a73aa1aa79ee22d5502.mp4"))
+//
+//        currentVlcMedia = media
+//
+//        vlcPlayer.play(media)
     }
 
     override fun stop() {

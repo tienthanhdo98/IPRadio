@@ -313,6 +313,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
 
         initDataByScreen()
+
     }
 
 
@@ -385,6 +386,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
     }
 
+
     private fun hideTopLeftArea() {
         if (typeScreen != FULL_SCREEN) {
             listLeftMedia.clear()
@@ -424,7 +426,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
-        playerManager.onActivityStop()
+//        playerManager.onActivityStop()
         cancelAllAlarm()
         super.onStop()
 
@@ -433,8 +435,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
         handler.removeCallbacksAndMessages(null)
-        playerManager.onActivityDestroy()
-        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+//        playerManager.onActivityDestroy()
+//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         super.onDestroy()
 
 
@@ -640,6 +642,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
+                      clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
@@ -663,11 +666,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
                         Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
                         if (newTypeScreen != typeScreen) {
-//                        val k = Intent(baseContext, MainActivityMultipleScreen::class.java)
-//                        finish()
-//                        startActivity(k);
+                        val k = Intent(baseContext, MainActivity::class.java)
+                        finish()
+                        startActivity(k);
 //                            recreate()
-                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                          //  CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                         }
                     }
                     Log.i("monthlyinfo", "Mess: $mess ")
@@ -1109,6 +1112,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun setMaxVolume() {
         Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
         changeVolume(GlobalProperties.getInst().androidVolume.toInt())
+    }
+    private fun clearDatastore()
+    {
+        //limit free data 1 gb
+//        val limit = 1000000000
+        //limit free data 500 mb
+        val limit = 524288000
+        val totalStorage  = appStorageManager.getTotalRomStorage()
+        val usedStorage = appStorageManager.getUsedRomStorage()
+        if(totalStorage - usedStorage <= limit)
+        {
+            Log.d("clearDatastore", "clearDatastore: Must Clear")
+            appStorageManager.deleteAllMedia()
+        }
+        else
+        {
+            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
+        }
+
     }
 
     companion object {
