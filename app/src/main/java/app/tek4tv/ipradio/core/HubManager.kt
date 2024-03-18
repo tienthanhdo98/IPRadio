@@ -82,7 +82,7 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    var providerValue = "VATC"
+    var providerValue = ""
 
     private var firstConnect = true
 

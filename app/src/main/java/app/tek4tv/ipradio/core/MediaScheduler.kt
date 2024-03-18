@@ -329,7 +329,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 appContext,
                 requestCodeEndLeftArea,
                 intent,
-                PendingIntent.FLAG_CANCEL_CURRENT
+                0
             )
 
         val scheduledList = mediaRepo.scheduledList
@@ -349,10 +349,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 break
             }
         }
-
-
-
-
     }
 
     fun scheduleShowListLeft() {
@@ -379,7 +375,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 intentEND,
                 PendingIntent.FLAG_CANCEL_CURRENT
             )
-
 
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {

@@ -36,7 +36,8 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "Tek4tv"
+    var providerValue: String = "VATC"
+
 
 
 
@@ -45,15 +46,16 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H35.43") ?: "H35.43"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Huyện Tam Đường") ?: "Huyện Tam Đường"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Huyện Tam Đường") ?: "TB DI Huyện Tam Đường"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H35.43.2") ?: "H35.43.2"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Tam Đường") ?: "Thị trấn Tam Đường"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Tam Đường") ?: "TB DI Thị trấn Tam Đường"
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
         providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "LAICHAU") ?: "LAICHAU"
+
     }
 
     fun saveProperties(responseHub: ResponseHub) {
@@ -123,6 +125,7 @@ class GlobalProperties {
 
         private var instance: GlobalProperties? = null
         val TYPE_SCREEN_KEY = "TYPE_SCREEN_KEY"
+        val TYPE_PRE_SCREEN_KEY = "TYPE_SCREEN_PRE_KEY"
         fun getInst(): GlobalProperties {
             if (instance == null)
                 instance = GlobalProperties()

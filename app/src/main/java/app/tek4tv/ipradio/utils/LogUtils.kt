@@ -53,6 +53,7 @@ class LogUtils private constructor() {
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
     var providerValue = GlobalProperties.getInst().providerValue
+
     init {
         listOf(
             logFolderPath,
@@ -111,7 +112,7 @@ class LogUtils private constructor() {
 //        }
 //    }
 
-    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
+    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String,typeScreen : Int) {
         val filePath = getLogFilePath(playerLogFolderPath)
 
         val externalSource: String
@@ -150,6 +151,7 @@ class LogUtils private constructor() {
             deviceName = GlobalProperties.getInst().nameDevice,
             sourceReference = mediaItem.sourceReference,
             provider = providerValue,
+            mode = typeScreen.toString()
         )
         val str = getRecordStr(reportObj)
 
@@ -164,7 +166,7 @@ class LogUtils private constructor() {
                     "Log media start ${reportObj}"
                 )
             } catch (e: Exception) {
-                Log.d(LOG_TAG, "Error send log media ${e.message}")
+                Log.d(LOG_TAG, "Error send log media start ${e.message}")
                 e.printStackTrace()
             }
         }

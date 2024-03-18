@@ -60,5 +60,8 @@ class ResponseHub : Serializable {
     @Json(name = "UserNameControl")
     var userNameControl: String?= null
 
+    @Json(name = "Mode")
+    var mode: String?= null
+
 
 }

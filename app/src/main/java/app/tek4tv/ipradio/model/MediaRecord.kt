@@ -33,7 +33,8 @@ data class MediaRecord(
     val endTime: Long? = null,
     val status: String? = null,
     val  sourceReference : String ? = null,
-    var provider: String = "Tek4tv"
+    var provider: String = "Tek4tv",
+    var mode: String? = ""
 
 ) : LogRecord() {
 

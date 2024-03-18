@@ -16,14 +16,14 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
 class VlcMediaPlayer(
-    appContext: Context,
+    private val appContext: Context,
     private val playerEventListener: IPlayerEventListener,
     private val vlcVideoLayout: VLCVideoLayout
 ) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
-    private val mLibVLC: LibVLC
-    private val vlcPlayer: CustomPlayer
+    private lateinit var mLibVLC: LibVLC
+    private lateinit var vlcPlayer: CustomPlayer
     private var currentMedia: MediaItem? = null
     private var currentVlcMedia: Media? = null
 
@@ -31,6 +31,7 @@ class VlcMediaPlayer(
 
     private var lastError = -1
    // private var endCount = 0
+
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -82,8 +83,9 @@ class VlcMediaPlayer(
         vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
-
+        Log.i("ChangeLayout", "Mess: vlc init")
     }
+
 
     override fun pause() {
         vlcPlayer.pause()
@@ -147,6 +149,8 @@ class VlcMediaPlayer(
         if (checkLiveStream(currentMedia!!, currentVlcMedia!!))
             playLiveStream(currentMedia!!)
     }
+
+
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
         val media = mediaItem.getVlcMedia(mLibVLC)

@@ -44,10 +44,10 @@ class MediaRepo @Inject constructor(
     //left scheduledList
     var leftScheduledList = mutableListOf<MediaItem>()
     //top scheduledList
-    var topScheduledList =  listOf<MediaItem>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
+    var layoutType = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -56,7 +56,8 @@ class MediaRepo @Inject constructor(
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {
             val fetchResult = playlistService.getMonthlyPlaylist(url)
-
+            Log.i("ChangeLayout", "Mess: get api mess ${fetchResult.message()}")
+            Log.i("ChangeLayout", "Mess: get api code ${fetchResult.code()}")
             if (!fetchResult.isSuccessful) return
             val monthScenario = fetchResult.body() ?: return
 
@@ -68,7 +69,6 @@ class MediaRepo @Inject constructor(
                 Log.d("updateDailyScenario", "return update")
                 return
             }
-
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
             val dayScenario = if (isSingleScenario) monthScenario[0]
@@ -76,7 +76,8 @@ class MediaRepo @Inject constructor(
 
             if (dayScenario != null) {
                 ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-                Log.d("monthlyinfo", "registerObservers: ${ dayScenario.broadcastRegionDigital.toLong()} ")
+               // layoutType = dayScenario.broadcastRegionDigital.toInt()
+                Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital.toInt()}")
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings

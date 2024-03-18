@@ -31,7 +31,7 @@ import kotlin.math.log
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    appContext: Context,
+    private val appContext: Context,
     private val vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
@@ -69,6 +69,8 @@ class PlayersManager(
 
     var played = false
 
+
+
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
             //To log stream played duration
@@ -84,9 +86,12 @@ class PlayersManager(
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
+        playerManagerListener?.onMediaEndReach(mediaItem!!)
         onMediaStopPlaying()
+//        stopAllPlayer()
         playNextMedia()
     }
+
 
     override fun onLostHubConnection() {
         vlcPlayer.disconnectedHub = true
@@ -234,6 +239,10 @@ class PlayersManager(
     fun stopAllPlayer() {
         vlcPlayer.stop()
     }
+    fun releaseAllPlayer() {
+        vlcPlayer.release()
+    }
+
 
 
     /**
@@ -356,7 +365,7 @@ class PlayersManager(
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
-            playForceMedia(context, forceMedia, mediaScheduler)
+            playForceMedia(context, forceMedia, mediaScheduler,false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -370,7 +379,7 @@ class PlayersManager(
         return (h * 3600 + m * 60 + s) / 60
     }
 
-    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
+    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler,isPlayAtStart : Boolean) {
         try {
             Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát
@@ -382,7 +391,9 @@ class PlayersManager(
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-            playMedia(forceMedia.toMediaItem())
+            if(isPlayAtStart) {
+                playMedia(forceMedia.toMediaItem())
+            }
 
         } catch (e: Exception) {
             e.printStackTrace()

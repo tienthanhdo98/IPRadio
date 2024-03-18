@@ -9,8 +9,6 @@ import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
@@ -18,6 +16,7 @@ import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
@@ -38,6 +37,7 @@ import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
+import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
@@ -121,6 +121,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val UART_S4_NAME = "/dev/ttyS4"
     private var typeScreen: Int = FULL_SCREEN
     private lateinit var tvTopArea: TextView
+    private lateinit var topArea: ConstraintLayout
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
@@ -138,6 +139,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //            if (globalProperties.logEnabled) {
 //                logUtils.logStartTimeFrame(frame)
 //            }
+            Log.d("onPlayMediaLog", "startFirstTimeFrame: onStartTimeFrame")
+            if (typeScreen == MULTIPLE_AREA) {
+                showLeftArea()
+            }
         }
 
         //Kết thúc khung gian
@@ -145,6 +150,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //            if (globalProperties.logEnabled) {
 //                logUtils.logEndTimeFrame(frame)
 //            }
+            if (typeScreen == MULTIPLE_AREA) {
+                hideTopLeftArea(true)
+            }
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
             val currentDateStr = currentDate.replace("/", "")
@@ -175,7 +184,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
+                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -184,8 +193,22 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
+            val oldTypeScreen = ConfigUtil.getInt(
+                            context = baseContext,
+                            TYPE_PRE_SCREEN_KEY,
+                            FULL_SCREEN
+                        )
+            ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
+            if(oldTypeScreen != typeScreen)
+            {
+                recreate()
+            }
+            else
+            {
+                startPlayingMedia()
+            }
 //            logUtils.logMediaEnd(mediaItem!!)
-            startPlayingMedia()
+
         }
 
         //Lỗi luồng live
@@ -196,39 +219,49 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
         }
 
+        override fun onMediaEndReach(mediaItem: MediaItem) {
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
+        }
+
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
 //            logUtils.logMediaEnd(mediaItem)
+
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-            hubManager.playlistIndex = playerManager.playlistIndex
-            hubManager.currentMediaItem = mediaItem
 
-            val displayName = mediaItem?.title ?: ""
-            hubManager.curMediaName = displayName
+            if (mediaItem != null) {
+                hubManager.playlistIndex = playerManager.playlistIndex
+                hubManager.currentMediaItem = mediaItem
 
-            if (mediaItem?.getMediaType() != MediaType.FM) {
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
+                val displayName = mediaItem?.title ?: ""
+                hubManager.curMediaName = displayName
+
+                if (mediaItem.getMediaType() != MediaType.FM) {
+                    if (!serialPortController.isUart1) {
+                        lifecycleScope.launch {
+                            delay(11000)
+                            serialPortController.turnOnPAVod()
+                        }
+                    } else {
                         serialPortController.turnOnPAVod()
                     }
-                } else {
-                    serialPortController.turnOnPAVod()
                 }
-            }
-            val paState =
-                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                else "0"
-            logUtils.logMediaStart(mediaItem!!, 0, globalProperties.volume, paState)
-            if (globalProperties.logEnabled) {
-                try {
-                    viewModel.currentMedia = mediaItem
-                } catch (e: Exception) {
-                    e.printStackTrace()
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                    else "0"
+                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
+                if (globalProperties.logEnabled) {
+                    try {
+                        viewModel.currentMedia = mediaItem
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
                 }
+
+
             }
         }
     }
@@ -236,17 +269,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-        if(typeScreen == FULL_SCREEN )
-        {
+        if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
-        }
-        else
-        {
+        } else {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
-        Log.i("monthlyinfo", "Mess: recreate start")
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
@@ -286,12 +316,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
-
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
             viewModel.mediaRepo
         )
+
         playerManager.playerManagerListener = playerCallback
 
         hubManager.hubEventObserver.add(playerManager)
@@ -313,6 +343,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
 
         initDataByScreen()
+        Log.i("ChangeLayout", "Mess: recreate start")
+//        topArea = findViewById(R.id.topArea)
+//        topArea.setOnClickListener {
+//            Log.i("ChangeLayout", "Click recreate")
+//            recreate()
+//        }
 
     }
 
@@ -328,29 +364,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-
-    private fun showLeftArea() {
-
-        if (listLeftMedia.isEmpty()) return
-        Log.d("monthlyinfo", "show left")
-        //   val typeface = resources.getFont(R.font.verdanabold)
-        listLeftMedia.forEach {
-            val textView = TextView(baseContext)
-            textView.text = it.body
-            textView.setTextColor(Color.parseColor("#F2FB0A"))
-            textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
-            //   textView.typeface = typeface
-            listLeftTextView.add(textView)
-            layoutTvLeft.addView(textView)
-        }
-
-        scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                startAutoScroll()
-                scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
-            }
-        })
-    }
 
     private fun startAutoScroll() {
         val runnable: Runnable = object : Runnable {
@@ -386,16 +399,38 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
     }
 
+    private fun showLeftArea() {
+        if (listLeftMedia.isEmpty()) return
+        Log.d("monthlyinfo", "show left")
+        //   val typeface = resources.getFont(R.font.verdanabold)
+        listLeftMedia.forEach {
+            val textView = TextView(baseContext)
+            textView.text = it.body
+            textView.setTextColor(Color.parseColor("#F2FB0A"))
+            textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
+            //   textView.typeface = typeface
+            listLeftTextView.add(textView)
+            layoutTvLeft.addView(textView)
+        }
 
-    private fun hideTopLeftArea() {
-        if (typeScreen != FULL_SCREEN) {
-            listLeftMedia.clear()
-            handler.removeCallbacksAndMessages(null)
+        scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
+            override fun onGlobalLayout() {
+                startAutoScroll()
+                scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
+            }
+        })
+    }
+
+
+    private fun hideTopLeftArea(isStillTimeFrame : Boolean) {
+        if(typeScreen != FULL_SCREEN ) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
-            //delete pref list left
-            ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-            Log.e("monthlyinfo", "Hub hide left")
+            if (!isStillTimeFrame) {
+                listLeftMedia.clear()
+                ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+                Log.e("monthlyinfo", "Hub hide left")
+            }
         }
     }
 
@@ -407,38 +442,35 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun initDefaultTopAndLeftArea() {
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
-           tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
+        tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
         tvTopArea.isSelected = true
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
     }
 
-//    override fun onStart() {
-//        Log.e("monthlyinfo", "onStart")
-//        super.onStart()
-//        startPlayingMedia()
-//    }
-
-    override fun onResume() {
-        Log.e("monthlyinfo", "onResume")
+    override fun onStart() {
+        Log.i("ChangeLayout", "Mess: recreate onStart")
+        super.onStart()
         startPlayingMedia()
-        super.onResume()
     }
+
 
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
-//        playerManager.onActivityStop()
+        playerManager.onActivityStop()
         cancelAllAlarm()
+        Log.i("ChangeLayout", "Mess: recreate stop")
         super.onStop()
 
     }
 
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
-        handler.removeCallbacksAndMessages(null)
-//        playerManager.onActivityDestroy()
-//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-        super.onDestroy()
 
+        handler.removeCallbacksAndMessages(null)
+        playerManager.onActivityDestroy()
+//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+        Log.i("ChangeLayout", "Mess: recreate destroy")
+        super.onDestroy()
 
     }
 
@@ -492,24 +524,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
             }
-            MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
-                hideTopLeftArea()
-            }
-            MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA -> {
-                if (typeScreen == FULL_SCREEN) return
-                showLeftArea()
-            }
+//            MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
+//                hideTopLeftArea()
+//            }
+//            MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA -> {
+//                if (typeScreen == FULL_SCREEN) return
+//                showLeftArea()
+//            }
 
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return false
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return false
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return false
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return false
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -545,6 +577,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         /**
          * khi cần
          * **/
+
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
@@ -554,8 +587,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
+                Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
                 if (forceMedia != null)
-                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
+                    playerManager.playForceMedia(
+                        applicationContext,
+                        forceMedia,
+                        mediaScheduler,
+                        true
+                    )
+
 
                 return@observe
             }
@@ -596,7 +636,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     fun startPlayingMedia() {
 
+
+//        playerManager.releaseAllPlayer()
+
         viewModel.getPlayerContent("", false)
+
+
 
     }
 
@@ -642,12 +687,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                      clearDatastore()
+                    clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
-                    playerManager.stopAllPlayer()
+//                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
-                    hideTopLeftArea()
+                    hideTopLeftArea(false)
+
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
@@ -655,25 +701,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
+                    Handler().postDelayed({
+                        recreate()
+                    }, 1000)
+                }
+                //Phát khẩn cấp luồng live
+                HubCommand.LIVE -> {
 
-                    lifecycleScope.launch {
-                        delay(2000)
-                        val newTypeScreen = ConfigUtil.getInt(
-                            context = baseContext,
-                            TYPE_SCREEN_KEY,
-                            FULL_SCREEN
-                        )
-                        Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
-                        Log.i("monthlyinfo", "newTypeScreen: $newTypeScreen ")
-                        if (newTypeScreen != typeScreen) {
-                        val k = Intent(baseContext, MainActivity::class.java)
-                        finish()
-                        startActivity(k);
-//                            recreate()
-                          //  CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                        }
-                    }
-                    Log.i("monthlyinfo", "Mess: $mess ")
+                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
+                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+
+                    Handler().postDelayed({
+                        onPlayForce(responseHub)
+                        recreate()
+                    }, 1000)
                 }
 
 
@@ -716,10 +757,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("config_config", "updateconfig ${resposnHub.lng}")
                     Log.i("config_config", "updateconfig success")
                 }
-                //Phát khẩn cấp luồng live
-                HubCommand.LIVE -> {
-                    onPlayForce(responseHub)
-                }
+
+
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!
                     Log.i("LiveRemoteControl", "Mess: $mess ")
@@ -1110,8 +1149,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
-        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
+//        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
+//        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
     private fun clearDatastore()
     {
