@@ -39,15 +39,14 @@ class MediaRepo @Inject constructor(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
     var broadcastList = mutableListOf<MediaItem>()
-    //right scheduledList
+
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
-    //left scheduledList
+
     var leftScheduledList = mutableListOf<MediaItem>()
     //top scheduledList
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
-    var layoutType = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -56,8 +55,7 @@ class MediaRepo @Inject constructor(
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {
             val fetchResult = playlistService.getMonthlyPlaylist(url)
-            Log.i("ChangeLayout", "Mess: get api mess ${fetchResult.message()}")
-            Log.i("ChangeLayout", "Mess: get api code ${fetchResult.code()}")
+
             if (!fetchResult.isSuccessful) return
             val monthScenario = fetchResult.body() ?: return
 
@@ -109,8 +107,10 @@ class MediaRepo @Inject constructor(
         broadcastList.addAll(res)
 
         filterMedia(broadcastList)
+
         return broadcastList
     }
+
 
     private fun filterMedia(mediaList: List<MediaItem>) {
         val dividerIndices = mediaList.indices.filter {
@@ -167,10 +167,10 @@ class MediaRepo @Inject constructor(
                     val srt = mediaJsonAdapter.toJson(leftScheduledList)
                     ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 
-                    var i = 1
-                    result.onEach{ mediaItem ->
-                        mediaItem.mediaID = i++
-                    }
+//                    var i = 1
+//                    result.onEach{ mediaItem ->
+//                        mediaItem.mediaID = i++
+//                    }
                     saveItemsToFile(result)
                 }
             } else {

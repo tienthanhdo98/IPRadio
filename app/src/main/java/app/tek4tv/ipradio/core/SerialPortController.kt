@@ -24,7 +24,6 @@ class SerialPortController(
     private var outputStream: OutputStream? = null
 
 
-
     private val deviceMac = Utils.getMacAddr()
 
     private var isRead = false
@@ -64,6 +63,7 @@ class SerialPortController(
                 }
             }
         }
+
     }
 
     private fun onWatchDog() {
@@ -138,9 +138,9 @@ class SerialPortController(
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if (s.contains("\$\$,1,8")) {
+                            if (s.contains("\$\$,1,8") && list.size >= 4) {
                                 deviceInfo = s
-                                volume = list[5]
+//                                volume = list[5]
                             }
                             dataFinal = StringBuffer()
                         }

@@ -448,7 +448,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
-        playerManager.onActivityStop()
+        playerManager.stopAllPlayer()
         cancelAllAlarm()
         Log.i("ChangeLayout", "Mess: recreate stop")
         super.onStop()
@@ -598,7 +598,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 } else {
                     Log.i("monthlyinfo", "Mess: online ")
                 }
-//                mediaScheduler.scheduleShowListLeft()
 
             }
 

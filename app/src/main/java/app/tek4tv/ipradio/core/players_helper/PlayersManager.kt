@@ -239,9 +239,7 @@ class PlayersManager(
     fun stopAllPlayer() {
         vlcPlayer.stop()
     }
-    fun releaseAllPlayer() {
-        vlcPlayer.release()
-    }
+
 
 
 
@@ -401,9 +399,7 @@ class PlayersManager(
         }
     }
 
-    fun onActivityStop() {
-        stopAllPlayer()
-    }
+
 
     fun onActivityDestroy() {
         vlcPlayer.release()
