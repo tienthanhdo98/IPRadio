@@ -9,14 +9,12 @@ import android.os.Bundle
 import android.os.Handler
 import android.provider.Settings
 import android.util.Log
-import android.view.View
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
@@ -121,7 +119,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val UART_S4_NAME = "/dev/ttyS4"
     private var typeScreen: Int = FULL_SCREEN
     private lateinit var tvTopArea: TextView
-    private lateinit var topArea: ConstraintLayout
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
@@ -199,14 +196,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             FULL_SCREEN
                         )
             ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
+
+            startPlayingMedia()
             if(oldTypeScreen != typeScreen)
             {
                 recreate()
             }
-            else
-            {
-                startPlayingMedia()
-            }
+
 //            logUtils.logMediaEnd(mediaItem!!)
 
         }
@@ -340,15 +336,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         setMaxVolume()
 
-        hideSystemUI()
+        viewModel.hideSystemUI(this)
 
         initDataByScreen()
         Log.i("ChangeLayout", "Mess: recreate start")
-//        topArea = findViewById(R.id.topArea)
-//        topArea.setOnClickListener {
-//            Log.i("ChangeLayout", "Click recreate")
-//            recreate()
-//        }
+
 
     }
 
@@ -469,7 +461,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
 //        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-        Log.i("ChangeLayout", "Mess: recreate destroy")
+        Log.i("ChangeLayout", "Mess: onDestroy")
         super.onDestroy()
 
     }
@@ -543,17 +535,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        return false
 //    }
 
-    private fun hideSystemUI() {
-        val decorView: View = window.decorView
-        val uiOptions = decorView.systemUiVisibility
-        var newUiOptions = uiOptions
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_LOW_PROFILE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_FULLSCREEN
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_HIDE_NAVIGATION
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE
-        newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
-        decorView.systemUiVisibility = newUiOptions
-    }
 
     private fun needGrantPermission(): Boolean {
         var needGrantPermission = false
@@ -577,7 +558,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         /**
          * khi cần
          * **/
-
         viewModel.content.observe(this)
         {
             viewModel.downloadMedias()
@@ -585,7 +565,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                mediaScheduler.scheduleForceMediaAlarm()
+//                mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
                 if (forceMedia != null)
@@ -595,8 +575,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         mediaScheduler,
                         true
                     )
-
-
                 return@observe
             }
             //default
@@ -635,14 +613,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     )
 
     fun startPlayingMedia() {
-
-
-//        playerManager.releaseAllPlayer()
-
         viewModel.getPlayerContent("", false)
-
-
-
     }
 
     private fun initHubConnect() {
@@ -693,7 +664,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     hideTopLeftArea(false)
-
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
@@ -1141,6 +1111,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         serialPortController.writeForceSetVolume(globalProperties.volume)
         playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
     }
+
 
     private fun cancelAllAlarm() {
         /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()

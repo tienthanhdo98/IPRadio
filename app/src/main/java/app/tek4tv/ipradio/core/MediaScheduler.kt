@@ -286,7 +286,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             AlarmManager.RTC_WAKEUP,
             mediaEndTimeInMillis, alarmIntent
         )
-        Log.d("alarmx", "set force")
+        Log.d("alarmx", "set force $mediaEndTimeInMillis")
     }
 
     fun setCheckHubAndResetAlarms() {

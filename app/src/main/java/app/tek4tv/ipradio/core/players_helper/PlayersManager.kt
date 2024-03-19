@@ -365,7 +365,8 @@ class PlayersManager(
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
-            playForceMedia(context, forceMedia, mediaScheduler,false)
+                forceMedia.saveItemToPref(context)
+//            playForceMedia(context, forceMedia, mediaScheduler,false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -385,7 +386,7 @@ class PlayersManager(
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllAlarm()
 
-            forceMedia.saveItemToPref(context)
+//            forceMedia.saveItemToPref(context)
             //hẹn giờ dừng media khẩn cấp
             mediaScheduler.scheduleForceMediaAlarm()
 
