@@ -165,7 +165,8 @@ class MediaRepo @Inject constructor(
 
     fun downloadAMediaItem(it: MediaItem) {
         if (it.getMediaType() != MediaType.FILE) return
-        if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
+        if (it.body?.contains("rtsp") == true) return
+        if (it.body?.contains("rtmp") == true) return
 
 
         val url = it.body

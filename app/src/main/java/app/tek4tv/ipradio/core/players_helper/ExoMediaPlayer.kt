@@ -109,6 +109,7 @@ class ExoMediaPlayer(
             currentPlayingMedia = mediaItem
             isForceValue = isForce
             playHlsExo(mediaItem,timeStamp)
+
         }
         catch (e :Exception)
         {
@@ -117,20 +118,20 @@ class ExoMediaPlayer(
         }
     }
     private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
-        var currentTimeStamp =0
+        Log.d(TAG, "exoplayer is force $isForceValue")
+        var currentTimeStamp = 0
         if(timeStamp != -1) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
 
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
+        exoPlayer.play()
         if(!isForceValue) {
             Handler().postDelayed({
-                Log.e(PlayersManager.LOGTAG, "Player FM start")
                 exoPlayer.stop()
-                Log.d(TAG, "stop")
+                Log.d(TAG, "exoplayer stop")
                 eventListener.onMediaEndReached(currentPlayingMedia)
-                Log.e(PlayersManager.LOGTAG, "Player FM stop")
             }, (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp*1000)
         }
     }

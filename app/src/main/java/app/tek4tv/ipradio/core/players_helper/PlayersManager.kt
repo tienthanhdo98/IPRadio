@@ -185,17 +185,9 @@ class PlayersManager(
             stopAllPlayer()
             stopTimeFrame()
         }
-//        if(playlistIndex >= currentPlaylist.size)
-//        {
-//
-//        }
+
     }
 
-    //    fun pauseMedia()
-//    {
-//        vlcPlayer.pause()
-//        exoPlayer.pause()
-//    }
     fun resumeMedia()
     {
         vlcPlayer.resume()
@@ -223,28 +215,36 @@ class PlayersManager(
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem,false)
                     } else {
-                        //wav,mp4,
-                        if(mediaItem.body!!.contains("rtsp") || !mediaItem.body!!.contains(".mp3")  || !mediaItem.body!!.contains(".mp4")  || !mediaItem.body!!.contains(".wav"))
+                        if(mediaItem.body!!.contains("rtsp") || mediaItem.body!!.contains("rtmp"))
                         {
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
                         else {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
+//                        if(mediaItem.body!!.contains("rtsp") || !mediaItem.body!!.contains(".mp3")  || !mediaItem.body!!.contains(".mp4")  || !mediaItem.body!!.contains(".wav"))
+//                        {
+//                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+//                        }
+//                        else {
+//                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+//                        }
+//                        vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         currentPlayer = vlcPlayer
                     }
                 }
                 MediaType.LIVE -> {
+                    Log.e(LOGTAG, "Player live plpay$timeStamp")
                     playLiveStream(mediaItem,true)
                 }
                 MediaType.FM -> {
-                    var currentTimeStamp =0
+                    var currentTimeStamp = 0
                     if(timeStamp != -1) currentTimeStamp = timeStamp
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
+                    Log.e(LOGTAG, "Player FM start")
                     if(playMode != PLAY_MODE_FORCE){
                         Handler().postDelayed({
-                            Log.e(LOGTAG, "Player FM start")
                             onMediaEndReached(mediaItem)
                             Log.e(LOGTAG, "Player FM stop")
                         }, getDurationInSecond(mediaItem.duration!!).toLong()*1000 - currentTimeStamp*1000)

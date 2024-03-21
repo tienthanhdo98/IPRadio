@@ -170,7 +170,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
 
-            val displayName = mediaItem?.title ?: ""
+            val displayName = mediaItem.title ?: ""
             hubManager.curMediaName = displayName
 
             if (mediaItem.getMediaType() != MediaType.FM) {
@@ -307,7 +307,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         return null
     }
-
+    fun sendSMS()
+    {  Log.d("SmsReceiver", "Click")
+        sendSms("191","KTTK",baseContext)
+        Log.d("SmsReceiver", "Click")
+    }
     private fun showMac() {
 
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
@@ -318,11 +322,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("SmsReceiver", "Click")
         }
     }
-    fun sendSMS()
-    {  Log.d("SmsReceiver", "Click")
-        sendSms("191","KTTK",baseContext)
-        Log.d("SmsReceiver", "Click")
-    }
+
 
 
     override fun onStop() {
@@ -444,7 +444,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
-            Log.d("MainLog", "registerObservers: ${it}")
+            Log.d("MainLog", "registerObservers: $it")
             viewModel.downloadMedias()
 
             //Check xem có đang phát khẩn cấp không
@@ -823,13 +823,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.RECORD -> {
-                    val message = responseHub.message
-                    val listMess = message?.split(",")
+                    val messageHub = responseHub.message
+                    val listMess = messageHub?.split(",")
                     val duration = listMess?.firstOrNull()
                     val userId = listMess?.lastOrNull()
                     if(duration!!.isNotEmpty() && userId!!.isNotEmpty()) {
                         val fileName = "RecordLog.aac"
-                        var dataBase64 = ""
+                        var dataBase64:String
                         Log.i("RecoredLog", "record....${mediaCapture.isRecordingAudio} ")
                         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
                         mediaCapture.startCaptureAudio(fileName)
@@ -844,14 +844,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                     val recordLog = RecordLogModel(
                                         data = dataBase64,
                                         duration = formatDuration((duration.toLong())),
-                                        userID = userId ?: "",
+                                        userID = userId,
                                         extension = "aac",
                                     )
                                     try {
                                         logService.postRecordLog(recordLog)
                                         Log.d(
                                             "RecoredLog",
-                                            "${recordLog}"
+                                            "$recordLog"
                                         )
                                     } catch (e: Exception) {
                                         Log.d("RecoredLog", "Error send log media ${e.message}")
@@ -859,7 +859,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                     }
                                 }
                             }
-                        }, duration!!.toLong() * 1000)
+                        }, duration.toLong() * 1000)
                     }
                 }
 

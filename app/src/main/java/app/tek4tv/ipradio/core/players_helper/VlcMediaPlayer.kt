@@ -9,9 +9,6 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -87,9 +84,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
+        args.add("--rtsp-tcp")
+        args.add("--network-caching=20")
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.eventListener = vlcEventListener
+
     }
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
@@ -106,6 +106,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //                Log.e(TAG, "cant play")
 //            }
 //        }
+        Log.e(TAG, "vlc player $isForce")
+        Log.e(TAG, "vlc player ${mediaItem.body}")
         if(isForce)
         {
             playLiveStream(mediaItem,timeStamp )
@@ -172,20 +174,24 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun playLiveStream(mediaItem: MediaItem,timeStamp: Int) {
-
-        Log.e(TAG, "vlc play time stamo null")
-        Log.e(TAG, "vlc play time stamo ${timeStamp}")
-        Log.e(TAG, "vlc play time stamo ${getDurationInSecond(mediaItem.duration!!)}")
+        Log.e(TAG, "vlc play time stamp live ${timeStamp}")
+        Log.e(TAG, "vlc play time stamp live ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
         stream.addOption(":network-caching=20")
         var currentTimeStamp = 0
         if(timeStamp != -1) currentTimeStamp = timeStamp
-        stream.addOption(":run-time=${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
+       stream.addOption(":run-time=${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
 
         currentVlcMedia = stream
 
         vlcPlayer.play(stream)
+
+//        Handler().postDelayed({
+//            vlcPlayer.stop()
+//            Log.d(TAG, "vlcplayer stop")
+//            playerEventListener.onMediaEndReached(mediaItem)
+//        }, (getDurationInSecond(mediaItem.duration) * 1000).toLong() - currentTimeStamp*1000)
 
 
     }
@@ -236,7 +242,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         try {
             val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
-
             if (isStreamFailed) {
                 isPlaying = false
                 playerEventListener.onPlayerError(
