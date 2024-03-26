@@ -89,8 +89,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
 
             val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
+            val start = toCalendar(t[0]) //start time
+            val end = toCalendar(t[1]) //end time
 
             if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
             ) isNewDayStarted = true
@@ -138,7 +138,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
             Log.i("alarm", "turnOnPAAlarms: ${dateFormat.format(start)}")
         }
-
     }
 
 
@@ -358,7 +357,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     fun cancelAllScheduledListAlarm() {
         cancelAllListAlarm()
-        cancelMediaAlarms()
+//        cancelMediaAlarms()
     }
 
     fun cancelAllAlarm() {

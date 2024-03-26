@@ -50,6 +50,7 @@ class MediaRepo @Inject constructor(
             val monthScenario = fetchResult.body() ?: return
 
             //if there are only a single scenario for every day
+            //trường hợp là lịch tháng nhưng chỉ c
             val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
 
             //in case of single scenario, continue to use old scenario
@@ -164,8 +165,20 @@ class MediaRepo @Inject constructor(
     }
 
     fun downloadAMediaItem(it: MediaItem) {
+        //không phải files thì không tải
         if (it.getMediaType() != MediaType.FILE) return
-        if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
+
+        Log.d("downloadAMediaItem", it.body!!)
+
+
+
+
+        //xác định có là file hay không
+        var isFile = (it.body?.contains("http://")!! || it.body?.contains("https://")!!) && (it.body?.lastIndexOf(".")!! > 0)
+
+        //if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
+        if(!isFile) return
+        Log.d("downloadAMediaItem", "process ${it.body!!}")
 
 
         val url = it.body

@@ -55,7 +55,7 @@ class PlayersManager(
     /**
      * List of media for a timeframe
      * **/
-    private var currentPlaylist = listOf<MediaItem>()
+
 
     var playlistIndex = 0
         private set
@@ -137,7 +137,6 @@ class PlayersManager(
                 break
             }
         }
-
         if (!found) {
             isInTimeFrame = false
             playerManagerListener?.onTimeOver()
@@ -218,19 +217,27 @@ class PlayersManager(
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
             currentPlayingMedia = mediaItem
+            Log.d(LOGTAG, "playMedia body: ${mediaItem.body}")
+            Log.d(LOGTAG, "playMedia pathBackup: ${mediaItem.pathBackup}")
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem,false)
                     } else {
                         //wav,mp4,
-                        if(mediaItem.body!!.contains("rtsp") || !mediaItem.body!!.contains(".mp3")  || !mediaItem.body!!.contains(".mp4")  || !mediaItem.body!!.contains(".wav"))
+                        // play live
+                        if(mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://"))
                         {
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
-                        else {
+                        if(mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains("https://"))
+                        {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
+
+//                        if(!mediaItem.body!!.contains(".mp3")  || !mediaItem.body!!.contains(".mp4")  || !mediaItem.body!!.contains(".wav")) { // play file
+//                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+//                        }
                         currentPlayer = vlcPlayer
                     }
                 }
@@ -434,5 +441,6 @@ class PlayersManager(
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
         const val LOGTAG = "player"
+        var currentPlaylist = listOf<MediaItem>()
     }
 }

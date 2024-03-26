@@ -9,9 +9,6 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
@@ -31,6 +28,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var lastError = -1
     // private var endCount = 0
     var countReplayLive = 0
+
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -58,7 +56,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             }
 
             MediaPlayer.Event.EncounteredError -> {
-                Log.e(TAG, "EncounteredError  ${currentMedia?.title}")
+                Log.e(TAG, "EncounteredError ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     Log.e(TAG, "EncounteredError File")
                     checkStreamError()
@@ -83,6 +81,15 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         }
     }
 
+    private fun calculateResumePoint(mediaItem: MediaItem): Int {
+
+        val startTimeOfMedia = toCalendar(mediaItem.start!!)
+        val now = Calendar.getInstance()
+
+        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+
+    }
+
     init {
         val args = ArrayList<String>()
         //bật log vlc
@@ -90,11 +97,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.eventListener = vlcEventListener
+
     }
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
-
+        if (checkOldMediaPlaying(mediaItem)) stop()
 //        when (mediaItem.getMediaType()) {
 //            MediaType.FILE -> {
 //                playFile(mediaItem, timeStamp)
@@ -110,8 +118,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         {
             playLiveStream(mediaItem,timeStamp )
         }
-        else
-        {
+        else {
             playFile(mediaItem, timeStamp)
         }
 
@@ -132,11 +139,19 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 
     override fun stop() {
-        if (vlcPlayer.isPlaying)
+//        if (vlcPlayer.isPlaying)
+        try {
             vlcPlayer.stop()
-        isPlaying = false
-        currentMedia = null
-        currentVlcMedia = null
+            isPlaying = false
+            currentMedia = null
+            currentVlcMedia = null
+        } catch (e: Exception) {
+            Log.d(TAG, "stop error :$e ")
+            isPlaying = false
+            currentMedia = null
+            currentVlcMedia = null
+        }
+
     }
 
     override fun release() {
@@ -175,7 +190,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         Log.e(TAG, "vlc play time stamo null")
         Log.e(TAG, "vlc play time stamo ${timeStamp}")
-        Log.e(TAG, "vlc play time stamo ${getDurationInSecond(mediaItem.duration!!)}")
+        Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
         stream.addOption(":network-caching=20")
@@ -231,13 +246,32 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         return check
     }
 
+    private fun checkOldMediaPlaying(mediaItem: MediaItem): Boolean {
+//        if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
+        Log.d(TAG, "old media:${mediaItem.body} ")
+        val now = Calendar.getInstance()
+
+        val liveEndTime = toCalendar(mediaItem.start!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!) - 2)
+        }
+
+        val check = (now >= liveEndTime)
+
+        Log.e(TAG, "${getDurationInSecond(mediaItem.duration!!)}")
+        Log.e(TAG, "${now <= liveEndTime}")
+
+        Log.d(LOGTAG, "check old: $check")
+
+        return check
+    }
+
     private fun checkStreamError() {
         if (currentMedia == null || currentVlcMedia == null) return
 
         try {
-            val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
+            val isStillInTimeFrame = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
 
-            if (isStreamFailed) {
+            if (isStillInTimeFrame) {
                 isPlaying = false
                 playerEventListener.onPlayerError(
                     VlcException("Stream failed!"),
@@ -245,9 +279,21 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     currentMedia!!
                 )
                 Handler().postDelayed({
-                    Log.d(TAG, "onLiveErrorVlc: Chay lai lich co live file")
-                    if(currentMedia  != null) {
-                        playMedia(currentMedia!!, true)
+                    if (currentMedia != null) {
+                        if (currentMedia!!.body!!.contains("rtsp://") || currentMedia!!.body!!.contains(
+                                "rtmp://"
+                            )
+                        ) {
+                            Log.d(TAG, "onLiveErrorVlc: replay file - live")
+                            playMedia(currentMedia!!, true)
+                        }
+                        if (currentMedia!!.pathBackup.contains("http://") || currentMedia!!.pathBackup.contains(
+                                "https://"
+                            )
+                        ) {
+                            val timeStamp2 = calculateResumePoint(currentMedia!!)
+                            playMedia(currentMedia!!, false,timeStamp2)
+                        }
                     }
                 }, 1000)
 

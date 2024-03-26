@@ -54,7 +54,7 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
         Log.d("RTMP", "onDisconnectRtsp")
         mainHandler.post {
             Toast.makeText(baseContext,"Stream stop. Disconnect to server",Toast.LENGTH_LONG)
-            stopStream()
+//            stopStream()
             isStreaming = false
         }
     }
