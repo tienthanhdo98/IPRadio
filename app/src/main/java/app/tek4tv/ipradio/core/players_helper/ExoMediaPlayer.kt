@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
@@ -125,7 +126,7 @@ class ExoMediaPlayer(
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
         if(!isForceValue) {
-            Handler().postDelayed({
+            Handler(Looper.getMainLooper()).postDelayed({
                 Log.e(PlayersManager.LOGTAG, "Player FM start")
                 exoPlayer.stop()
                 Log.d(TAG, "stop")

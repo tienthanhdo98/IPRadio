@@ -6,6 +6,8 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.View
@@ -15,7 +17,10 @@ import androidx.activity.viewModels
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.*
+import app.tek4tv.ipradio.core.HubComm
+import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
@@ -122,6 +127,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+            Handler(Looper.getMainLooper()).postDelayed({
+                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
+                serialPortController.turnOffPA()
+            }, 15000)
         }
 
         //Phát FM
@@ -292,17 +301,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
 
         lifecycleScope.launch(Dispatchers.Main) {
-            Log.i("pingping:", "micStream.isStreaming:  $urlStream")
             while (true) {
                 if (hubManager.pingCounter <= 5) {
                     if (!isStreaming) {
-                        Log.i("pingping:", "micStream.isStreaming:")
                         if (!micStreamRtsp.isStreaming) {
                             delay(15000)
                             startStream()
                         }
                     }
-                    Log.i("pingping:", "micStream.isStreaming:  ${isStreaming}")
+                    Log.i("pingping:", "micStream.isStreaming:  $isStreaming")
                 } else {
                     stopStream()
                 }
@@ -331,7 +338,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PROTOCOL_STREAM,
-            "TCP"
+            "UDP"
         )!!
         bitrate_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -487,35 +494,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     }
                 }
             }
-            MediaScheduleReceiver.ACTION_CHECKHUB_RESET_STREAMING -> {
-                var found = false
-                val scheduledList = viewModel.mediaRepo.scheduledList
-                val now = Calendar.getInstance().timeInMillis
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    val t = period.split("-")
-                    val start = toCalendar(t[0]).timeInMillis - (5*60*1000)
-                    val end = toCalendar(t[1]).timeInMillis
-                    if (now in start..end) {
-                        found = true
-                        break
-                    }
-                }
-                if (found) {
-                    Log.i("alarm", "Turn on Pa")
-                    serialPortController.hardRestart()
-                }
-            }
+
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -568,9 +557,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
             //default
             mediaScheduler.scheduleAllAlarms()
-            //check hub
-            mediaScheduler.setCheckHubAndResetAlarms()
-            mediaScheduler.restartBeforeTimeFrame()
 
             playerManager.startFirstTimeFrame()
 
@@ -1085,7 +1071,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //        } catch (e: Exception) {
 //            Log.e("Main", "Error setting max volume")
 //        }
-//        changeVolume(10)
     }
 
     companion object {
