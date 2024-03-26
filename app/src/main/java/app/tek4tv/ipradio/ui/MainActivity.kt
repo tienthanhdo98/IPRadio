@@ -10,6 +10,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -457,7 +459,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", listKey!!)
                 playerManager.setTimeFrame(listKey, null)
-
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
@@ -652,9 +653,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     Log.i("config_config", "updateconfig success")
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
+                    clearDatastore()
                     val mess = responseHub.message!!
                     //  //add at 4.1.3d
-                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
+//                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
                     playerManager.stopAllPlayer() //dừng trạng thái tất cả player hiện tại
                     playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
                     cancelAllAlarm() //xóa tất hẹn giờ
@@ -662,7 +664,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     viewModel.updateMonthlyScenario(mess, false) //cập nhật lịch mới
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess) //lưu dữ liệu vào local storeage (link json data)
                     //add at 4.1.3b
-                    playerManager.stopForceMedia() //stop
+                    playerManager.stopForceMedia() //stop force media
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
@@ -1071,6 +1073,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //        } catch (e: Exception) {
 //            Log.e("Main", "Error setting max volume")
 //        }
+    }
+    private fun clearDatastore() {
+        //limit free data 1 gb
+//        val limit = 1000000000
+        //limit free data 500 mb
+        val limit = 524288000
+        val totalStorage = appStorageManager.getTotalRomStorage()
+        val usedStorage = appStorageManager.getUsedRomStorage()
+        if (totalStorage - usedStorage <= limit) {
+            Log.d("clearDatastore", "clearDatastore: Must Clear")
+            appStorageManager.deleteAllMedia()
+        } else {
+            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
+        }
+
     }
 
     companion object {

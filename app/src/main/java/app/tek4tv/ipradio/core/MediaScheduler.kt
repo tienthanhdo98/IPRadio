@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.core
 
-import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
@@ -11,7 +10,6 @@ import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
 import java.util.*
@@ -45,7 +43,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         )
     }
 
-    fun setCheckHubAndResetAlarms() {
+    private fun setCheckHubAndResetAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
