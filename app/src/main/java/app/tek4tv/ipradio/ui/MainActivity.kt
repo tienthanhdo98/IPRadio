@@ -27,6 +27,7 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
+import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -44,7 +45,6 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
-import com.pedro.rtplibrary.rtsp.RtspOnlyAudio
 import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
@@ -113,28 +113,32 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private lateinit var binding : ActivityMainBinding
-    var urlStream = ""
-    var user_name_stream = ""
-    var password_stream = ""
-    var protocol_stream = ""
+    private lateinit var binding: ActivityMainBinding
+    private var urlStream = ""
+    private var user_name_stream = ""
+    private var password_stream = ""
+    private var protocol_stream = ""
     private var bitrate_stream = ""
     var samplerate = ""
-     lateinit var micStreamRtsp : RtspOnlyAudio
+    lateinit var micStreamRtsp: RtspOnlyAudioTek
+    var isVlcCheckerPlaying = false
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             Log.d("loghub", "onTimeOver: come")
-            serialPortController.turnOffPA()
+            Handler(Looper.getMainLooper()).postDelayed({
+                Log.d("loghub", "onTimeOver: come - turn of pa at first time")
+                serialPortController.turnOffPA()
+            }, 60000)
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             Handler(Looper.getMainLooper()).postDelayed({
                 Log.d("loghub", "onTimeOver: come - turn of pa at second time")
                 serialPortController.turnOffPA()
-            }, 15000)
+            }, 10000)
         }
-
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
@@ -220,7 +224,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -289,7 +293,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         hideSystemUI()
         showMac()
 
-        micStreamRtsp = RtspOnlyAudio(this)
+        micStreamRtsp = RtspOnlyAudioTek(this)
         micStreamRtsp.setReTries(20)
         getSteamInfo()
         startStream()
@@ -368,24 +372,36 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val args = ArrayList<String>()
         val mLibVLC = LibVLC(baseContext, args)
         val player = MediaPlayer(mLibVLC)
-        val media = Media(mLibVLC,Uri.parse(urlStream))
-        player.volume = 0
+        var media : Media? = null
         player.setEventListener { event ->
             when (event!!.type) {
                 MediaPlayer.Event.EndReached -> {
                     Log.i("playerplayer", "onPlaybackStateChanged: EndReached")
-                    stopStream()
+                    isVlcCheckerPlaying = false
+                    if (isStreaming) {
+                        stopStream()
+                    }
                 }
                 MediaPlayer.Event.Playing -> {
+                    isVlcCheckerPlaying = true
                     Log.i("playerplayer", "onPlaybackStateChanged: Playing")
                 }
             }
         }
         lifecycleScope.launch {
-            delay(20000)
-            withContext(Dispatchers.Main)
-            {
-                player.play(media)
+            while (!isVlcCheckerPlaying) {
+                delay(20000)
+                withContext(Dispatchers.Main)
+                {
+                    if(media != null)
+                    {
+                        media!!.release()
+                    }
+                    media = Media(mLibVLC,Uri.parse(urlStream))
+                    player.volume = 0
+
+                    player.play(media!!)
+                }
             }
         }
 

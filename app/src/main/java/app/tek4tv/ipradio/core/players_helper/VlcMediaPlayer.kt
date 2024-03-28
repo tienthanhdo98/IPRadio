@@ -32,7 +32,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun isPlaying(): Boolean = isPlaying
 
-    private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
+    private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
 
