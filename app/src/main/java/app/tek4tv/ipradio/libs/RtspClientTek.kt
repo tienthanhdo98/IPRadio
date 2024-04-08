@@ -264,8 +264,7 @@ open class RtspClientTek(private val connectCheckerRtsp: ConnectCheckerRtsp) {
                     }
                     if (!commandsManager.audioDisabled) {
                         rtspSender.setAudioPorts(audioPorts[0], audioPorts[1])
-                       // rtspSender.setAudioPorts(6985, 6985 )
-                        Log.d("Myteklib", "connect: ${audioPorts[0]} - ${audioPorts[1]}")
+                       //rtspSender.setAudioPorts(49152, 49153 )
                     }
                     rtspSender.start()
                     reTries = numRetry

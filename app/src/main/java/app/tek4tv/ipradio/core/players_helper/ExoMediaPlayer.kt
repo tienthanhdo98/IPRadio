@@ -14,7 +14,6 @@ import com.google.android.exoplayer2.SimpleExoPlayer
 import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
-import kotlinx.coroutines.*
 import okhttp3.OkHttpClient
 import java.util.*
 
@@ -25,9 +24,9 @@ class ExoMediaPlayer(
 
     private val TAG = "ExoMediaPlayer"
 
-    private val exoPlayer  : SimpleExoPlayer
+    private val exoPlayer: SimpleExoPlayer
 
-    private var currentPlayingMedia : MediaItem? = null
+    private var currentPlayingMedia: MediaItem? = null
 
     private var isPlaying = false
     private var isForceValue = false
@@ -36,6 +35,9 @@ class ExoMediaPlayer(
 
     override fun isPlaying(): Boolean = isPlaying
 
+    var handler: Handler? = null
+
+    var countReplayLive = 0
     private val exoEventListener = object : Player.EventListener {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -43,8 +45,9 @@ class ExoMediaPlayer(
 
             this@ExoMediaPlayer.isPlaying = isPlaying
 
-            if(isPlaying) {
+            if (isPlaying) {
                 eventListener.onPlayMediaSuccess(currentPlayingMedia)
+                Log.i(TAG, "onPlaybackStateChanged: onIsPlayingChanged")
             }
         }
 
@@ -68,22 +71,35 @@ class ExoMediaPlayer(
         override fun onPlayerError(error: ExoPlaybackException) {
             super.onPlayerError(error)
             Log.d(TAG, "exoerror: ${error.message ?: ""}")
-
-            //Live stream failed
-            //if hub connection has been lost, exit then try to reconnect when hub connected again
-            //else try to reconnect to livestream immediately
-
-            eventListener.onPlayerError(error, true,currentPlayingMedia!! )
-
-            if(disconnectedHub) return
-
+            if (disconnectedHub) return
             isPlaying = false
-            if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!)) {
-                playMedia(currentPlayingMedia!!,isForceValue)
-            }
-            else{
-                Log.d(TAG,"stop from reconnecting...")
-                stop()
+            try {
+                val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
+                if(isForceValue)
+                {
+                    if (isStreamInTimeFrame && countReplayLive < 4) {
+                        eventListener.onPlayerError(error, true, currentPlayingMedia!!)
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            countReplayLive++;
+                            Log.d(TAG, "onLiveErrorVlc: Chay lai live")
+                            playMedia(currentPlayingMedia!!, isForceValue)
+                        }, 5000)
+
+                    } else {
+                        Log.d(TAG, "Stopping from reconnect")
+                        stop()
+                    }
+                }
+                else{
+                    if(isStreamInTimeFrame)
+                    {
+                        val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
+                        playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
+                    }
+
+                }
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
@@ -109,6 +125,7 @@ class ExoMediaPlayer(
         try {
             currentPlayingMedia = mediaItem
             isForceValue = isForce
+            Log.e(TAG, "Exoplayer $isForceValue")
             playHlsExo(mediaItem,timeStamp)
         }
         catch (e :Exception)
@@ -118,21 +135,26 @@ class ExoMediaPlayer(
         }
     }
     private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
-        var currentTimeStamp =0
-        if(timeStamp != -1) currentTimeStamp = timeStamp
+        var currentTimeStamp = 0
+        if (timeStamp >= 0) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
 
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
-        if(!isForceValue) {
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.e(PlayersManager.LOGTAG, "Player FM start")
-                exoPlayer.stop()
-                Log.d(TAG, "stop")
-                eventListener.onMediaEndReached(currentPlayingMedia)
-                Log.e(PlayersManager.LOGTAG, "Player FM stop")
-            }, (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp*1000)
+        if (!isForceValue) {
+            handler?.removeCallbacksAndMessages(null)
+            handler = Handler(Looper.getMainLooper())
+            handler?.postDelayed(
+                {
+                    Log.e(PlayersManager.LOGTAG, "Player exo start")
+                    exoPlayer.stop()
+                    Log.d(TAG, "stop")
+                    eventListener.onMediaEndReached(currentPlayingMedia)
+                },
+                (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
+            )
+
         }
     }
 
@@ -140,8 +162,17 @@ class ExoMediaPlayer(
 
     }
 
+    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
+
+        val startTimeOfMedia = toCalendar(mediaItem.start!!)
+        val now = Calendar.getInstance()
+        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+
+    }
+
     override fun stop() {
         try {
+            handler?.removeCallbacksAndMessages(null)
             exoPlayer.stop()
             isPlaying = false
             currentPlayingMedia = null
@@ -185,7 +216,7 @@ class ExoMediaPlayer(
         val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
-        val check = (now < liveEndTime)
+        val check = (now <= liveEndTime)
 
         Log.d(TAG, "check hls: $check")
 

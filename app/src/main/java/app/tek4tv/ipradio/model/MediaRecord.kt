@@ -67,7 +67,7 @@ data class TimeFrameRecord(
     var appName: String = "IpRadio"
 ) : LogRecord() {
     @Json(name = "Provider")
-    var provider: String = "Tek4tv"
+    var provider: String = "VATC"
 
     companion object {
         const val STATUS_START = "START"

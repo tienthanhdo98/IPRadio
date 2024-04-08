@@ -5,6 +5,7 @@ import android.os.Looper
 import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import com.pedro.rtmp.utils.ConnectCheckerRtmp
 import com.pedro.rtsp.utils.ConnectCheckerRtsp
 
 
@@ -58,6 +59,58 @@ open class StreamBaseFrag : ConnectCheckerRtsp, AppCompatActivity() {
 
 
     override fun onNewBitrateRtsp(bitrate: Long) {
+
+    }
+}
+
+open class StreamBaseFragRTMP : ConnectCheckerRtmp, AppCompatActivity() {
+
+    val mainHandler = Handler(Looper.getMainLooper())
+    var isStreaming = false
+    var TAG = "LOGSTREAM"
+    open fun stopStream() {
+
+    }
+    open fun startStream() {
+
+    }
+    open fun startStopWatch(){}
+
+    override fun onAuthErrorRtmp() {
+        Log.d(TAG, "onAuthErrorRtmp")
+    }
+
+    override fun onAuthSuccessRtmp() {
+        Log.d(TAG, "onAuthSuccessRtmp")
+    }
+
+    override fun onConnectionFailedRtmp(reason: String) {
+        mainHandler.post {
+            Log.e("StreamFileAct", reason)
+            stopStream()
+            isStreaming = false
+        }
+    }
+
+    override fun onConnectionStartedRtmp(rtmpUrl: String) {
+
+    }
+
+    override fun onConnectionSuccessRtmp() {
+        mainHandler.post {
+            startStopWatch()
+            isStreaming = true
+        }
+    }
+
+    override fun onDisconnectRtmp() {
+        Log.d(TAG, "onDisconnectRtsp")
+        mainHandler.post {
+            isStreaming = false
+        }
+    }
+
+    override fun onNewBitrateRtmp(bitrate: Long) {
 
     }
 }

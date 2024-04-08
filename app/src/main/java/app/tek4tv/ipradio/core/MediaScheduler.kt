@@ -190,7 +190,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_IMMUTABLE) ?: return
+        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
 
         val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
 
@@ -206,10 +206,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,
-            mediaEndTimeInMillis, alarmIntent
+            mediaEndTimeInMillis+1000, alarmIntent
         )
 
-        Log.d("alarmx", "set force")
+        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
     }
 
     private fun cancelForceMediaAlarm() {
@@ -230,7 +230,13 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun cancelAllAlarm() {
-        if (ForceMedia.hasValidForceMedia(appContext)) cancelForceMediaAlarm()
-        else cancelAllScheduledListAlarm()
+        if (ForceMedia.hasValidForceMedia(appContext)) {
+            Log.d("alarmx", "Cancel cancelForceMediaAlarm")
+            cancelForceMediaAlarm()
+        }
+        else {
+            Log.d("alarmx", "Cancel cancelAllScheduledListAlarm")
+            cancelAllScheduledListAlarm()
+        }
     }
 }

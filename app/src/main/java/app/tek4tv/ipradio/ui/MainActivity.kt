@@ -122,21 +122,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     var samplerate = ""
     lateinit var micStreamRtsp: RtspOnlyAudioTek
     var isVlcCheckerPlaying = false
+    var countVlcChecker = 0
+    var media: Media? = null
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             Log.d("loghub", "onTimeOver: come")
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.d("loghub", "onTimeOver: come - turn of pa at first time")
-                serialPortController.turnOffPA()
-            }, 60000)
+            serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             Handler(Looper.getMainLooper()).postDelayed({
                 Log.d("loghub", "onTimeOver: come - turn of pa at second time")
                 serialPortController.turnOffPA()
+                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
             }, 10000)
         }
         //Phát FM
@@ -180,6 +180,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             hubManager.curMediaName = "Live Error"
             hubManager.currentMediaItem = mediaItem
             serialPortController.turnOffPA()
+            Log.d("turnPA", "live error")
         }
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
@@ -194,14 +195,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-//                        delay(11000)
-                        serialPortController.turnOnPAVod()
-                    }
-                } else {
-                    serialPortController.turnOnPAVod()
-                }
+//                if (!serialPortController.isUart1) {
+//                    lifecycleScope.launch {
+////                        delay(11000)
+//                        serialPortController.turnOnPAVod()
+//                    }
+//                } else {
+//                    serialPortController.turnOnPAVod()
+//                }
+                serialPortController.turnOnPAVod()
+                Log.i("VlcMediaPlayer", "log media: success")
             }
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -233,6 +236,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 lifecycleScope.launch {
                     Log.d("MAINLOG", "forceRestartApp: Reset app")
                     serialPortController.turnOffPA()
+                    Log.d("turnPA", "force reset")
                     delay(3000)
                     restartApp(MyApp.instance!!, this@MainActivity)
                 }
@@ -294,25 +298,24 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         showMac()
 
         micStreamRtsp = RtspOnlyAudioTek(this)
-        micStreamRtsp.setReTries(20)
+//        micStreamRtsp.setReTries(20)
         getSteamInfo()
-        startStream()
 
-        binding.btnRecord.setOnClickListener {
-            if (!isStreaming) {
-                startStream()
-            } else {
-                stopStream()
-            }
-        }
+//        binding.btnRecord.setOnClickListener {
+//            if (!isStreaming) {
+//                startStream()
+//            } else {
+//                stopStream()
+//            }
+//        }
 
         lifecycleScope.launch(Dispatchers.Main) {
             while (true) {
                 if (hubManager.pingCounter <= 5) {
                     if (!isStreaming) {
-                        if (!micStreamRtsp.isStreaming) {
-                            delay(15000)
-                            startStream()
+                        delay(10000)
+                        if (urlStream != "") {
+                          startStream()
                         }
                     }
                     Log.i("pingping:", "micStream.isStreaming:  $isStreaming")
@@ -329,17 +332,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radio.tek4tv.vn:1935/huyentienlang/e670a2b31483"
+            ""
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            "huyentienlang"
+            ""
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            "f2ab8f0f-0251-4b6f-8906-c4d5dbdcdddb"
+            ""
         )!!
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -357,6 +360,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             "44100"
         )!!
     }
+
     override fun startStopWatch() {
         var secondPassed = 0L
         lifecycleScope.launch {
@@ -368,11 +372,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             binding.txtTime.text = "00:00"
         }
     }
+
+
     private fun checkStreamIsAvailableWithVlc() {
         val args = ArrayList<String>()
         val mLibVLC = LibVLC(baseContext, args)
         val player = MediaPlayer(mLibVLC)
-        var media : Media? = null
+        player.volume = 0
         player.setEventListener { event ->
             when (event!!.type) {
                 MediaPlayer.Event.EndReached -> {
@@ -384,35 +390,44 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
                 MediaPlayer.Event.Playing -> {
                     isVlcCheckerPlaying = true
+                    countVlcChecker = 0
                     Log.i("playerplayer", "onPlaybackStateChanged: Playing")
                 }
             }
         }
         lifecycleScope.launch {
             while (!isVlcCheckerPlaying) {
-                delay(20000)
+                delay(10000)
                 withContext(Dispatchers.Main)
                 {
-                    if(media != null)
-                    {
+                    if (media != null) {
                         media!!.release()
                     }
-                    media = Media(mLibVLC,Uri.parse(urlStream))
-                    player.volume = 0
-
+                    media = Media(mLibVLC, Uri.parse(urlStream))
                     player.play(media!!)
+                    Log.i("playerplayer", "onPlaybackStateChanged: play")
+                    countVlcChecker++
+                    if (countVlcChecker >= 5) {
+                        if (isStreaming) {
+                            stopStream()
+                        }
+                        countVlcChecker = 0
+                    }
+
                 }
             }
         }
 
     }
-     override fun startStream() {
+
+
+    override fun startStream() {
         binding.apply {
             btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
             txtStatus.text = "End"
         }
-         micStreamRtsp.setAuthorization(user_name_stream, password_stream)
-         micStreamRtsp.setMicrophoneMode(MicrophoneMode.ASYNC)
+        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
+        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
          if(protocol_stream == "TCP")
          {
              micStreamRtsp.setProtocol(Protocol.TCP)
@@ -424,15 +439,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
          if (micStreamRtsp.prepareAudio(bitrate_stream.toInt(), samplerate.toInt(), true, true, true)) {
              micStreamRtsp.startStream(urlStream)
              isStreaming = true
-             checkStreamIsAvailableWithVlc()
+//             checkStreamIsAvailableWithVlc()
          } else {
              Log.d("RTMP", "startStream: micStream not prepare success")
          }
     }
 
 
-
-     override fun stopStream() {
+    override fun stopStream() {
          isStreaming = false
         micStreamRtsp.stopStream()
         binding.apply {
@@ -461,7 +475,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         playerManager.onActivityDestroy()
         stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-
     }
 
     override fun onStart() {
@@ -485,8 +498,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
+//                serialPortController.turnOffPA()
+
                 playerManager.stopForceMedia()
+
                 Log.d("alarmx", "stop force")
+                Log.d("turnPA", "on alarm end force media")
             }
 
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
@@ -505,6 +522,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 if (isConnect == "0") {
                     lifecycleScope.launch {
                         serialPortController.turnOffPA()
+                        Log.d("turnPA", "check hub reset")
                         delay(3000)
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
@@ -559,6 +577,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
          * **/
         viewModel.content.observe(this)
         {
+            cancelAllAlarm()
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -568,7 +587,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 if (forceMedia != null)
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
-
                 return@observe
             }
 
