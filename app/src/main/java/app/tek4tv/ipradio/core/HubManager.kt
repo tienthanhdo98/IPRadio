@@ -104,13 +104,8 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-haiphong.tek4tv.vn/hubServer"
+            "https://hubip-cantho.tek4tv.vn/hubServer"
         )!!
-        //https://hubdevtruyenthanh.tek4tv.vn/hubServer  hub test
-        //https://hub-truyenthanh.tek4tv.vn/hubServer hub cũ
-        //"https://hub.gateway.httt.tek4tv.vn/hubServer" hub mới
-        //"https://hubgatewayhttt.tek4tv.vn/hubServer" hub ssl
-        //"https://hubip-qn.tek4tv.vn/" hub ssl
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -203,28 +198,28 @@ class HubManager(
                 hubConnection.start().blockingAwait()
 
                 hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-                val currentTime = Calendar.getInstance().time
-                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
                 //send disconn log when connect
-                if (ConfigUtil.checkSharef(
-                        appContext,
-                        ConfigUtil.DISCONNECT_START_TIME
-                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-                ) {
-                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-                    val keyState = ConfigUtil.DISCONNECT_STATE
-                    val disconnectTime =
-                        ConfigUtil.getString(appContext, keyStartDis, "0")
-                            ?: "0"
-                    val disconnectState =
-                        ConfigUtil.getString(appContext, keyState, "0")
-                            ?: "DISCONNECT"
-
-                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-                    ConfigUtil.removeSharef(appContext, keyStartDis)
-                    ConfigUtil.removeSharef(appContext, keyState)
-
-                }
+//                val currentTime = Calendar.getInstance().time
+//                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
+//                if (ConfigUtil.checkSharef(
+//                        appContext,
+//                        ConfigUtil.DISCONNECT_START_TIME
+//                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
+//                ) {
+//                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
+//                    val keyState = ConfigUtil.DISCONNECT_STATE
+//                    val disconnectTime =
+//                        ConfigUtil.getString(appContext, keyStartDis, "0")
+//                            ?: "0"
+//                    val disconnectState =
+//                        ConfigUtil.getString(appContext, keyState, "0")
+//                            ?: "DISCONNECT"
+//
+//                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
+//                    ConfigUtil.removeSharef(appContext, keyStartDis)
+//                    ConfigUtil.removeSharef(appContext, keyState)
+//
+//                }
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null

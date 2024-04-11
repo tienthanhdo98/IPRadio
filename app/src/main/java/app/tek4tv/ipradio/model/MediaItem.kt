@@ -118,6 +118,7 @@ data class MediaItem(
         } else {
             Log.d("player", "online: $pathBackup")
             Media(mLibVLC, Uri.parse(pathBackup))
+
         }
     }
 

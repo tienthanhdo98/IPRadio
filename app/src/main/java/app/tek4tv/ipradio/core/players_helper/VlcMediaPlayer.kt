@@ -16,6 +16,7 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import java.util.*
+import kotlin.math.log
 
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
     IMediaPlayer {
@@ -30,6 +31,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var lastError = -1
     // private var endCount = 0
     var countReplayLive = 0
+
 
 
     override fun isPlaying(): Boolean = isPlaying
@@ -138,11 +140,25 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     override fun resume() {
         vlcPlayer.play()
 
-//        val stream = Media(mLibVLC, Uri.parse("http://streaming-ttn.thainguyen.gov.vn:8888/tek4tv_test2/index.m3u8"))
+//        val stream = Media(
+//            mLibVLC,
+//            Uri.parse("")
+//        )
+////        stream.addOption(":rtsp-tcp")
+////        stream.addOption(":network-caching=20")
 //
+////        stream.addOption(":run-time=600")
 //        currentVlcMedia = stream
 //
 //        vlcPlayer.play(stream)
+//        val handler = Handler(Looper.getMainLooper())
+//        handler.postDelayed(
+//            {
+//                vlcPlayer.stop()
+//                playerEventListener.onMediaEndReached(currentMedia)
+//            },
+//            60000
+//        )
     }
 
 
@@ -194,9 +210,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     }
 
-
     private fun playLiveStream(mediaItem: MediaItem,timeStamp: Int) {
-        Log.e(TAG, "vlc play time stamo $timeStamp")
+        Log.e(TAG, "vlc play time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")
@@ -204,6 +219,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         stream.addOption(":run-time=${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
+        Log.e(TAG, "vlc play time end ${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
         if (timeStamp != -1)
             stream.addOption(":start-time=$timeStamp")
         currentVlcMedia = stream
@@ -223,10 +239,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         val check = (now <= liveEndTime)
                 && (stream.state != IMedia.State.Playing)
 
-        Log.e(TAG, "${now <= liveEndTime}")
-        Log.e(TAG, "${stream.state != IMedia.State.Playing}")
-
-        Log.d(LOGTAG, "check: $check")
+        Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
+        Log.d(TAG, "checkLiveStream isPlaying${stream.state != IMedia.State.Playing}")
 
         return check
     }
@@ -243,11 +257,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         val check = (now <= liveEndTime)
                 && (stream.state != IMedia.State.Playing)
 
-        Log.e(TAG, "${getDurationInSecond(mediaItem.duration!!)}")
         Log.e(TAG, "${now <= liveEndTime}")
         Log.e(TAG, "${stream.state != IMedia.State.Playing}")
 
-        Log.d(LOGTAG, "check: $check")
 
         return check
     }
@@ -284,6 +296,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     true,
                     currentMedia!!
                 )
+                val timeStamp2 = calculateResumePoint(currentMedia!!)
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (currentMedia != null) {
                         if (currentMedia!!.body!!.contains("rtsp://") || currentMedia!!.body!!.contains(
@@ -291,13 +304,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                             )
                         ) {
                             Log.d(TAG, "onLiveErrorVlc: replay file - live")
-                            playMedia(currentMedia!!, true)
+                            playMedia(currentMedia!!, true,timeStamp2)
                         }
                         if (currentMedia!!.pathBackup.contains("http://") || currentMedia!!.pathBackup.contains(
                                 "https://"
                             )
                         ) {
-                            val timeStamp2 = calculateResumePoint(currentMedia!!)
                             playMedia(currentMedia!!, false,timeStamp2)
                         }
                     }
