@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,7 +18,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -29,6 +29,7 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
+import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -45,12 +46,18 @@ import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
+import com.pedro.encoder.input.audio.MicrophoneMode
+import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
+import org.videolan.libvlc.MediaPlayer
 import java.io.File
 import java.io.IOException
 import java.util.*
@@ -58,7 +65,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener {
+class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -109,16 +116,31 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
     private lateinit var binding: ActivityMainBinding
+    private var urlStream = ""
+    private var user_name_stream = ""
+    private var password_stream = ""
+    private var protocol_stream = ""
+    private var bitrate_stream = ""
+    var samplerate = ""
+    lateinit var micStreamRtsp: RtspOnlyAudioTek
+    var isVlcCheckerPlaying = false
+    var countVlcChecker = 0
+    var media: Media? = null
+    //using for config app ip or ipencoder
+    var isEncoder = false
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
+            Log.d("loghub", "onTimeOver: come")
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             Handler(Looper.getMainLooper()).postDelayed({
+                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
                 serialPortController.turnOffPA()
+                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
             }, 10000)
         }
         //Phát FM
@@ -279,7 +301,154 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hideSystemUI()
         showMac()
 
+        if(isEncoder) {
+            micStreamRtsp = RtspOnlyAudioTek(this)
+            getSteamInfo()
+            lifecycleScope.launch(Dispatchers.Main) {
+                while (true) {
+                    if (hubManager.pingCounter <= 5) {
+                        if (!isStreaming) {
+                            delay(10000)
+                            if (urlStream != "") {
+                                startStream()
+                            }
+                        }
+                        Log.i("pingping:", "micStream.isStreaming:  $isStreaming")
+                    } else {
+                        stopStream()
+                    }
+                    delay(5000)
+                }
+            }
+        }
 
+    }
+
+    private fun getSteamInfo() {
+        urlStream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.URL_STREAM,
+            ""
+        )!!
+        user_name_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.USER_NAME_STREAM,
+            ""
+        )!!
+        password_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.PASSWORD_STREAM,
+            ""
+        )!!
+        protocol_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.PROTOCOL_STREAM,
+            "UDP"
+        )!!
+        bitrate_stream = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.BITRATE_STREAM,
+            "65536"
+        )!!
+        samplerate = ConfigUtil.getStringEncrypt(
+            this,
+            ConfigUtil.SAMPLERATE_STREAM,
+            "44100"
+        )!!
+    }
+
+    override fun startStopWatch() {
+        var secondPassed = 0L
+        lifecycleScope.launch {
+            while (isStreaming) {
+                delay(1000)
+                secondPassed++
+                binding.txtTime.text = secToReadable(secondPassed)
+            }
+            binding.txtTime.text = "00:00"
+        }
+    }
+
+
+    private fun checkStreamIsAvailableWithVlc() {
+        val args = ArrayList<String>()
+        val mLibVLC = LibVLC(baseContext, args)
+        val player = MediaPlayer(mLibVLC)
+        player.volume = 0
+        player.setEventListener { event ->
+            when (event!!.type) {
+                MediaPlayer.Event.EndReached -> {
+                    Log.i("playerplayer", "onPlaybackStateChanged: EndReached")
+                    isVlcCheckerPlaying = false
+                    if (isStreaming) {
+                        stopStream()
+                    }
+                }
+                MediaPlayer.Event.Playing -> {
+                    isVlcCheckerPlaying = true
+                    countVlcChecker = 0
+                    Log.i("playerplayer", "onPlaybackStateChanged: Playing")
+                }
+            }
+        }
+        lifecycleScope.launch {
+            while (!isVlcCheckerPlaying) {
+                delay(10000)
+                withContext(Dispatchers.Main)
+                {
+                    if (media != null) {
+                        media!!.release()
+                    }
+                    media = Media(mLibVLC, Uri.parse(urlStream))
+                    player.play(media!!)
+                    Log.i("playerplayer", "onPlaybackStateChanged: play")
+                    countVlcChecker++
+                    if (countVlcChecker >= 5) {
+                        if (isStreaming) {
+                            stopStream()
+                        }
+                        countVlcChecker = 0
+                    }
+
+                }
+            }
+        }
+
+    }
+
+
+    override fun startStream() {
+        binding.apply {
+            btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
+            txtStatus.text = "End"
+        }
+        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
+        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
+        if(protocol_stream == "TCP")
+        {
+            micStreamRtsp.setProtocol(Protocol.TCP)
+        }
+        else
+        {
+            micStreamRtsp.setProtocol(Protocol.UDP)
+        }
+        if (micStreamRtsp.prepareAudio(bitrate_stream.toInt(), samplerate.toInt(), true, true, true)) {
+            micStreamRtsp.startStream(urlStream)
+            isStreaming = true
+//             checkStreamIsAvailableWithVlc()
+        } else {
+            Log.d("RTMP", "startStream: micStream not prepare success")
+        }
+    }
+
+
+    override fun stopStream() {
+        isStreaming = false
+        micStreamRtsp.stopStream()
+        binding.apply {
+            btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
+            txtStatus.text = "Start"
+        }
     }
 
 
@@ -293,12 +462,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
+        stopStream()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
+        stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
     }
 
@@ -507,9 +678,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         hubManager.providerValue = listInfoConfig[6]
                     }
                     globalProperties.saveProperties(resposnHub)
-                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
-                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
-                    Log.i("config_config", "updateconfig success")
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
@@ -584,6 +752,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             listValue[8]
                         )
                     }
+
                     val hubConnection = HubConnectionBuilder.create(urlHub)
                         .withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
@@ -635,7 +804,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.CONTROL_MEDIA -> {
                     //0,1,2,3
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
-                    Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
                     if(playerManager.playMode != PLAY_MODE_FORCE ) {
                         when (mess) {
@@ -889,6 +1057,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.getPlayerContent("", false)
                 }
 
+
+
             }
 
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
@@ -906,6 +1076,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun cancelAllAlarm() {
+        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
+         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 

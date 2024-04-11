@@ -303,7 +303,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                                 "rtmp://"
                             )
                         ) {
-                            Log.d(TAG, "onLiveErrorVlc: replay file - live")
                             playMedia(currentMedia!!, true,timeStamp2)
                         }
                         if (currentMedia!!.pathBackup.contains("http://") || currentMedia!!.pathBackup.contains(
