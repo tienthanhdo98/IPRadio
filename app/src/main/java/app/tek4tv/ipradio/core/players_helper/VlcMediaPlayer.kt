@@ -83,7 +83,7 @@ class VlcMediaPlayer(
         vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
-        Log.i("ChangeLayout", "Mess: vlc init")
+
     }
 
 
@@ -129,7 +129,6 @@ class VlcMediaPlayer(
     }
 
     override fun release() {
-        Log.i("monthlyinfo", "vlc release")
 //        if(!vlcPlayer.isPlaying)
         vlcPlayer.release()
         mLibVLC.release()
