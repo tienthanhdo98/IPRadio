@@ -78,7 +78,10 @@ data class MediaItem(
     val metadata: List<Any?>? = null,
 
     @Json(name = "Tag")
-    val tag: List<Any?>? = null
+    val tag: List<Any?>? = null,
+
+    @Json(name = "ProjectID")
+    val projectID: String? = null,
 
 ) : Serializable {
 

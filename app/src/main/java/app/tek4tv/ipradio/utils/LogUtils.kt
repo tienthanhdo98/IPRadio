@@ -79,8 +79,26 @@ class LogUtils private constructor() {
         writeLogToFile(filePath, "$command : $message", true)
     }
 
+    fun logHubError(error: String)
+    {
+        try {
+            val logPath = "logFolderPath/${fileNameFormat.format(Date())}.txt"
+            val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
+            val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
+
+            out.println("------------------------")
+
+            out.println("${df.format(Calendar.getInstance().time)}\n")
+
+            out.println("Error  ${error}")
+            out.println("------------------------")
 
 
+            out.close()
+        } catch (e: Exception) {
+
+        }
+    }
 
     fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
@@ -114,11 +132,11 @@ class LogUtils private constructor() {
         val reportObj = MediaRecord(
             imei = imei,
             title = mediaItem.title ?: "",
-            sourceID = sourceId,
-            sourceName = sourceName,
+            sourceID = destinationId,
+            sourceName = destinationName,
             destinationId = destinationId,
             destinationName = destinationName,
-            mediaID = mediaItem.mediaID.toString(),
+            mediaID = mediaItem.projectID,
             volume = volume,
             paState = paState,
             duration = mediaItem.duration,
@@ -133,7 +151,7 @@ class LogUtils private constructor() {
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
             sourceReference = mediaItem.sourceReference,
-            provider = providerValue
+            provider = providerValue,
         )
         val str = getRecordStr(reportObj)
 
@@ -226,8 +244,6 @@ class LogUtils private constructor() {
             }
         }
     }
-
-
 
     private fun writeLogToFile(filePath: String, line: String, logTime: Boolean = false) {
         coroutineScope.launch {

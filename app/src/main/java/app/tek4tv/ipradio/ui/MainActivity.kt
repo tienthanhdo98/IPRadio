@@ -18,6 +18,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -62,6 +63,7 @@ import java.io.File
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
+
 
 
 @AndroidEntryPoint
@@ -249,6 +251,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
+
+            override fun onLostHubConnection() {
+
+            }
+
+            override fun onReconnectedToHub(error: String) {
+                logUtils.logHubError(error)
+            }
+
+
         }
 
         logUtils = LogUtils.getInst()
@@ -319,6 +331,28 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     }
                     delay(5000)
                 }
+            }
+        }
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+               serialPortController.updateStatus()
+                delay(5000)
+            }
+        }
+        lifecycleScope.launch {
+            while (true) {
+                Log.d("PingCountercheck", "onCreate: ping count ${hubManager.pingCounter}")
+                if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
+                    setMobileDataEnabled(false)
+                    setWifeDataEnabled(true)
+                    delay(5000)
+                    setMobileDataEnabled(true)
+                    ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
+                    delay(5000)
+                    hubComm.forceRestartApp()
+                    Log.d("PingCountercheck", "onCreate: ping count reset")
+                }
+                delay(5000)
             }
         }
 
@@ -462,14 +496,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
-        stopStream()
+//        stopStream()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
-        stopStream()
+//        stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
     }
 

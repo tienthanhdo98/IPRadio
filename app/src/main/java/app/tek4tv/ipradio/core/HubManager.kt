@@ -39,7 +39,7 @@ class HubManager(
 
     ) {
     private val LOG_TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 16
+    val CONNECT_COUNTER_LIMIT = 3
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -104,7 +104,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-haiphong.tek4tv.vn/hubServer"
+            "https://hubip-thainguyen.tek4tv.vn/hubServer"
         )!!
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -121,6 +121,8 @@ class HubManager(
             })
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
+        hubConnection.serverTimeout = 60000
+        hubConnection.keepAliveInterval = 30000
 
         privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
     }
@@ -197,29 +199,7 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-                //send disconn log when connect
-//                val currentTime = Calendar.getInstance().time
-//                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
-//                if (ConfigUtil.checkSharef(
-//                        appContext,
-//                        ConfigUtil.DISCONNECT_START_TIME
-//                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-//                ) {
-//                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-//                    val keyState = ConfigUtil.DISCONNECT_STATE
-//                    val disconnectTime =
-//                        ConfigUtil.getString(appContext, keyStartDis, "0")
-//                            ?: "0"
-//                    val disconnectState =
-//                        ConfigUtil.getString(appContext, keyState, "0")
-//                            ?: "DISCONNECT"
-//
-//                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-//                    ConfigUtil.removeSharef(appContext, keyStartDis)
-//                    ConfigUtil.removeSharef(appContext, keyState)
-//
-//                }
+//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -249,8 +229,9 @@ class HubManager(
                     Log.d("alarmx", "Change 0")
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
-                if (i >= CONNECT_COUNTER_LIMIT){
-                    hubComm.forceRestartApp()}
+//                if (i >= CONNECT_COUNTER_LIMIT){
+//                    hubComm.forceRestartApp()
+//                }
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
@@ -272,34 +253,12 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-//                val currentTime = Calendar.getInstance().time
-//                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
-//                //send disconn log when connect
-//                if (ConfigUtil.checkSharef(
-//                        appContext,
-//                        ConfigUtil.DISCONNECT_START_TIME
-//                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-//                ) {
-//                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-//                    val keyState = ConfigUtil.DISCONNECT_STATE
-//                    val disconnectTime =
-//                        ConfigUtil.getString(appContext, keyStartDis, "0")
-//                            ?: "0"
-//                    val disconnectState =
-//                        ConfigUtil.getString(appContext, keyState, "0")
-//                            ?: "DISCONNECT"
-//
-//                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-//                    ConfigUtil.removeSharef(appContext, keyStartDis)
-//                    ConfigUtil.removeSharef(appContext, keyState)
-//
-//                }
+//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
+
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
                 e.printStackTrace()
-                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
                 null
             }
         }
@@ -316,8 +275,8 @@ class HubManager(
         hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
             try {
                 mainHandler.post {
-                    Log.d("command", command ?: "")
-                    Log.d("message", message ?: "")
+                    Log.d("command receive", command ?: "")
+                    Log.d("message receive", message ?: "")
                     var meessDe = ""
                     var needDecrypt = false
 
@@ -331,8 +290,7 @@ class HubManager(
                                     notifyHubReconnected()
                                     notifyDisconnected.compareAndSet(true, false)
                                 }
-
-
+                                
                                 if (firstConnect) firstConnect = false
 
                                 pingCounter = 0
@@ -410,7 +368,6 @@ class HubManager(
         try {
             Log.d(LOG_TAG, "ping hub")
             val i = playlistIndex
-            Log.d("player:", i.toString())
 
             var mode = "-1"
 
@@ -430,8 +387,6 @@ class HubManager(
             }
 
             val currentTime = Calendar.getInstance().time
-
-
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
@@ -453,7 +408,6 @@ class HubManager(
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
-
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub: ${request.video}")
@@ -481,11 +435,28 @@ class HubManager(
             }
         }
     }
+    private fun startPing() {
+        pingHubJob?.cancel()
+        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
+            while (true) {
+                sendPing()
+                Log.d(LOG_TAG, "ping: $pingCounter")
+                if (ConfigUtil.getString(appContext, "checkhub", "0") == "0") {
+                    if (pingCounter == 1) {
+                        ConfigUtil.putString(appContext, "checkhub", "1")
+                        Log.d("alarmx", "Change 1")
+                    }
+                }
+                delay(PING_INTERVAL)
+                checkConnection()
+            }
+        }
+    }
 
     private suspend fun checkConnection() {
-        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-            hubComm.forceRestartApp()
-        }
+//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+//            hubComm.forceRestartApp()
+//        }
         if (pingCounter >= 2) {
             if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
                 ConfigUtil.putString(appContext, "checkhub", "0")
@@ -548,6 +519,8 @@ class HubManager(
 interface HubComm {
     fun forceRestartApp()
     fun forceRestartDevice()
+    fun onLostHubConnection()
+    fun onReconnectedToHub(error : String)
 }
 
 interface HubEventObserver {

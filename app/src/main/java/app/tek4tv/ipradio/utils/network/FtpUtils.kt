@@ -18,8 +18,8 @@ object FtpUtils {
     private fun connectToFtpServer() : FTPClient
     {
         val ftpClient = FTPClient()
-        ftpClient.connect("14.225.16.145")
-        ftpClient.login("sondev", "123456")
+        ftpClient.connect("171.244.130.53")
+        ftpClient.login("ipradio", "Tek4tv@123")
 
         return ftpClient
     }

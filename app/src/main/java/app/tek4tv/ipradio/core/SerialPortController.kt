@@ -23,8 +23,6 @@ class SerialPortController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-
-
     private val deviceMac = Utils.getMacAddr()
 
     private var isRead = false
@@ -36,7 +34,7 @@ class SerialPortController(
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)
-            readDevice()
+//            readDevice()
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -49,12 +47,6 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
-        coroutineScope.launch(Dispatchers.IO) {
-            while (true) {
-                 updateStatus()
-                delay(5000)
-            }
-        }
 
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -157,7 +149,6 @@ class SerialPortController(
     private fun onDataReceived(data: String?) {
         // read data
         if (data == null) return
-
         //Log.d(LOG_TAG, "dataFinal: $data")
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
