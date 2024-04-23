@@ -23,6 +23,11 @@ object ConfigUtil {
     const val PROTOCOL_STREAM = "PROTOCOL_STREAM"
     const val BITRATE_STREAM = "BITRATE_STREAM"
     const val SAMPLERATE_STREAM = "SAMPLERATE_STREAM"
+    const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
+    const val ServerTimeout = "ServerTimeout"
+    const val KeepAliveInterval = "KeepAliveInterval"
+    //count each 5 reset app
+    const val CountForHardReset = "KeepAliveInterval"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
@@ -51,6 +56,16 @@ object ConfigUtil {
         return MasterKey.Builder(context)
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
+    }
+    fun putInt(context: Context, key: String?, value: Int) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putInt(key, value)
+        editor.apply()
+    }
+    fun getInt(context: Context, key: String, defaultValue: Int): Int {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        return sharedPref.getInt(key, defaultValue)
     }
 
 

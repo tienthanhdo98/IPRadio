@@ -123,6 +123,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     private var password_stream = ""
     private var protocol_stream = ""
     private var bitrate_stream = ""
+    var minuteToTurnOnPA = 0
     var samplerate = ""
     lateinit var micStreamRtsp: RtspOnlyAudioTek
     var isVlcCheckerPlaying = false
@@ -238,11 +239,23 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
-            override fun forceRestartApp() {
+            override fun forceRestartApp(countHardRestart : Int) {
                 lifecycleScope.launch {
-                    Log.d("MAINLOG", "forceRestartApp: Reset app")
-                    serialPortController.turnOffPA()
+                    Log.d("resetApp", "force reset $countHardRestart")
+                    if(countHardRestart >= 6)
+                    {
+                        ConfigUtil.putInt(baseContext, ConfigUtil.CountForHardReset, 0)
+                        serialPortController.hardRestart()
+                    }
+                    ConfigUtil.putInt(baseContext, ConfigUtil.CountForHardReset, countHardRestart + 1)
                     Log.d("turnPA", "force reset")
+//                    serialPortController.turnOffPA()
+                    delay(3000)
+                    setMobileDataEnabled(false)
+                    setWifeDataEnabled(true)
+                    delay(3000)
+                    setMobileDataEnabled(true)
+                    ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
                     delay(3000)
                     restartApp(MyApp.instance!!, this@MainActivity)
                 }
@@ -251,15 +264,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
-
-            override fun onLostHubConnection() {
-
-            }
-
-            override fun onReconnectedToHub(error: String) {
-                logUtils.logHubError(error)
-            }
-
 
         }
 
@@ -333,29 +337,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
             }
         }
+        // lay thong so cua thiet bi
         lifecycleScope.launch(Dispatchers.IO) {
             while (true) {
                serialPortController.updateStatus()
                 delay(5000)
             }
         }
-        lifecycleScope.launch {
-            while (true) {
-                Log.d("PingCountercheck", "onCreate: ping count ${hubManager.pingCounter}")
-                if (hubManager.pingCounter >= hubManager.CONNECT_COUNTER_LIMIT) {
-                    setMobileDataEnabled(false)
-                    setWifeDataEnabled(true)
-                    delay(5000)
-                    setMobileDataEnabled(true)
-                    ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
-                    delay(5000)
-                    hubComm.forceRestartApp()
-                    Log.d("PingCountercheck", "onCreate: ping count reset")
-                }
-                delay(5000)
-            }
-        }
-
     }
 
     private fun getSteamInfo() {
@@ -496,14 +484,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
-//        stopStream()
+        stopStream()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
-//        stopStream()
+        stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
     }
 
@@ -548,16 +536,35 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                val isConnect = ConfigUtil.getString(this, "checkhub", "0")
-                if (isConnect == "0") {
                     lifecycleScope.launch {
                         serialPortController.turnOffPA()
                         Log.d("turnPA", "check hub reset")
                         delay(3000)
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
+                }
+            }
+            MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
+                var found = false
+                val scheduledList = viewModel.mediaRepo.scheduledList
+                val now = Calendar.getInstance().timeInMillis
+                for (i in scheduledList.keys.indices) {
+                    val period = scheduledList.keys.elementAt(i)
+                    val t = period.split("-")
+                    val start = toCalendar(t[0]).timeInMillis - (minuteToTurnOnPA)*60*1000
+                    val end = toCalendar(t[1]).timeInMillis
+
+                    if (now in start..end) {
+                        found = true
+                        break
                     }
                 }
+
+                if (found) {
+                    Log.i("alarm", "Turn on Pa")
+                    serialPortController.turnOnPAVod()
+                }
+
             }
 
         }
@@ -619,9 +626,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
                 return@observe
             }
-
+            minuteToTurnOnPA = ConfigUtil.getInt(
+                this,
+                ConfigUtil.Minute_TURN_ON_PA,
+                3
+            )
             //default
             mediaScheduler.scheduleAllAlarms()
+
+            //bat xong xuat cho ban nam dunh
+            if(viewModel.mediaRepo.scheduledList.isNotEmpty()) {
+                mediaScheduler.turnOnPAAlarms(
+                    viewModel.mediaRepo,
+                    minuteToTurnOnPA
+                )
+            }
 
             playerManager.startFirstTimeFrame()
 
@@ -710,6 +729,30 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             listInfoConfig[6]
                         )
                         hubManager.providerValue = listInfoConfig[6]
+                    }
+                    if(listInfoConfig.size >= 8)
+                    {
+                        ConfigUtil.putInt(
+                            applicationContext,
+                            ConfigUtil.Minute_TURN_ON_PA,
+                            listInfoConfig[7].toInt()
+                        )
+                    }
+                    if(listInfoConfig.size >= 9)
+                    {
+                        ConfigUtil.putInt(
+                            applicationContext,
+                            ConfigUtil.ServerTimeout,
+                            listInfoConfig[8].toInt()
+                        )
+                    }
+                    if(listInfoConfig.size >= 10)
+                    {
+                        ConfigUtil.putInt(
+                            applicationContext,
+                            ConfigUtil.KeepAliveInterval,
+                            listInfoConfig[9].toInt()
+                        )
                     }
                     globalProperties.saveProperties(resposnHub)
                 }

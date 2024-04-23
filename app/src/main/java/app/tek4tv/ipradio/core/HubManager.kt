@@ -39,11 +39,13 @@ class HubManager(
 
     ) {
     private val LOG_TAG = "HubManager"
-    val CONNECT_COUNTER_LIMIT = 3
-    private val PING_INTERVAL = 15000L
+    val CONNECT_COUNTER_LIMIT = 20
+    private val PING_DATA_INTERVAL = 15000L
+    private val PING_HUB_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
+    private var pingDataJob: Job? = null
     private var openNewConnectionJob: Job? = null
 
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
@@ -51,6 +53,7 @@ class HubManager(
 
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
+    private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
@@ -81,15 +84,17 @@ class HubManager(
 
     private var hubToken: String? = null
 
-
     private var firstConnect = true
 
     private var privateKeyStr: String
 
+    private var serverTimeout = 0
+    private var keepAliveInterval = 0
 
     //check ping to hub
     private var hubUrl = ""
     var providerValue = "VATC"
+
     init {
         versionName = try {
             appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
@@ -98,14 +103,21 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"VATC"
+            ConfigUtil.PROVIDER, "VATC"
         )!!
-
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-thainguyen.tek4tv.vn/hubServer"
+            "https://hubip-binhdinh.tek4tv.vn/hubServer"
         )!!
+        serverTimeout = ConfigUtil.getInt(
+            appContext,
+            ConfigUtil.ServerTimeout, 60000
+        )
+        keepAliveInterval = ConfigUtil.getInt(
+            appContext,
+            ConfigUtil.KeepAliveInterval, 30000
+        )
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -121,8 +133,8 @@ class HubManager(
             })
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
-        hubConnection.serverTimeout = 60000
-        hubConnection.keepAliveInterval = 30000
+        hubConnection.serverTimeout = serverTimeout.toLong()
+        hubConnection.keepAliveInterval = keepAliveInterval.toLong()
 
         privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
     }
@@ -229,11 +241,12 @@ class HubManager(
                     Log.d("alarmx", "Change 0")
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
-//                if (i >= CONNECT_COUNTER_LIMIT){
-//                    hubComm.forceRestartApp()
-//                }
+                if (i >= CONNECT_COUNTER_LIMIT) {
+                    val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+                    hubComm.forceRestartApp(countForHardRestart)
+                }
                 i++
-                delay(PING_INTERVAL)
+                delay(PING_DATA_INTERVAL)
                 connectionId = openConnection()
                 Log.e(LOG_TAG, "Trying to reconnect... $i")
                 pingCounter++
@@ -241,6 +254,7 @@ class HubManager(
             Log.d(LOG_TAG, "$connectionId")
             onMessage()
             startPingTimer()
+            startPingDataTimer()
             //notifyHubConnected()
             openNewConnectionJob = null
         }
@@ -363,20 +377,53 @@ class HubManager(
         )
     }
 
+    private fun startPingTimer() {
+        pingHubJob?.cancel()
+        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
+            while (true) {
+                sendPing()
+                Log.d(LOG_TAG, "ping: $pingCounter")
+                delay(PING_HUB_INTERVAL)
+                checkConnection()
+            }
+        }
+    }
+
     private fun sendPing() {
         pingCounter++
         try {
-            Log.d(LOG_TAG, "ping hub")
+            val request = HeartbeatRequest().apply {
+                key = deviceImei
+                mess = ""
+            }
+            sendMessage(heartBeatAdapter.toJson(request), Utils.heartbeat)
+            Log.d(LOG_TAG, "ping hub ${heartBeatAdapter.toJson(request)}")
+
+        } catch (e: java.lang.Exception) {
+            e.printStackTrace()
+        }
+    }
+
+
+    private fun startPingDataTimer() {
+        pingDataJob?.cancel()
+        pingDataJob = coroutineScope.launch(Dispatchers.Default) {
+            while (true) {
+                sendPingData()
+                delay(PING_DATA_INTERVAL)
+            }
+        }
+    }
+
+    private fun sendPingData() {
+        try {
             val i = playlistIndex
-
             var mode = "-1"
-
             if (currentMediaItem != null) {
                 val path = currentMediaItem!!.pathBackup
                 mode = if (path.isNotEmpty() && !File(path).exists()) "1"
                 else "0"
             }
-
             val video = Video("" + i, mode).apply {
 
                 if (currentMediaItem != null) {
@@ -385,7 +432,6 @@ class HubManager(
                     level = currentMediaItem!!.level
                 }
             }
-
             val currentTime = Calendar.getInstance().time
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -418,65 +464,18 @@ class HubManager(
         }
     }
 
-    private fun startPingTimer() {
-        pingHubJob?.cancel()
-        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
-            while (true) {
-                sendPing()
-                Log.d(LOG_TAG, "ping: $pingCounter")
-                if (ConfigUtil.getString(appContext, "checkhub", "0") == "0") {
-                    if (pingCounter == 1) {
-                        ConfigUtil.putString(appContext, "checkhub", "1")
-                        Log.d("alarmx", "Change 1")
-                    }
-                }
-                delay(PING_INTERVAL)
-                checkConnection()
-            }
-        }
-    }
-    private fun startPing() {
-        pingHubJob?.cancel()
-        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
-            while (true) {
-                sendPing()
-                Log.d(LOG_TAG, "ping: $pingCounter")
-                if (ConfigUtil.getString(appContext, "checkhub", "0") == "0") {
-                    if (pingCounter == 1) {
-                        ConfigUtil.putString(appContext, "checkhub", "1")
-                        Log.d("alarmx", "Change 1")
-                    }
-                }
-                delay(PING_INTERVAL)
-                checkConnection()
-            }
-        }
-    }
-
     private suspend fun checkConnection() {
-//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-//            hubComm.forceRestartApp()
-//        }
-        if (pingCounter >= 2) {
-            if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
-                ConfigUtil.putString(appContext, "checkhub", "0")
-                Log.d("alarmx", "Change 0")
-            }
-        }
+        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
 
+            hubComm.forceRestartApp(countForHardRestart)
+        }
         if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
             if (notifyDisconnected.compareAndSet(false, true)) {
                 hubToken = null
                 notifyHubDisconnected()
                 Log.e(LOG_TAG, "Hub Disconnected")
-                val currentTime = Calendar.getInstance().time
-                ConfigUtil.putString(
-                    appContext,
-                    ConfigUtil.DISCONNECT_START_TIME,
-                    currentTime.time.toString()
-                )
-                ConfigUtil.putString(appContext, ConfigUtil.DISCONNECT_STATE, "DISCONNECTED")
             }
             //Try to reconnect to hub
             openConnection()
@@ -517,10 +516,8 @@ class HubManager(
 }
 
 interface HubComm {
-    fun forceRestartApp()
+    fun forceRestartApp(countHardRestart : Int)
     fun forceRestartDevice()
-    fun onLostHubConnection()
-    fun onReconnectedToHub(error : String)
 }
 
 interface HubEventObserver {
@@ -530,7 +527,3 @@ interface HubEventObserver {
 
 val publicKey =
     "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
-
-/*
-val privateKeyStr =
-    "MIICWwIBAAKBgQCUN2A7D+wecFVoH9xQkg1o87hA/DFa8mMTfshyU4mrcvf3w0UkhmvxWJXA4hcvQWjpsXDm1ok7AhB9qeoEbxXYejyQLf9+znaBt2m4rgpSTPNb2ioOFd6d9JuiWJ1oPhPETjoyBdJ37yAZWkoX4nPXK4GcaaW5KPHcMGGRIzP/bQIDAQABAoGARlt7HM5UIablhAYLyVtrbjSzdHXC4A9LpMd8U3kAUxjCSSSyv8Hnn6uTevpYUyBTswt+MrYIcrBqL5zm76/jyCQ/i7wobqO+y089gyOVP6z6ZL2IASFoyEvMeI6Mp673p2EOWEyL/nbaiOmwhk16wsCg3hA9rABZVb3cHOCBzsECQQDKDDRCNYQjqHI9qHqDeq/7nOnQb59bJPb/8/EyxTA/2gFpjaRzyaHg/YUw0XsY9B0wzf+JJXFQ5OOPNusD/yNJAkEAu8tPCX5qSDYY+K/C+JvRob/keB7eXfQlNvDC6e2xs3rl7Qlt5f/bvhv/YdwmHEGQUDgXgsbIl7TW3WtnbebXBQJAen69rCpv64JziIg9hrr6OMzgQLt73LFjgrgt0n8UipGsa4cxXfWvzA1IE9ndDLrre6xYsZhexBGRGUHNaEXl6QJAV43rdJauwKoQLGntsfEb5JjN0T87F3zLmPjZNy1t6ysCZeg+h7wpXFI7WAnG7ueWfAAa3gsF3M0gXC1GFJRKbQJAO932dYpY+Ht5sJMHfQ7KwV8RsIN9vcWfdzoeI1a6/2LjYOoo23z98FCDKYdMV6QZr2JksPRfddMdvnquWxDMlg=="*/

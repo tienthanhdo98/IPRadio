@@ -14,6 +14,7 @@ class Utils {
         const val STORAGE_INFO = "STORAGE_INFO"
         const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
+        const val heartbeat = "Heartbeat"
         const val DEVICE_ID = "device_id"
         const val APP_VERSION = "APP_VERSION"
         const val NETWORK_INFO = "NETWORK_INFO"

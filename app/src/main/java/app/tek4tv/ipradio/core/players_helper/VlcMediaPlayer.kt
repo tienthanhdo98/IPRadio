@@ -53,8 +53,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                         checkStreamError()
                     }
                 } else {
-//                    if (!disconnectedHub)
-//                        onLiveErrorVlc()
                     playerEventListener.onMediaForceEndReached(currentMedia)
                 }
             }

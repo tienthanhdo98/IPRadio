@@ -34,7 +34,7 @@ class SerialPortController(
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)
-//            readDevice()
+            readDevice()
         } catch (e: Exception) {
             e.printStackTrace()
         }

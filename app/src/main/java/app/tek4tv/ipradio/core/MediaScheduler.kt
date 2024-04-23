@@ -211,6 +211,35 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
     }
+    fun turnOnPAAlarms(mediaRepo : MediaRepo,alarmValue : Int) {
+
+        Log.i("alarm", "turnOnPAAlarms: start")
+        val scheduledList = mediaRepo.scheduledList
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_TURN_ON_PA
+        }
+        for (i in scheduledList.keys.indices) {
+            val period = scheduledList.keys.elementAt(i)
+            val t = period.split("-")
+            val start = toCalendar(t[0]).timeInMillis - (alarmValue*60*1000)
+            val end = toCalendar(t[1])
+
+            val alarmIntent =
+                PendingIntent.getBroadcast(appContext, i, intent, FLAG_IMMUTABLE)
+
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP,
+                start,
+                alarmIntent
+            )
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+            Log.i("alarm", "turnOnPAAlarms: ${dateFormat.format(start)}")
+
+
+        }
+
+
+    }
 
     private fun cancelForceMediaAlarm() {
         Log.d("alarmx", "cancel force")
