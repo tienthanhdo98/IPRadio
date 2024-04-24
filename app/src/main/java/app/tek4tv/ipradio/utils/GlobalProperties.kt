@@ -36,9 +36,9 @@ class GlobalProperties {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H08.32.71") ?: "H08.32.71"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Bình Định") ?: "Phường Bình Định"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Cụm phát Phường Bình Định") ?: ""
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H08.33.85.000") ?: "H08.33.85.000"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Ân Hữu") ?: "Xã Ân Hữu"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Cụm phát Xã Ân Hữu") ?: "Cụm phát Xã Ân Hữu"
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)

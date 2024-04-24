@@ -64,7 +64,7 @@ class LogUtils private constructor() {
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,""
+            ConfigUtil.PROVIDER,"Tek4tv"
         )!!
 
         /*rtDatabase = Firebase.database.reference
