@@ -100,7 +100,7 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"Tek4tv"
+            ConfigUtil.PROVIDER,"VATC"
         )!!
 
         hubUrl = ConfigUtil.getStringEncrypt(
