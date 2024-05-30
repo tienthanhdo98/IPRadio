@@ -2,11 +2,12 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
-import android.net.Uri
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkRequest
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -18,7 +19,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.appcompat.app.AppCompatActivity
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -31,10 +32,7 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
@@ -43,11 +41,12 @@ import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
+import com.pedro.rtplibrary.rtmp.RtmpOnlyAudio
 import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,15 +54,11 @@ import io.reactivex.Single
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
-import org.videolan.libvlc.MediaPlayer
 import java.io.File
 import java.io.IOException
 import java.util.*
 import javax.inject.Inject
-
 
 
 @AndroidEntryPoint
@@ -123,14 +118,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     private var password_stream = ""
     private var protocol_stream = ""
     private var bitrate_stream = ""
-    var minuteToTurnOnPA = 0
+
+    //    var minuteToTurnOnPA = 0
     var samplerate = ""
     lateinit var micStreamRtsp: RtspOnlyAudioTek
     var isVlcCheckerPlaying = false
-    var countVlcChecker = 0
     var media: Media? = null
+
     //using for config app ip or ipencoder
-    var isEncoder = false
+    var isEncoder = true
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -174,14 +170,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 e.printStackTrace()
             }
         }
-
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
 //            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
         }
-
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
             hubManager.curMediaName = "Live Error"
@@ -226,6 +220,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     e.printStackTrace()
                 }
             }
+
         }
     }
 
@@ -249,7 +244,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     }
                     ConfigUtil.putInt(baseContext, ConfigUtil.CountForHardReset, countHardRestart + 1)
                     Log.d("turnPA", "force reset")
-//                    serialPortController.turnOffPA()
                     delay(3000)
                     setMobileDataEnabled(false)
                     setWifeDataEnabled(true)
@@ -344,28 +338,49 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 delay(5000)
             }
         }
+        checkInternet()
+    }
+    private fun checkInternet()
+    {
+        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
+        val networkRequest = NetworkRequest.Builder().build()
+        connectivityManager.registerNetworkCallback(
+            networkRequest,
+            object : ConnectivityManager.NetworkCallback() {
+                override fun onAvailable(network: Network) {
+                    super.onAvailable(network)
+                    Log.i("checkcheck", "active connection")
+                    startPlayingMedia()
+                }
+
+                override fun onLost(network: Network) {
+                    super.onLost(network)
+                    Log.i("checkcheck", "losing active connection")
+                    NetworkUtils.isNetworkConnected(baseContext)
+                }
+            })
     }
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            ""
+            "rtsp://stream.tek4tv.vn:8554/phuongdonxa/d41d8775ba9b"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            ""
+            "phuongdonxa"
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            ""
+            "fd0c9c56-09c5-450c-a9df-9e058121bd79"
         )!!
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PROTOCOL_STREAM,
-            "UDP"
+            "TCP"
         )!!
         bitrate_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -390,54 +405,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             binding.txtTime.text = "00:00"
         }
     }
-
-
-    private fun checkStreamIsAvailableWithVlc() {
-        val args = ArrayList<String>()
-        val mLibVLC = LibVLC(baseContext, args)
-        val player = MediaPlayer(mLibVLC)
-        player.volume = 0
-        player.setEventListener { event ->
-            when (event!!.type) {
-                MediaPlayer.Event.EndReached -> {
-                    Log.i("playerplayer", "onPlaybackStateChanged: EndReached")
-                    isVlcCheckerPlaying = false
-                    if (isStreaming) {
-                        stopStream()
-                    }
-                }
-                MediaPlayer.Event.Playing -> {
-                    isVlcCheckerPlaying = true
-                    countVlcChecker = 0
-                    Log.i("playerplayer", "onPlaybackStateChanged: Playing")
-                }
-            }
-        }
-        lifecycleScope.launch {
-            while (!isVlcCheckerPlaying) {
-                delay(10000)
-                withContext(Dispatchers.Main)
-                {
-                    if (media != null) {
-                        media!!.release()
-                    }
-                    media = Media(mLibVLC, Uri.parse(urlStream))
-                    player.play(media!!)
-                    Log.i("playerplayer", "onPlaybackStateChanged: play")
-                    countVlcChecker++
-                    if (countVlcChecker >= 5) {
-                        if (isStreaming) {
-                            stopStream()
-                        }
-                        countVlcChecker = 0
-                    }
-
-                }
-            }
-        }
-
-    }
-
 
     override fun startStream() {
         binding.apply {
@@ -465,19 +432,65 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
 
     override fun stopStream() {
-        isStreaming = false
-        micStreamRtsp.stopStream()
-        binding.apply {
-            btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
-            txtStatus.text = "Start"
+        if (isEncoder) {
+            isStreaming = false
+            micStreamRtsp.stopStream()
+            binding.apply {
+                btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
+                txtStatus.text = "Start"
+            }
         }
     }
 
+    private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
+        var logDeviceData: DataValueModel
+        val strTimeFrame = mutableListOf<String>()
+        lifecycleScope.launch {
+            while (true) {
+                strTimeFrame.clear()
+                val imei = Utils.getDeviceId(baseContext)
+                val timeUpdate =
+                    ConfigUtil.getString(
+                        baseContext,
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+                        "0"
+                    )!!
+                val idPlaylist =
+                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
+                val scheduledList = viewModel.mediaRepo.timeDividers
+                for (i in scheduledList.keys.indices) {
+                    val period = scheduledList.keys.elementAt(i)
+                    strTimeFrame.add(period)
+                }
+                if (isSendPlaylistData) {
+                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
+                    var strPlaylist = ""
+                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
+                        strPlaylist = readFile(fileStoragePath)
+                    }
+                    logDeviceData = DataValueModel(
+                        idPlaylist,
+                        timeUpdate,
+                        getCurrentTime(),
+                        strTimeFrame,
+                        strPlaylist
+                    )
+                } else {
+                    logDeviceData =
+                        DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
+                }
+                logUtils.logDataHub(imei, logDeviceData)
+                delay(300000)
+
+            }
+        }
+    }
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+
     }
 
 
@@ -497,7 +510,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     override fun onStart() {
         super.onStart()
-        startPlayingMedia()
+//       startPlayingMedia()
     }
 
     override fun onAlarm(intent: Intent) {
@@ -516,7 +529,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-//                serialPortController.turnOffPA()
 
                 playerManager.stopForceMedia()
 
@@ -545,25 +557,25 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
             }
             MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
-                var found = false
-                val scheduledList = viewModel.mediaRepo.scheduledList
-                val now = Calendar.getInstance().timeInMillis
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    val t = period.split("-")
-                    val start = toCalendar(t[0]).timeInMillis - (minuteToTurnOnPA)*60*1000
-                    val end = toCalendar(t[1]).timeInMillis
-
-                    if (now in start..end) {
-                        found = true
-                        break
-                    }
-                }
-
-                if (found) {
-                    Log.i("alarm", "Turn on Pa")
-                    serialPortController.turnOnPAVod()
-                }
+//                var found = false
+//                val scheduledList = viewModel.mediaRepo.scheduledList
+//                val now = Calendar.getInstance().timeInMillis
+//                for (i in scheduledList.keys.indices) {
+//                    val period = scheduledList.keys.elementAt(i)
+//                    val t = period.split("-")
+//                    val start = toCalendar(t[0]).timeInMillis - (minuteToTurnOnPA)*60*1000
+//                    val end = toCalendar(t[1]).timeInMillis
+//
+//                    if (now in start..end) {
+//                        found = true
+//                        break
+//                    }
+//                }
+//
+//                if (found) {
+//                    Log.i("alarm", "Turn on Pa")
+//                    serialPortController.turnOnPAVod()
+//                }
 
             }
 
@@ -626,37 +638,32 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
                 return@observe
             }
-            minuteToTurnOnPA = ConfigUtil.getInt(
-                this,
-                ConfigUtil.Minute_TURN_ON_PA,
-                3
-            )
+
             //default
             mediaScheduler.scheduleAllAlarms()
 
-            //bat xong xuat cho ban nam dunh
-            if(viewModel.mediaRepo.scheduledList.isNotEmpty()) {
-                mediaScheduler.turnOnPAAlarms(
-                    viewModel.mediaRepo,
-                    minuteToTurnOnPA
-                )
-            }
-
             playerManager.startFirstTimeFrame()
-
+            sendLogDataHub()
             //all load done, check
             viewModel.checkPlaylist()
+
+
         }
     }
 
     fun startPlayingMedia() {
+        Log.d("checkcheck", "startPlayingMedia: ")
         viewModel.getPlayerContent("", false)
+//        val monthlyScenarioUrl = ConfigUtil.getString(
+//            applicationContext,
+//            ConfigUtil.MONTHLY_SCENARIO_URL, ""
+//        ) ?: return
+//        viewModel.updateMonthlyScenario(monthlyScenarioUrl)
     }
 
     private fun initHubConnect() {
         hubManager.connectToHub()
         locationTracker.getLocation(this@MainActivity)
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -676,26 +683,26 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
-                    val mess = responseHub.message!!
-                    //add at 4.1.3a
-                    playerManager.stopForceMedia()
-                    //add at 3.0.5
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
-                    if(responseHub.volume != ""){
-                        serialPortController.writeForceSetVolume(responseHub.volume)
-                        globalProperties.setTempVolume(responseHub.volume)
-                    }
-                    else
-                    {
-                        serialPortController.writeForceSetVolume("100")
-                    }
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-
-                    viewModel.getPlayerContent(mess, true)
+//                    val mess = responseHub.message!!
+//                    //add at 4.1.3a
+//                    playerManager.stopForceMedia()
+//                    //add at 3.0.5
+//                    playerManager.stopAllPlayer()
+//                    playerManager.resetPlayMode()
+//                    //lưu thông số vol, pi,...
+//                    globalProperties.saveProperties(responseHub)
+//                    if(responseHub.volume != ""){
+//                        serialPortController.writeForceSetVolume(responseHub.volume)
+//                        globalProperties.setTempVolume(responseHub.volume)
+//                    }
+//                    else
+//                    {
+//                        serialPortController.writeForceSetVolume("100")
+//                    }
+//                    cancelAllAlarm()
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
+//
+//                    viewModel.getPlayerContent(mess, true)
                 }
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
@@ -766,7 +773,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     cancelAllAlarm() //xóa tất hẹn giờ
                     ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
                     viewModel.updateMonthlyScenario(mess, false) //cập nhật lịch mới
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess) //lưu dữ liệu vào local storeage (link json data)
+                    ConfigUtil.putString(
+                        applicationContext,
+                        ConfigUtil.MONTHLY_SCENARIO_URL,
+                        mess
+                    ) //lưu dữ liệu vào local storeage (link json data)
+                    val currentTime = Calendar.getInstance().time.time / 1000
+                    ConfigUtil.putString(
+                        applicationContext,
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+                        currentTime.toString()
+                    )
                     //add at 4.1.3b
                     playerManager.stopForceMedia() //stop force media
                 }
@@ -827,6 +844,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             applicationContext,
                             ConfigUtil.SAMPLERATE_STREAM,
                             listValue[8]
+                        )
+                    }
+                    if (listValue.size >= 10) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.KEY_EXTEND_FILE,
+                            listValue[9]
                         )
                     }
 
@@ -927,6 +951,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             Log.e("readplaylist", "error reading playlist!!!")
                         }
                     }
+                    sendLogDataHub(true)
                 }
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
@@ -1159,13 +1184,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     }
 
     private fun setMaxVolume() {
-        try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
-            Log.e("Main", "Error setting max volume")
-        }
+//        try {
+//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+//        } catch (e: Exception) {
+//            Log.e("Main", "Error setting max volume")
+//        }
     }
     private fun clearDatastore() {
         //limit free data 1 gb

@@ -25,7 +25,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "v20.4.1.6a"
+        versionName "v90.4.1.6c"
 
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -102,16 +102,17 @@ dependencies {
     kapt("com.google.dagger:hilt-android-compiler:2.42")
 //    implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha02'
 //    kapt'androidx.hilt:hilt-compiler:1.0.0-alpha02'
-
+    //
+    implementation("androidx.work:work-runtime-ktx:2.8.1")
 
     //prdownloader
     implementation "com.mindorks.android:prdownloader:0.6.0"
 
     implementation 'commons-net:commons-net:3.7.2'
 
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
-    implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
-    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
+    implementation 'com.google.android.exoplayer:exoplayer-hls:2.16.1'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.16.1'
 
     implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.1.8'
 

@@ -141,7 +141,6 @@ class PlayersManager(
             isInTimeFrame = false
             playerManagerListener?.onTimeOver()
             Log.d("turnPA", "onTimeOver: not time frame found")
-
         }
     }
 
@@ -217,7 +216,6 @@ class PlayersManager(
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem,false,timeStamp)
                     } else {
-                        //wav,mp4,
                         // play live
                         if(mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://"))
                         {
@@ -259,7 +257,7 @@ class PlayersManager(
 
     private fun playLiveStream(mediaItem: MediaItem,isForce : Boolean,timeStamp: Int ) {
 //        val resumeLiveTime = calculateResumeLivePoint(mediaItem)
-         val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
 //            exoPlayer.playMedia(mediaItem, isForce,-1)

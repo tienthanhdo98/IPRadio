@@ -4,7 +4,9 @@ import com.squareup.moshi.Json
 
 data class ScheduleDay(
     @Json(name = "Date")
-    var date : String = "",
+    var date: String = "",
     @Json(name = "Link")
-    var sourceUrl : String = ""
+    var sourceUrl: String = "",
+    @Json(name = "UpdatedAt")
+    var ppdatedAt: String = ""
 )

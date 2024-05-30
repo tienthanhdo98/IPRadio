@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.storage
 
 import android.net.Uri
 import android.util.Log
@@ -23,7 +23,6 @@ suspend fun readFile(filePath: String): String {
     return withContext(Dispatchers.IO)
     {
         val br = BufferedReader(FileReader(filePath))
-
         val res = br.lineSequence().toList().joinToString(separator = "")
         br.close()
         res
@@ -55,6 +54,8 @@ fun isFolderExisted(storagePath: String): Boolean {
     val folder = File(storagePath)
     return folder.exists() && folder.isDirectory
 }
+
+
 
 fun getAllFileNameInFolder(storagePath: String): List<String> {
     return try {

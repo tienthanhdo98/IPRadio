@@ -78,6 +78,9 @@ class PingHubRequest {
     @Json(name = "DeviceInfo")
     var deviceInfo: String? = null
 
+    @Json(name = "Metadata")
+    var metadata: String? = null
+
 }
 
 

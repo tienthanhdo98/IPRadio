@@ -81,11 +81,14 @@ class NetworkStatsHelper {
 
 
     fun getAllRxByte(context: Context, startTime: Long, endTime: Long): Long {
-        return getAllRxByteWifi(startTime, endTime) + getAllRxBytesMobile(context, startTime, endTime)
+//        return getAllRxByteWifi(startTime, endTime) + getAllRxBytesMobile(context, startTime, endTime)
+          return getAllRxBytesMobile(context, startTime, endTime)
+
     }
 
     fun getAllTxByte(context: Context, startTime: Long, endTime: Long): Long {
-        return getAllTxByteWifi(startTime, endTime) + getAllTxBytesMobile(context, startTime, endTime)
+//        return getAllTxByteWifi(startTime, endTime) + getAllTxBytesMobile(context, startTime, endTime)
+        return getAllTxBytesMobile(context, startTime, endTime)
     }
 
     /*fun getPackageRxBytesMobile(context: Context): Long {

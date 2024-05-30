@@ -110,6 +110,13 @@ data class MediaItem(
             else -> MediaType.UNKNOWN
         }
     }
+//    fun getMediaType(): MediaType {
+//        if(contentType?.value == "4" || contentType?.value == "3" && type == "VOD") return  MediaType.FILE
+//        if(contentType?.value == "5" || type == "LIVE") return  MediaType.LIVE
+//        if(contentType?.value == "6" || type == "FM") return  MediaType.FM
+//        return if(type == "AM") MediaType.AM
+//        else MediaType.UNKNOWN
+//    }
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
         if (getMediaType() == MediaType.LIVE) {

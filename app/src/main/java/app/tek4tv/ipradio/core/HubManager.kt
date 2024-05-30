@@ -36,7 +36,6 @@ class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-
     ) {
     private val LOG_TAG = "HubManager"
     val CONNECT_COUNTER_LIMIT = 20
@@ -56,6 +55,7 @@ class HubManager(
     private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
+    private val listAdapter = moshi.adapter(List::class.java)
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
@@ -108,7 +108,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-binhdinh.tek4tv.vn/hubServer"
+            "https://hubip-hanam.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -414,6 +414,15 @@ class HubManager(
             }
         }
     }
+    fun getMetadata() : String
+    {
+        val listMetadata : MutableList<MetadataModel> = mutableListOf()
+        val modifyTimePlaylist = ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST,"")
+        val monthlyPlaylistId = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL,"")?.split("/")?.last()
+        val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
+        listMetadata.add(playlistInfo)
+        return  listAdapter.toJson(listMetadata)
+    }
 
     private fun sendPingData() {
         try {
@@ -432,6 +441,7 @@ class HubManager(
                     level = currentMediaItem!!.level
                 }
             }
+
             val currentTime = Calendar.getInstance().time
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -454,10 +464,13 @@ class HubManager(
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
+                metadata =  getMetadata()
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.video}")
-            Log.i("loghub", "log hub: ${request.deviceInfo}")
+//            Log.i("loghub", "log hub: ${request.video}")
+//            Log.i("loghub", "log hub: ${request.deviceInfo}")
+            Log.i("loghub", "log hub: ${request.networkInfo}")
+            Log.i("loghub", "log hub: ${request.metadata}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

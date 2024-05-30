@@ -1,22 +1,23 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.isInRangeTimePlay
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import java.util.*
-import kotlin.math.log
 
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
     IMediaPlayer {
@@ -102,6 +103,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     }
 
+
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
 //        if (checkOldMediaPlaying(mediaItem) && !isForce ) stop()
@@ -116,15 +118,16 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //                Log.e(TAG, "cant play")
 //            }
 //        }
-        if(isForce)
-        {
-            playLiveStream(mediaItem,timeStamp )
+        if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
+            if (isForce) {
+                playLiveStream(mediaItem, timeStamp)
+            } else {
+                if (isInRangeTimePlay()) {
+                    playFile(mediaItem, timeStamp)
+                }
+            }
+            currentMedia = mediaItem
         }
-        else {
-            playFile(mediaItem, timeStamp)
-        }
-
-        currentMedia = mediaItem
     }
 
     override fun reset() {
@@ -140,12 +143,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 //        val stream = Media(
 //            mLibVLC,
-//            Uri.parse("")
+//            Uri.parse("https://binhdinh-ttn.lcsa.vn/site/get-resource?code=AlRwBOMWVYmxkazAqeJ0PoX1G68qEQ")
 //        )
-////        stream.addOption(":rtsp-tcp")
-////        stream.addOption(":network-caching=20")
+//        stream.addOption(":rtsp-tcp")
+//        stream.addOption(":network-caching=20")
 //
-////        stream.addOption(":run-time=600")
+//        stream.addOption(":run-time=600")
 //        currentVlcMedia = stream
 //
 //        vlcPlayer.play(stream)

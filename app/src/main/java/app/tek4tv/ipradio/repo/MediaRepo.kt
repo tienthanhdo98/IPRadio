@@ -3,19 +3,21 @@ package app.tek4tv.ipradio.repo
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
-import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.getFileNameFromUrl
-import app.tek4tv.ipradio.utils.isFileExisted
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.ConfigUtil.KEY_MODIFY_TIME_PLAYLIST
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
+import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.storage.isFileExisted
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -31,6 +33,8 @@ class MediaRepo @Inject constructor(
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
+
+    val LOG_TAG = "MEDIA_REPO"
 
     var broadcastList = mutableListOf<MediaItem>()
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
@@ -48,31 +52,34 @@ class MediaRepo @Inject constructor(
 
             if (!fetchResult.isSuccessful) return
             val monthScenario = fetchResult.body() ?: return
-
+            ConfigUtil.putString(appContext,KEY_MODIFY_TIME_PLAYLIST,monthScenario.first().ppdatedAt)
             //if there are only a single scenario for every day
             //trường hợp là lịch tháng nhưng chỉ c
-            val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
+//            val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
 
             //in case of single scenario, continue to use old scenario
-            if (isSingleScenario && !forceNewScenario) {
-                Log.d("updateDailyScenario", "return update")
-                return
-            }
+//            if (isSingleScenario && !forceNewScenario) {
+//                Log.d("updateDailyScenario", "return update")
+//                return
+//            }
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-            val dayScenario = if (isSingleScenario) monthScenario[0]
-            else monthScenario.firstOrNull { it.date == currentDate }
+//            val dayScenario = if (isSingleScenario) monthScenario[0]
+//            else monthScenario.firstOrNull { it.date == currentDate }
+
+            val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
+                Log.e(LOG_TAG, "Không có lịch trong ngày")
             }
 
         } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
+            Log.e(LOG_TAG, "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -80,6 +87,7 @@ class MediaRepo @Inject constructor(
         scheduledList.clear()
         unscheduledList.clear()
         scheduledMediaItems.clear()
+        timeDividers.clear()
 
         val res = if (needUpdate) {
             updateScenario(listUrl)
@@ -89,9 +97,7 @@ class MediaRepo @Inject constructor(
                 readItemsFromFile()
             } else listOf()
             result
-
         }
-
         broadcastList.clear()
         broadcastList.addAll(res)
 
@@ -144,9 +150,7 @@ class MediaRepo @Inject constructor(
                     result = resBody
                     saveItemsToFile(result)
                 }
-            }
-            else
-            {
+            } else {
                 Log.e("yee", "Lịch rỗng rồi")
             }
         } catch (e: Exception) {
@@ -156,6 +160,7 @@ class MediaRepo @Inject constructor(
         return result
     }
 
+
     fun startDownloadMedia() {
         if (broadcastList.isNullOrEmpty()) return
 
@@ -163,23 +168,30 @@ class MediaRepo @Inject constructor(
             downloadAMediaItem(it)
         }
     }
+    private fun getConfigExtension() : String?
+    {
+        return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp3#aac#wav#wma#ac3")
+
+    }
 
     fun downloadAMediaItem(it: MediaItem) {
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải
-        if (it.getMediaType() != MediaType.FILE) return
-
-        Log.d("downloadAMediaItem", it.body!!)
-
-
-
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
 
         //xác định có là file hay không
-        var isFile = (it.body?.contains("http://")!! || it.body?.contains("https://")!!) && (it.body?.lastIndexOf(".")!! > 0)
+        val extMedia = File(it.body).extension
 
-        //if (it.body?.contains(".mp3") != true || it.body?.contains(".mp4") != true || it.body?.contains(".wav") != true ) return
-        if(!isFile) return
-        Log.d("downloadAMediaItem", "process ${it.body!!}")
+        if(extMedia.isEmpty()) return
+        val isFile = getConfigExtension()!!.contains(extMedia)
 
+        if (!isFile) return
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return

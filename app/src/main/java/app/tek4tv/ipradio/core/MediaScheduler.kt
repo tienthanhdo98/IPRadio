@@ -27,7 +27,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val time = Calendar.getInstance().apply {
             add(Calendar.DAY_OF_MONTH, 1)
             set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
+            set(Calendar.MINUTE, 1)
             set(Calendar.SECOND, 0)
         }
 
@@ -53,7 +53,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val cal_alarm = Calendar.getInstance()
 
         cal_alarm[Calendar.HOUR_OF_DAY] =0
-        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.MINUTE] = 4
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
@@ -190,26 +190,26 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
-
-        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
-
-        if (fmValue == null || fmValue == "") return
-
-        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
-
-        val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
-        }.timeInMillis
-
-        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            mediaEndTimeInMillis+1000, alarmIntent
-        )
-
-        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
+//        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+//
+//        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+//
+//        if (fmValue == null || fmValue == "") return
+//
+//        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
+//
+//        val mediaEndTimeInMillis = Calendar.getInstance().apply {
+//            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
+//        }.timeInMillis
+//
+//        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
+//
+//        alarmManager.setExactAndAllowWhileIdle(
+//            AlarmManager.RTC_WAKEUP,
+//            mediaEndTimeInMillis+1000, alarmIntent
+//        )
+//
+//        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
     }
     fun turnOnPAAlarms(mediaRepo : MediaRepo,alarmValue : Int) {
 
@@ -222,7 +222,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
             val start = toCalendar(t[0]).timeInMillis - (alarmValue*60*1000)
-            val end = toCalendar(t[1])
 
             val alarmIntent =
                 PendingIntent.getBroadcast(appContext, i, intent, FLAG_IMMUTABLE)
@@ -232,9 +231,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 start,
                 alarmIntent
             )
-            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
-            Log.i("alarm", "turnOnPAAlarms: ${dateFormat.format(start)}")
 
+            val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
+            Log.i("ádsadsad", "turnOnPAAlarms: ${dateFormat.format(start)}")
 
         }
 

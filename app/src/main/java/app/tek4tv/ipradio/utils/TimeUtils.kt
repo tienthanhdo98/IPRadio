@@ -6,6 +6,44 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
+
+fun isInRangeTimePlay() : Boolean
+{
+    val currentTime = Calendar.getInstance()
+    val hour = currentTime.get(Calendar.HOUR_OF_DAY)
+    val minute = currentTime.get(Calendar.MINUTE)
+    //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
+    val rangeNightStart = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 21)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+    }
+    val rangeNightEnd= Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 58)
+        set(Calendar.SECOND, 0)
+    }
+    // Nếu thời gian nằm trong khoảng từ 00:01 đến 4:00
+    val rangeEveningStart = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 1)
+        set(Calendar.SECOND, 0)
+    }
+    val rangeEveningEnd= Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 4)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+    }
+    if(currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return  false
+    if(currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return  false
+
+    return true
+}
+fun getCurrentTime() : Long
+{
+    return Calendar.getInstance().time.time
+}
+
 fun secToReadable(sec : Long) : String
 {
     val h = sec / 3600

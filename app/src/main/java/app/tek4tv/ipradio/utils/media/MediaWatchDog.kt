@@ -3,7 +3,6 @@ package app.tek4tv.ipradio.utils.media
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.utils.*
 import kotlinx.coroutines.*
 import java.io.File
 
@@ -17,6 +16,7 @@ class MediaWatchDog(
     fun checkPlaylist() {
         checkPlaylistJob?.cancel()
         val delayDuration = 180000L
+
 
         checkPlaylistJob = scope.launch(Dispatchers.Default) {
             while (true) {
@@ -45,9 +45,8 @@ class MediaWatchDog(
 
                 val mediaPath = it.body
                 if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
-                    if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
+                    if (it.contentType?.value != "4") it.body = it.pathBackup
                     foundBrokenPath = true
-                    //Log.d("aaa",it.name)
                 }
             }
 
@@ -65,7 +64,7 @@ class MediaWatchDog(
     {
         try {
             val needDownload = mediaRepo.broadcastList.filter {
-                it.getMediaType() == MediaType.FILE && it.body!!.startsWith("http")
+                 it.contentType?.value != "4"
             }
 
             if (needDownload.isNotEmpty()) {

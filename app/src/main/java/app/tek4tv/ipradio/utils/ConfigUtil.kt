@@ -12,6 +12,7 @@ object ConfigUtil {
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
     const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
+    const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
@@ -28,6 +29,9 @@ object ConfigUtil {
     const val KeepAliveInterval = "KeepAliveInterval"
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
+    const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
+    const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
+
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()

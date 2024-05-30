@@ -6,6 +6,7 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.LogService
+import app.tek4tv.ipradio.utils.storage.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -92,7 +93,6 @@ class LogUtils private constructor() {
 
             out.println("Error  ${error}")
             out.println("------------------------")
-
 
             out.close()
         } catch (e: Exception) {
@@ -282,6 +282,28 @@ class LogUtils private constructor() {
         }
     }
 
+    fun logDataHub(imei: String, data: DataValueModel) {
+        val LOG_TAG = "MYLOG"
+        val strJs = data.toJson()
+        coroutineScope.launch {
+            val reportObj = DataLogModel(
+                imei = imei,
+                data = strJs
+            )
+            try {
+                val a = logService?.postDeviceLog(reportObj)
+                Log.d(
+                    LOG_TAG,
+                    "Log hub data ${reportObj}-${a!!.body()}"
+                )
+            } catch (e: Exception) {
+                Log.d(LOG_TAG, "Error send log media ${e.message}")
+                e.printStackTrace()
+            }
+        }
+
+
+    }
 
     companion object {
         private var instance: LogUtils? = null
