@@ -157,7 +157,10 @@ class LogUtils private constructor() {
 
         if (str != null)
             writeLogToFile(filePath, str)
-
+        Log.d(
+            LOG_TAG,
+            "Log media start send ${reportObj}"
+        )
         coroutineScope.launch {
             try {
                 logService?.postMediaInfoStart(reportObj)
@@ -231,18 +234,18 @@ class LogUtils private constructor() {
         if (str != null)
             writeLogToFile(filePath, str)
 
-        coroutineScope.launch {
-            try {
-                logService?.postMediaInfoEnd(reportObj)
-                Log.d(
-                    LOG_TAG,
-                    "Log media stop ${reportObj.title} $sourceId : $sourceName : status ${reportObj.status}"
-                )
-            } catch (e: Exception) {
-                Log.d(LOG_TAG, "Error send log media ${e.message}")
-                e.printStackTrace()
-            }
-        }
+//        coroutineScope.launch {
+//            try {
+//                logService?.postMediaInfoEnd(reportObj)
+//                Log.d(
+//                    LOG_TAG,
+//                    "Log media stop ${reportObj.title} $sourceId : $sourceName : status ${reportObj.status}"
+//                )
+//            } catch (e: Exception) {
+//                Log.d(LOG_TAG, "Error send log media ${e.message}")
+//                e.printStackTrace()
+//            }
+//        }
     }
 
     private fun writeLogToFile(filePath: String, line: String, logTime: Boolean = false) {

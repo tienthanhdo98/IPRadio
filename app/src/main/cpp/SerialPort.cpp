@@ -18,7 +18,7 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <jni.h>
-
+#include <string>
 #include "SerialPort.h"
 
 #include "android/log.h"
@@ -187,4 +187,13 @@ extern "C" JNIEXPORT void JNICALL Java_app_tek4tv_ipradio_core_SerialPort_close
 
     LOGD("close(fd = %d)", descriptor);
     close(descriptor);
+}
+
+extern "C" JNIEXPORT
+jstring JNICALL
+Java_app_tek4tv_ipradio_core_SerialPort_baseUserName(
+        JNIEnv* env,
+        jobject /* this */) {
+    std::string baseURL = "binhdinh-Binhdinh@!@#\$%6";
+    return env->NewStringUTF(baseURL.c_str());
 }

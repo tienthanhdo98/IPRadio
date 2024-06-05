@@ -39,6 +39,9 @@ class SerialPortController(
             e.printStackTrace()
         }
     }
+    private fun getUser(): String {
+        return serialPort!!.baseUserName()
+    }
 
     @Throws(IOException::class)
     private fun initSerialPort(uart: String) {

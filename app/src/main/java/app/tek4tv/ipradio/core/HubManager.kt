@@ -93,7 +93,7 @@ class HubManager(
 
     //check ping to hub
     private var hubUrl = ""
-    var providerValue = "VATC"
+
 
     init {
         versionName = try {
@@ -101,14 +101,14 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-        providerValue = ConfigUtil.getStringEncrypt(
-            appContext,
-            ConfigUtil.PROVIDER, "VATC"
-        )!!
+//        providerValue = ConfigUtil.getStringEncrypt(
+//            appContext,
+//            ConfigUtil.PROVIDER, "VATC"
+//        )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-hanam.tek4tv.vn/hubServer"
+            "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -147,12 +147,13 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
+
 
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
@@ -455,7 +456,7 @@ class HubManager(
                 destinationName = GlobalProperties.getInst().destinationName
                 appName = "Ipradio"
                 logType = hubUrl
-                provider = providerValue
+                provider = GlobalProperties.getInst().providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume

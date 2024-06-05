@@ -51,4 +51,6 @@ public class SerialPort {
     }
 
     public native void close();
+
+    public native  String baseUserName();
 }

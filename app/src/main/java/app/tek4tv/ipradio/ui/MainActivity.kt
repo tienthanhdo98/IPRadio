@@ -7,7 +7,6 @@ import android.content.pm.PackageManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -19,7 +18,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -46,7 +44,6 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
-import com.pedro.rtplibrary.rtmp.RtmpOnlyAudio
 import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
@@ -126,7 +123,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     var media: Media? = null
 
     //using for config app ip or ipencoder
-    var isEncoder = true
+    var isEncoder = false
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -365,17 +362,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://stream.tek4tv.vn:8554/phuongdonxa/d41d8775ba9b"
+            ""
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            "phuongdonxa"
+            ""
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            "fd0c9c56-09c5-450c-a9df-9e058121bd79"
+            ""
         )!!
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -708,7 +705,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     val mess = responseHub.message!!
                     Log.i("config_config", "updateconfig $mess")
                     val listInfoConfig = mess.split(",")
-                    val resposnHub = ResponseHub().apply {
+                    val responseHub = ResponseHub().apply {
                         if(listInfoConfig.isNotEmpty()) {
                             volume = listInfoConfig[0]
                         }
@@ -735,7 +732,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             ConfigUtil.PROVIDER,
                             listInfoConfig[6]
                         )
-                        hubManager.providerValue = listInfoConfig[6]
+                        globalProperties.providerValue =  listInfoConfig[6]
                     }
                     if(listInfoConfig.size >= 8)
                     {
@@ -752,6 +749,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             ConfigUtil.ServerTimeout,
                             listInfoConfig[8].toInt()
                         )
+
                     }
                     if(listInfoConfig.size >= 10)
                     {
@@ -761,7 +759,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             listInfoConfig[9].toInt()
                         )
                     }
-                    globalProperties.saveProperties(resposnHub)
+                    globalProperties.saveProperties(responseHub)
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
