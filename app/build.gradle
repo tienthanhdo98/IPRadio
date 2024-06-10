@@ -25,7 +25,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "v77-al.4.1.6c"
+        versionName "v20.4.1.6d"
 
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"

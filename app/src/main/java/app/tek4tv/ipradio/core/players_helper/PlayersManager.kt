@@ -217,15 +217,21 @@ class PlayersManager(
                         playLiveStream(mediaItem,false,timeStamp)
                     } else {
                         // play live
-                        if(mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://"))
+                        if(mediaItem.contentType?.value == "5")
                         {
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
-                        if(mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains("https://"))
-                        {
-                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                        else {
+                            if (mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://")) {
+                                vlcPlayer.playMedia(mediaItem, true, timeStamp)
+                            }
+                            if (mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains(
+                                    "https://"
+                                )
+                            ) {
+                                vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                            }
                         }
-
                         currentPlayer = vlcPlayer
                     }
                 }

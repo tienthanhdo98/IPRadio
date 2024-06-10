@@ -26,8 +26,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val time = Calendar.getInstance().apply {
             add(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 1)
+            set(Calendar.HOUR_OF_DAY, 3)
+            set(Calendar.MINUTE, 2)
             set(Calendar.SECOND, 0)
         }
 

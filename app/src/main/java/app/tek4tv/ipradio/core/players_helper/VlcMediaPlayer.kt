@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -139,11 +140,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun resume() {
-        vlcPlayer.play()
+       vlcPlayer.play()
 
 //        val stream = Media(
 //            mLibVLC,
-//            Uri.parse("https://binhdinh-ttn.lcsa.vn/site/get-resource?code=AlRwBOMWVYmxkazAqeJ0PoX1G68qEQ")
+//            Uri.parse("http://14.224.130.186:8000/binhdinh")
 //        )
 //        stream.addOption(":rtsp-tcp")
 //        stream.addOption(":network-caching=20")
@@ -160,6 +161,16 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //            },
 //            60000
 //        )
+
+//        val stream = Media(
+//            mLibVLC,
+//            Uri.parse("http://14.224.130.186:8000/binhdinh")
+//        )
+//        stream.addOption(":rtsp-tcp")
+//        stream.addOption(":network-caching=20")
+//        currentVlcMedia = stream
+//
+//        vlcPlayer.play(stream)
     }
 
 
@@ -200,6 +211,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
+        Log.e(TAG, "vlc play file : time stamp $timeStamp")
         val media = mediaItem.getVlcMedia(mLibVLC)
         Log.e(TAG, "vlc play timeStamp $timeStamp")
         if (timeStamp != -1)
@@ -212,7 +224,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun playLiveStream(mediaItem: MediaItem,timeStamp: Int) {
-        Log.e(TAG, "vlc play time stamp $timeStamp")
+        Log.e(TAG, "vlc play live : time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
         stream.addOption(":rtsp-tcp")

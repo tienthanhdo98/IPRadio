@@ -182,10 +182,10 @@ class MediaRepo @Inject constructor(
         //5 - Bản tin trực tiếp
         //6 - Bản tin FM
         //7 - Bản tin ghi âm trực tiếp
-        //không phải files thì không tải
+        //không phải files thì không tải, chỉ tải type 3 , type 4
         if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
 
-        //xác định có là file hay không
+        //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body).extension
 
         if(extMedia.isEmpty()) return

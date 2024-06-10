@@ -119,7 +119,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     //    var minuteToTurnOnPA = 0
     var samplerate = ""
     lateinit var micStreamRtsp: RtspOnlyAudioTek
-    var isVlcCheckerPlaying = false
+
     var media: Media? = null
 
     //using for config app ip or ipencoder
@@ -276,7 +276,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 Log.i("PA", "onCreate: s4")
             }
         }
-
         hubManager.onMessageListener =
             { command, message ->
                 handleFromCommandServer(command, message)
@@ -335,27 +334,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 delay(5000)
             }
         }
-        checkInternet()
-    }
-    private fun checkInternet()
-    {
-        val connectivityManager = getSystemService(CONNECTIVITY_SERVICE) as ConnectivityManager
-        val networkRequest = NetworkRequest.Builder().build()
-        connectivityManager.registerNetworkCallback(
-            networkRequest,
-            object : ConnectivityManager.NetworkCallback() {
-                override fun onAvailable(network: Network) {
-                    super.onAvailable(network)
-                    Log.i("checkcheck", "active connection")
-                    startPlayingMedia()
-                }
-
-                override fun onLost(network: Network) {
-                    super.onLost(network)
-                    Log.i("checkcheck", "losing active connection")
-                    NetworkUtils.isNetworkConnected(baseContext)
-                }
-            })
+//        playerManager.resumeMedia();
     }
 
     private fun getSteamInfo() {
@@ -507,7 +486,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     override fun onStart() {
         super.onStart()
-//       startPlayingMedia()
+       startPlayingMedia()
     }
 
     override fun onAlarm(intent: Intent) {
@@ -635,7 +614,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
                 return@observe
             }
-
             //default
             mediaScheduler.scheduleAllAlarms()
 
@@ -705,27 +683,29 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     val mess = responseHub.message!!
                     Log.i("config_config", "updateconfig $mess")
                     val listInfoConfig = mess.split(",")
-                    val responseHub = ResponseHub().apply {
-                        if(listInfoConfig.isNotEmpty()) {
+
+                    val newResponseHub = ResponseHub().apply {
+                        if(listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
                             volume = listInfoConfig[0]
+                            serialPortController.writeForceSetVolume(responseHub.message!!)
                         }
-                        if(listInfoConfig.size >= 2) {
+                        if(listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
                             lat = listInfoConfig[1].toFloat()
                         }
-                        if(listInfoConfig.size >= 3) {
+                        if(listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
                             lng = listInfoConfig[2].toFloat()
                         }
-                        if(listInfoConfig.size >= 4) {
+                        if(listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
                             destinationId = listInfoConfig[3]
                         }
-                        if(listInfoConfig.size >= 5) {
+                        if(listInfoConfig.size >= 5 && listInfoConfig[4] != "null") {
                             destinationName = listInfoConfig[4]
                         }
-                        if(listInfoConfig.size >= 6) {
+                        if(listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
                             deviceName = listInfoConfig[5]
                         }
                     }
-                    if(listInfoConfig.size >= 7 )
+                    if(listInfoConfig.size >= 7 && listInfoConfig[6] != "null")
                     {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
@@ -734,7 +714,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         )
                         globalProperties.providerValue =  listInfoConfig[6]
                     }
-                    if(listInfoConfig.size >= 8)
+                    if(listInfoConfig.size >= 8 && listInfoConfig[7] != "null")
                     {
                         ConfigUtil.putInt(
                             applicationContext,
@@ -742,7 +722,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             listInfoConfig[7].toInt()
                         )
                     }
-                    if(listInfoConfig.size >= 9)
+                    if(listInfoConfig.size >= 9 && listInfoConfig[8] != "null")
                     {
                         ConfigUtil.putInt(
                             applicationContext,
@@ -751,7 +731,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         )
 
                     }
-                    if(listInfoConfig.size >= 10)
+                    if(listInfoConfig.size >= 10 && listInfoConfig[9] != "null")
                     {
                         ConfigUtil.putInt(
                             applicationContext,
@@ -759,7 +739,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             listInfoConfig[9].toInt()
                         )
                     }
-                    globalProperties.saveProperties(responseHub)
+                    globalProperties.saveProperties(newResponseHub)
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
@@ -795,56 +775,56 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     val listValue = mess.split(",")
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
-                    if (listValue.size >= 3) {
+                    if (listValue.size >= 3 && listValue[2] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PROVIDER,
                             listValue[2]
                         )
                     }
-                    if (listValue.size >= 4) {
+                    if (listValue.size >= 4 && listValue[3] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.URL_STREAM,
                             listValue[3]
                         )
                     }
-                    if (listValue.size >= 5) {
+                    if (listValue.size >= 5 && listValue[4] != "null")  {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.USER_NAME_STREAM,
                             listValue[4]
                         )
                     }
-                    if (listValue.size >= 6) {
+                    if (listValue.size >= 6 && listValue[5] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PASSWORD_STREAM,
                             listValue[5]
                         )
                     }
-                    if (listValue.size >= 7) {
+                    if (listValue.size >= 7 && listValue[6] != "null")  {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PROTOCOL_STREAM,
                             listValue[6]
                         )
                     }
-                    if (listValue.size >= 8) {
+                    if (listValue.size >= 8 && listValue[7] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.BITRATE_STREAM,
                             listValue[7]
                         )
                     }
-                    if (listValue.size >= 9) {
+                    if (listValue.size >= 9 && listValue[8] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.SAMPLERATE_STREAM,
                             listValue[8]
                         )
                     }
-                    if (listValue.size >= 10) {
+                    if (listValue.size >= 10 && listValue[9] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.KEY_EXTEND_FILE,
