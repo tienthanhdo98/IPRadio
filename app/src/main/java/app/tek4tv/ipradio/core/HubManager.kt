@@ -101,10 +101,6 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-//        providerValue = ConfigUtil.getStringEncrypt(
-//            appContext,
-//            ConfigUtil.PROVIDER, "VATC"
-//        )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
@@ -147,7 +143,7 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],

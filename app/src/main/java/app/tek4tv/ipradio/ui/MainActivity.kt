@@ -123,7 +123,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     var media: Media? = null
 
     //using for config app ip or ipencoder
-    var isEncoder = false
+    var isEncoder = true
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -602,6 +602,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
          * **/
         viewModel.content.observe(this)
         {
+            Log.d("checkcheck", "registerObservers content")
             cancelAllAlarm()
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
@@ -750,7 +751,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
                     cancelAllAlarm() //xóa tất hẹn giờ
                     ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
-                    viewModel.updateMonthlyScenario(mess, false) //cập nhật lịch mới
+                    viewModel.updateMonthlyScenario(mess) //cập nhật lịch mới
                     ConfigUtil.putString(
                         applicationContext,
                         ConfigUtil.MONTHLY_SCENARIO_URL,
@@ -1136,8 +1137,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.getPlayerContent("", false)
                 }
-
-
 
             }
 

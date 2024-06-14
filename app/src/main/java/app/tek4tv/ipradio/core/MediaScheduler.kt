@@ -60,14 +60,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         var alarmDate = cal_alarm.time
         if(alarmDate.before(date))
         {
-            Log.d("alarmx", "yes")
+            Log.d("alarmx", "Set check hub reset once day: tomorrow")
             cal_alarm.add(Calendar.DATE,1)
         }
         alarmDate = cal_alarm.time
 
-        Log.d("alarmx", "Set check no hub and reset  + ${cal_alarm.timeInMillis}")
-        Log.d("alarmx", "Set check no hub and reset  + ${alarmDate}")
-        Log.d("alarmx", "Set check no hub and reset  + ${date}")
+        Log.d("alarmx", "Set check hub reset once day ${alarmDate}")
 
         alarmManager.setExactAndAllowWhileIdle(
             AlarmManager.RTC_WAKEUP,

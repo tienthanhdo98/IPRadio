@@ -10,8 +10,6 @@ import kotlin.math.abs
 fun isInRangeTimePlay() : Boolean
 {
     val currentTime = Calendar.getInstance()
-    val hour = currentTime.get(Calendar.HOUR_OF_DAY)
-    val minute = currentTime.get(Calendar.MINUTE)
     //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
     val rangeNightStart = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 21)

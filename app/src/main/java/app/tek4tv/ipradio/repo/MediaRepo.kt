@@ -46,8 +46,9 @@ class MediaRepo @Inject constructor(
 
     private val mediaStoragePath = appContext.filesDir.path
 
-    suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
+    suspend fun updateMonthlyScenario(url: String) {
         try {
+            Log.e(LOG_TAG, "updateMonthlyScenario")
             val fetchResult = playlistService.getMonthlyPlaylist(url)
 
             if (!fetchResult.isSuccessful) return
@@ -93,14 +94,16 @@ class MediaRepo @Inject constructor(
             updateScenario(listUrl)
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-                Log.d("readplaylist", "local ")
+                Log.d("readplaylist", "local")
                 readItemsFromFile()
-            } else listOf()
+            } else{
+                Log.d("readplaylist", "local not file in local")
+                listOf()}
             result
         }
         broadcastList.clear()
         broadcastList.addAll(res)
-
+        Log.d("readplaylist", "local ${res.size}")
         filterMedia(broadcastList)
         return broadcastList
     }

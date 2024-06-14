@@ -37,8 +37,8 @@ class ExoMediaPlayer(
     private var isForceValue = false
 
     override var disconnectedHub = false
-    lateinit var hlsMediaSource: HlsMediaSource
-    lateinit var dataSourceFactory: DefaultDataSourceFactory
+
+    private var dataSourceFactory: DefaultDataSourceFactory
     override fun isPlaying(): Boolean = isPlaying
 
     var handler: Handler? = null

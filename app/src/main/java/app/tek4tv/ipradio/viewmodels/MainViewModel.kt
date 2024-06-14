@@ -50,10 +50,10 @@ class MainViewModel @Inject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenario(url : String, forceNewScenario : Boolean = false)
+    fun updateMonthlyScenario(url : String)
     {
         viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url, forceNewScenario)
+            mediaRepo.updateMonthlyScenario(url)
             getPlayerContent("", false)
         }
     }

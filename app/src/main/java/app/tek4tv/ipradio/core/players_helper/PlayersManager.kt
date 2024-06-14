@@ -70,6 +70,8 @@ class PlayersManager(
 
     var played = false
 
+    var handlerFMPlayer: Handler? = null
+
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
             //To log stream played duration
@@ -123,9 +125,11 @@ class PlayersManager(
         var found = false
         val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
-        Log.d(LOGTAG, "play mode: ${scheduledList.keys}")
+        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.keys}")
+        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
+            Log.d(LOGTAG, "onTimeOver: $period")
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
@@ -134,13 +138,17 @@ class PlayersManager(
                 setTimeFrame(period, resumePoint)
                 found = true
                 isInTimeFrame = true
+                Log.d(LOGTAG, "onTimeOver: time frame found")
+                Log.d(LOGTAG, "onTimeOver: time frame found ${start.time}")
+                Log.d(LOGTAG, "onTimeOver: time frame found ${end.time}")
+                Log.d(LOGTAG, "onTimeOver: time frame found ${now}")
                 break
             }
         }
         if (!found) {
             isInTimeFrame = false
             playerManagerListener?.onTimeOver()
-            Log.d("turnPA", "onTimeOver: not time frame found")
+            Log.d(LOGTAG, "onTimeOver: not time frame found")
         }
     }
 
@@ -197,12 +205,13 @@ class PlayersManager(
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
+            Log.d(LOGTAG, "currentPlaylist ${currentPlaylist.size}")
             if (currentPlaylist.isEmpty()) return
             val mediaItem = currentPlaylist[index]
-
+            Log.d(LOGTAG, "play ${mediaItem.title}")
             playMedia(mediaItem, timeStamp)
 
-            Log.d("alarmx", "play ${mediaItem.title}")
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -216,21 +225,23 @@ class PlayersManager(
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem,false,timeStamp)
                     } else {
-                        // play live
+                        // play live o trong lich
                         if(mediaItem.contentType?.value == "5")
                         {
+
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
                         else {
-                            if (mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://")) {
-                                vlcPlayer.playMedia(mediaItem, true, timeStamp)
-                            }
-                            if (mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains(
-                                    "https://"
-                                )
-                            ) {
-                                vlcPlayer.playMedia(mediaItem, false, timeStamp)
-                            }
+//                            if (mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://")) {
+//                                vlcPlayer.playMedia(mediaItem, true, timeStamp)
+//                            }
+//                            if (mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains(
+//                                    "https://"
+//                                )
+//                            ) {
+//                                vlcPlayer.playMedia(mediaItem, false, timeStamp)
+//                            }
+                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
                         currentPlayer = vlcPlayer
                     }
@@ -244,7 +255,9 @@ class PlayersManager(
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
                     if(playMode != PLAY_MODE_FORCE){
-                        Handler(Looper.getMainLooper()).postDelayed({
+                        handlerFMPlayer?.removeCallbacksAndMessages(null)
+                        handlerFMPlayer = Handler(Looper.getMainLooper())
+                        handlerFMPlayer?.postDelayed({
                             Log.e(LOGTAG, "Player FM start")
                             onMediaEndReached(mediaItem)
                             Log.e(LOGTAG, "Player FM stop")
@@ -265,7 +278,7 @@ class PlayersManager(
 //        val resumeLiveTime = calculateResumeLivePoint(mediaItem)
         val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
-        currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
+        currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
 //            exoPlayer.playMedia(mediaItem, isForce,-1)
             exoPlayer.playMedia(mediaItem, isForce,resumeLiveTime)
             exoPlayer
@@ -273,10 +286,10 @@ class PlayersManager(
             vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
             vlcPlayer
         }
-
     }
 
     fun stopAllPlayer() {
+        handlerFMPlayer?.removeCallbacksAndMessages(null)
         vlcPlayer.stop()
         exoPlayer.stop()
         played = false

@@ -64,6 +64,20 @@ class GlobalProperties {
 //        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
 //        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
 
+        //binh dinh an hữu
+//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
+//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H08.34.78") ?: "H08.34.78"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Hoài Thành") ?: "Phường Hoài Thành"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Phường Hoài Thành") ?: "TB Phường Hoài Thành"
+//        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
+//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
+//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
+
 //        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
 //        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
 //        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
@@ -115,7 +129,7 @@ class GlobalProperties {
 //        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
 //        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
 //        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "") ?: ""
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
 
 //        thai nguyen
 //            volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
@@ -124,6 +138,19 @@ class GlobalProperties {
 //        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H55.98.01") ?: "H55.98.01"
 //        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Đình Cả") ?: "Thị trấn Đình Cả"
 //        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Thị trấn Đình Cả") ?: "TB Thị trấn Đình Cả"
+//        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
+//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
+//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
+    //
+//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
+//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H55.93.10") ?: "H55.93.10"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Thành Công") ?: "Xã Thành Công"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã Thành Công") ?: "TB Xã Thành Công"
 //        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
 //        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
 //        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
