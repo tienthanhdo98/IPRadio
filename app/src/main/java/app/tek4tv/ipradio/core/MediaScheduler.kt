@@ -188,26 +188,26 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleForceMediaAlarm() {
-//        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
-//
-//        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
-//
-//        if (fmValue == null || fmValue == "") return
-//
-//        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
-//
-//        val mediaEndTimeInMillis = Calendar.getInstance().apply {
-//            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
-//        }.timeInMillis
-//
-//        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
-//
-//        alarmManager.setExactAndAllowWhileIdle(
-//            AlarmManager.RTC_WAKEUP,
-//            mediaEndTimeInMillis+1000, alarmIntent
-//        )
-//
-//        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
+        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+
+        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+
+        if (fmValue == null || fmValue == "") return
+
+        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
+
+        val mediaEndTimeInMillis = Calendar.getInstance().apply {
+            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
+        }.timeInMillis
+
+        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
+
+        alarmManager.setExactAndAllowWhileIdle(
+            AlarmManager.RTC_WAKEUP,
+            mediaEndTimeInMillis+1000, alarmIntent
+        )
+
+        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
     }
     fun turnOnPAAlarms(mediaRepo : MediaRepo,alarmValue : Int) {
 

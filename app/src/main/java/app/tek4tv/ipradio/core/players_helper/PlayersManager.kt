@@ -138,10 +138,6 @@ class PlayersManager(
                 setTimeFrame(period, resumePoint)
                 found = true
                 isInTimeFrame = true
-                Log.d(LOGTAG, "onTimeOver: time frame found")
-                Log.d(LOGTAG, "onTimeOver: time frame found ${start.time}")
-                Log.d(LOGTAG, "onTimeOver: time frame found ${end.time}")
-                Log.d(LOGTAG, "onTimeOver: time frame found ${now}")
                 break
             }
         }
@@ -275,11 +271,9 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem,isForce : Boolean,timeStamp: Int ) {
-//        val resumeLiveTime = calculateResumeLivePoint(mediaItem)
         val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
-//            exoPlayer.playMedia(mediaItem, isForce,-1)
             exoPlayer.playMedia(mediaItem, isForce,resumeLiveTime)
             exoPlayer
         } else {
@@ -463,5 +457,6 @@ class PlayersManager(
         const val PLAY_MODE_INIT = "0"
         const val LOGTAG = "player"
         var currentPlaylist = listOf<MediaItem>()
+        var handlerLivePlayer: Handler? = null
     }
 }

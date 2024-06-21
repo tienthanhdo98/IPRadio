@@ -152,12 +152,12 @@ class ExoMediaPlayer(
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
+        Log.e(TAG, "Player exo start")
         if (!isForceValue) {
             handler?.removeCallbacksAndMessages(null)
             handler = Handler(Looper.getMainLooper())
             handler?.postDelayed(
                 {
-                    Log.e(PlayersManager.LOGTAG, "Player exo start")
                     exoPlayer.stop()
                     Log.d(TAG, "stop")
                     eventListener.onMediaEndReached(currentPlayingMedia)

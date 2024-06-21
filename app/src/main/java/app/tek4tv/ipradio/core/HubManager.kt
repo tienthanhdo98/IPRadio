@@ -9,6 +9,11 @@ import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.ui.MainActivity
+import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
+import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
+import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
+import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
@@ -101,10 +106,11 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
+        //https://hubip-alpha-binhdinh.tek4tv.vn/
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-haiphong.tek4tv.vn/hubServer"
+            "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -177,7 +183,7 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
@@ -409,13 +415,20 @@ class HubManager(
             }
         }
     }
-    fun getMetadata() : String
+    private fun getMetadata() : String
     {
+        //thong tin lich phat
         val listMetadata : MutableList<MetadataModel> = mutableListOf()
         val modifyTimePlaylist = ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST,"")
         val monthlyPlaylistId = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL,"")?.split("/")?.last()
         val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
         listMetadata.add(playlistInfo)
+        //thong tin stream encoder
+        if(MainActivity.isEncoder)
+        {
+            val streamInfo = MetadataModel("STREAMINGINFO","${urlStream},${protocol_stream},${bitrate_stream},${samplerate}")
+            listMetadata.add(streamInfo)
+        }
         return  listAdapter.toJson(listMetadata)
     }
 

@@ -2,8 +2,10 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
@@ -110,20 +112,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
     private lateinit var binding: ActivityMainBinding
-    private var urlStream = ""
+
     private var user_name_stream = ""
     private var password_stream = ""
-    private var protocol_stream = ""
-    private var bitrate_stream = ""
 
     //    var minuteToTurnOnPA = 0
-    var samplerate = ""
+
     lateinit var micStreamRtsp: RtspOnlyAudioTek
 
     var media: Media? = null
 
-    //using for config app ip or ipencoder
-    var isEncoder = true
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -202,7 +200,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //                    serialPortController.turnOnPAVod()
 //                }
                 serialPortController.turnOnPAVod()
-                Log.i("VlcMediaPlayer", "log media: success")
+                Log.i("onPlayMediaSuccess", "log media: success ${mediaItem?.title}")
             }
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -334,7 +332,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 delay(5000)
             }
         }
-//        playerManager.resumeMedia();
+
     }
 
     private fun getSteamInfo() {
@@ -630,11 +628,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     fun startPlayingMedia() {
         Log.d("checkcheck", "startPlayingMedia: ")
         viewModel.getPlayerContent("", false)
-//        val monthlyScenarioUrl = ConfigUtil.getString(
-//            applicationContext,
-//            ConfigUtil.MONTHLY_SCENARIO_URL, ""
-//        ) ?: return
-//        viewModel.updateMonthlyScenario(monthlyScenarioUrl)
     }
 
     private fun initHubConnect() {
@@ -756,7 +749,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         applicationContext,
                         ConfigUtil.MONTHLY_SCENARIO_URL,
                         mess
-                    ) //lưu dữ liệu vào local storeage (link json data)
+                    ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
+
+                    // lưu thời gian cập nhật lịch để gửi log
                     val currentTime = Calendar.getInstance().time.time / 1000
                     ConfigUtil.putString(
                         applicationContext,
@@ -1161,13 +1156,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
     private fun clearDatastore() {
         //limit free data 1 gb
@@ -1187,5 +1182,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     companion object {
         var alarmListener: AlarmListener? = null
+
+        //using for config app ip or ipencoder
+        var isEncoder = false
+         var urlStream = ""
+         var protocol_stream = ""
+         var bitrate_stream = ""
+        var samplerate = ""
     }
 }

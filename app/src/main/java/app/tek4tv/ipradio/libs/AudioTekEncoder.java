@@ -121,7 +121,13 @@ public class AudioTekEncoder extends BaseEncoder implements GetMicrophoneData {
   public void reset() {
     stop(false);
     prepareAudioEncoder(bitRate, sampleRate, isStereo, maxInputSize);
-    restart();
+    try {
+        restart();
+    }
+    catch (Exception e)
+      {
+
+      }
   }
 
   @Override
