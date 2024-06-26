@@ -39,7 +39,7 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
     ) {
     private val LOG_TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 15
+    private val CONNECT_COUNTER_LIMIT = 5
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -104,7 +104,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-hanam.tek4tv.vn/hubServer"
+            "https://hubdi-hanoi.tek4tv.vn/hubServer"
         ).toString()
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
@@ -337,7 +337,7 @@ class HubManager(
 
                                 pingCounter = 0
                             }
-                            HubCommand.UPDATE_CONFIG -> {
+                            HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION  -> {
                                 meessDe = b64Decode(message)
                             }
 
@@ -414,7 +414,7 @@ class HubManager(
 
             var mode = "-1"
 
-            if (currentMediaItem != null) {
+            if (currentMediaItem  != null) {
                 val path = currentMediaItem!!.pathBackup
                 mode = if (path.isNotEmpty() && !File(path).exists()) "1"
                 else "0"

@@ -378,7 +378,7 @@ class PlayersManager(
         return (h * 3600 + m * 60 + s) / 60
     }
 
-    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler,isPlayAtStart : Boolean) {
+    fun playForceMedia( forceMedia: ForceMedia, mediaScheduler: MediaScheduler,isPlayAtStart : Boolean) {
         try {
             Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát

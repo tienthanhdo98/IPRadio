@@ -1,14 +1,24 @@
 package app.tek4tv.ipradio.network
 
 import app.tek4tv.ipradio.model.*
+import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface LogService {
 //    @POST("https://datawarehouse.httt.tek4tv.vn/MediaDevice")
-//    suspend fun postMediaInfo(@Body record: MediaRecord)//doi media id
-    @POST("https://hub-data.tek4tv.vn/DigitalDataLog")
+////    suspend fun postMediaInfo(@Body record: MediaRecord)//doi media id
+//  //  @POST("https://hub-data.tek4tv.vn/DigitalDataLog")
+//    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+
+
+    // @POST("https://datawarehouse.httt.tek4tv.vn/MediaDevice")
+  //  @POST("https://hub-data.tek4tv.vn/DigitalDataLog")
+    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+
+    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/log")
+    suspend fun postDeviceLog(@Body dataLogModel: DataLogModel) : Response<Any>
 
 //    @POST("https://datawarehouse-truyenthanh.tek4tv.vn/DigitalDataLogConfirm")
 //    suspend fun postMediaInfoEnd(@Body record: MediaRecord)//doi media id

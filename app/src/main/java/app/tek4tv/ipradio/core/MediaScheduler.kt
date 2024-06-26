@@ -422,7 +422,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun cancelAllAlarm() {
-        if (ForceMedia.hasValidForceMedia(appContext)) cancelForceMediaAlarm()
-        else cancelAllScheduledListAlarm()
+//        if (ForceMedia.hasValidForceMedia(appContext)) cancelForceMediaAlarm()
+//        else cancelAllScheduledListAlarm()
+        cancelAllScheduledListAlarm()
     }
 }

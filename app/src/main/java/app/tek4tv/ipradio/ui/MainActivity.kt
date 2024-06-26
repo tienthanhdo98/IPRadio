@@ -267,7 +267,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-        if (typeScreen == FULL_SCREEN) {
+        if (typeScreen != FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
             setContentView(R.layout.activity_main_multiple_view2)
@@ -284,7 +284,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     delay(3000)
                     CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
-
             }
 
             override fun forceRestartDevice() {
@@ -338,8 +337,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         viewModel.hideSystemUI(this)
-
-        initDataByScreen()
+//
+//        initDataByScreen()
 
 
     }
@@ -472,7 +471,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 playerManager.isInTimeFrame = true
                 Log.d("alarmx", "start: $listKey")
-                playerManager.setTimeFrame(listKey, null)
+                if (listKey != null) {
+                    playerManager.setTimeFrame(listKey, null)
+                }
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
@@ -516,14 +517,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
             }
-//            MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA -> {
-//                hideTopLeftArea()
-//            }
-//            MediaScheduleReceiver.SCHEDULED_SHOW_LEFT_AREA -> {
-//                if (typeScreen == FULL_SCREEN) return
-//                showLeftArea()
-//            }
-
         }
     }
 
@@ -570,7 +563,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
                 if (forceMedia != null)
                     playerManager.playForceMedia(
-                        applicationContext,
                         forceMedia,
                         mediaScheduler,
                         true
@@ -693,26 +685,26 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
-                        if (listInfoConfig.isNotEmpty()) {
+                        if (listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
                             volume = listInfoConfig[0]
                         }
-                        if (listInfoConfig.size >= 2) {
+                        if (listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
                             lat = listInfoConfig[1].toFloat()
                         }
-                        if(listInfoConfig.size >= 3) {
+                        if(listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
                             lng = listInfoConfig[2].toFloat()
                         }
-                        if(listInfoConfig.size >= 4) {
+                        if(listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
                             destinationId = listInfoConfig[3]
                         }
-                        if(listInfoConfig.size >= 5) {
+                        if(listInfoConfig.size >= 5  && listInfoConfig[4] != "null") {
                             destinationName = listInfoConfig[4]
                         }
-                        if(listInfoConfig.size >= 6) {
+                        if(listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
                             deviceName = listInfoConfig[5]
                         }
                     }
-                    if(listInfoConfig.size >= 7 )
+                    if(listInfoConfig.size >= 7 && listInfoConfig[6] != "null" )
                     {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
@@ -773,11 +765,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             Log.i("config_config", "updateconfig success: reseting")
                             delay(60000)
                             serialPortController.hardRestart()
+                            delay(10000)
+                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
 
                         } else {
                             Log.i("config_config", "updateconfig fail: reseting")
                             delay(2000)
                             serialPortController.hardRestart()
+                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                         }
 
                     }

@@ -20,11 +20,11 @@ android {
     buildToolsVersion "30.0.3"
 
     defaultConfig {
-        applicationId "app.tek4tv.digitalsignage"
+        applicationId "app.tek4tv.digital"
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D90.4.1.7c"
+        versionName "D29.4.1.7c"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
