@@ -110,7 +110,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
+            "https://hubip-bacgiang.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
