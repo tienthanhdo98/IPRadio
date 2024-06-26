@@ -27,10 +27,7 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
@@ -1134,7 +1131,50 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
+    }
 
+    private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
+        var logDeviceData: DataValueModel
+        val strTimeFrame = mutableListOf<String>()
+        lifecycleScope.launch {
+            while (true) {
+                strTimeFrame.clear()
+                val imei = Utils.getDeviceId(baseContext)
+                val timeUpdate =
+                    ConfigUtil.getString(
+                        baseContext,
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+                        "0"
+                    )!!
+                val idPlaylist =
+                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
+                val scheduledList = viewModel.mediaRepo.timeDividers
+                for (i in scheduledList.keys.indices) {
+                    val period = scheduledList.keys.elementAt(i)
+                    strTimeFrame.add(period)
+                }
+                if (isSendPlaylistData) {
+                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
+                    var strPlaylist = ""
+                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
+                        strPlaylist = readFile(fileStoragePath)
+                    }
+                    logDeviceData = DataValueModel(
+                        idPlaylist,
+                        timeUpdate,
+                        getCurrentTime(),
+                        strTimeFrame,
+                        strPlaylist
+                    )
+                } else {
+                    logDeviceData =
+                        DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
+                }
+                logUtils.logDataHub(imei, logDeviceData)
+                delay(300000)
+
+            }
+        }
     }
 
     companion object {

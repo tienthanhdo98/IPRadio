@@ -20,6 +20,8 @@ object ConfigUtil {
     const val PROVIDER = "PROVIDER"
     const val DEFAULT_ANDROID_VOLUME = "DEFAULT_ANDROID_VOLUME"
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
+    const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
+
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()

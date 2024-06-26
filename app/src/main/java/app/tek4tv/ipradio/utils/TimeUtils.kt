@@ -59,6 +59,10 @@ fun setSystemTime(requireTime: String) {
         e.printStackTrace()
     }
 }
+fun getCurrentTime() : Long
+{
+    return Calendar.getInstance().time.time
+}
 
 fun checkTime()
 {

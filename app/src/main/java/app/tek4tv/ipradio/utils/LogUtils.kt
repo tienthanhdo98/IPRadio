@@ -172,6 +172,29 @@ class LogUtils private constructor() {
         }
     }
 
+    fun logDataHub(imei: String, data: DataValueModel) {
+        val LOG_TAG = "MYLOG"
+        val strJs = data.toJson()
+        coroutineScope.launch {
+            val reportObj = DataLogModel(
+                imei = imei,
+                data = strJs
+            )
+            try {
+                val a = logService?.postDeviceLog(reportObj)
+                Log.d(
+                    LOG_TAG,
+                    "Log hub data ${reportObj}-${a!!.body()}"
+                )
+            } catch (e: Exception) {
+                Log.d(LOG_TAG, "Error send log media ${e.message}")
+                e.printStackTrace()
+            }
+        }
+
+
+    }
+
 //    fun logMediaEnd(
 //        mediaItem: MediaItem
 //    ) {
