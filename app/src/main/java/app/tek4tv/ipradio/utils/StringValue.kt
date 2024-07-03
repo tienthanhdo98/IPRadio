@@ -15,5 +15,14 @@ class StringValue {
         const val priority1 = "Bản tin khẩn cấp"
         const val priority2 = "Bản tin ưu tiên"
         const val priority3 = "Bản tin thông thường"
+
+        //Category - the loai - linh vuc
+        const val categoryId1 = "Bản tin ký tự"
+        const val categoryId2 = "Bản tin hình ảnh"
+        const val categoryId3 = "Bản tin âm thanh"
+        const val categoryId4 = "Bản tin Video"
+        const val categoryId5 = "Bản tin Trực tiếp"
+        const val categoryId6 = "Bản tin FM"
+        const val categoryId7 = "Bản tin ghi âm trực tiếp"
     }
 }

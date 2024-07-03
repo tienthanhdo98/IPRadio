@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -219,6 +221,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -461,6 +464,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
@@ -469,6 +473,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             click()
         }
     }
+    @RequiresApi(Build.VERSION_CODES.O)
     fun click()
     {
         var json = """
@@ -515,6 +520,111 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     }"""
         Log.d("wss", "click: wsss")
         hubManager.convertWssToHubCommad(json)
+
+
+//        val json = """
+//            {
+//  "DichID": "H02.37.27",
+//  "TenDich": "Xã Dương Hưu",
+//
+//   "NguonID": "H02.37.27",
+//  "TenNguon": "Xã Dương Hưu",
+//  "DanhSachDiaBanNhan": [
+//    {
+//      "DichID": "H02.37.27",
+//      "TenDich": "Xã Dương Hưu",
+//      "CumLoaID": [
+//        "72:BE:B5:09:17:98"
+//      ]
+//    }
+//  ],
+//  "LichPhatID": "string",
+//  "TenLichPhat": "string",
+//  "DanhSachBanTin": [
+//    {
+//      "BanTinID": "889988339",
+//      "LoaiBanTin": "3",
+//       "MucDoUuTien": "1",
+//      "TieuDe": "string",
+//      "LoaiLinhVuc": "string",
+//      "NoiDungTomTat": "string",
+//      "ThoiGianSanXuat": 0,
+//      "ThoiLuong": "string",
+//      "TacGia": {
+//        "TenDayDu": "string",
+//        "TenDangNhap": "string",
+//        "ButDanh": "string",
+//        "Email": "string"
+//      },
+//      "NoiDung": "string",
+//      "DiaBanTao": "string",
+//      "TenDiaBanTao": "string",
+//      "ThongTinChiTietBanTin": [
+//        {
+//          "Ten": "string",
+//          "GiaTri": "string"
+//        }
+//      ],
+//      "NguonTin": "string",
+//      "TiepAm": 0,
+//      "NguonTiepAm": "string",
+//      "DanhSachNgayPhat": [
+//        {
+//          "NgayPhat": 1719991218,
+//          "ThoiDiemPhat": [
+//            {
+//              "ThoiGianBatDau": 1719991218,
+//              "ThoiGianKetThuc": 1719991218
+//            }
+//          ]
+//        }
+//      ]
+//    },
+//     {
+//      "BanTinID": "889988339",
+//      "LoaiBanTin": "3",
+//       "MucDoUuTien": "1",
+//      "TieuDe": "string",
+//      "LoaiLinhVuc": "string",
+//      "NoiDungTomTat": "string",
+//      "ThoiGianSanXuat": 0,
+//      "ThoiLuong": "string",
+//      "TacGia": {
+//        "TenDayDu": "string",
+//        "TenDangNhap": "string",
+//        "ButDanh": "string",
+//        "Email": "string"
+//      },
+//      "NoiDung": "string",
+//      "DiaBanTao": "string",
+//      "TenDiaBanTao": "string",
+//      "ThongTinChiTietBanTin": [
+//        {
+//          "Ten": "string",
+//          "GiaTri": "string"
+//        }
+//      ],
+//      "NguonTin": "string",
+//      "TiepAm": 0,
+//      "NguonTiepAm": "string",
+//      "DanhSachNgayPhat": [
+//        {
+//          "NgayPhat": 1720077617,
+//          "ThoiDiemPhat": [
+//            {
+//              "ThoiGianBatDau": 1720113797,
+//              "ThoiGianKetThuc": 1720113797
+//            }
+//          ]
+//        }
+//      ]
+//    }
+//  ]
+//}
+//
+//
+//        """
+//        hubManager.convertWssMessToPlaylist(json)
     }
 
 
@@ -696,9 +806,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
             val responseHub = hubManager.responseHub
 
-            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
-
-            if (!isImei) return
+//            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
+//
+//            if (!isImei) return
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {

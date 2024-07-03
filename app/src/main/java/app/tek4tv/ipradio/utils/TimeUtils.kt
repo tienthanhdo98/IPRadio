@@ -1,10 +1,30 @@
 package app.tek4tv.ipradio.utils
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
 import java.util.*
 import kotlin.math.abs
+
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
+    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
+}
+fun convertTimeStampToHHMMSS(s: Long): String {
+    return try {
+        val sdf = SimpleDateFormat("HH:mm:ss")
+        val netDate = Date(s.toLong() * 1000)
+        sdf.format(netDate)
+    } catch (e: Exception) {
+        e.toString()
+    }
+}
 
 
 fun isInRangeTimePlay() : Boolean

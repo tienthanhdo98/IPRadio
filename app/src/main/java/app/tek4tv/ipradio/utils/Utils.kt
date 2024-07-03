@@ -1,15 +1,17 @@
 package app.tek4tv.ipradio.utils
 
+import android.R.string
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.model.ContentType
-import app.tek4tv.ipradio.model.Priority
+import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.net.NetworkInterface
 import java.util.*
+
 
 class Utils {
     companion object {
@@ -83,6 +85,7 @@ class Utils {
             return adapter.toJson(list)
         }
 
+        //the loai
         fun convertContentType(strContentType: String): ContentType {
             val contentType: ContentType =  when (strContentType) {
                 "1" -> {
@@ -110,6 +113,7 @@ class Utils {
             return contentType
         }
 
+        //do uu tien
         fun convertPriority(priorityLevel: String) : Priority{
             val priority : Priority = when (priorityLevel) {
                 "1" -> {
@@ -120,13 +124,65 @@ class Utils {
                     Priority(2,StringValue.priority2)
                 }
                 "3" -> {
-                    Priority(3,StringValue.priority3)
+                    Priority(3, StringValue.priority3)
                 }
                 else -> {
-                    Priority(1,StringValue.priority1)
+                    Priority(1, StringValue.priority1)
                 }
             }
             return priority
+        }
+
+        //linh vuc
+        fun convertFiend(fieldType: String): Category {
+            val category: Category = when (fieldType) {
+                "1" -> {
+                    Category(1, StringValue.categoryId1)
+
+                }
+                "2" -> {
+                    Category(2, StringValue.categoryId2)
+                }
+                "3" -> {
+                    Category(3, StringValue.categoryId3)
+                }
+                "4" -> {
+                    Category(3, StringValue.categoryId4)
+                }
+                "5" -> {
+                    Category(3, StringValue.categoryId5)
+                }
+                "6" -> {
+                    Category(3, StringValue.categoryId6)
+                }
+                "7" -> {
+                    Category(3, StringValue.categoryId7)
+                }
+                else -> {
+                    Category(1, StringValue.categoryId3)
+                }
+            }
+            return category
+        }
+        fun convertAuthor(tacGia : TacGia) : Author
+        {
+            return Author(
+                fullName = tacGia.tenDayDu,
+                userName = tacGia.butDanh,
+                email = tacGia.email,
+                )
+        }
+        fun getTypeOfMediaItem(contentTypeId : Int) : String
+        {
+            var type = "VOD"
+            if (contentTypeId == 5) {
+                type = "VOD"
+            }
+            if (contentTypeId == 6) {
+                type = "FM"
+            }
+            return type
+
         }
     }
 }

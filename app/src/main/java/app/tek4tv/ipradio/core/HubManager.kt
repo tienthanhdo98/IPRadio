@@ -1,9 +1,11 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
+import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.annotation.RequiresApi
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
@@ -14,13 +16,11 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
 import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
-import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.HubCommand.DV003
+import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.HubCommand.DV005
 import app.tek4tv.ipradio.utils.HubCommand.DV008
-import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
+import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -28,12 +28,15 @@ import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Types
 import io.reactivex.Single
 import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
+import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
+
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -64,6 +67,12 @@ class HubManager(
     private val listAdapter = moshi.adapter(List::class.java)
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
+
+    var typeMediaItem = Types.newParameterizedType(
+        MutableList::class.java,
+        MediaItem::class.java
+    )
+    var jsonMediaItemAdapter = moshi.adapter<List<MediaItem>>(typeMediaItem)
 
     var pingCounter = 0
 
@@ -278,7 +287,9 @@ class HubManager(
 
     //wss
     val wssStatusAdapter: JsonAdapter<WssStatusModel> = moshi.adapter(WssStatusModel::class.java)
-    val wssLogMediaAdapter: JsonAdapter<WssMediaLogModel> = moshi.adapter(WssMediaLogModel::class.java)
+    val wssLogMediaAdapter: JsonAdapter<WssMediaLogModel> =
+        moshi.adapter(WssMediaLogModel::class.java)
+    val wssPlaylistAdapter: JsonAdapter<WssPlaylist> = moshi.adapter(WssPlaylist::class.java)
     val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
     val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
     val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
@@ -370,7 +381,6 @@ class HubManager(
             hubCommand = HubCommand.LIVE
             responseHub = ResponseHub().apply {
                 type = "LIVE"
-                imei = body?.danhSachDiaBanNhan?.first()?.cumLoaID?.first()
                 level = body?.mucDoUuTien!!.toInt()
                 duration = body.thoiLuong.toString()
                 message = body.noiDung
@@ -451,14 +461,126 @@ class HubManager(
         sendMessageWSS(wssStatusAdapter.toJson(request))
     }
 
-    fun convertWssMessToPlaylist(jsonMess : String)
-    {
+    @RequiresApi(Build.VERSION_CODES.O)
+    fun convertWssMessToPlaylist(jsonMess: String) {
+        val playlist = wssPlaylistAdapter.fromJson(jsonMess)!!
+        val listMedia = playlist.danhSachBanTin
+        if (listMedia.isNotEmpty()) {
+            val newItem = listMedia.first()
+            val listDay = newItem.danhSachNgayPhat
+            for(item in listMedia)
+            {
+                val ngayPhat = unixTimeStampToDateTime(item.danhSachNgayPhat.first().ngayPhat.toInt())
+                Log.d("wssplaylist", "convertWssMessToPlaylist: ${ngayPhat.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))}")
+                findScheduleByDate(jsonMess,item.danhSachNgayPhat.first().ngayPhat)
+            }
+//            for (item in listDay) {
+////                val itemMap = item as Map<String, Any>
+//                val ngayPhat = unixTimeStampToDateTime(item.ngayPhat.toInt())
+//                val date = ngayPhat.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+////                val obj = mapOf(
+////                    "UpdatedAt" to totalScenarioIpradio.updatedAt,
+////                    "Date" to date,
+////                    "Link" to "$host/api/AsyncIpradio/v2/${totalScenarioIpradio.lichPhatId}/$inputNgayPhat"
+////                )
+////                results.add(obj)
+//                Log.d("wssplaylist", "convertWssMessToPlaylist: $date")
+//                Log.d("wssplaylist", "convertWssMessToPlaylist: ${listDay.size}")
+//                findScheduleByDate(jsonMess,item.ngayPhat)
+//            }
+        }
 
     }
-    
+
+    private fun findScheduleByDate(jsonMess: String, ngayPhat: Long) {
+        val playlist = wssPlaylistAdapter.fromJson(jsonMess)!!
+        val listMedia = playlist.danhSachBanTin
+        val listPhatTheoNgay = mutableListOf<DanhSachBanTin>()
+        val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()
+        // Tìm khung giờ
+        for (item in listMedia) {
+            for (listTime in item.danhSachNgayPhat) {
+                if (listTime.ngayPhat == ngayPhat) {
+                    listPhatTheoNgay.add(item)
+                }
+            }
+        }
+        if(listPhatTheoNgay.isNotEmpty())
+        {
+        var checkCountStart = 0
+        var count = 0
+        for (item in listPhatTheoNgay) {
+            var tObjStartTime = ""
+            tObjStartTime = if (checkCountStart > 0) {
+                convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau - 0)
+            } else {
+                convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau)
+            }
+            val tObjEndTime: String = convertTimeStampToHHMMSS(
+                item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianKetThuc
+            )
+            checkCountStart++
+            val tObjStart = MediaItem(
+                id = count,
+                mediaID = count,
+                projectID = item.banTinID,
+                title = item.tieuDe,
+                body = "start",
+                startTime = tObjStartTime,
+                fixTime = tObjStartTime,
+                end = tObjEndTime,
+            )
+            count++;
+            listBanTinPhatTheoNgay.add(tObjStart)
+
+            val obj = MediaItem(
+                id = count,
+                mediaID = count,
+                projectID = item.banTinID,
+                sourceID = playlist.nguonID,
+                sourceName = playlist.tenNguon,
+                destinationID = playlist.dichID,
+                destinationName = playlist.tenDich,
+                title = item.tieuDe,
+                description = item.noiDungTomTat,
+                duration = item.thoiLuong,
+                contentType = Utils.convertContentType(item.loaiBanTin),
+                priority = Utils.convertPriority(item.mucDoUuTien),
+                category = Utils.convertFiend(item.loaiLinhVuc),
+                author = convertAuthor(item.tacGia) ,
+                body = item.noiDung,
+                sourceReference = item.tenDiaBanTAO,
+                type = getTypeOfMediaItem(item.loaiBanTin.toInt()),
+                createDate = item.thoiGianSANXuat.toString(),
+                metadata = mutableListOf(),
+                tag = mutableListOf(),
+                fixTime = tObjEndTime,
+                startTime = tObjStartTime,
+                start = tObjStartTime,
+                end = tObjEndTime,
+            )
+            count++
+            listBanTinPhatTheoNgay.add(obj)
+
+            val tObEnd = MediaItem(
+                id = count,
+                mediaID = count,
+                projectID = item.banTinID,
+                title = item.tieuDe,
+                body = "end",
+                startTime = tObjStartTime,
+                fixTime = tObjEndTime,
+                end = tObjEndTime,
+            )
+            count++;
+            listBanTinPhatTheoNgay.add(tObEnd)
+        }
+        Log.d("wssplaylist", "findScheduleByDate: ${jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)}")
+        }
+    }
 
 
-        private fun sendMessage(mess: String, command: String) {
+    private fun sendMessage(mess: String, command: String) {
         try {
             hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
             Log.i("datadevice", "volume: $mess")
