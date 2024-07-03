@@ -4,6 +4,8 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.model.ContentType
+import app.tek4tv.ipradio.model.Priority
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.net.NetworkInterface
@@ -79,6 +81,52 @@ class Utils {
             val listType = Types.newParameterizedType(List::class.java, String::class.java)
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
+        }
+
+        fun convertContentType(strContentType: String): ContentType {
+            val contentType: ContentType =  when (strContentType) {
+                "1" -> {
+                    ContentType(1, StringValue.contentTypeId1)
+                }
+                "2" -> {
+                     ContentType(2, StringValue.contentTypeId2)
+                }
+                "3" -> {
+                    ContentType(3, StringValue.contentTypeId3)
+                }
+                "4" -> {
+                    ContentType(4, StringValue.contentTypeId4)
+                }
+                "5" -> {
+                    ContentType(5, StringValue.contentTypeId5)
+                }
+                "6" -> {
+                   ContentType(6, StringValue.contentTypeId6)
+                }
+                else -> {
+                   ContentType(1, StringValue.contentTypeId1)
+                }
+            }
+            return contentType
+        }
+
+        fun convertPriority(priorityLevel: String) : Priority{
+            val priority : Priority = when (priorityLevel) {
+                "1" -> {
+                    Priority(1,StringValue.priority1)
+
+                }
+                "2" -> {
+                    Priority(2,StringValue.priority2)
+                }
+                "3" -> {
+                    Priority(3,StringValue.priority3)
+                }
+                else -> {
+                    Priority(1,StringValue.priority1)
+                }
+            }
+            return priority
         }
     }
 }

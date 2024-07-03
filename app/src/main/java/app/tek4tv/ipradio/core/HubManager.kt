@@ -451,9 +451,14 @@ class HubManager(
         sendMessageWSS(wssStatusAdapter.toJson(request))
     }
 
+    fun convertWssMessToPlaylist(jsonMess : String)
+    {
+
+    }
+    
 
 
-    private fun sendMessage(mess: String, command: String) {
+        private fun sendMessage(mess: String, command: String) {
         try {
             hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
             Log.i("datadevice", "volume: $mess")
