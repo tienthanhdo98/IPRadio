@@ -62,4 +62,10 @@ object HubCommand {
     const val JOIN_GROUP = "JoinGroup"
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
+
+    const val WSS = "WSS"
+    //WSS
+    const val DV003 = "dv003"
+    const val DV008 = "dv008"
+    const val DV005 = "dv005"
 }

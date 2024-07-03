@@ -6,9 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkRequest
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -205,15 +202,18 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
-            if(mediaItem != null) {
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
-            }
+//            if(mediaItem != null) {
+//                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
+//            }
             if (globalProperties.logEnabled) {
                 try {
                     viewModel.currentMedia = mediaItem
                 } catch (e: Exception) {
                     e.printStackTrace()
                 }
+            }
+            if(mediaItem != null) {
+                hubManager.sendLogMediaSuccess(mediaItem, paState)
             }
 
         }
@@ -224,7 +224,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -328,10 +328,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         // lay thong so cua thiet bi
         lifecycleScope.launch(Dispatchers.IO) {
             while (true) {
-               serialPortController.updateStatus()
+                serialPortController.updateStatus()
                 delay(5000)
             }
         }
+
 
     }
 
@@ -464,7 +465,56 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-
+        tvMacAdress.setOnClickListener{
+            click()
+        }
+    }
+    fun click()
+    {
+        var json = """
+            {
+    "id" : "dv003",
+    "topic" : "dv003",
+    "payload" :
+            {
+        "NguonID": "H02.37.27",
+        "TenNguon": "Xã Dương Hưu",
+        "DanhSachDiaBanNhan": [
+            {
+                "DichID": "H02.37.27",
+                "TenDich": "Xã Dương Hưu",
+                "CumLoaID": [
+                    "72:BE:B5:09:17:98"
+                ]
+            }
+        ],
+        "BanTinID": "889988339",
+        "LoaiBanTin": "3",
+        "MucDoUuTien": "1",
+        "TieuDe": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
+        "LoaiLinhVuc": "1",
+        "NoiDungTomTat": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
+        "ThoiGianSanXuat": 1676974167,
+        "ThoiLuong": "00:05:00",
+        "TacGia": {
+            "TenDayDu": "Chuyên viên",
+            "ButDanh": "cvhanoi",
+            "Email": "abc@gmail.com"
+        },
+        "NoiDung": "https://storage-ttcs.tek4tv.vn/2023//12//11//2ED1E2D6_D9A9_4/c92c0e42093c4a91b6cc91e108f394bb.mp3",
+        "DiaBanTao": "string",
+        "TenDiaBanTao": "string",
+        "ThongTinChiTietBanTin": [
+            {
+                "Ten": "Bản quyền",
+                "GiaTri": "Thành phố Hà Nội"
+            }
+        ],
+        "NguonTin": "H02.37.27"
+        }
+    }"""
+        Log.d("wss", "click: wsss")
+        hubManager.convertWssToHubCommad(json)
     }
 
 
@@ -556,13 +606,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView

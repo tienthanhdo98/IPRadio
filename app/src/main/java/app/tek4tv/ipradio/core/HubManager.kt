@@ -17,15 +17,17 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.HubCommand.DV003
+import app.tek4tv.ipradio.utils.HubCommand.DV005
+import app.tek4tv.ipradio.utils.HubCommand.DV008
 import app.tek4tv.ipradio.utils.Utils
-import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
-import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
+import com.squareup.moshi.JsonAdapter
 import io.reactivex.Single
 import kotlinx.coroutines.*
 import java.io.File
@@ -43,7 +45,7 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
     ) {
     private val LOG_TAG = "HubManager"
-    val CONNECT_COUNTER_LIMIT = 20
+    private val CONNECT_COUNTER_LIMIT = 10
     private val PING_DATA_INTERVAL = 15000L
     private val PING_HUB_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
@@ -57,7 +59,6 @@ class HubManager(
 
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-    private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
     private val listAdapter = moshi.adapter(List::class.java)
@@ -106,11 +107,10 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-        //https://hubip-alpha-binhdinh.tek4tv.vn/
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-bacgiang.tek4tv.vn/hubServer"
+            "https://gateway-qltt.tek4tv.vn/ws"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -145,26 +145,24 @@ class HubManager(
     private fun getHubToken(): String? {
         return try {
             //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
-
             val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+                "Username" to "quantrivienhanam",
+                "Password" to "Admin@1234",
             )
 
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
+                "https://gateway-qltt.tek4tv.vn/api/v2/oauth/token"
             )
-            val call = authService.getToken(body, url!!)
+
+            Log.i("urlbase", url!!)
+            val call = authService.getToken(body, url)
             val response = call.execute()
+
             if (response.isSuccessful) {
-                val token = response.body()!!.token
+                val token = response.body()!!.noiDung.token
+                Log.i("tntntn", "getHubToken: $token")
                 token
             } else {
                 null
@@ -176,29 +174,31 @@ class HubManager(
     }
 
     //check
-    fun getHubToken(urlToken : String): String? {
+    fun getHubToken(urlToken: String): String? {
         return try {
-            //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
-
             val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+                    "Username" to "quantrivienhanam",
+                "Password" to "Admin@1234",
             )
 
-            val call = authService.getToken(body, urlToken)
+            val url = ConfigUtil.getStringEncrypt(
+                context = appContext,
+                ConfigUtil.URL_TOKEN,
+                "https://gateway-qltt.tek4tv.vn/api/v2/oauth/token"
+            )
+
+            Log.i("urlbase", url!!)
+            val call = authService.getToken(body, url)
             val response = call.execute()
 
             if (response.isSuccessful) {
-                val token = response.body()!!.token
+                val token = response.body()!!.noiDung.token
+                Log.i("tntntn", "getHubToken: $token")
                 token
             } else {
                 null
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
             null
@@ -211,8 +211,6 @@ class HubManager(
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
-
-//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -243,7 +241,8 @@ class HubManager(
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) {
-                    val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+                    val countForHardRestart =
+                        ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
                     hubComm.forceRestartApp(countForHardRestart)
                 }
                 i++
@@ -255,7 +254,6 @@ class HubManager(
             Log.d(LOG_TAG, "$connectionId")
             onMessage()
             startPingTimer()
-            startPingDataTimer()
             //notifyHubConnected()
             openNewConnectionJob = null
         }
@@ -268,8 +266,6 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -279,6 +275,15 @@ class HubManager(
         }
     }
 
+
+    //wss
+    val wssStatusAdapter: JsonAdapter<WssStatusModel> = moshi.adapter(WssStatusModel::class.java)
+    val wssLogMediaAdapter: JsonAdapter<WssMediaLogModel> = moshi.adapter(WssMediaLogModel::class.java)
+    val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
+    val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
+    val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
+        MoshiInst.moshi.adapter(MediaItem::class.java)
+
     /**
      * Nhận lệnh từ hub
      * **/
@@ -287,59 +292,166 @@ class HubManager(
 
         registerOnMessageListener = true
 
-        hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
+        hubConnection.on("ReceiveMessage", { message: String? ->
             try {
-                mainHandler.post {
-                    Log.d("command receive", command ?: "")
-                    Log.d("message receive", message ?: "")
-                    var meessDe = ""
-                    var needDecrypt = false
-
-                    if (command != null && message != null) {
-                        when (command) {
-                            HubCommand.PONG -> {
-
-                                //Vừa kết nối được lại hub
-                                if (pingCounter >= 3 && !firstConnect) {
-                                    Log.e(LOG_TAG, "Hub Reconnected")
-                                    notifyHubReconnected()
-                                    notifyDisconnected.compareAndSet(true, false)
-                                }
-                                
-                                if (firstConnect) firstConnect = false
-
-                                pingCounter = 0
-
-                            }
-                            HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION -> {
-                                meessDe = b64Decode(message)
-                            }
-
-                            HubCommand.UPDATE_STATUS -> {
-                                if (responseHub.message != null) receivedConnectionId =
-                                    responseHub.message ?: ""
-                            }
-
-                            HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
-                                needDecrypt = true
-                            }
-                        }
-                    }
-                    if (meessDe != "") {
-                        parseHubResponse(meessDe, needDecrypt)
-                    } else {
-                        parseHubResponse(message, needDecrypt)
-                    }
-                    //Handle command from server in MainActivity
-
-                    onMessageListener.invoke(command, message)
-
+                Log.d("Websocket receive", message ?: "")
+                //Vừa kết nối được lại hub
+                if (pingCounter >= 3 && !firstConnect) {
+                    Log.e(LOG_TAG, "Hub Reconnected")
+                    notifyHubReconnected()
+                    notifyDisconnected.compareAndSet(true, false)
                 }
+                if (firstConnect) firstConnect = false
+                pingCounter = 0
+                // Handle command from server in MainActivity
+                convertWssToHubCommad(message!!)
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.d("Websocket err", e.message.toString())
             }
-        }, String::class.java, String::class.java)
+        }, String::class.java)
+
     }
+
+    private fun sendMessageWSS(mess: String) {
+        try {
+            hubConnection.invoke("sendMessage", mess)
+            Log.d("Websocket mess", "${wssStatusAdapter.fromJson(mess)?.id}")
+            // Log.i("wssLiveSS", "volume: $mess")
+        } catch (e: Exception) {
+            Log.e("Websocket", e.message!!)
+            e.printStackTrace()
+        }
+    }
+
+    private fun sendPingWss() {
+        pingCounter++
+
+        var pathPlaying = ""
+        if (currentMediaItem != null) {
+            pathPlaying = currentMediaItem!!.pathBackup
+        }
+        SerialPortController.deviceInfo
+        val request = WssStatusModel(
+            id = hubConnection.connectionId, topic = DV008, payload = PayloadStatus(
+                dichID = "H02",
+                tenDich = "Bắc Giang",
+                nguonID = GlobalProperties.getInst().destinationId,
+                tenNguon = GlobalProperties.getInst().destinationName,
+                cumLoaID = deviceImei,
+                tenThietBI = GlobalProperties.getInst().nameDevice,
+                tenLoaiThietBI = "Cụm loa truyền thanh",
+                maNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                amLuong = SerialPortController.volume,
+                trangThaiHoatDong = "",
+                trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
+                viDo = GlobalProperties.getInst().lat,
+                kinhDo = GlobalProperties.getInst().lng,
+                thongTinThietBI = ThongTinThietBI(
+                    congSuat = "1",
+                    nhietDo = "10",
+                    dungLuongSuDung = "1024000"
+                ),
+                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                noiDungPhat = pathPlaying,
+                phienBanUngDung = versionName,
+            )
+        )
+        Log.i("Websocket", "log hub: ${wssStatusAdapter.toJson(request)}")
+
+         sendMessageWSS(wssStatusAdapter.toJson(request))
+    }
+    fun convertWssToHubCommad(jsonMessage: String) {
+        val wssData = wssAdapter.fromJson(jsonMessage)
+        var hubCommand = ""
+        if (wssData!!.topic == "dv003") {
+            val res = wssLiveAdapter.fromJson(jsonMessage)
+            val body = res!!.payload
+            hubCommand = HubCommand.LIVE
+            responseHub = ResponseHub().apply {
+                type = "LIVE"
+                imei = body?.danhSachDiaBanNhan?.first()?.cumLoaID?.first()
+                level = body?.mucDoUuTien!!.toInt()
+                duration = body.thoiLuong.toString()
+                message = body.noiDung
+                userNameControl = ""
+                name = mediaItemMoshiAdapter.toJson(
+                    MediaItem(
+                        projectID = body.banTinID!!,
+                        mediaID = body.banTinID.toInt(),
+                        id = 0,
+                        sourceID = body.nguonID,
+                        sourceName = body.tenNguon,
+                        destinationID = body.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
+                        destinationName = body.danhSachDiaBanNhan.firstOrNull()?.tenDich,
+                        title = body.tieuDe,
+                        description = body.noiDungTomTat,
+                        duration = body.thoiLuong,
+                        body = body.noiDung,
+                        sourceReference = body.nguonID!!.split(".").firstOrNull(),
+                        startTime = "00:00:00",
+                        type = "LIVE",
+                        fixTime = "00:00:00",
+                        createDate = "",
+                        contentType = ContentType(id = body.loaiBanTin!!.toLong(), value = body.loaiBanTin),
+                        priority = Priority(id = body.mucDoUuTien.toLong(), value = body.mucDoUuTien),
+                        author = Author()
+                    )
+                )
+            }
+            Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
+            onMessageListener.invoke(hubCommand, jsonMessage)
+        }
+    }
+    fun sendLogMediaSuccess(mediaItem: MediaItem,paState: String) {
+        var sourceId =""
+        var sourceName = ""
+        val tacGia = TacGia(
+            tenDayDu = mediaItem.author?.fullName ?: "",
+            butDanh = mediaItem.author?.userName ?: "",
+            email = mediaItem.author?.email ?: ""
+        )
+        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
+            sourceId = mediaItem.sourceID
+            sourceName = mediaItem.sourceName
+        } else {
+            sourceId = GlobalProperties.getInst().destinationId
+            sourceName = GlobalProperties.getInst().destinationName
+        }
+        val request = WssStatusModel(
+            id = hubConnection.connectionId, topic = DV005, payload =  WssMediaLogModel(
+            nguonID = sourceId,
+            tenNguon = sourceName,
+            dichID = GlobalProperties.getInst().destinationId,
+            tenDich = GlobalProperties.getInst().destinationName,
+            cumLoaID = deviceImei,
+            maNhaCungCap = GlobalProperties.getInst().providerValue,
+            tenNhaCungCap = GlobalProperties.getInst().providerValue,
+            amLuong = SerialPortController.volume,
+            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+            congSuat = paState,
+            banTinID = mediaItem.projectID,
+            loaiBanTin = mediaItem.contentType?.value,
+            mucDoUuTien = mediaItem.priority?.value,
+            noiDung = mediaItem.pathBackup,
+            noiDungTomTat = mediaItem.description,
+            tacGia = tacGia,
+            tenThietBi = GlobalProperties.getInst().nameDevice,
+            thoiLuong = mediaItem.duration,
+            tieuDe = mediaItem.title
+        ))
+
+//        loaiLinhVuc =  ,
+//        tiepAm = ,
+//        nguonTiepAm = ,
+//        nguonTin = ,
+//        thongTinChiTietBanTin = ,
+//        thoiGianSanXuat = ,
+
+        sendMessageWSS(wssStatusAdapter.toJson(request))
+    }
+
+
 
     private fun sendMessage(mess: String, command: String) {
         try {
@@ -382,7 +494,7 @@ class HubManager(
         pingHubJob?.cancel()
         pingHubJob = coroutineScope.launch(Dispatchers.Default) {
             while (true) {
-                sendPing()
+                sendPingWss()
                 Log.d(LOG_TAG, "ping: $pingCounter")
                 delay(PING_HUB_INTERVAL)
                 checkConnection()
@@ -390,46 +502,26 @@ class HubManager(
         }
     }
 
-    private fun sendPing() {
-        pingCounter++
-        try {
-            val request = HeartbeatRequest().apply {
-                key = deviceImei
-                mess = ""
-            }
-            sendMessage(heartBeatAdapter.toJson(request), Utils.heartbeat)
-            Log.d(LOG_TAG, "ping hub ${heartBeatAdapter.toJson(request)}")
 
-        } catch (e: java.lang.Exception) {
-            e.printStackTrace()
-        }
-    }
-
-
-    private fun startPingDataTimer() {
-        pingDataJob?.cancel()
-        pingDataJob = coroutineScope.launch(Dispatchers.Default) {
-            while (true) {
-                sendPingData()
-                delay(PING_DATA_INTERVAL)
-            }
-        }
-    }
-    private fun getMetadata() : String
-    {
+    private fun getMetadata(): String {
         //thong tin lich phat
-        val listMetadata : MutableList<MetadataModel> = mutableListOf()
-        val modifyTimePlaylist = ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST,"")
-        val monthlyPlaylistId = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL,"")?.split("/")?.last()
-        val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
+        val listMetadata: MutableList<MetadataModel> = mutableListOf()
+        val modifyTimePlaylist =
+            ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST, "")
+        val monthlyPlaylistId =
+            ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")?.split("/")
+                ?.last()
+        val playlistInfo = MetadataModel("PLAYLISTINFO", "$monthlyPlaylistId,$modifyTimePlaylist")
         listMetadata.add(playlistInfo)
         //thong tin stream encoder
-        if(MainActivity.isEncoder)
-        {
-            val streamInfo = MetadataModel("STREAMINGINFO","${urlStream},${protocol_stream},${bitrate_stream},${samplerate}")
+        if (MainActivity.isEncoder) {
+            val streamInfo = MetadataModel(
+                "STREAMINGINFO",
+                "${urlStream},${protocol_stream},${bitrate_stream},${samplerate}"
+            )
             listMetadata.add(streamInfo)
         }
-        return  listAdapter.toJson(listMetadata)
+        return listAdapter.toJson(listMetadata)
     }
 
     private fun sendPingData() {
@@ -472,7 +564,7 @@ class HubManager(
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
-                metadata =  getMetadata()
+                metadata = getMetadata()
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
 //            Log.i("loghub", "log hub: ${request.video}")
@@ -535,6 +627,7 @@ class HubManager(
         }
     }
 }
+
 
 interface HubComm {
     fun forceRestartApp(countHardRestart : Int)
