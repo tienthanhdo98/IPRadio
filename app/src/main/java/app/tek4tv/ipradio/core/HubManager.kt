@@ -110,7 +110,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-bacgiang.tek4tv.vn/hubServer"
+            "https://hubip-binhduong.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -149,7 +149,7 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
@@ -183,7 +183,7 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
