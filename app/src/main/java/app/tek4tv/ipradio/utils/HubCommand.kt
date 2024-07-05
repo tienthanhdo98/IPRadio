@@ -65,7 +65,20 @@ object HubCommand {
 
     const val WSS = "WSS"
     //WSS
+    const val DV002 = "dv002"
+    //wss live
     const val DV003 = "dv003"
-    const val DV008 = "dv008"
+    //wss huy lich
+    const val DV004 = "dv004"
+    //wss gửi log bản tin phát
     const val DV005 = "dv005"
+    //wss gửi log lịch phát
+    const val DV006 = "dv006"
+    //wss gửi log hủy lịch phát
+    const val DV007 = "dv007"
+    //ping
+    const val DV008 = "dv008"
+
+
+
 }

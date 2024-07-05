@@ -17,6 +17,8 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
 import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
 import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.HubCommand.DV002
+import app.tek4tv.ipradio.utils.HubCommand.DV003
 import app.tek4tv.ipradio.utils.HubCommand.DV005
 import app.tek4tv.ipradio.utils.HubCommand.DV008
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
@@ -103,8 +105,8 @@ class HubManager(
 
     private var privateKeyStr: String
 
-    private var serverTimeout = 0
-    private var keepAliveInterval = 0
+    private var serverTimeout = 60000
+    private var keepAliveInterval = 30000
 
     //check ping to hub
     private var hubUrl = ""
@@ -129,7 +131,7 @@ class HubManager(
             appContext,
             ConfigUtil.KeepAliveInterval, 30000
         )
-        hubConnection = HubConnectionBuilder.create(hubUrl)
+        hubConnection = HubConnectionBuilder.create(hubUrl).shouldSkipNegotiate(false)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
                     Single.just(hubToken)
@@ -375,42 +377,54 @@ class HubManager(
     fun convertWssToHubCommad(jsonMessage: String) {
         val wssData = wssAdapter.fromJson(jsonMessage)
         var hubCommand = ""
-        if (wssData!!.topic == "dv003") {
-            val res = wssLiveAdapter.fromJson(jsonMessage)
-            val body = res!!.payload
-            hubCommand = HubCommand.LIVE
-            responseHub = ResponseHub().apply {
-                type = "LIVE"
-                level = body?.mucDoUuTien!!.toInt()
-                duration = body.thoiLuong.toString()
-                message = body.noiDung
-                userNameControl = ""
-                name = mediaItemMoshiAdapter.toJson(
-                    MediaItem(
-                        projectID = body.banTinID!!,
-                        mediaID = body.banTinID.toInt(),
-                        id = 0,
-                        sourceID = body.nguonID,
-                        sourceName = body.tenNguon,
-                        destinationID = body.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
-                        destinationName = body.danhSachDiaBanNhan.firstOrNull()?.tenDich,
-                        title = body.tieuDe,
-                        description = body.noiDungTomTat,
-                        duration = body.thoiLuong,
-                        body = body.noiDung,
-                        sourceReference = body.nguonID!!.split(".").firstOrNull(),
-                        startTime = "00:00:00",
-                        type = "LIVE",
-                        fixTime = "00:00:00",
-                        createDate = "",
-                        contentType = ContentType(id = body.loaiBanTin!!.toLong(), value = body.loaiBanTin),
-                        priority = Priority(id = body.mucDoUuTien.toLong(), value = body.mucDoUuTien),
-                        author = Author()
-                    )
-                )
+        when (wssData!!.topic) {
+            DV002 ->{
+
             }
-            Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
-            onMessageListener.invoke(hubCommand, jsonMessage)
+            DV003 -> {
+                val res = wssLiveAdapter.fromJson(jsonMessage)
+                val body = res!!.payload
+                hubCommand = HubCommand.LIVE
+                responseHub = ResponseHub().apply {
+                    type = "LIVE"
+                    level = body?.mucDoUuTien!!.toInt()
+                    duration = body.thoiLuong.toString()
+                    message = body.noiDung
+                    userNameControl = ""
+                    name = mediaItemMoshiAdapter.toJson(
+                        MediaItem(
+                            projectID = body.banTinID!!,
+                            mediaID = body.banTinID.toInt(),
+                            id = 0,
+                            sourceID = body.nguonID,
+                            sourceName = body.tenNguon,
+                            destinationID = body.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
+                            destinationName = body.danhSachDiaBanNhan.firstOrNull()?.tenDich,
+                            title = body.tieuDe,
+                            description = body.noiDungTomTat,
+                            duration = body.thoiLuong,
+                            body = body.noiDung,
+                            sourceReference = body.nguonID!!.split(".").firstOrNull(),
+                            startTime = "00:00:00",
+                            type = "LIVE",
+                            fixTime = "00:00:00",
+                            createDate = "",
+                            contentType = ContentType(
+                                id = body.loaiBanTin!!.toLong(),
+                                value = body.loaiBanTin
+                            ),
+                            priority = Priority(
+                                id = body.mucDoUuTien.toLong(),
+                                value = body.mucDoUuTien
+                            ),
+                            author = Author()
+                        )
+                    )
+                }
+                Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
+                onMessageListener.invoke(hubCommand, jsonMessage)
+            }
+
         }
     }
     fun sendLogMediaSuccess(mediaItem: MediaItem,paState: String) {
@@ -465,6 +479,7 @@ class HubManager(
     fun convertWssMessToPlaylist(jsonMess: String) {
         val playlist = wssPlaylistAdapter.fromJson(jsonMess)!!
         val listMedia = playlist.danhSachBanTin
+        val map : MutableMap<String,String> = mutableMapOf()
         if (listMedia.isNotEmpty()) {
             val newItem = listMedia.first()
             val listDay = newItem.danhSachNgayPhat
@@ -472,8 +487,10 @@ class HubManager(
             {
                 val ngayPhat = unixTimeStampToDateTime(item.danhSachNgayPhat.first().ngayPhat.toInt())
                 Log.d("wssplaylist", "convertWssMessToPlaylist: ${ngayPhat.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))}")
-                findScheduleByDate(jsonMess,item.danhSachNgayPhat.first().ngayPhat)
+                val jsonSchedule = findScheduleByDate(jsonMess,item.danhSachNgayPhat.first().ngayPhat)
+                map[convertDateTimeToddMMYYYYString(ngayPhat)] = jsonSchedule
             }
+            Log.d("wssplaylist", "convertWssMessToPlaylist: $map")
 //            for (item in listDay) {
 ////                val itemMap = item as Map<String, Any>
 //                val ngayPhat = unixTimeStampToDateTime(item.ngayPhat.toInt())
@@ -492,7 +509,7 @@ class HubManager(
 
     }
 
-    private fun findScheduleByDate(jsonMess: String, ngayPhat: Long) {
+    private fun findScheduleByDate(jsonMess: String, ngayPhat: Long) : String {
         val playlist = wssPlaylistAdapter.fromJson(jsonMess)!!
         val listMedia = playlist.danhSachBanTin
         val listPhatTheoNgay = mutableListOf<DanhSachBanTin>()
@@ -530,9 +547,8 @@ class HubManager(
                 fixTime = tObjStartTime,
                 end = tObjEndTime,
             )
-            count++;
+            count++
             listBanTinPhatTheoNgay.add(tObjStart)
-
             val obj = MediaItem(
                 id = count,
                 mediaID = count,
@@ -575,8 +591,10 @@ class HubManager(
             count++;
             listBanTinPhatTheoNgay.add(tObEnd)
         }
-        Log.d("wssplaylist", "findScheduleByDate: ${jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)}")
         }
+        Log.d("wssplaylist", "findScheduleByDate: ${jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)}")
+        return jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)
+
     }
 
 

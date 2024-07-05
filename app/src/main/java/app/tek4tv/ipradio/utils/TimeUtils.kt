@@ -8,6 +8,7 @@ import java.text.SimpleDateFormat
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.abs
 
@@ -16,6 +17,11 @@ import kotlin.math.abs
 fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
     return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
 }
+@RequiresApi(Build.VERSION_CODES.O)
+fun convertDateTimeToddMMYYYYString(date : LocalDateTime): String {
+    return  date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
+}
+
 fun convertTimeStampToHHMMSS(s: Long): String {
     return try {
         val sdf = SimpleDateFormat("HH:mm:ss")
