@@ -138,19 +138,18 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun resume() {
-      vlcPlayer.play()
+//      vlcPlayer.play()
 
-//        val stream = Media(
-//            mLibVLC,
-//            Uri.parse("http://14.224.130.186:8000/binhdinh")
-//        )
-//        stream.addOption(":rtsp-tcp")
-//        stream.addOption(":network-caching=20")
-//
-//        stream.addOption(":run-time=600")
-//        currentVlcMedia = stream
-//
-//        vlcPlayer.play(stream)
+        val stream = Media(
+            mLibVLC,
+            Uri.parse("http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8")
+        )
+        stream.addOption(":network-caching=20")
+
+        stream.addOption(":run-time=600")
+        currentVlcMedia = stream
+
+        vlcPlayer.play(stream)
 //        val handler = Handler(Looper.getMainLooper())
 //        handler.postDelayed(
 //            {

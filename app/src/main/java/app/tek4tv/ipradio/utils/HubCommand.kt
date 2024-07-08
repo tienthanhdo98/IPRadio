@@ -78,6 +78,7 @@ object HubCommand {
     const val DV007 = "dv007"
     //ping
     const val DV008 = "dv008"
+    const val DV009 = "dv009"
 
 
 

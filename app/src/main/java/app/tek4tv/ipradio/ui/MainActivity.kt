@@ -221,7 +221,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
@@ -335,6 +335,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 delay(5000)
             }
         }
+//        playerManager.resumeMedia()
 
 
     }
@@ -464,7 +465,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.O)
+
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
@@ -473,7 +474,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             click()
         }
     }
-    @RequiresApi(Build.VERSION_CODES.O)
+
     fun click()
     {
 //        var json = """
@@ -506,7 +507,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //            "ButDanh": "cvhanoi",
 //            "Email": "abc@gmail.com"
 //        },
-//        "NoiDung": "https://storage-ttcs.tek4tv.vn/2023//12//11//2ED1E2D6_D9A9_4/c92c0e42093c4a91b6cc91e108f394bb.mp3",
+//        "NoiDung": "http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8",
 //        "DiaBanTao": "string",
 //        "TenDiaBanTao": "string",
 //        "ThongTinChiTietBanTin": [
@@ -521,148 +522,148 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
 
 
-//        val json = """
-//            {
-//    "id" : "dv003",
-//    "topic" : "dv003",
-//    "payload" : {
-//    "NguonID": "H02.37.27",
-//    "TenNguon": "Xã Dương Hưu",
-//    "DanhSachDiaBanNhan": [
-//        {
-//            "DichID": "H02.37.27",
-//            "TenDich": "Xã Dương Hưu"
-//        }
-//    ],
-//    "BanTinID": "889988339",
-//    "LoaiBanTin": "3",
-//    "MucDoUuTien": "1",
-//    "TieuDe": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-//    "LoaiLinhVuc": "1",
-//    "NoiDungTomTat": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-//    "ThoiGianSanXuat": 1676974167,
-//    "ThoiLuong": "00:05:00",
-//    "TacGia": {
-//        "TenDayDu": "Chuyên viên",
-//        "ButDanh": "cvhanoi",
-//        "Email": "abc@gmail.com"
-//    },
-//    "NoiDung": "rtsp://171.244.129.143:1935/livevov1",
-//    "DiaBanTao": "string",
-//    "TenDiaBanTao": "string",
-//    "ThongTinChiTietBanTin": [
-//        {
-//            "Ten": "Bản quyền",
-//            "GiaTri": "Thành phố Hà Nội"
-//        }
-//    ],
-//    "NguonTin": "H02.37.27"
-//}}"""
-//        Log.d("wss", "click: wsss")
-//        hubManager.convertWssToHubCommad(json)
-
-
         val json = """
             {
-  "DichID": "H02.37.27",
-  "TenDich": "Xã Dương Hưu",
-
-   "NguonID": "H02.37.27",
-  "TenNguon": "Xã Dương Hưu",
-  "DanhSachDiaBanNhan": [
-    {
-      "DichID": "H02.37.27",
-      "TenDich": "Xã Dương Hưu",
-      "CumLoaID": [
-        "72:BE:B5:09:17:98"
-      ]
-    }
-  ],
-  "LichPhatID": "1234354",
-  "TenLichPhat": "Lịch test",
-  "DanhSachBanTin": [
-    {
-      "BanTinID": "889988339",
-      "LoaiBanTin": "3",
-       "MucDoUuTien": "1",
-      "TieuDe": "string",
-      "LoaiLinhVuc": "string",
-      "NoiDungTomTat": "string",
-      "ThoiGianSanXuat": 0,
-      "ThoiLuong": "string",
-      "TacGia": {
-        "TenDayDu": "string",
-        "TenDangNhap": "string",
-        "ButDanh": "string",
-        "Email": "string"
-      },
-      "NoiDung": "string",
-      "DiaBanTao": "string",
-      "TenDiaBanTao": "string",
-      "ThongTinChiTietBanTin": [
+    "id" : "dv003",
+    "topic" : "dv003",
+    "payload" : {
+    "NguonID": "H02.37.27",
+    "TenNguon": "Xã Dương Hưu",
+    "DanhSachDiaBanNhan": [
         {
-          "Ten": "string",
-          "GiaTri": "string"
+            "DichID": "H02.37.27",
+            "TenDich": "Xã Dương Hưu"
         }
-      ],
-      "NguonTin": "string",
-      "TiepAm": 0,
-      "NguonTiepAm": "string",
-      "DanhSachNgayPhat": [
-        {
-          "NgayPhat": 1719991218,
-          "ThoiDiemPhat": [
-            {
-              "ThoiGianBatDau": 1719991218,
-              "ThoiGianKetThuc": 1719991218
-            }
-          ]
-        }
-      ]
+    ],
+    "BanTinID": "889988339",
+    "LoaiBanTin": "3",
+    "MucDoUuTien": "1",
+    "TieuDe": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
+    "LoaiLinhVuc": "1",
+    "NoiDungTomTat": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
+    "ThoiGianSanXuat": 1676974167,
+    "ThoiLuong": "00:05:00",
+    "TacGia": {
+        "TenDayDu": "Chuyên viên",
+        "ButDanh": "cvhanoi",
+        "Email": "abc@gmail.com"
     },
-     {
-      "BanTinID": "889988339",
-      "LoaiBanTin": "3",
-       "MucDoUuTien": "1",
-      "TieuDe": "string",
-      "LoaiLinhVuc": "string",
-      "NoiDungTomTat": "string",
-      "ThoiGianSanXuat": 0,
-      "ThoiLuong": "string",
-      "TacGia": {
-        "TenDayDu": "string",
-        "TenDangNhap": "string",
-        "ButDanh": "string",
-        "Email": "string"
-      },
-      "NoiDung": "string",
-      "DiaBanTao": "string",
-      "TenDiaBanTao": "string",
-      "ThongTinChiTietBanTin": [
+    "NoiDung": "rtsp://171.244.129.143:1935/livevov1",
+    "DiaBanTao": "string",
+    "TenDiaBanTao": "string",
+    "ThongTinChiTietBanTin": [
         {
-          "Ten": "string",
-          "GiaTri": "string"
+            "Ten": "Bản quyền",
+            "GiaTri": "Thành phố Hà Nội"
         }
-      ],
-      "NguonTin": "string",
-      "TiepAm": 0,
-      "NguonTiepAm": "string",
-      "DanhSachNgayPhat": [
-        {
-          "NgayPhat": 1720077617,
-          "ThoiDiemPhat": [
-            {
-              "ThoiGianBatDau": 1720113797,
-              "ThoiGianKetThuc": 1720113797
-            }
-          ]
-        }
-      ]
-    }
-  ]
-}
-        """
-        hubManager.convertWssMessToPlaylist(json)
+    ],
+    "NguonTin": "H02.37.27"
+}}"""
+        Log.d("wss", "click: wsss")
+        hubManager.convertWssToHubCommad(json)
+
+
+//        val json = """
+////            {
+////  "DichID": "H02.37.27",
+////  "TenDich": "Xã Dương Hưu",
+////
+////   "NguonID": "H02.37.27",
+////  "TenNguon": "Xã Dương Hưu",
+////  "DanhSachDiaBanNhan": [
+////    {
+////      "DichID": "H02.37.27",
+////      "TenDich": "Xã Dương Hưu",
+////      "CumLoaID": [
+////        "72:BE:B5:09:17:98"
+////      ]
+////    }
+////  ],
+////  "LichPhatID": "1234354",
+////  "TenLichPhat": "Lịch test",
+////  "DanhSachBanTin": [
+////    {
+////      "BanTinID": "889988339",
+////      "LoaiBanTin": "3",
+////       "MucDoUuTien": "1",
+////      "TieuDe": "string",
+////      "LoaiLinhVuc": "string",
+////      "NoiDungTomTat": "string",
+////      "ThoiGianSanXuat": 0,
+////      "ThoiLuong": "string",
+////      "TacGia": {
+////        "TenDayDu": "string",
+////        "TenDangNhap": "string",
+////        "ButDanh": "string",
+////        "Email": "string"
+////      },
+////      "NoiDung": "string",
+////      "DiaBanTao": "string",
+////      "TenDiaBanTao": "string",
+////      "ThongTinChiTietBanTin": [
+////        {
+////          "Ten": "string",
+////          "GiaTri": "string"
+////        }
+////      ],
+////      "NguonTin": "string",
+////      "TiepAm": 0,
+////      "NguonTiepAm": "string",
+////      "DanhSachNgayPhat": [
+////        {
+////          "NgayPhat": 1719991218,
+////          "ThoiDiemPhat": [
+////            {
+////              "ThoiGianBatDau": 1719991218,
+////              "ThoiGianKetThuc": 1719991218
+////            }
+////          ]
+////        }
+////      ]
+////    },
+////     {
+////      "BanTinID": "889988339",
+////      "LoaiBanTin": "3",
+////       "MucDoUuTien": "1",
+////      "TieuDe": "string",
+////      "LoaiLinhVuc": "string",
+////      "NoiDungTomTat": "string",
+////      "ThoiGianSanXuat": 0,
+////      "ThoiLuong": "string",
+////      "TacGia": {
+////        "TenDayDu": "string",
+////        "TenDangNhap": "string",
+////        "ButDanh": "string",
+////        "Email": "string"
+////      },
+////      "NoiDung": "string",
+////      "DiaBanTao": "string",
+////      "TenDiaBanTao": "string",
+////      "ThongTinChiTietBanTin": [
+////        {
+////          "Ten": "string",
+////          "GiaTri": "string"
+////        }
+////      ],
+////      "NguonTin": "string",
+////      "TiepAm": 0,
+////      "NguonTiepAm": "string",
+////      "DanhSachNgayPhat": [
+////        {
+////          "NgayPhat": 1720077617,
+////          "ThoiDiemPhat": [
+////            {
+////              "ThoiGianBatDau": 1720113797,
+////              "ThoiGianKetThuc": 1720113797
+////            }
+////          ]
+////        }
+////      ]
+////    }
+////  ]
+////}
+//        """
+//        hubManager.convertWssMessToPlaylist(json)
     }
 
 
@@ -948,7 +949,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         ConfigUtil.MONTHLY_SCENARIO_URL,
                         mess
                     ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
-
                     // lưu thời gian cập nhật lịch để gửi log
                     val currentTime = Calendar.getInstance().time.time / 1000
                     ConfigUtil.putString(

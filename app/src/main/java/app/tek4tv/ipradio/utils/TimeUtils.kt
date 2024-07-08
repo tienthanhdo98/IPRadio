@@ -13,11 +13,23 @@ import java.util.*
 import kotlin.math.abs
 
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
-    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
+
+//fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
+//    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
+//}
+
+fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", timeZone: TimeZone = TimeZone.getDefault()): String {
+    // Convert epoch time to milliseconds
+    val date = Date(epochTime * 1000)
+
+    // Define a date formatter
+    val formatter = SimpleDateFormat(pattern)
+    formatter.timeZone = timeZone // Set the formatter's time zone
+
+    // Format the date
+    return formatter.format(date)
 }
-@RequiresApi(Build.VERSION_CODES.O)
+
 fun convertDateTimeToddMMYYYYString(date : LocalDateTime): String {
     return  date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
 }
