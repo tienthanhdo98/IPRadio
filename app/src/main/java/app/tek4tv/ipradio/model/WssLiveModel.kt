@@ -132,6 +132,18 @@ data class DieuKhienThietBI(
     val thamSo: String?
 )
 
+data class DanhSachThietBi(
+    @Json(name = "CumLoaID")
+    val cumLoaID: String?,
+
+    @Json(name = "MaNhaCungCap")
+    val maNhaCungCap: String?,
+    @Json(name = "TenNhaCungCap")
+    val tenNhaCungCap: String?,
+    @Json(name = "TenThietBi")
+    val tenThietBi: String?,
+)
+
 data class DanhSachBanTin(
     @Json(name = "BanTinID")
     val banTinID: String,

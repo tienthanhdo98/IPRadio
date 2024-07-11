@@ -30,9 +30,6 @@ fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", tim
     return formatter.format(date)
 }
 
-fun convertDateTimeToddMMYYYYString(date : LocalDateTime): String {
-    return  date.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
-}
 
 fun convertTimeStampToHHMMSS(s: Long): String {
     return try {

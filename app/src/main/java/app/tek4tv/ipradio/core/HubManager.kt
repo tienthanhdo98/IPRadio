@@ -1,11 +1,9 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import androidx.annotation.RequiresApi
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
@@ -13,6 +11,8 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
+
+import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
 import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
@@ -21,6 +21,8 @@ import app.tek4tv.ipradio.utils.HubCommand.DV002
 import app.tek4tv.ipradio.utils.HubCommand.DV003
 import app.tek4tv.ipradio.utils.HubCommand.DV004
 import app.tek4tv.ipradio.utils.HubCommand.DV005
+import app.tek4tv.ipradio.utils.HubCommand.DV006
+import app.tek4tv.ipradio.utils.HubCommand.DV007
 import app.tek4tv.ipradio.utils.HubCommand.DV008
 import app.tek4tv.ipradio.utils.HubCommand.DV009
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
@@ -37,7 +39,6 @@ import io.reactivex.Single
 import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
-import java.time.format.DateTimeFormatter
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
 
@@ -299,6 +300,7 @@ class HubManager(
     val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
+
     /**
      * Nhận lệnh từ hub
      * **/
@@ -440,7 +442,11 @@ class HubManager(
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 if (body != null) {
-                    convertWssMessToPlaylist(body)
+                    val mapMonthSchedule = convertWssMessToPlaylist(body)
+                    val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
+                    hubCommand = HubCommand.UPDATE_MONTHLY_WSS
+                    onMessageListener.invoke(hubCommand, jsonMess)
+                    sendLogSchedule(DV006, body)
                 }
             }
             DV003 -> {
@@ -486,15 +492,14 @@ class HubManager(
                 Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
                 onMessageListener.invoke(hubCommand, jsonMessage)
             }
-
+            //Hủy lịch
             DV004 ->{
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 if (body != null) {
-                    Log.d(
-                        "wss",
-                        "convertWssToHubCommad: Mã ${body.lichPhatID}- giá trị: ${body.tenLichPhat}"
-                    )
+                    hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
+                    onMessageListener.invoke(hubCommand, "null")
+                    sendLogSchedule(DV007, body)
                 }
             }
 
@@ -576,7 +581,10 @@ class HubManager(
                 tacGia = tacGia,
                 tenThietBi = GlobalProperties.getInst().nameDevice,
                 thoiLuong = mediaItem.duration,
-                tieuDe = mediaItem.title
+                tieuDe = mediaItem.title,
+                danhSachBanTin = listOf(),
+                danhSachDiaBan = listOf(),
+                danhSachThietBi = listOf()
             )
         )
 
@@ -590,10 +598,52 @@ class HubManager(
         sendMessageWSS(wssStatusAdapter.toJson(request))
     }
 
+    private fun sendLogSchedule(commanDV: String, body: PayloadLive) {
+        val danhSachDiaBanNhan = listOf(
+            DanhSachDiaBanNhan(
+                dichID = GlobalProperties.getInst().destinationId,
+                tenDich = GlobalProperties.getInst().destinationName,
+                cumLoaID = listOf(
+                    deviceImei
+                )
+            )
+        )
+        val danhSachThietBi = listOf(
+            DanhSachThietBi(
+                cumLoaID = deviceImei,
+                maNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenThietBi = GlobalProperties.getInst().nameDevice,
+            )
+        )
+        val request = WssStatusModel(
+            id = hubConnection.connectionId, topic = commanDV, payload = WssMediaLogModel(
+                nguonID = GlobalProperties.getInst().destinationId,
+                tenNguon = GlobalProperties.getInst().destinationName,
+                dichID = "H02",
+                tenDich = "Bắc Giang",
+                cumLoaID = deviceImei,
+                maNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                amLuong = SerialPortController.volume,
+                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                tenThietBi = GlobalProperties.getInst().nameDevice,
+                lichPhatID = body.lichPhatID,
+                tenLichPhat = body.tenLichPhat,
+                tacGia = body.tacGia,
+                danhSachBanTin = body.danhSachBanTin,
+                danhSachDiaBan = danhSachDiaBanNhan,
+                danhSachThietBi = danhSachThietBi
+            )
+        )
+        Log.d("WebsocketLog", "sendLogSchedule: $commanDV - $request")
+        sendMessageWSS(wssStatusAdapter.toJson(request))
+    }
 
-    fun convertWssMessToPlaylist(payload : PayloadLive) {
+
+    private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
         val listMedia = payload.danhSachBanTin
-        val map: MutableMap<String, String> = mutableMapOf()
+        val mapData: MutableMap<String, String> = mutableMapOf()
         if (listMedia?.isNotEmpty() == true) {
             for (item in listMedia) {
                 val ngayPhat =
@@ -603,29 +653,109 @@ class HubManager(
                     "convertWssMessToPlaylist: ${ngayPhat}"
                 )
                 val jsonSchedule =
-                    findScheduleByDate(payload, item.danhSachNgayPhat.first().ngayPhat)
-                map[ngayPhat] = jsonSchedule
+                    findScheduleByDate2(
+                        payload,
+                        unixTimeStampToDateTime(item.danhSachNgayPhat.first().ngayPhat)
+                    )
+                mapData[unixTimeStampToDateTime(item.danhSachNgayPhat.first().ngayPhat)] =
+                    jsonSchedule
             }
-            Log.d("wssplaylist", "convertWssMessToPlaylist: $map")
-//            for (item in listDay) {
-////                val itemMap = item as Map<String, Any>
-//                val ngayPhat = unixTimeStampToDateTime(item.ngayPhat.toInt())
-//                val date = ngayPhat.format(DateTimeFormatter.ofPattern("dd-MM-yyyy"))
-////                val obj = mapOf(
-////                    "UpdatedAt" to totalScenarioIpradio.updatedAt,
-////                    "Date" to date,
-////                    "Link" to "$host/api/AsyncIpradio/v2/${totalScenarioIpradio.lichPhatId}/$inputNgayPhat"
-////                )
-////                results.add(obj)
-//                Log.d("wssplaylist", "convertWssMessToPlaylist: $date")
-//                Log.d("wssplaylist", "convertWssMessToPlaylist: ${listDay.size}")
-//                findScheduleByDate(jsonMess,item.ngayPhat)
-//            }
         }
+        Log.d("wssplaylist", "Convert Map: ${mapData.size}")
+        Log.d("wssplaylist", "Convert Map: $mapData")
+        return mapData
 
     }
 
-    private fun findScheduleByDate(payload : PayloadLive, ngayPhat: Long): String {
+    private fun findScheduleByDate2(payload: PayloadLive, ngayPhat: String): String {
+        val listMedia = payload.danhSachBanTin
+        val listPhatTheoNgay = mutableListOf<DanhSachBanTin>()
+        val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()
+        // Tìm khung giờ
+        if (listMedia != null) {
+            for (item in listMedia) {
+                if (unixTimeStampToDateTime(item.danhSachNgayPhat.first().ngayPhat) == ngayPhat) {
+                    listPhatTheoNgay.add(item)
+                }
+            }
+        }
+        if (listPhatTheoNgay.isNotEmpty()) {
+            var count = 0
+            for ((checkCountStart, item) in listPhatTheoNgay.withIndex()) {
+                var tObjStartTime = ""
+                tObjStartTime = if (checkCountStart > 0) {
+                    convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau - 0)
+                } else {
+                    convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau)
+                }
+                val tObjEndTime: String = convertTimeStampToHHMMSS(
+                    item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianKetThuc
+                )
+                val tObjStart = MediaItem(
+                    id = count,
+                    mediaID = count,
+                    projectID = item.banTinID,
+                    title = item.tieuDe,
+                    body = "start",
+                    startTime = tObjStartTime,
+                    fixTime = tObjStartTime,
+                    end = tObjEndTime,
+                )
+                count++
+                listBanTinPhatTheoNgay.add(tObjStart)
+                val obj = MediaItem(
+                    id = count,
+                    mediaID = count,
+                    projectID = item.banTinID,
+                    sourceID = payload.nguonID,
+                    sourceName = payload.tenNguon,
+                    destinationID = payload.dichID,
+                    destinationName = payload.tenDich,
+                    title = item.tieuDe,
+                    description = item.noiDungTomTat,
+                    duration = item.thoiLuong,
+                    contentType = Utils.convertContentType(item.loaiBanTin),
+                    priority = Utils.convertPriority(item.mucDoUuTien),
+                    category = Utils.convertFiend(item.loaiLinhVuc),
+                    author = convertAuthor(item.tacGia),
+                    body = item.noiDung,
+                    sourceReference = item.tenDiaBanTAO,
+                    type = getTypeOfMediaItem(item.loaiBanTin.toInt()),
+                    createDate = item.thoiGianSANXuat.toString(),
+                    metadata = mutableListOf(),
+                    tag = mutableListOf(),
+                    fixTime = tObjEndTime,
+                    startTime = tObjStartTime,
+                    start = tObjStartTime,
+                    end = tObjEndTime,
+                )
+                count++
+                listBanTinPhatTheoNgay.add(obj)
+
+                val tObEnd = MediaItem(
+                    id = count,
+                    mediaID = count,
+                    projectID = item.banTinID,
+                    title = item.tieuDe,
+                    body = "end",
+                    startTime = tObjStartTime,
+                    fixTime = tObjEndTime,
+                    end = tObjEndTime,
+                )
+                count++;
+                listBanTinPhatTheoNgay.add(tObEnd)
+            }
+        }
+        Log.d(
+            "wssplaylist",
+            "findScheduleByDate: ${jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)}"
+        )
+        return jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)
+
+    }
+
+
+    private fun findScheduleByDate(payload: PayloadLive, ngayPhat: Long): String {
         val listMedia = payload.danhSachBanTin
         val listPhatTheoNgay = mutableListOf<DanhSachBanTin>()
         val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()

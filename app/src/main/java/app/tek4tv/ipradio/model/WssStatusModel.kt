@@ -63,7 +63,8 @@ data class PayloadStatus (
     var noiDungPhat: String,
 
     @Json(name = "PhienBanUngDung")
-    var phienBanUngDung: String
+    var phienBanUngDung: String,
+
 )
 
 data class ThongTinThietBI (

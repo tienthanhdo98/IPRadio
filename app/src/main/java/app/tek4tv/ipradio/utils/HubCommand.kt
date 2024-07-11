@@ -8,6 +8,8 @@ object HubCommand {
     const val CAPTURE_SCREEN = "CAPTURE_SCREEN"
     const val GET_LIST = "GET_LIST"
     const val UPDATE_LIST = "UPDATE_LIST"
+    const val UPDATE_MONTHLY_WSS = "UPDATE_MONTHLY_WSS"
+    const val DELETE_MONTHLY_LIST_WSS = "DELETE_MONTHLY_LIST_WSS"
     const val UPDATE_MONTHLY_LIST = "UPDATE_MONTHLY_LIST"
     const val NEXT = "NEXT"
     const val PREVIEW = "PREVIEW"
