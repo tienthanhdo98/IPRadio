@@ -24,23 +24,23 @@ class MainViewModel @Inject constructor(
 
     var currentMedia : MediaItem? = null
 
-    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
-    {
-        viewModelScope.launch {
-            getContentJob?.join()
-
-            //cancel media check here
-            mediaWatchdog.cancelCheck()
-
-            getContentJob = launch {
-                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
-
-                content.value = Pair(mediaList, listOf())
-
-                getContentJob = null
-            }
-        }
-    }
+//    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
+//    {
+//        viewModelScope.launch {
+//            getContentJob?.join()
+//
+//            //cancel media check here
+//            mediaWatchdog.cancelCheck()
+//
+//            getContentJob = launch {
+//                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
+//
+//                content.value = Pair(mediaList, listOf())
+//
+//                getContentJob = null
+//            }
+//        }
+//    }
 
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
@@ -50,21 +50,21 @@ class MainViewModel @Inject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenario(url : String)
-    {
-        viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url)
-            getPlayerContent("", false)
-        }
-    }
+//    fun updateMonthlyScenario(url : String)
+//    {
+//        viewModelScope.launch {
+//            mediaRepo.updateMonthlyScenario(url)
+//            getPlayerContent("", false)
+//        }
+//    }
     fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
     {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenarioWss(strJsonMonthSchedule)
-            getPlayerContentWss(strJsonMonthSchedule, false)
+            getPlayerContentWss()
         }
     }
-    fun getPlayerContentWss(strJsonMonthSchedule: String, needUpdate: Boolean)
+    fun getPlayerContentWss()
     {
         viewModelScope.launch {
             getContentJob?.join()
@@ -73,7 +73,7 @@ class MainViewModel @Inject constructor(
             mediaWatchdog.cancelCheck()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getScenarioWss(needUpdate, strJsonMonthSchedule)
+                val mediaList = mediaRepo.getScenarioWss()
 
                 content.value = Pair(mediaList, listOf())
 

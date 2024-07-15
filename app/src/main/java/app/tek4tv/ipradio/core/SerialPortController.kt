@@ -129,10 +129,8 @@ class SerialPortController(
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
-                            val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
-                                volume = list[5]
                             }
                             dataFinal = StringBuffer()
                         }
@@ -153,9 +151,9 @@ class SerialPortController(
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
-                    hubManager.sendHubDirectMessage(
-                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
-                    )
+//                    hubManager.sendHubDirectMessage(
+//                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
+//                    )
 
                     isRead = false
                 }
@@ -250,7 +248,6 @@ class SerialPortController(
         const val MODE_TUNER = "MODE_TUNER"
         const val MODE_NONE = "MODE_NONE"
         const val LOG_TAG = "SerialPortController"
-        var volume: String = ""
         var deviceInfo: String = ""
     }
 }

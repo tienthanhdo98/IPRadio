@@ -24,5 +24,9 @@ class StringValue {
         const val categoryId5 = "Bản tin Trực tiếp"
         const val categoryId6 = "Bản tin FM"
         const val categoryId7 = "Bản tin ghi âm trực tiếp"
+        //Device info
+        const val deviceInfoPA = "PA"
+        const val deviceInfoVolume = "Volume"
+        const val deviceInfoTemperature = "Temperature"
     }
 }

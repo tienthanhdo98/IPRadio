@@ -87,27 +87,50 @@ class Utils {
 
         //the loai
         fun convertContentType(strContentType: String): ContentType {
+//            val contentType: ContentType =  when (strContentType) {
+//                "1" -> {
+//                    ContentType(1, StringValue.contentTypeId1)
+//                }
+//                "2" -> {
+//                     ContentType(2, StringValue.contentTypeId2)
+//                }
+//                "3" -> {
+//                    ContentType(3, StringValue.contentTypeId3)
+//                }
+//                "4" -> {
+//                    ContentType(4, StringValue.contentTypeId4)
+//                }
+//                "5" -> {
+//                    ContentType(5, StringValue.contentTypeId5)
+//                }
+//                "6" -> {
+//                   ContentType(6, StringValue.contentTypeId6)
+//                }
+//                else -> {
+//                   ContentType(1, StringValue.contentTypeId1)
+//                }
+//            }
             val contentType: ContentType =  when (strContentType) {
                 "1" -> {
-                    ContentType(1, StringValue.contentTypeId1)
+                    ContentType(1, "1")
                 }
                 "2" -> {
-                     ContentType(2, StringValue.contentTypeId2)
+                    ContentType(2,  "2")
                 }
                 "3" -> {
-                    ContentType(3, StringValue.contentTypeId3)
+                    ContentType(3,  "3")
                 }
                 "4" -> {
-                    ContentType(4, StringValue.contentTypeId4)
+                    ContentType(4,  "4")
                 }
                 "5" -> {
-                    ContentType(5, StringValue.contentTypeId5)
+                    ContentType(5,  "5")
                 }
                 "6" -> {
-                   ContentType(6, StringValue.contentTypeId6)
+                    ContentType(6,  "6")
                 }
                 else -> {
-                   ContentType(1, StringValue.contentTypeId1)
+                    ContentType(1,  "1")
                 }
             }
             return contentType

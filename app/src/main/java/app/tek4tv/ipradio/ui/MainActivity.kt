@@ -2,10 +2,8 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -202,13 +200,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             val paState =
                 if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                 else "0"
-//            if(mediaItem != null) {
-//                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
-//            }
             if (mediaItem != null) {
                 hubManager.sendLogMediaSuccess(mediaItem, paState)
             }
-
             if (globalProperties.logEnabled) {
                 try {
                     viewModel.currentMedia = mediaItem
@@ -340,7 +334,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //        playerManager.resumeMedia()
 
 
+        hubManager.connectToWss()
+
     }
+
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getStringEncrypt(
@@ -472,201 +469,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.setOnClickListener{
-            click()
-        }
     }
 
-    fun click()
-    {
-//        var json = """
-//            {
-//    "id" : "dv003",
-//    "topic" : "dv003",
-//    "payload" :
-//            {
-//        "NguonID": "H02.37.27",
-//        "TenNguon": "Xã Dương Hưu",
-//        "DanhSachDiaBanNhan": [
-//            {
-//                "DichID": "H02.37.27",
-//                "TenDich": "Xã Dương Hưu",
-//                "CumLoaID": [
-//                    "72:BE:B5:09:17:98"
-//                ]
-//            }
-//        ],
-//        "BanTinID": "889988339",
-//        "LoaiBanTin": "3",
-//        "MucDoUuTien": "1",
-//        "TieuDe": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-//        "LoaiLinhVuc": "1",
-//        "NoiDungTomTat": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-//        "ThoiGianSanXuat": 1676974167,
-//        "ThoiLuong": "00:05:00",
-//        "TacGia": {
-//            "TenDayDu": "Chuyên viên",
-//            "ButDanh": "cvhanoi",
-//            "Email": "abc@gmail.com"
-//        },
-//        "NoiDung": "http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8",
-//        "DiaBanTao": "string",
-//        "TenDiaBanTao": "string",
-//        "ThongTinChiTietBanTin": [
-//            {
-//                "Ten": "Bản quyền",
-//                "GiaTri": "Thành phố Hà Nội"
-//            }
-//        ],
-//        "NguonTin": "H02.37.27"
-//        }
-//    }"""
 
-
-
-        val json = """
-            {
-    "id" : "dv003",
-    "topic" : "dv003",
-    "payload" : {
-    "NguonID": "H02.37.27",
-    "TenNguon": "Xã Dương Hưu",
-    "DanhSachDiaBanNhan": [
-        {
-            "DichID": "H02.37.27",
-            "TenDich": "Xã Dương Hưu"
-        }
-    ],
-    "BanTinID": "889988339",
-    "LoaiBanTin": "3",
-    "MucDoUuTien": "1",
-    "TieuDe": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-    "LoaiLinhVuc": "1",
-    "NoiDungTomTat": "Sáng kiến thu gom rác thải điện tử gây ô nhiễm môi trường",
-    "ThoiGianSanXuat": 1676974167,
-    "ThoiLuong": "00:05:00",
-    "TacGia": {
-        "TenDayDu": "Chuyên viên",
-        "ButDanh": "cvhanoi",
-        "Email": "abc@gmail.com"
-    },
-    "NoiDung": "rtsp://171.244.129.143:1935/livevov1",
-    "DiaBanTao": "string",
-    "TenDiaBanTao": "string",
-    "ThongTinChiTietBanTin": [
-        {
-            "Ten": "Bản quyền",
-            "GiaTri": "Thành phố Hà Nội"
-        }
-    ],
-    "NguonTin": "H02.37.27"
-}}"""
-        Log.d("wss", "click: wsss")
-        hubManager.convertWssToHubCommad(json)
-
-
-//        val json = """
-////            {
-////  "DichID": "H02.37.27",
-////  "TenDich": "Xã Dương Hưu",
-////
-////   "NguonID": "H02.37.27",
-////  "TenNguon": "Xã Dương Hưu",
-////  "DanhSachDiaBanNhan": [
-////    {
-////      "DichID": "H02.37.27",
-////      "TenDich": "Xã Dương Hưu",
-////      "CumLoaID": [
-////        "72:BE:B5:09:17:98"
-////      ]
-////    }
-////  ],
-////  "LichPhatID": "1234354",
-////  "TenLichPhat": "Lịch test",
-////  "DanhSachBanTin": [
-////    {
-////      "BanTinID": "889988339",
-////      "LoaiBanTin": "3",
-////       "MucDoUuTien": "1",
-////      "TieuDe": "string",
-////      "LoaiLinhVuc": "string",
-////      "NoiDungTomTat": "string",
-////      "ThoiGianSanXuat": 0,
-////      "ThoiLuong": "string",
-////      "TacGia": {
-////        "TenDayDu": "string",
-////        "TenDangNhap": "string",
-////        "ButDanh": "string",
-////        "Email": "string"
-////      },
-////      "NoiDung": "string",
-////      "DiaBanTao": "string",
-////      "TenDiaBanTao": "string",
-////      "ThongTinChiTietBanTin": [
-////        {
-////          "Ten": "string",
-////          "GiaTri": "string"
-////        }
-////      ],
-////      "NguonTin": "string",
-////      "TiepAm": 0,
-////      "NguonTiepAm": "string",
-////      "DanhSachNgayPhat": [
-////        {
-////          "NgayPhat": 1719991218,
-////          "ThoiDiemPhat": [
-////            {
-////              "ThoiGianBatDau": 1719991218,
-////              "ThoiGianKetThuc": 1719991218
-////            }
-////          ]
-////        }
-////      ]
-////    },
-////     {
-////      "BanTinID": "889988339",
-////      "LoaiBanTin": "3",
-////       "MucDoUuTien": "1",
-////      "TieuDe": "string",
-////      "LoaiLinhVuc": "string",
-////      "NoiDungTomTat": "string",
-////      "ThoiGianSanXuat": 0,
-////      "ThoiLuong": "string",
-////      "TacGia": {
-////        "TenDayDu": "string",
-////        "TenDangNhap": "string",
-////        "ButDanh": "string",
-////        "Email": "string"
-////      },
-////      "NoiDung": "string",
-////      "DiaBanTao": "string",
-////      "TenDiaBanTao": "string",
-////      "ThongTinChiTietBanTin": [
-////        {
-////          "Ten": "string",
-////          "GiaTri": "string"
-////        }
-////      ],
-////      "NguonTin": "string",
-////      "TiepAm": 0,
-////      "NguonTiepAm": "string",
-////      "DanhSachNgayPhat": [
-////        {
-////          "NgayPhat": 1720077617,
-////          "ThoiDiemPhat": [
-////            {
-////              "ThoiGianBatDau": 1720113797,
-////              "ThoiGianKetThuc": 1720113797
-////            }
-////          ]
-////        }
-////      ]
-////    }
-////  ]
-////}
-//        """
-//        hubManager.convertWssMessToPlaylist(json)
-    }
 
 
     override fun onStop() {
@@ -674,6 +479,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         playerManager.onActivityStop()
         stopStream()
         cancelAllAlarm()
+        hubManager.closeWebsocket()
     }
 
     override fun onDestroy() {
@@ -681,6 +487,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         playerManager.onActivityDestroy()
         stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+        hubManager.closeWebsocket()
     }
 
     override fun onStart() {
@@ -720,7 +527,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     ConfigUtil.MONTHLY_SCENARIO_URL, ""
                 ) ?: return
 
-                viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+                viewModel.updateMonthlyScenarioWss(monthlyScenarioUrl)
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                     lifecycleScope.launch {
@@ -828,12 +635,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     fun startPlayingMedia() {
         Log.d("checkcheck", "startPlayingMedia: ")
-        viewModel.getPlayerContent("", false)
-        viewModel.getPlayerContentWss("", false)
+//        viewModel.getPlayerContent("", false)
+        viewModel.getPlayerContentWss()
     }
 
     private fun initHubConnect() {
-        hubManager.connectToHub()
+//        hubManager.connectToHub()
         locationTracker.getLocation(this@MainActivity)
     }
 
@@ -876,29 +683,29 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                    clearDatastore()
-                    val mess = responseHub.message!!
-                    //  //add at 4.1.3d
-//                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
-                    playerManager.stopAllPlayer() //dừng trạng thái tất cả player hiện tại
-                    playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
-                    cancelAllAlarm() //xóa tất hẹn giờ
-                    ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
-                    viewModel.updateMonthlyScenario(mess) //cập nhật lịch mới
-                    ConfigUtil.putString(
-                        applicationContext,
-                        ConfigUtil.MONTHLY_SCENARIO_URL,
-                        mess
-                    ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
-                    // lưu thời gian cập nhật lịch để gửi log
-                    val currentTime = Calendar.getInstance().time.time / 1000
-                    ConfigUtil.putString(
-                        applicationContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        currentTime.toString()
-                    )
-                    //add at 4.1.3b
-                    playerManager.stopForceMedia() //stop force media
+//                    clearDatastore()
+//                    val mess = responseHub.message!!
+//                    //  //add at 4.1.3d
+////                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
+//                    playerManager.stopAllPlayer() //dừng trạng thái tất cả player hiện tại
+//                    playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
+//                    cancelAllAlarm() //xóa tất hẹn giờ
+//                    ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
+//                    viewModel.updateMonthlyScenario(mess) //cập nhật lịch mới
+//                    ConfigUtil.putString(
+//                        applicationContext,
+//                        ConfigUtil.MONTHLY_SCENARIO_URL,
+//                        mess
+//                    ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
+//                    // lưu thời gian cập nhật lịch để gửi log
+//                    val currentTime = Calendar.getInstance().time.time / 1000
+//                    ConfigUtil.putString(
+//                        applicationContext,
+//                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+//                        currentTime.toString()
+//                    )
+//                    //add at 4.1.3b
+//                    playerManager.stopForceMedia() //stop force media
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
@@ -1025,38 +832,38 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         )
                     }
 
-                    val hubConnection = HubConnectionBuilder.create(urlHub)
-                        .withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else
-                                Single.error(Exception())
-                        })
-                        .withTransport(TransportEnum.WEBSOCKETS)
-                        .build()
-                    lifecycleScope.launch {
-                        val id = hubManager.openConnection2(hubConnection)
-                        if (id != null) {
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_HUB,
-                                urlHub
-                            )
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_TOKEN,
-                                urlToken
-                            )
-                            delay(60000)
-                            serialPortController.hardRestart()
-
-                        } else {
-                            delay(2000)
-                            serialPortController.hardRestart()
-                        }
-
-                    }
+//                    val hubConnection = HubConnectionBuilder.create(urlHub)
+//                        .withAccessTokenProvider(Single.defer {
+//                            val token = hubManager.getHubToken(urlToken)
+//                            if (token != null) {
+//                                Single.just(token)
+//                            } else
+//                                Single.error(Exception())
+//                        })
+//                        .withTransport(TransportEnum.WEBSOCKETS)
+//                        .build()
+//                    lifecycleScope.launch {
+//                        val id = hubManager.openConnection2(hubConnection)
+//                        if (id != null) {
+//                            ConfigUtil.putStringEncrypt(
+//                                applicationContext,
+//                                ConfigUtil.URL_HUB,
+//                                urlHub
+//                            )
+//                            ConfigUtil.putStringEncrypt(
+//                                applicationContext,
+//                                ConfigUtil.URL_TOKEN,
+//                                urlToken
+//                            )
+//                            delay(60000)
+//                            serialPortController.hardRestart()
+//
+//                        } else {
+//                            delay(2000)
+//                            serialPortController.hardRestart()
+//                        }
+//
+//                    }
 
                 }
                 HubCommand.TURN_ON_PA -> {
@@ -1112,11 +919,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             val connectionId = responseHub.message
                             Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
                             if (connectionId != null) {
-                                hubManager.sendHubDirectMessage(
-                                    connectionId,
-                                    HubCommand.PLAYLIST_INFO,
-                                    dataFromPlaylist
-                                )
+//                                hubManager.sendHubDirectMessage(
+//                                    connectionId,
+//                                    HubCommand.PLAYLIST_INFO,
+//                                    dataFromPlaylist
+//                                )
                             }
                         } catch (e: IOException) {
                             Log.e("readplaylist", "error reading playlist!!!")
@@ -1138,10 +945,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         val result =
                             "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
 
-                        hubManager.sendHubDirectMessage(
-                            connectionId, Utils.DEVICE_LOCATION,
-                            result
-                        )
+//                        hubManager.sendHubDirectMessage(
+//                            connectionId, Utils.DEVICE_LOCATION,
+//                            result
+//                        )
                     } else Log.d("location", "location not found")
                 }
                 HubCommand.RESTART -> {
@@ -1194,34 +1001,34 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
 
                 HubCommand.NETWORK_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val result = NetworkUtils.getNetworkInfo(applicationContext)
-                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
-                    }
+//                    val connectionId = responseHub.message
+//                    if (connectionId != null) {
+//                        val result = NetworkUtils.getNetworkInfo(applicationContext)
+//                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
+//                    }
                 }
 
 
                 HubCommand.STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-
-                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
-                    }
+//                    val connectionId = responseHub.message
+//                    if (connectionId != null) {
+//                        val info = appStorageManager.run {
+//                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
+//                        }
+//
+//                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
+//                    }
                 }
 
                 HubCommand.GET_MEDIA_PATH -> {
                     val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        Log.d("connectionId", connectionId)
-                        val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
-                        hubManager.sendHubDirectMessage(
-                            connectionId, Utils.GET_MEDIA_PATH, mediaList
-                        )
-                    }
+//                    if (connectionId != null) {
+//                        Log.d("connectionId", connectionId)
+//                        val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
+//                        hubManager.sendHubDirectMessage(
+//                            connectionId, Utils.GET_MEDIA_PATH, mediaList
+//                        )
+//                    }
                 }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
@@ -1258,13 +1065,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
 
                 HubCommand.GET_RECORD -> {
-                    val connectionId = responseHub.message!!
-                    val recordedAudioList =
-                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
-                    hubManager.sendHubDirectMessage(
-                        connectionId, Utils.GET_RECORD,
-                        recordedAudioList
-                    )
+//                    val connectionId = responseHub.message!!
+//                    val recordedAudioList =
+//                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
+//                    hubManager.sendHubDirectMessage(
+//                        connectionId, Utils.GET_RECORD,
+//                        recordedAudioList
+//                    )
 
                 }
 
@@ -1281,7 +1088,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     } else {
 
                         appStorageManager.deleteAllRecord()
-
                     }
                 }
 
@@ -1305,16 +1111,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
 
                 HubCommand.GET_ENCRYPTED_STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-
-                        hubManager.sendEncryptedMessage(
-                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
-                        )
-                    }
+//                    val connectionId = responseHub.message
+//                    if (connectionId != null) {
+//                        val info = appStorageManager.run {
+//                            "${getTotalRomStorage()},${getUsedRomStorage()}"
+//                        }
+//
+//                        hubManager.sendEncryptedMessage(
+//                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
+//                        )
+//                    }
                 }
 
                 HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
@@ -1327,7 +1133,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContent("", false)
+                    viewModel.getPlayerContentWss()
                 }
                 HubCommand.UPDATE_LIST -> {
 //                    val mess = responseHub.message!!
@@ -1408,9 +1214,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         var protocol_stream = ""
         var bitrate_stream = ""
         var samplerate = ""
-
-//        val typeMap = Types.newParameterizedType(List::class.java, MonthScheduleItem::class.java)
-//        val jsonListMonthAdapter = moshi.adapter<List<MonthScheduleItem>>(typeMap)
 
         val typeListMediaItem = Types.newParameterizedType(List::class.java, MediaItem::class.java)
         val jsonListMediaItemAdapter = moshi.adapter<List<MediaItem>>(typeListMediaItem)
