@@ -178,8 +178,6 @@ class PlayersManager(
             exoPlayer.stop()
         }
         playlistIndex++
-        Log.d(LOGTAG, "Play index $playlistIndex")
-        Log.d(LOGTAG, "Play list ${currentPlaylist.size}")
 
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")

@@ -120,6 +120,7 @@ data class MediaItem(
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
         if (getMediaType() == MediaType.LIVE) {
+            Log.d("player", "live: $body")
             return Media(mLibVLC, Uri.parse(body))
         }
         return if (body!!.isNotEmpty() && File(body!!).exists()) {

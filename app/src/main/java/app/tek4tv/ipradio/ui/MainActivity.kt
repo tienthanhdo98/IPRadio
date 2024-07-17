@@ -6,9 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.net.ConnectivityManager
-import android.net.Network
-import android.net.NetworkRequest
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -1185,7 +1182,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
         //using for config app ip or ipencoder
         var isEncoder = false
-         var urlStream = ""
+        var urlStream = ""
          var protocol_stream = ""
          var bitrate_stream = ""
         var samplerate = ""

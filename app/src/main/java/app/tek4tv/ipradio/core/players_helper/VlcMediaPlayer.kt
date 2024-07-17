@@ -228,8 +228,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         stream.addOption(":network-caching=20")
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
-//        stream.addOption(":run-time=${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
-        if (timeStamp != -1)
+        //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
+        if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()) )
             stream.addOption(":start-time=$timeStamp")
         currentVlcMedia = stream
         vlcPlayer.play(stream)
