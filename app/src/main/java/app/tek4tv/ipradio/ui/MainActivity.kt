@@ -469,6 +469,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+        tvMacAdress.setOnClickListener{
+            val json = """{"id":"","topic":"dv002","payload":{"Id":"b03801b9-0942-4623-b1ab-3d4f2a70c1bb","NguonID":"H02.37.27","TenNguon":"Xã Dương Hưu","DichID":"H02","TenDich":"Tỉnh Bắc Giang","DanhSachDiaBanNhan":[{"DichID":"H02.37.27","TenDich":"Xã Dương Hưu","Email":"","IsRead":true,"CumLoaID":[],"BangDienTuID":[]}],"LichPhatID":"a60626d4-fea8-4dbe-95f4-8bc69b0d6cb6","TenLichPhat":"Lịch 1 ngày","DanhSachBanTin":[{"BanTinID":"101","LoaiBanTin":"3","MucDoUuTien":"3","TieuDe":"Thời sự trưa 6-11 - Lễ chào cờ tháng 11 Tôn sư trọng đạo.mp3","LoaiLinhVuc":"1","NoiDungTomTat":"Thời sự trưa 6-11 - Lễ chào cờ tháng 11 Tôn sư trọng đạo.mp3","ThoiGianSanXuat":1721188795,"ThoiLuong":"00:15:59","TacGia":{"TenDayDu":"Cán Bộ Xã","TenDangNhap":"canboxa","ButDanh":"Cán Bộ Xã","Email":"canboxa@gmail.com"},"NoiDung":"/2024/7/12/13/116711342_thoi-su-trua-6-11---le-chao-co-thang-11-ton-su-trong-dao.mp3","DiaBanTao":"H02.37.27","TenDiaBanTao":"Xã Dương Hưu","ThongTinChiTietBanTin":[],"NguonTin":"Tỉnh Bắc Giang","TiepAm":0,"NguonTiepAm":"","DanhSachNgayPhat":[{"NgayPhat":1721149200,"ThoiDiemPhat":[{"ThoiGianBatDau":1721167200,"ThoiGianKetThuc":1721168159}]}]}],"CreateTime":1721188796,"CreateDate":1721174400,"UserName":""}}"""
+            hubManager.convertWssToHubCommad(json)
+        }
+
     }
 
 

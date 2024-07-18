@@ -98,6 +98,7 @@ data class ForceMedia(
             ConfigUtil.run {
                 putBool(appContext, HAVE_FORCE_MEDIA, false)
                 putString(appContext, FORCE_MEDIA, "")
+                putString(appContext, MONTHLY_SCENARIO_WSS_DATA, "")
             }
         }
     }

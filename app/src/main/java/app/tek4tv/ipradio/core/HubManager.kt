@@ -194,7 +194,7 @@ class HubManager(
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
             Log.d("WSS2", "onFailure: ${t.message} - ${t.cause}")
-            closeWebsocket()
+//            closeWebsocket()
         }
     }
 
