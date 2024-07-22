@@ -10,14 +10,6 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.*
-import app.tek4tv.ipradio.utils.HubCommand.DV002
-import app.tek4tv.ipradio.utils.HubCommand.DV003
-import app.tek4tv.ipradio.utils.HubCommand.DV004
-import app.tek4tv.ipradio.utils.HubCommand.DV005
-import app.tek4tv.ipradio.utils.HubCommand.DV006
-import app.tek4tv.ipradio.utils.HubCommand.DV007
-import app.tek4tv.ipradio.utils.HubCommand.DV008
-import app.tek4tv.ipradio.utils.HubCommand.DV009
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -219,8 +211,10 @@ class HubManager(
     }
 
     fun closeWebsocket() {
+
         webSocket.close(1000, "Activity destroyed")
         client.dispatcher.executorService.shutdown()
+        Log.d(TAG, "closeWebsocket: ")
     }
 
     private fun sendPingWss() {
@@ -288,7 +282,7 @@ class HubManager(
         val wssData = wssAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
-            DV002 -> {
+            HubCommand.DV002 -> {
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 if (body != null) {
@@ -296,10 +290,10 @@ class HubManager(
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                     onMessageListener.invoke(hubCommand, jsonMess)
-                    sendLogSchedule(DV006, body)
+                    sendLogSchedule(HubCommand.DV006, body)
                 }
             }
-            DV003 -> {
+            HubCommand. DV003 -> {
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 hubCommand = HubCommand.LIVE
@@ -347,17 +341,17 @@ class HubManager(
                 onMessageListener.invoke(hubCommand, jsonMessage)
             }
             //Hủy lịch
-            DV004 ->{
+            HubCommand. DV004 ->{
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
                     onMessageListener.invoke(hubCommand, "null")
-                    sendLogSchedule(DV007, body)
+                    sendLogSchedule(HubCommand.DV007, body)
                 }
             }
 
-            DV009 -> {
+            HubCommand.DV009 -> {
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
                 if (body != null) {

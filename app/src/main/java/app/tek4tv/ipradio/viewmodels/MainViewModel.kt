@@ -4,8 +4,10 @@ package app.tek4tv.ipradio.viewmodels
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -57,6 +59,15 @@ class MainViewModel @Inject constructor(
 //            getPlayerContent("", false)
 //        }
 //    }
+
+    fun rescheduleMonthlyPlaylist()
+    {
+        val jsonMonthlyListData = ConfigUtil.getString(appContext,
+            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+        updateMonthlyScenarioWss(jsonMonthlyListData)
+    }
+
+
     fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
     {
         viewModelScope.launch {

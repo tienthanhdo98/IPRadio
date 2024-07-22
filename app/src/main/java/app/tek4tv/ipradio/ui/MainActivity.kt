@@ -680,7 +680,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.deleteMonthlyPlaylist(message)
 
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
