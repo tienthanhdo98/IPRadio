@@ -1,10 +1,8 @@
 package app.tek4tv.ipradio.utils
 
-import android.R.string
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
-import android.util.Log
 import androidx.core.content.ContextCompat
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
@@ -138,19 +136,34 @@ class Utils {
 
         //do uu tien
         fun convertPriority(priorityLevel: String) : Priority{
+//            val priority : Priority = when (priorityLevel) {
+//                "1" -> {
+//                    Priority(1,StringValue.priority1)
+//
+//                }
+//                "2" -> {
+//                    Priority(2,StringValue.priority2)
+//                }
+//                "3" -> {
+//                    Priority(3, StringValue.priority3)
+//                }
+//                else -> {
+//                    Priority(1, StringValue.priority1)
+//                }
+//            }
             val priority : Priority = when (priorityLevel) {
                 "1" -> {
-                    Priority(1,StringValue.priority1)
+                    Priority(1,"1")
 
                 }
                 "2" -> {
-                    Priority(2,StringValue.priority2)
+                    Priority(2,"2")
                 }
                 "3" -> {
-                    Priority(3, StringValue.priority3)
+                    Priority(3, "3")
                 }
                 else -> {
-                    Priority(1, StringValue.priority1)
+                    Priority(1, "1")
                 }
             }
             return priority
@@ -160,29 +173,29 @@ class Utils {
         fun convertFiend(fieldType: String): Category {
             val category: Category = when (fieldType) {
                 "1" -> {
-                    Category(1, StringValue.categoryId1)
+                    Category(1, "1")
 
                 }
                 "2" -> {
-                    Category(2, StringValue.categoryId2)
+                    Category(2, "2")
                 }
                 "3" -> {
-                    Category(3, StringValue.categoryId3)
+                    Category(3, "3")
                 }
                 "4" -> {
-                    Category(3, StringValue.categoryId4)
+                    Category(3, "4")
                 }
                 "5" -> {
-                    Category(3, StringValue.categoryId5)
+                    Category(3, "5")
                 }
                 "6" -> {
-                    Category(3, StringValue.categoryId6)
+                    Category(3, "6")
                 }
                 "7" -> {
-                    Category(3, StringValue.categoryId7)
+                    Category(3, "7")
                 }
                 else -> {
-                    Category(1, StringValue.categoryId3)
+                    Category(1, "3")
                 }
             }
             return category

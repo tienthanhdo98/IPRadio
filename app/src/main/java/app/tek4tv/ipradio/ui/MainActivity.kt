@@ -41,6 +41,7 @@ import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
 import com.pedro.rtsp.rtsp.Protocol
+import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
@@ -527,12 +528,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
 
-                val monthlyScenarioUrl = ConfigUtil.getString(
-                    applicationContext,
-                    ConfigUtil.MONTHLY_SCENARIO_URL, ""
-                ) ?: return
-
-                viewModel.updateMonthlyScenarioWss(monthlyScenarioUrl)
+                viewModel.rescheduleMonthlyPlaylist()
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                     lifecycleScope.launch {
@@ -684,7 +680,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenarioWss(message)
+                    viewModel.deleteMonthlyPlaylist(message)
 
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -1225,6 +1221,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
         val typeMap =
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
-        val jsonMapAdapter = moshi.adapter<Map<String, String>>(typeMap)
+        val jsonMapAdapter: JsonAdapter<Map<String, String>> = moshi.adapter<Map<String, String>>(typeMap)
     }
 }

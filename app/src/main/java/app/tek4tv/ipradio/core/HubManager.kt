@@ -8,12 +8,7 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.ui.MainActivity
-import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
-import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
-import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
-import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.HubCommand.DV002
 import app.tek4tv.ipradio.utils.HubCommand.DV003
@@ -329,6 +324,10 @@ class HubManager(
                             body = body.noiDung,
                             sourceReference = body.nguonID!!.split(".").firstOrNull(),
                             startTime = "00:00:00",
+                            fieldType = Category(
+                                id =  body.loaiLinhVuc?.toLong(),
+                                value = body.loaiLinhVuc
+                            ),
                             type = "LIVE",
                             fixTime = "00:00:00",
                             createDate = "",
@@ -429,7 +428,7 @@ class HubManager(
                 congSuat = paState,
                 banTinID = mediaItem.projectID,
                 loaiBanTin = mediaItem.contentType?.value,
-                mucDoUuTien = mediaItem.priority?.value,
+                mucDoUuTien = mediaItem.priority?.id.toString(),
                 noiDung = mediaItem.pathBackup,
                 noiDungTomTat = mediaItem.description,
                 tacGia = tacGia,
@@ -439,10 +438,11 @@ class HubManager(
                 danhSachBanTin = listOf(),
                 danhSachDiaBan = listOf(),
                 danhSachThietBi = listOf(),
+                loaiLinhVuc =  mediaItem.fieldType?.value ,
             )
         )
 
-//        loaiLinhVuc =  ,
+//
 //        tiepAm = ,
 //        nguonTiepAm = ,
 //        nguonTin = ,
@@ -562,6 +562,7 @@ class HubManager(
                     description = item.noiDungTomTat,
                     duration = item.thoiLuong,
                     contentType = Utils.convertContentType(item.loaiBanTin),
+                    fieldType = Utils.convertFiend(item.loaiLinhVuc),
                     priority = Utils.convertPriority(item.mucDoUuTien),
                     category = Utils.convertFiend(item.loaiLinhVuc),
                     author = convertAuthor(item.tacGia),

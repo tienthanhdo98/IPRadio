@@ -41,6 +41,9 @@ data class MediaItem(
     @Json(name = "ContentType")
     val contentType: ContentType? = null,
 
+    @Json(name = "FieldType")
+    val fieldType: Category? = null,
+
     @Json(name = "Title")
     val title: String? = null,
 
