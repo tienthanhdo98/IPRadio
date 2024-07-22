@@ -116,12 +116,19 @@ data class TacGia (
     val email: String?
 )
 
+//data class ThongTinChiTietBanTin(
+//    @Json(name = "Ten")
+//    val ten: String,
+//
+//    @Json(name = "GiaTri")
+//    val giaTri: String
+//)
 data class ThongTinChiTietBanTin(
-    @Json(name = "Ten")
-    val ten: String,
+    @Json(name = "ThoiGianBatDau")
+    val thoiGianBatDau: Long,
 
-    @Json(name = "GiaTri")
-    val giaTri: String
+    @Json(name = "ThoiGianKetThuc")
+    val thoiGianKetThuc: Long
 )
 
 data class DieuKhienThietBI(
@@ -182,7 +189,7 @@ data class DanhSachBanTin(
     val tenDiaBanTAO: String,
 
     @Json(name = "ThongTinChiTietBanTin")
-    val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>,
+    var thongTinChiTietBanTin: List<ThongTinChiTietBanTin>,
 
     @Json(name = "NguonTin")
     val nguonTin: String,
