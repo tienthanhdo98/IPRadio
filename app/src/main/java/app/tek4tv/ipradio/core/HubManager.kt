@@ -224,7 +224,7 @@ class HubManager(
             pathPlaying = currentMediaItem!!.pathBackup
         }
         val request = WssStatusModel(
-            id = "", topic = DV008, payload = PayloadStatus(
+            id = "", topic = HubCommand.DV008, payload = PayloadStatus(
                 dichID = "H02",
                 tenDich = "Bắc Giang",
                 nguonID = GlobalProperties.getInst().destinationId,
@@ -409,7 +409,7 @@ class HubManager(
             sourceName = GlobalProperties.getInst().destinationName
         }
         val request = WssStatusModel(
-            id = "", topic = DV005, payload = WssMediaLogModel(
+            id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
                 nguonID = sourceId,
                 tenNguon = sourceName,
                 dichID = "H02",
@@ -506,7 +506,6 @@ class HubManager(
         Log.d("wssplaylist", "Convert Map: ${mapData.size}")
         Log.d("wssplaylist", "Convert Map: $mapData")
         return mapData
-
     }
 
     private fun findScheduleByDate(payload: PayloadLive, ngayPhat: String): String {
