@@ -52,16 +52,19 @@ class MediaRepo @Inject constructor(
     private val mediaStoragePath = appContext.filesDir.path
 
 
-    private val scheduleMonthlyAdapter: JsonAdapter<List<ScheduleDay>> = moshi.adapter(
-        Types.newParameterizedType(List::class.java, ScheduleDay::class.java)
-    )
-
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
         try {
             Log.e(TAG, "updateMonthlyScenario")
 
             val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
+            listMonthSchedule?.forEach{
+                Log.e(TAG, "updateMonthlyScenarioWss ${it.key}")
+                val list = jsonListMediaItemAdapter.fromJson(it.value)
+                list?.forEach {
+                    Log.e(TAG, "updateMonthlyScenarioWss ${it.title}")
+                }
 
+            }
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_WSS_DATA,
@@ -72,16 +75,21 @@ class MediaRepo @Inject constructor(
 
 //            val dayScenario = listMonthSchedule?.firstOrNull { it.date == currentDate }
             var dayScenario : String? = null
-            listMonthSchedule?.forEach { item ->
-                dayScenario = if(item.key == currentDate) {
-                    item.value
-                } else {
-                    null
+
+            if (listMonthSchedule != null) {
+                for(i in listMonthSchedule) {
+                    if (i.key == currentDate) {
+                        Log.e(TAG, "get scenario co data ngay ${i.key}")
+                        dayScenario = i.value
+                        break
+                    } else {
+                        dayScenario = null
+                    }
                 }
             }
                 if (dayScenario != null) {
-                Log.e(TAG, "có lịch trong ngày: update")
-                updateScenarioWss(dayScenario!!)
+                Log.e(TAG, "có lịch trong ngày: update ${dayScenario}")
+                updateScenarioWss(dayScenario)
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
@@ -112,7 +120,7 @@ class MediaRepo @Inject constructor(
         return result
     }
 
-    suspend fun getScenarioWss(): List<MediaItem> {
+    fun getScenarioWss(): List<MediaItem> {
         scheduledList.clear()
         unscheduledList.clear()
         scheduledMediaItems.clear()
@@ -130,28 +138,22 @@ class MediaRepo @Inject constructor(
                 val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
                 var dayScenario: String? = null
-                monthlyListData.forEach { item ->
-                    dayScenario = if (item.key == currentDate) {
-                        item.value
+
+                for(i in monthlyListData)
+                {
+                    if (i.key == currentDate) {
+                        Log.e(TAG, "get scenario co data ngay ${i.key}")
+                        Log.e(TAG, "get scenario co data ngay $currentDate")
+                        dayScenario = i.value
+                        break
                     } else {
-                        null
+                        dayScenario = null
                     }
                 }
                 dayScenario?.let {
-                    if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-                        Log.d("readplaylist", "local")
-                        val list = readItemsFromFile()
-                        if (list.isNotEmpty()) {
-                            Log.d(TAG, "local not null")
-                            res = list
-                        } else {
-                            Log.d(TAG, "local null: recall monthly url")
-                            updateMonthlyScenarioWss(jsonMonthlyListData)
-                        }
-                    } else {
-                        Log.d(TAG, "local not file in local")
-                        res = listOf()
-                    }
+
+                    res = jsonListMediaItemAdapter.fromJson(dayScenario)!!
+
                 } ?: run {
                     Log.d(TAG, "Today does not have a playing schedule")
                     res = listOf()

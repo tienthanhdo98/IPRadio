@@ -23,6 +23,7 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import java.lang.reflect.ParameterizedType
 import java.util.*
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 
@@ -181,7 +182,7 @@ class HubManager(
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
             Log.d("WSS2", "onFailure: ${t.message} - ${t.cause}")
-//            closeWebsocket()
+            closeWebsocket()
         }
     }
 
@@ -190,18 +191,22 @@ class HubManager(
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
             while (hubToken == null)
             {
-                delay(10000)
                 getHubToken()
                 delay(5000)
                 connectToWss()
             }
         }
-        client = OkHttpClient()
+        client = OkHttpClient.Builder(
+        ).connectTimeout(60, TimeUnit.SECONDS)
+            .pingInterval(10,TimeUnit.SECONDS)
+            .build()
         val request =
             Request.Builder().url(hubUrl)
                 .addHeader("Authorization", "Bearer $hubToken").build()
         val listener = EchoWebSocketListener()
+
         webSocket = client.newWebSocket(request, listener)
+
         startPingTimer()
 
     }
@@ -211,7 +216,6 @@ class HubManager(
     }
 
     fun closeWebsocket() {
-
         webSocket.close(1000, "Activity destroyed")
         client.dispatcher.executorService.shutdown()
         Log.d(TAG, "closeWebsocket: ")
@@ -394,24 +398,17 @@ class HubManager(
     }
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
-        val sourceId: String
-        val sourceName: String
+
         val tacGia = TacGia(
             tenDayDu = mediaItem.author?.fullName ?: "",
             butDanh = mediaItem.author?.userName ?: "",
             email = mediaItem.author?.email ?: ""
         )
-        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
-            sourceId = mediaItem.sourceID
-            sourceName = mediaItem.sourceName
-        } else {
-            sourceId = GlobalProperties.getInst().destinationId
-            sourceName = GlobalProperties.getInst().destinationName
-        }
+
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
-                nguonID = sourceId,
-                tenNguon = sourceName,
+                nguonID = GlobalProperties.getInst().destinationId,
+                tenNguon = GlobalProperties.getInst().destinationName,
                 dichID = "H02",
                 tenDich = "Bắc Giang",
                 cumLoaID = deviceImei,
@@ -488,8 +485,8 @@ class HubManager(
         sendMessageWSS(wssStatusAdapter.toJson(request))
     }
 
-    val listDate = mutableListOf<String>()
-    fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>) {
+    private val listDate = mutableListOf<String>()
+    private fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>) {
 
         danhSachNgayPhat.forEach {
             listDate.add(unixTimeStampToDateTime(it.ngayPhat))
@@ -504,19 +501,11 @@ class HubManager(
         if (danhSachBanTin?.isNotEmpty() == true) {
             for (item in danhSachBanTin) {
                 findDate(item.danhSachNgayPhat)
-//                item.danhSachNgayPhat.forEach{
-//                    val jsonSchedule = findScheduleByDate(
-//                        payload,
-//                        unixTimeStampToDateTime(it.ngayPhat)
-//                    )
-//                    mapData[unixTimeStampToDateTime(it.ngayPhat)] =
-//                    jsonSchedule
-//                }
             }
         }
         listDate.sort()
         listDate.toSet().forEach {
-            Log.d("wssplaylist", "Convert Map: $it")
+
             val jsonSchedule = findScheduleByDate(
                 payload,
                 it
@@ -524,16 +513,7 @@ class HubManager(
             mapData[it] =
                 jsonSchedule
         }
-
-
         Log.d("wssplaylist", "Convert Map: $mapData")
-        mapData.forEach{
-            Log.d("wssplaylist", "Ngày phát: ${it.key}")
-            val list = jsonMediaItemAdapter.fromJson(it.value)
-            list!!.forEach{
-                Log.d("wssplaylist", "Ngày phát: ${it.title}- ${it.startTime}- ${it.end}")
-            }
-        }
         return mapData
     }
 
@@ -546,16 +526,6 @@ class HubManager(
         for (item in danhSachBanTin!!) {
             item.danhSachNgayPhat.forEach {
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
-                    Log.d("wssplaylist", "Convert Map: ${item.tieuDe}")
-                    Log.d("wssplaylist", "Convert Map: ${ngayPhat}")
-                    Log.d(
-                        "wssplaylist",
-                        "Convert Map: ${convertTimeStampToHHMMSS(it.thoiDiemPhat.first().thoiGianBatDau)}"
-                    )
-                    Log.d(
-                        "wssplaylist",
-                        "Convert Map: ${convertTimeStampToHHMMSS(it.thoiDiemPhat.first().thoiGianKetThuc)}"
-                    )
                     lichPhatTheoNgay.add(item)
                     val time = ThongTinChiTietBanTin(
                         it.thoiDiemPhat.first().thoiGianBatDau,
@@ -563,10 +533,8 @@ class HubManager(
                     )
                     item.thongTinChiTietBanTin = mutableListOf(time)
                 }
-
             }
         }
-        Log.d("wssplaylist", "Convert Map: ${ngayPhat} - ${lichPhatTheoNgay.size}")
         if (lichPhatTheoNgay.isNotEmpty()) {
             var count = 0
             for ((checkCountStart, item) in lichPhatTheoNgay.withIndex()) {
@@ -634,79 +602,8 @@ class HubManager(
                 listBanTinPhatTheoNgay.add(tObEnd)
             }
         }
-
-        return jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)
+         return jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)
     }
-
-//        if (lichPhatTheoNgay.isNotEmpty()) {
-//            var count = 0
-//            for ((checkCountStart, item) in lichPhatTheoNgay.withIndex()) {
-//                val tObjStartTime: String = if (checkCountStart > 0) {
-//                    convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau - 0)
-//                } else {
-//                    convertTimeStampToHHMMSS(item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianBatDau)
-//                }
-//                val tObjEndTime: String = convertTimeStampToHHMMSS(
-//                    item.danhSachNgayPhat.first().thoiDiemPhat.first().thoiGianKetThuc
-//                )
-//                val tObjStart = MediaItem(
-//                    id = count,
-//                    mediaID = count,
-//                    projectID = item.banTinID,
-//                    title = item.tieuDe,
-//                    body = "start",
-//                    startTime = tObjStartTime,
-//                    fixTime = tObjStartTime,
-//                    end = tObjEndTime,
-//                )
-//                count++
-//                listBanTinPhatTheoNgay.add(tObjStart)
-//                val obj = MediaItem(
-//                    id = count,
-//                    mediaID = count,
-//                    projectID = item.banTinID,
-//                    sourceID = payload.nguonID,
-//                    sourceName = payload.tenNguon,
-//                    destinationID = payload.dichID,
-//                    destinationName = payload.tenDich,
-//                    title = item.tieuDe,
-//                    description = item.noiDungTomTat,
-//                    duration = item.thoiLuong,
-//                    contentType = Utils.convertContentType(item.loaiBanTin),
-//                    fieldType = Utils.convertFiend(item.loaiLinhVuc),
-//                    priority = Utils.convertPriority(item.mucDoUuTien),
-//                    category = Utils.convertFiend(item.loaiLinhVuc),
-//                    author = convertAuthor(item.tacGia),
-//                    body = item.noiDung,
-//                    sourceReference = item.tenDiaBanTAO,
-//                    type = getTypeOfMediaItem(item.loaiBanTin.toInt()),
-//                    createDate = item.thoiGianSANXuat.toString(),
-//                    metadata = mutableListOf(),
-//                    tag = mutableListOf(),
-//                    fixTime = tObjEndTime,
-//                    startTime = tObjStartTime,
-//                    start = tObjStartTime,
-//                    end = tObjEndTime,
-//                )
-//                count++
-//                listBanTinPhatTheoNgay.add(obj)
-//
-//                val tObEnd = MediaItem(
-//                    id = count,
-//                    mediaID = count,
-//                    projectID = item.banTinID,
-//                    title = item.tieuDe,
-//                    body = "end",
-//                    startTime = tObjStartTime,
-//                    fixTime = tObjEndTime,
-//                    end = tObjEndTime,
-//                )
-//                count++
-//                listBanTinPhatTheoNgay.add(tObEnd)
-//            }
-//        }
-//        return jsonMediaItemAdapter.toJson(listBanTinPhatTheoNgay)
-
 
     private fun startPingTimer() {
         pingHubJob?.cancel()
