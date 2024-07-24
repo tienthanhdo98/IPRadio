@@ -92,7 +92,11 @@ data class PayloadLive (
     val createDate: Long?,
 )
 
-
+data class itemMedia
+    (
+    var time: ThongTinChiTietBanTin,
+    var danhSachBanTin: DanhSachBanTin
+)
 
 data class DanhSachDiaBanNhan (
     @Json(name = "DichID")

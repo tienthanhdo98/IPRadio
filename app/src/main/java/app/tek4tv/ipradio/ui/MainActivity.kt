@@ -335,7 +335,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //        playerManager.resumeMedia()
 
 
-        hubManager.connectToWss()
+
 
     }
 
@@ -642,6 +642,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     private fun initHubConnect() {
 //        hubManager.connectToHub()
+        hubManager.connectToWss()
         locationTracker.getLocation(this@MainActivity)
     }
 

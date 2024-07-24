@@ -3,13 +3,10 @@ package app.tek4tv.ipradio.repo
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.ScheduleDay
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.ConfigUtil.KEY_MODIFY_TIME_PLAYLIST
-import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_DATA
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
@@ -210,9 +207,7 @@ class MediaRepo @Inject constructor(
 
 
     fun startDownloadMedia() {
-        Log.d("startDownloadMedia", "start")
         if (broadcastList.isEmpty()) return
-        Log.d("startDownloadMedia", "stilll")
         broadcastList.forEach {
             downloadAMediaItem(it)
         }
@@ -233,6 +228,7 @@ class MediaRepo @Inject constructor(
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
         Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
+        if (it.body == "start" || it.body == "end") return
         if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
 
         //xác định có là file hay không, lấy đuôi file

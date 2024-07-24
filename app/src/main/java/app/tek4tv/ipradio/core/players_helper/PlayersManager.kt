@@ -66,11 +66,11 @@ class PlayersManager(
     /**
      * Determine if we will not play any media in >= 15s to go
      * **/
-    var isTimeOver = false
+    private var isTimeOver = false
 
     var played = false
 
-    var handlerFMPlayer: Handler? = null
+    private var handlerFMPlayer: Handler? = null
 
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
