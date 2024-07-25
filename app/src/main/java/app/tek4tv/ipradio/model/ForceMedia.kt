@@ -58,7 +58,8 @@ data class ForceMedia(
             startTime = mediaItem!!.startTime,
             createDate = mediaItem!!.createDate,
             id = mediaItem!!.id,
-            projectID = mediaItem!!.mediaID.toString()
+            projectID = mediaItem!!.mediaID.toString(),
+            fieldType = mediaItem!!.fieldType
         ).also { it.level = level }
     }
 
@@ -98,8 +99,11 @@ data class ForceMedia(
             ConfigUtil.run {
                 putBool(appContext, HAVE_FORCE_MEDIA, false)
                 putString(appContext, FORCE_MEDIA, "")
-                putString(appContext, MONTHLY_SCENARIO_WSS_DATA, "")
             }
+        }
+        fun clearMonthlyData(appContext: Context)
+        {
+            ConfigUtil.putString(appContext, ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "")
         }
     }
 }
