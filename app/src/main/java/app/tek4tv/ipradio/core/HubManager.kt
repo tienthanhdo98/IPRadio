@@ -5,25 +5,22 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.core.mqtt.MQTTManager
+import app.tek4tv.ipradio.core.websocket.WssManager
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
+import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import kotlinx.coroutines.*
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.WebSocket
-import okhttp3.WebSocketListener
-import okio.ByteString
 import java.lang.reflect.ParameterizedType
 import java.util.*
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 
 
@@ -35,11 +32,11 @@ class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-    ) {
+) : IConnectionServer {
     private val TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 30
 
-    private val PING_HUB_INTERVAL = 15000L
+    private val PING_HUB_INTERVAL = 20000L
     private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
@@ -71,7 +68,6 @@ class HubManager(
 
     var versionName = ""
 
-
     private val mainHandler = Handler(Looper.getMainLooper())
 
     private val notifyDisconnected = AtomicBoolean(false)
@@ -79,20 +75,22 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    private var firstConnect = true
 
-    //check ping to hub
     private var hubUrl = ""
 
-    //wss
-    private val wssStatusAdapter: JsonAdapter<WssStatusModel> = moshi.adapter(WssStatusModel::class.java)
-    private  val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
+    private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
+        moshi.adapter(WssStatusModel::class.java)
+    private val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
     private val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
-    private var webSocket: WebSocket? = null
-    private var client: OkHttpClient? = null
 
+    //wss
+    private var wssManager: WssManager? = null
+
+    //mqtt
+    private val isMQTT = false
+    private var mqttClient: MQTTManager? = null
 
     init {
         versionName = try {
@@ -107,7 +105,6 @@ class HubManager(
         )!!
     }
 
-    //lấy token từ hub
     private fun getHubToken() {
         try {
             //Encrypted json variable name
@@ -139,82 +136,72 @@ class HubManager(
         }
     }
 
-    /**
-     * Nhận lệnh từ hub
-     * **/
-    inner class EchoWebSocketListener : WebSocketListener() {
-        override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
-            Log.d("WSS2", "onOpen: connnected")
-        }
 
-        override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("Websocket receive", text )
-            //Vừa kết nối được lại hub
-            if (pingCounter >= 3 && !firstConnect) {
-                Log.e(TAG, "Hub Reconnected")
-                notifyHubReconnected()
-                notifyDisconnected.compareAndSet(true, false)
-            }
-            if (firstConnect) firstConnect = false
-            pingCounter = 0
-            // Handle command from server in MainActivity
-            convertWssToHubCommad(text)
-        }
-
-        override fun onMessage(webSocket: WebSocket, bytes: ByteString) {
-
-            Log.d("WSS2", "Receiving bytes: ${bytes.hex()}")
-        }
-
-        override fun onClosing(webSocket: WebSocket, code: Int, reason: String) {
-            webSocket.close(1000, null)
-
-            Log.d("WSS2", "losing: $code / $reason")
-        }
-
-        override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
-            Log.d("WSS2", "onFailure: ${t.message} - ${t.cause}")
-            closeWebsocket()
-        }
-    }
-
-    fun connectToWss() {
+    fun connectToServer() {
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (hubToken == null)
-            {
+            while (hubToken == null) {
                 getHubToken()
                 delay(5000)
-                connectToWss()
+                connectToServer()
             }
         }
-        if(hubToken == null) return
-        client = OkHttpClient.Builder(
-        ).connectTimeout(60, TimeUnit.SECONDS)
-            .pingInterval(10,TimeUnit.SECONDS)
-            .build()
-        val request =
-            Request.Builder().url(hubUrl)
-                .addHeader("Authorization", "Bearer $hubToken").build()
-        val listener = EchoWebSocketListener()
+        if (hubToken == null) return
+        if (isMQTT) {
+            mqttClient = MQTTManager(hubToken, this)
+            mqttClient?.connectToMQTT(appContext)
+        } else {
+            wssManager = WssManager(hubToken, this)
+            wssManager?.connectToWss()
+        }
+    }
 
-        webSocket = client?.newWebSocket(request, listener)
-
+    override fun onSuccess() {
         startPingTimer()
+    }
+
+    override fun onFailure(message: String?) {
+        hubToken = null
+        closeConnect()
+    }
+    override fun onReceiveMessageSuccess(message: String) {
+        pingCounter = 0
+        convertToHubCommand(message)
+    }
+
+    override fun onSendMessageSuccess(responseMessage: String) {
 
     }
 
-    private fun sendMessageWSS(message: String) {
-        webSocket?.send(message)
+    override fun onSendMessageFailure(responseMessage: String) {
+
     }
 
-    fun closeWebsocket() {
-        webSocket?.close(1000, "Activity destroyed")
-        client?.dispatcher?.executorService?.shutdown()
-        Log.d(TAG, "closeWebsocket: ")
+    override fun onDisconnectFailure(message: String?) {
+
     }
 
-    private fun sendPingWss() {
+
+    fun closeConnect()
+    {
+        if (isMQTT) {
+            mqttClient?.disconnectMqtt()
+        } else {
+            wssManager?.closeWebsocket()
+        }
+    }
+
+
+    private fun sendMessage(message: String) {
+        if (isMQTT) {
+            mqttClient?.publishToMQTT(message)
+        } else {
+            wssManager?.sendMessage(message)
+        }
+    }
+
+
+    private fun sendPing() {
         pingCounter++
         var pathPlaying = ""
         if (currentMediaItem != null) {
@@ -231,14 +218,23 @@ class HubManager(
                 tenLoaiThietBI = "Cụm loa truyền thanh",
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(StringValue.deviceInfoVolume),
+                amLuong = getDeviceInfo(
+                    StringValue.deviceInfoVolume,
+                    SerialPortController.deviceInfo
+                ),
                 trangThaiHoatDong = "",
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
                 viDo = GlobalProperties.getInst().lat,
                 kinhDo = GlobalProperties.getInst().lng,
                 thongTinThietBI = ThongTinThietBI(
-                    congSuat = getDeviceInfo(StringValue.deviceInfoPA),
-                    nhietDo = getDeviceInfo(StringValue.deviceInfoTemperature),
+                    congSuat = getDeviceInfo(
+                        StringValue.deviceInfoPA,
+                        SerialPortController.deviceInfo
+                    ),
+                    nhietDo = getDeviceInfo(
+                        StringValue.deviceInfoTemperature,
+                        SerialPortController.deviceInfo
+                    ),
                     dungLuongSuDung = "1024000"
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
@@ -247,35 +243,11 @@ class HubManager(
             )
         )
         Log.d(TAG, "sendPingWss: $request")
-        sendMessageWSS(wssStatusAdapter.toJson(request))
-    }
-
-    private fun getDeviceInfo(valueName : String) : String
-    {
-        if(SerialPortController.deviceInfo != "") {
-            var result = ""
-            val listInfo = SerialPortController.deviceInfo.split(",")
-            when (valueName) {
-                StringValue.deviceInfoVolume -> {
-                    result = listInfo[6]
-                }
-                StringValue.deviceInfoPA -> {
-                    result = listInfo[8]
-                }
-                StringValue.deviceInfoTemperature -> {
-                    result = listInfo[11]
-                }
-            }
-            return result
-        }
-        else
-        {
-            return  ""
-        }
+        sendMessage(wssStatusAdapter.toJson(request))
     }
 
 
-    fun convertWssToHubCommad(jsonMessage: String) {
+    fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
@@ -406,7 +378,10 @@ class HubManager(
                 cumLoaID = deviceImei,
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(StringValue.deviceInfoVolume),
+                amLuong = getDeviceInfo(
+                    StringValue.deviceInfoVolume,
+                    SerialPortController.deviceInfo
+                ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 congSuat = paState,
                 banTinID = mediaItem.projectID,
@@ -425,7 +400,7 @@ class HubManager(
             )
         )
 
-        sendMessageWSS(wssStatusAdapter.toJson(request))
+        sendMessage(wssStatusAdapter.toJson(request))
     }
 
     private fun sendLogSchedule(commanDV: String, body: PayloadLive) {
@@ -455,7 +430,10 @@ class HubManager(
                 cumLoaID = deviceImei,
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong =getDeviceInfo(StringValue.deviceInfoVolume),
+                amLuong = getDeviceInfo(
+                    StringValue.deviceInfoVolume,
+                    SerialPortController.deviceInfo
+                ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 tenThietBi = GlobalProperties.getInst().nameDevice,
                 lichPhatID = body.lichPhatID,
@@ -467,7 +445,7 @@ class HubManager(
             )
         )
         Log.d("WebsocketLog", "sendLogSchedule: $commanDV - $request")
-        sendMessageWSS(wssStatusAdapter.toJson(request))
+        sendMessage(wssStatusAdapter.toJson(request))
     }
 
     private val listDate = mutableListOf<String>()
@@ -690,7 +668,7 @@ class HubManager(
         pingHubJob?.cancel()
         pingHubJob = coroutineScope.launch(Dispatchers.Default) {
             while (true) {
-                sendPingWss()
+                sendPing()
                 Log.d(TAG, "ping: $pingCounter")
                 delay(PING_HUB_INTERVAL)
                 checkConnection()
@@ -713,7 +691,7 @@ class HubManager(
             }
             //Try to reconnect to hub
             Log.e(TAG, "Try to reconnect Websocket")
-            connectToWss()
+            connectToServer()
         }
     }
 
@@ -730,6 +708,7 @@ class HubManager(
             hubEventObserver.forEach { it.onLostHubConnection() }
         }
     }
+
 
 }
 

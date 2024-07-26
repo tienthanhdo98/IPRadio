@@ -4,6 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -220,5 +221,29 @@ class Utils {
             return type
 
         }
+        fun getDeviceInfo(valueName : String,deviceInfo  : String) : String
+        {
+            if(deviceInfo != "") {
+                var result = ""
+                val listInfo = deviceInfo.split(",")
+                when (valueName) {
+                    StringValue.deviceInfoVolume -> {
+                        result = listInfo[6]
+                    }
+                    StringValue.deviceInfoPA -> {
+                        result = listInfo[8]
+                    }
+                    StringValue.deviceInfoTemperature -> {
+                        result = listInfo[11]
+                    }
+                }
+                return result
+            }
+            else
+            {
+                return  ""
+            }
+        }
     }
+
 }

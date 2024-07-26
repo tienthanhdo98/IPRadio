@@ -37,15 +37,12 @@ import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.microsoft.signalr.HubConnectionBuilder
-import com.microsoft.signalr.TransportEnum
 import com.pedro.encoder.input.audio.MicrophoneMode
 import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import io.reactivex.Single
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -474,7 +471,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         tvMacAdress.setOnClickListener{
             val json = """{"id":"","topic":"dv002","payload":{"Id":"df0edde9-245f-48ab-bc05-33c7b5e0039b","NguonID":"H02.37.27","TenNguon":"Xã Dương Hưu","DichID":"H02","TenDich":"Tỉnh Bắc Giang","DanhSachDiaBanNhan":[{"DichID":"H02.37.27","TenDich":"Xã Dương Hưu","Email":"","IsRead":true,"CumLoaID":[],"BangDienTuID":[]}],"LichPhatID":"89ad68d9-2597-42db-bdfb-e7962ff3db7c","TenLichPhat":"Lịch phát thanh 17:10 23/07/2024","DanhSachBanTin":[{"BanTinID":"91","LoaiBanTin":"3","MucDoUuTien":"3","TieuDe":"nhạc trẻ","LoaiLinhVuc":"1","NoiDungTomTat":"nhạc trẻ","ThoiGianSanXuat":1721878116,"ThoiLuong":"00:04:46","TacGia":{"TenDayDu":"admin bắc giang","TenDangNhap":"admin_bacgiang_v2","ButDanh":"admin bắc giang","Email":"admin@gmail.com"},"NoiDung":"https://storage-devkhanhhoa.tek4tv.vn/2024/7/18/15/366186628_7hqf3w691g.mp3","DiaBanTao":"H02.37.27","TenDiaBanTao":"Xã Dương Hưu","ThongTinChiTietBanTin":[],"NguonTin":"Tỉnh Bắc Giang","TiepAm":0,"NguonTiepAm":"","DanhSachNgayPhat":[{"NgayPhat":1721754000,"ThoiDiemPhat":[{"ThoiGianBatDau":1721803680,"ThoiGianKetThuc":1721803966}]},{"NgayPhat":1721840400,"ThoiDiemPhat":[{"ThoiGianBatDau":1721869304,"ThoiGianKetThuc":1721869590}]}]},{"BanTinID":"89","LoaiBanTin":"3","MucDoUuTien":"3","TieuDe":"Bản tin chưa đặt tên","LoaiLinhVuc":"1","NoiDungTomTat":"Bản tin chưa đặt tên","ThoiGianSanXuat":1721878116,"ThoiLuong":"00:01:44","TacGia":{"TenDayDu":"admin bắc giang","TenDangNhap":"admin_bacgiang_v2","ButDanh":"admin bắc giang","Email":"admin@gmail.com"},"NoiDung":"https://storage-devkhanhhoa.tek4tv.vn/2024/7/18/15/579188877_3cfd1d082f22463f9e812b2e6bb3d243.mp3","DiaBanTao":"H02.37.27","TenDiaBanTao":"Xã Dương Hưu","ThongTinChiTietBanTin":[],"NguonTin":"Tỉnh Bắc Giang","TiepAm":0,"NguonTiepAm":"","DanhSachNgayPhat":[{"NgayPhat":1721754000,"ThoiDiemPhat":[{"ThoiGianBatDau":1721803966,"ThoiGianKetThuc":1721804070}]},{"NgayPhat":1721840400,"ThoiDiemPhat":[{"ThoiGianBatDau":1721869200,"ThoiGianKetThuc":1721869304}]}]},{"BanTinID":"85","LoaiBanTin":"3","MucDoUuTien":"3","TieuDe":"Đất Nước chọn niềm vui","LoaiLinhVuc":"1","NoiDungTomTat":"Đất Nước chọn niềm vui","ThoiGianSanXuat":1721878116,"ThoiLuong":"00:04:58","TacGia":{"TenDayDu":"admin bắc giang","TenDangNhap":"admin_bacgiang_v2","ButDanh":"admin bắc giang","Email":"admin@gmail.com"},"NoiDung":"https://storage-devkhanhhoa.tek4tv.vn/2024/7/18/14/439636365_dat-nuoc-tron-niem-vui-ta-minh-tam.mp3","DiaBanTao":"H02.37.27","TenDiaBanTao":"Xã Dương Hưu","ThongTinChiTietBanTin":[],"NguonTin":"Tỉnh Bắc Giang","TiepAm":0,"NguonTiepAm":"","DanhSachNgayPhat":[{"NgayPhat":1721754000,"ThoiDiemPhat":[{"ThoiGianBatDau":1721804070,"ThoiGianKetThuc":1721804368}]},{"NgayPhat":1721840400,"ThoiDiemPhat":[{"ThoiGianBatDau":1721858400,"ThoiGianKetThuc":1721858698}]}]},{"BanTinID":"86","LoaiBanTin":"3","MucDoUuTien":"3","TieuDe":"Xin chào Việt Nam","LoaiLinhVuc":"1","NoiDungTomTat":"Xin chào Việt Nam","ThoiGianSanXuat":1721878116,"ThoiLuong":"00:03:24","TacGia":{"TenDayDu":"admin bắc giang","TenDangNhap":"admin_bacgiang_v2","ButDanh":"admin bắc giang","Email":"admin@gmail.com"},"NoiDung":"https://storage-devkhanhhoa.tek4tv.vn/2024/7/18/14/729914538_xin-chao-viet-nam-thuy-chi.mp3","DiaBanTao":"H02.37.27","TenDiaBanTao":"Xã Dương Hưu","ThongTinChiTietBanTin":[],"NguonTin":"Tỉnh Bắc Giang","TiepAm":0,"NguonTiepAm":"","DanhSachNgayPhat":[{"NgayPhat":1721840400,"ThoiDiemPhat":[{"ThoiGianBatDau":1721858698,"ThoiGianKetThuc":1721858902}]}]}],"CreateTime":1721878116,"CreateDate":1721865600,"UserName":""}}
 """
-            hubManager.convertWssToHubCommad(json)
+            hubManager.convertToHubCommand(json)
         }
 
     }
@@ -487,7 +484,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         playerManager.onActivityStop()
         stopStream()
         cancelAllAlarm()
-        hubManager.closeWebsocket()
+        hubManager.closeConnect()
     }
 
     override fun onDestroy() {
@@ -495,7 +492,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         playerManager.onActivityDestroy()
         stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-        hubManager.closeWebsocket()
+        hubManager.closeConnect()
     }
 
     override fun onStart() {
@@ -644,7 +641,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     private fun initHubConnect() {
 //        hubManager.connectToHub()
-        hubManager.connectToWss()
+        hubManager.connectToServer()
         locationTracker.getLocation(this@MainActivity)
     }
 

@@ -202,7 +202,7 @@ class SerialPortController(
     }
 
     fun hardRestart() {
-        hubManager.closeWebsocket()
+        hubManager.closeConnect()
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
     }
 
