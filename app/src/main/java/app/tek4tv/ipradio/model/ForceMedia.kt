@@ -100,6 +100,10 @@ data class ForceMedia(
                 putString(appContext, FORCE_MEDIA, "")
             }
         }
+        fun clearMonthlyData(appContext: Context)
+        {
+            ConfigUtil.putString(appContext, ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "")
+        }
     }
 }
 

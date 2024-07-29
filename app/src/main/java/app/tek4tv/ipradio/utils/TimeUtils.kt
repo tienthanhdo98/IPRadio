@@ -6,6 +6,29 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
+fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", timeZone: TimeZone = TimeZone.getDefault()): String {
+    // Convert epoch time to milliseconds
+    val date = Date(epochTime * 1000)
+
+    // Define a date formatter
+    val formatter = SimpleDateFormat(pattern)
+    formatter.timeZone = timeZone // Set the formatter's time zone
+
+    // Format the date
+    return formatter.format(date)
+}
+
+
+fun convertTimeStampToHHMMSS(s: Long): String {
+    return try {
+        val sdf = SimpleDateFormat("HH:mm:ss")
+        val netDate = Date(s.toLong() * 1000)
+        sdf.format(netDate)
+    } catch (e: Exception) {
+        e.toString()
+    }
+}
+
 
 fun toCalendar(time: String): Calendar {
     return try {

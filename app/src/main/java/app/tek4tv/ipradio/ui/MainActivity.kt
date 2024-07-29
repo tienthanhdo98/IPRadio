@@ -27,6 +27,7 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
@@ -52,6 +53,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
+import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -264,7 +266,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-        if (typeScreen != FULL_SCREEN) {
+        if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
             setContentView(R.layout.activity_main_multiple_view2)
@@ -274,8 +276,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
+
         val hubComm = object : HubComm {
-            override fun forceRestartApp() {
+            override fun forceRestartApp(countHardRestart : Int) {
                 lifecycleScope.launch {
                     serialPortController.turnOffPA()
                     delay(3000)
@@ -286,6 +289,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
+
         }
 
         logUtils = LogUtils.getInst()
@@ -293,10 +297,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
+        hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
-        hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -334,8 +337,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         viewModel.hideSystemUI(this)
-//
-//        initDataByScreen()
+
+       initDataByScreen()
 
 
     }
@@ -496,12 +499,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-                val monthlyScenarioUrl = ConfigUtil.getString(
-                    applicationContext,
-                    ConfigUtil.MONTHLY_SCENARIO_URL, ""
-                ) ?: return
 
-                viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+                viewModel.rescheduleMonthlyPlaylist()
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 val isConnect = ConfigUtil.getString(this, "checkhub", "0")
@@ -572,6 +571,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             mediaScheduler.setCheckHubAndResetAlarms()
 
             playerManager.startFirstTimeFrame()
+            sendLogDataHub()
 
             if (typeScreen == MULTIPLE_AREA) {
                 listLeftMedia = viewModel.mediaRepo.leftScheduledList
@@ -601,11 +601,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     )
 
     fun startPlayingMedia() {
-        viewModel.getPlayerContent("", false)
+        viewModel.getPlayerContentWss()
     }
 
     private fun initHubConnect() {
-        hubManager.connectToHub()
+        hubManager.connectToServer()
         locationTracker.getLocation(this@MainActivity)
 
     }
@@ -626,6 +626,37 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (!isImei) return
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
+                HubCommand.UPDATE_MONTHLY_WSS -> {
+                    clearDatastore()
+                    CoroutineScope(Dispatchers.Main).launch {
+                        playerManager.stopAllPlayer()
+                    }
+                    playerManager.resetPlayMode()
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    ForceMedia.clearMonthlyData(applicationContext)
+                    Log.d("sds", "handleFromCommandServer: $message ")
+                    viewModel.updateMonthlyScenarioWss(message)
+                    val currentTime = Calendar.getInstance().time.time / 1000
+                    ConfigUtil.putString(
+                        applicationContext,
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+                        currentTime.toString()
+                    )
+                    playerManager.stopForceMedia()
+                }
+                HubCommand.DELETE_MONTHLY_LIST_WSS -> {
+                    Log.d("sds", "handleFromCommandServer: $message ")
+                    CoroutineScope(Dispatchers.Main).launch {
+                        playerManager.stopAllPlayer()
+                    }
+
+                    playerManager.resetPlayMode()
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    ForceMedia.clearMonthlyData(applicationContext)
+
+                }
                 HubCommand.UPDATE_LIST -> {
                     val mess = responseHub.message!!
                     playerManager.stopForceMedia()
@@ -641,8 +672,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-
-                    viewModel.getPlayerContent(mess, true)
+//
+//                    viewModel.getPlayerContent(mess, true)
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -654,8 +685,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
+//                    viewModel.updateMonthlyScenario(mess, true)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
+                    // lưu thời gian cập nhật lịch để gửi log
+                    val currentTime = Calendar.getInstance().time.time / 1000
+                    ConfigUtil.putString(
+                        applicationContext,
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
+                        currentTime.toString()
+                    )
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
@@ -676,105 +714,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
 
-                HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message!!
-                    Log.i("config_config", "updateconfig $mess")
-
-                    val listInfoConfig = mess.split(",")
-                    val resposnHub = ResponseHub().apply {
-                        if (listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
-                            volume = listInfoConfig[0]
-                        }
-                        if (listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
-                            lat = listInfoConfig[1].toFloat()
-                        }
-                        if(listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
-                            lng = listInfoConfig[2].toFloat()
-                        }
-                        if(listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
-                            destinationId = listInfoConfig[3]
-                        }
-                        if(listInfoConfig.size >= 5  && listInfoConfig[4] != "null") {
-                            destinationName = listInfoConfig[4]
-                        }
-                        if(listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
-                            deviceName = listInfoConfig[5]
-                        }
-                    }
-                    if(listInfoConfig.size >= 7 && listInfoConfig[6] != "null" )
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listInfoConfig[6]
-                        )
-                        hubManager.providerValue = listInfoConfig[6]
-                    }
-                    globalProperties.saveProperties(resposnHub)
-                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
-                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
-                    Log.i("config_config", "updateconfig success")
-                }
-
-
                 HubCommand.LiveRemoteControl ->{
                     val mess = responseHub.message!!
                     Log.i("LiveRemoteControl", "Mess: $mess ")
                 }
-                HubCommand.UPDATE_CONFIG -> {
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
-                    val mess = responseHub.message!!
-                    val listValue = mess.split(",")
-                    val urlHub = listValue[0]
-                    val urlToken = listValue[1]
-                    if(listValue.size >= 3 )
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listValue[2]
-                        )
-                    }
-                    val hubConnection = HubConnectionBuilder.create(urlHub)
-                        .withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else
-                                Single.error(Exception())
-                        })
-                        .withTransport(TransportEnum.WEBSOCKETS)
-                        .build()
-                    lifecycleScope.launch {
-                        val id = hubManager.openConnection2(hubConnection)
-                        if (id != null) {
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_HUB,
-                                urlHub
-                            )
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_TOKEN,
-                                urlToken
-                            )
-                            Log.i("config_config", "updateconfig success: reseting")
-                            delay(60000)
-                            serialPortController.hardRestart()
-                            delay(10000)
-                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
 
-                        } else {
-                            Log.i("config_config", "updateconfig fail: reseting")
-                            delay(2000)
-                            serialPortController.hardRestart()
-                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                        }
-
-                    }
-
-                }
 
                 HubCommand.TURN_ON_PA -> {
                     if (responseHub.message == "1") {
@@ -822,16 +766,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             val connectionId = responseHub.message
                             Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
                             if (connectionId != null) {
-                                hubManager.sendHubDirectMessage(
-                                    connectionId,
-                                    HubCommand.PLAYLIST_INFO,
-                                    dataFromPlaylist
-                                )
+//                                hubManager.sendHubDirectMessage(
+//                                    connectionId,
+//                                    HubCommand.PLAYLIST_INFO,
+//                                    dataFromPlaylist
+//                                )
                             }
                         } catch (e: IOException) {
                             Log.e("readplaylist", "error reading playlist!!!")
                         }
                     }
+                    sendLogDataHub(true)
                 }
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
@@ -847,10 +792,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         val result =
                             "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
 
-                        hubManager.sendHubDirectMessage(
-                            connectionId, Utils.DEVICE_LOCATION,
-                            result
-                        )
+//                        hubManager.sendHubDirectMessage(
+//                            connectionId, Utils.DEVICE_LOCATION,
+//                            result
+//                        )
                     } else Log.d("location", "location not found")
                 }
                 HubCommand.RESTART -> {
@@ -947,7 +892,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val connectionId = responseHub.message
                     if (connectionId != null) {
                         val result = NetworkUtils.getNetworkInfo(applicationContext)
-                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
+//                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
                     }
                 }
 
@@ -958,7 +903,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
 
-                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
+//                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
                     }
                 }
 
@@ -967,9 +912,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (connectionId != null) {
                         Log.d("connectionId", connectionId)
                         val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
-                        hubManager.sendHubDirectMessage(
-                            connectionId, Utils.GET_MEDIA_PATH, mediaList
-                        )
+//                        hubManager.sendHubDirectMessage(
+//                            connectionId, Utils.GET_MEDIA_PATH, mediaList
+//                        )
                     }
                 }
 
@@ -1010,10 +955,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val connectionId = responseHub.message!!
                     val recordedAudioList =
                         Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
-                    hubManager.sendHubDirectMessage(
-                        connectionId, Utils.GET_RECORD,
-                        recordedAudioList
-                    )
+//                    hubManager.sendHubDirectMessage(
+//                        connectionId, Utils.GET_RECORD,
+//                        recordedAudioList
+//                    )
 
                 }
 
@@ -1059,9 +1004,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             "${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
 
-                        hubManager.sendEncryptedMessage(
-                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
-                        )
+//                        hubManager.sendEncryptedMessage(
+//                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
+//                        )
                     }
                 }
 
@@ -1075,7 +1020,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContent("", false)
+//                    viewModel.getPlayerContent("", false)
                 }
 
                 HubCommand.GET_LOG_FILE -> {
@@ -1179,5 +1124,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     companion object {
         var alarmListener: AlarmListener? = null
+        val typeListMediaItem = Types.newParameterizedType(List::class.java, MediaItem::class.java)
+        val jsonListMediaItemAdapter = moshi.adapter<List<MediaItem>>(typeListMediaItem)
+
+        val typeMap =
+            Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
+        val jsonMapAdapter: JsonAdapter<Map<String, String>> = moshi.adapter<Map<String, String>>(typeMap)
     }
 }

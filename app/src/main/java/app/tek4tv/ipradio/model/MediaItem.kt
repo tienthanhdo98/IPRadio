@@ -84,7 +84,9 @@ data class MediaItem(
     val metadata: List<Any?>? = null,
 
     @Json(name = "Tag")
-    val tag: List<Any?>? = null
+    val tag: List<Any?>? = null,
+    @Json(name = "FieldType")
+    val fieldType: Category? = null,
 
 ) : Serializable {
 
@@ -149,22 +151,21 @@ data class BroadcastRegion (
     val value: Int
 )
 
-
-data class Author (
+data class Author(
     @Json(name = "Id")
-    val id: Any,
+    val id: String? = null,
 
     @Json(name = "FullName")
-    val fullName: String?,
+    val fullName: String? = null,
 
     @Json(name = "UserName")
-    val userName: String?,
+    val userName: String? = null,
 
     @Json(name = "Avatar")
-    val avatar: String?,
+    val avatar: String? = null,
 
     @Json(name = "Email")
-    val email: String?
+    val email: String? = null
 )
 
 data class Category(

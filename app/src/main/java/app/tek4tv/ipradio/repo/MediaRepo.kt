@@ -5,7 +5,10 @@ import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
+import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
@@ -34,7 +37,7 @@ class MediaRepo @Inject constructor(
     moshi: Moshi,
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
-
+    val TAG = "MEDIA_REPO"
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
@@ -51,6 +54,130 @@ class MediaRepo @Inject constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
+
+    suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
+        try {
+            Log.e(TAG, "updateMonthlyScenario")
+
+            val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
+            listMonthSchedule?.forEach{
+                Log.e(TAG, "updateMonthlyScenarioWss ${it.key}")
+                val list = jsonListMediaItemAdapter.fromJson(it.value)
+                list?.forEach {
+                    Log.e(TAG, "updateMonthlyScenarioWss ${it.title}")
+                }
+
+            }
+            ConfigUtil.putString(
+                appContext,
+                MONTHLY_SCENARIO_WSS_DATA,
+                strListMonthSchedule
+            )
+
+            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+
+//            val dayScenario = listMonthSchedule?.firstOrNull { it.date == currentDate }
+            var dayScenario : String? = null
+
+            if (listMonthSchedule != null) {
+                for(i in listMonthSchedule) {
+                    if (i.key == currentDate) {
+                        Log.e(TAG, "get scenario co data ngay ${i.key}")
+                        dayScenario = i.value
+                        break
+                    } else {
+                        dayScenario = null
+                    }
+                }
+            }
+            if (dayScenario != null) {
+                Log.e(TAG, "có lịch trong ngày: update ${dayScenario}")
+                updateScenarioWss(dayScenario)
+            } else {
+                //In case there are no scenario for today, don't play anythings
+                saveItemsToFile(listOf())
+                Log.e(TAG, "Không có lịch trong ngày")
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Cannot update daily scenario ${e.message}")
+        }
+    }
+
+    private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
+        val result = listOf<MediaItem>()
+
+        try {
+            val res = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)
+            if (res?.isNotEmpty() == true) {
+                Log.e(TAG, "Save ${res.size} to local")
+                saveItemsToFile(res)
+
+            } else {
+                Log.e(TAG, "Lịch rỗng rồi")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, e.toString())
+        }
+
+        return result
+    }
+
+    fun getScenarioWss(): List<MediaItem> {
+        scheduledList.clear()
+        unscheduledList.clear()
+        scheduledMediaItems.clear()
+        timeDividers.clear()
+
+        var res = listOf<MediaItem>()
+
+        val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+        Log.e(TAG, "get scenario ${jsonMonthlyListData}")
+        if (jsonMonthlyListData.isNotEmpty()) {
+            val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
+
+            if (monthlyListData?.isNotEmpty() == true) {
+
+                val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+
+                var dayScenario: String? = null
+
+                for(i in monthlyListData)
+                {
+                    if (i.key == currentDate) {
+                        Log.e(TAG, "get scenario co data ngay ${i.key}")
+                        Log.e(TAG, "get scenario co data ngay $currentDate")
+                        dayScenario = i.value
+                        break
+                    } else {
+                        dayScenario = null
+                    }
+                }
+                dayScenario?.let {
+
+                    res = jsonListMediaItemAdapter.fromJson(dayScenario)!!
+
+                } ?: run {
+                    Log.d(TAG, "Today does not have a playing schedule")
+                    res = listOf()
+                }
+
+            } else {
+                Log.d(TAG, "Nothing str list to play")
+                res = listOf()
+            }
+        }
+        else {
+            Log.d(TAG, "Nothing str list to play")
+            res = listOf()
+        }
+
+        broadcastList.clear()
+        broadcastList.addAll(res)
+        Log.d(TAG, "local ${res.size}")
+        filterMedia(broadcastList)
+        return broadcastList
+    }
 
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {

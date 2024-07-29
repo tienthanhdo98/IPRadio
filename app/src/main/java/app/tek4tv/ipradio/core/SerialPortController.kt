@@ -162,9 +162,9 @@ class SerialPortController(
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
-                    hubManager.sendHubDirectMessage(
-                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
-                    )
+//                    hubManager.sendHubDirectMessage(
+//                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
+//                    )
 
                     isRead = false
                 }

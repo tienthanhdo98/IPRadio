@@ -63,4 +63,24 @@ object HubCommand {
     const val JOIN_GROUP = "JoinGroup"
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
+
+
+    const val UPDATE_MONTHLY_WSS = "UPDATE_MONTHLY_WSS"
+    const val DELETE_MONTHLY_LIST_WSS = "DELETE_MONTHLY_LIST_WSS"
+    const val WSS = "WSS"
+    //WSS
+    const val DV002 = "dv002"
+    //wss live
+    const val DV003 = "dv003"
+    //wss huy lich
+    const val DV004 = "dv004"
+    //wss gửi log bản tin phát
+    const val DV005 = "dv005"
+    //wss gửi log lịch phát
+    const val DV006 = "dv006"
+    //wss gửi log hủy lịch phát
+    const val DV007 = "dv007"
+    //ping
+    const val DV008 = "dv008"
+    const val DV009 = "dv009"
 }

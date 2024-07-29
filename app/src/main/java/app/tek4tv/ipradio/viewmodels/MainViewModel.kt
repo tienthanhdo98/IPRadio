@@ -6,18 +6,13 @@ import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.ui.MainActivity
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
-import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.withTestContext
-import kotlinx.coroutines.withContext
-import java.util.*
 
 
 class MainViewModel @ViewModelInject constructor(
@@ -31,7 +26,23 @@ class MainViewModel @ViewModelInject constructor(
 
     var currentMedia: MediaItem? = null
 
-    fun getPlayerContent(listUrl: String, needUpdate: Boolean) {
+    fun rescheduleMonthlyPlaylist()
+    {
+        val jsonMonthlyListData = ConfigUtil.getString(appContext,
+            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+        updateMonthlyScenarioWss(jsonMonthlyListData)
+    }
+
+
+    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
+    {
+        viewModelScope.launch {
+            mediaRepo.updateMonthlyScenarioWss(strJsonMonthSchedule)
+            getPlayerContentWss()
+        }
+    }
+    fun getPlayerContentWss()
+    {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -39,7 +50,7 @@ class MainViewModel @ViewModelInject constructor(
             mediaWatchdog.cancelCheck()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
+                val mediaList = mediaRepo.getScenarioWss()
 
                 content.value = Pair(mediaList, listOf())
 
@@ -47,6 +58,7 @@ class MainViewModel @ViewModelInject constructor(
             }
         }
     }
+
 
 
     fun checkPlaylist() {
@@ -57,12 +69,6 @@ class MainViewModel @ViewModelInject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenario(url: String, forceNewScenario: Boolean = false) {
-        viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url, forceNewScenario)
-            getPlayerContent("", false)
-        }
-    }
 
     fun hideSystemUI(activity: Activity) {
         val decorView: View = activity.window.decorView

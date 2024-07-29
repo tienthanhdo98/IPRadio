@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D29.4.1.7c"
+        versionName "D29.4.1.7e"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -116,7 +116,9 @@ dependencies {
 
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
 
-
+    //mqtt
+    implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.4'
+    implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
 
 
 
