@@ -475,7 +475,11 @@ class HubManager(
             mapData[it] =
                 jsonSchedule
         }
-        Log.d("wssplaylist", "Convert Map: $mapData")
+//        Log.d("wssplaylist", "Convert Map: $mapData")
+        mapData.forEach{
+            Log.d("wssplaylist", "Convert Map: ${it.key}")
+        }
+
         return mapData
     }
 

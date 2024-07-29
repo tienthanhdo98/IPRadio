@@ -121,7 +121,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             if (isForce) {
                 playLiveStream(mediaItem, timeStamp)
             } else {
-                if (isInRangeTimePlay()) {
+                if (!isInRangeTimePlay()) {
                     playFile(mediaItem, timeStamp)
                 }
             }
