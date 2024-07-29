@@ -612,18 +612,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-            if (command == null || command.isEmpty()) {
-                return
-            }
-            if (message == null || message.isEmpty()) {
-                return
-            }
+//            if (command == null || command.isEmpty()) {
+//                return
+//            }
+//            if (message == null || message.isEmpty()) {
+//                return
+//            }
 
             val responseHub = hubManager.responseHub
 
-            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
+//            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
 
-            if (!isImei) return
+//            if (!isImei) return
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_MONTHLY_WSS -> {
@@ -636,7 +636,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
-                    viewModel.updateMonthlyScenarioWss(message)
+                    if (message != null) {
+                        viewModel.updateMonthlyScenarioWss(message)
+                    }
                     val currentTime = Calendar.getInstance().time.time / 1000
                     ConfigUtil.putString(
                         applicationContext,
@@ -1029,7 +1031,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
             }
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
-                logUtils.logHubCommand(command, responseHub.message ?: "")
+                if (command != null) {
+                    logUtils.logHubCommand(command, responseHub.message ?: "")
+                }
             }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
