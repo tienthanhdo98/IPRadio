@@ -36,7 +36,7 @@ class HubManager(
     private val TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 30
 
-    private val PING_HUB_INTERVAL = 20000L
+    private val PING_HUB_INTERVAL = 60000L
     private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
@@ -89,7 +89,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    private val isMQTT = false
+    private val isMQTT = true
     private var mqttClient: MQTTManager? = null
 
     init {
@@ -112,7 +112,6 @@ class HubManager(
                 "Username" to "provider_tek4tv",
                 "Password" to "733929b7-33e3-44fe-b03f-1e7430ad64d6",
             )
-
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
@@ -121,21 +120,24 @@ class HubManager(
             Log.i("urlbase", url!!)
             val call = authService.getToken(body, url)
             val response = call.execute()
-
             if (response.isSuccessful) {
                 hubToken = response.body()!!.noiDung.token
                 Log.i(TAG, "getHubToken: $hubToken")
             } else {
                 hubToken = null
+                pingCounter ++
             }
         } catch (e: Exception) {
+
             Log.i(TAG, "getHubToken error: ${e.message}")
             Log.i(TAG, "getHubToken error: ${e.printStackTrace()}")
 
             hubToken = null
+            pingCounter ++
+
+
         }
     }
-
 
     fun connectToServer() {
         getTokenJob?.cancel()
@@ -156,11 +158,11 @@ class HubManager(
         }
     }
 
-    override fun onSuccess() {
+    override fun onConnectSuccess() {
         startPingTimer()
     }
 
-    override fun onFailure(message: String?) {
+    override fun onConnectFailure(message: String?) {
         hubToken = null
         closeConnect()
     }
@@ -450,12 +452,9 @@ class HubManager(
 
     private val listDate = mutableListOf<String>()
     private fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>) {
-
         danhSachNgayPhat.forEach {
             listDate.add(unixTimeStampToDateTime(it.ngayPhat))
         }
-
-
     }
 
     private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
@@ -695,12 +694,6 @@ class HubManager(
         }
     }
 
-    @Synchronized
-    private fun notifyHubReconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onReconnectedToHub() }
-        }
-    }
 
     @Synchronized
     private fun notifyHubDisconnected() {

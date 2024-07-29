@@ -50,7 +50,7 @@ class MQTTManager( private var hubToken : String?, private val connectEventListe
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d(TAG, "Connection failure ${exception!!.message}")
 //                    hubToken = null
-                    connectEventListener.onFailure(exception.message)
+                    connectEventListener.onConnectFailure(exception.message)
                 }
             })
         } catch (e: MqttException) {
@@ -86,13 +86,13 @@ class MQTTManager( private var hubToken : String?, private val connectEventListe
             mqttClient.subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Subscribed to $clientID")
-                    connectEventListener.onSuccess()
+                    connectEventListener.onConnectSuccess()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d(TAG, "Failed to subscribe $clientID")
                     if (exception != null) {
-                        connectEventListener.onFailure(exception.message)
+                        connectEventListener.onConnectFailure(exception.message)
                     }
                 }
             })
