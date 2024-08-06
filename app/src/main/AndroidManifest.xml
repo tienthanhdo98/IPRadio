@@ -30,7 +30,7 @@
         android:name="android.permission.PACKAGE_USAGE_STATS"
         tools:ignore="ProtectedPermissions"/>
     <application
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:sharedUserId="android.uid.system"
         android:largeHeap="true"
         android:icon="@mipmap/ic_launcher"

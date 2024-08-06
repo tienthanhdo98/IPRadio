@@ -16,10 +16,7 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -213,49 +210,42 @@ class PlayersManager(
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
+
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     if (mediaItem.body!!.contains("m3u8")) {
-                        playLiveStream(mediaItem,false,timeStamp)
+                        playLiveStream(mediaItem, false, timeStamp)
                     } else {
                         // play live o trong lich
-                        if(mediaItem.contentType?.value == "5")
-                        {
+                        if (mediaItem.contentType?.value == "5") {
 
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
-                        }
-                        else {
-//                            if (mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://")) {
-//                                vlcPlayer.playMedia(mediaItem, true, timeStamp)
-//                            }
-//                            if (mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains(
-//                                    "https://"
-//                                )
-//                            ) {
-//                                vlcPlayer.playMedia(mediaItem, false, timeStamp)
-//                            }
+                        } else {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
                         currentPlayer = vlcPlayer
                     }
                 }
                 MediaType.LIVE -> {
-                    playLiveStream(mediaItem,true,timeStamp)
+                    playLiveStream(mediaItem, true, timeStamp)
                 }
                 MediaType.FM -> {
-                    var currentTimeStamp =0
-                    if(timeStamp != -1) currentTimeStamp = timeStamp
+                    var currentTimeStamp = 0
+                    if (timeStamp != -1) currentTimeStamp = timeStamp
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
-                    if(playMode != PLAY_MODE_FORCE){
+                    if (playMode != PLAY_MODE_FORCE) {
                         handlerFMPlayer?.removeCallbacksAndMessages(null)
                         handlerFMPlayer = Handler(Looper.getMainLooper())
-                        handlerFMPlayer?.postDelayed({
-                            Log.e(LOGTAG, "Player FM start")
-                            onMediaEndReached(mediaItem)
-                            Log.e(LOGTAG, "Player FM stop")
-                        }, getDurationInSecond(mediaItem.duration!!).toLong()*1000 - currentTimeStamp*1000)
+                        handlerFMPlayer?.postDelayed(
+                            {
+                                Log.e(LOGTAG, "Player FM start")
+                                onMediaEndReached(mediaItem)
+                                Log.e(LOGTAG, "Player FM stop")
+                            },
+                            getDurationInSecond(mediaItem.duration!!).toLong() * 1000 - currentTimeStamp * 1000
+                        )
                     }
                 }
                 else -> {
@@ -263,6 +253,7 @@ class PlayersManager(
                     playNextMedia()
                 }
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -272,7 +263,7 @@ class PlayersManager(
         val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
-            exoPlayer.playMedia(mediaItem, isForce,resumeLiveTime)
+            exoPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
             exoPlayer
         } else {
             vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)

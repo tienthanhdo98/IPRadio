@@ -25,7 +25,7 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.di.MoshiInst.moshi
-import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
+import app.tek4tv.ipradio.libs.rtsp.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
@@ -125,11 +125,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
-                serialPortController.turnOffPA()
-                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
-            }, 10000)
+//            Handler(Looper.getMainLooper()).postDelayed({
+//                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
+//                serialPortController.turnOffPA()
+//                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
+//            }, 10000)
         }
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
@@ -175,6 +175,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
             logUtils.logMediaEnd(mediaItem)
+            hubManager.currentMediaItem = null
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -185,14 +186,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
-//                if (!serialPortController.isUart1) {
-//                    lifecycleScope.launch {
-////                        delay(11000)
-//                        serialPortController.turnOnPAVod()
-//                    }
-//                } else {
-//                    serialPortController.turnOnPAVod()
-//                }
                 serialPortController.turnOnPAVod()
                 Log.i("onPlayMediaSuccess", "log media: success ${mediaItem?.title}")
             }
@@ -209,10 +202,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     e.printStackTrace()
                 }
             }
-            if (mediaItem != null) {
-                hubManager.sendLogMediaSuccess(mediaItem, paState)
-            }
-
         }
     }
 
@@ -319,7 +308,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     } else {
                         stopStream()
                     }
-                    delay(5000)
+                    delay(1000)
                 }
             }
         }
@@ -327,44 +316,57 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         lifecycleScope.launch(Dispatchers.IO) {
             while (true) {
                 serialPortController.updateStatus()
+
                 delay(5000)
             }
         }
 //        playerManager.resumeMedia()
 
-
-
+//        val gain = 2.0
+//        val audioRecord : AudioRecord = AudioRecord()
+//        val data: ByteBuffer =
+//            ByteBuffer.allocateDirect(20).order(ByteOrder.nativeOrder())
+//
+//        val audioInputLengthBytes: Int = audioRecord.read(data, 20)
+//        val shortBuffer: ShortBuffer = data.asShortBuffer()
+//        for (i in 0 until audioInputLengthBytes / 2) { // /2 because we need the length in shorts
+//            var s: Short = shortBuffer.get(i)
+//            val increased = (s * gain).toInt()
+//            s = Math.min(Math.max(increased, Short.MIN_VALUE), Short.MAX_VALUE).toShort()
+//            shortBuffer.put(i, s)
+//        }
 
     }
 
 
+
     private fun getSteamInfo() {
-        urlStream = ConfigUtil.getStringEncrypt(
+        urlStream = ConfigUtil.getString(
             this,
             ConfigUtil.URL_STREAM,
-            ""
+            "rtsp://stream-hanoi.tek4tv.vn:8554/dinhconghanoi3"
         )!!
-        user_name_stream = ConfigUtil.getStringEncrypt(
+        user_name_stream = ConfigUtil.getString(
             this,
             ConfigUtil.USER_NAME_STREAM,
             ""
         )!!
-        password_stream = ConfigUtil.getStringEncrypt(
+        password_stream = ConfigUtil.getString(
             this,
             ConfigUtil.PASSWORD_STREAM,
             ""
         )!!
-        protocol_stream = ConfigUtil.getStringEncrypt(
+        protocol_stream = ConfigUtil.getString(
             this,
             ConfigUtil.PROTOCOL_STREAM,
             "TCP"
         )!!
-        bitrate_stream = ConfigUtil.getStringEncrypt(
+        bitrate_stream = ConfigUtil.getString(
             this,
             ConfigUtil.BITRATE_STREAM,
             "65536"
         )!!
-        samplerate = ConfigUtil.getStringEncrypt(
+        samplerate = ConfigUtil.getString(
             this,
             ConfigUtil.SAMPLERATE_STREAM,
             "44100"
@@ -643,6 +645,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //        hubManager.connectToHub()
         hubManager.connectToServer()
         locationTracker.getLocation(this@MainActivity)
+
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -682,6 +685,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     CoroutineScope(Dispatchers.Main).launch {
                         playerManager.stopAllPlayer()
                     }
+                    hubManager.currentMediaItem = null
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
@@ -716,7 +720,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
+                    Log.d("livelive", "LIVE: ${Thread.currentThread()}")
                     onPlayForce(responseHub)
+
                 }
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
@@ -977,10 +983,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     }
                 }
                 HubCommand.UPDATE_VERSION -> {
-                    if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
                         downloadUpdateApk(responseHub.message!!, this, serialPortController)
-                    }
                 }
 
                 HubCommand.SET_TIME_OVER -> {

@@ -105,23 +105,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
-//        if (checkOldMediaPlaying(mediaItem) && !isForce ) stop()
-//        when (mediaItem.getMediaType()) {
-//            MediaType.FILE -> {
-//                playFile(mediaItem, timeStamp)
-//            }
-//            MediaType.LIVE -> {
-//                playLiveStream(mediaItem)
-//            }
-//            else -> {
-//                Log.e(TAG, "cant play")
-//            }
-//        }
         if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
             if (isForce) {
                 playLiveStream(mediaItem, timeStamp)
             } else {
-                if (!isInRangeTimePlay()) {
+                if (isInRangeTimePlay()) {
                     playFile(mediaItem, timeStamp)
                 }
             }
@@ -138,18 +126,18 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun resume() {
-//      vlcPlayer.play()
+      vlcPlayer.play()
 
-        val stream = Media(
-            mLibVLC,
-            Uri.parse("http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8")
-        )
-        stream.addOption(":network-caching=20")
+//        val stream = Media(
+//            mLibVLC,
+//            Uri.parse("http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8")
+//        )
+//        stream.addOption(":network-caching=20")
+//
+//        stream.addOption(":run-time=600")
+//        currentVlcMedia = stream
 
-        stream.addOption(":run-time=600")
-        currentVlcMedia = stream
-
-        vlcPlayer.play(stream)
+//        vlcPlayer.play(stream)
 //        val handler = Handler(Looper.getMainLooper())
 //        handler.postDelayed(
 //            {
@@ -361,7 +349,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         try {
             val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
-
+            //chi check luong live loi va phat lai 4 lan
             if (isStreamFailed && countReplayLive < 4) {
                 isPlaying = false
                 playerEventListener.onPlayerError(

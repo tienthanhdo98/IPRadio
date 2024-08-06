@@ -2,6 +2,9 @@ package app.tek4tv.ipradio.core.websocket
 
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
@@ -47,18 +50,17 @@ class WssManager(private var hubToken : String?, private val connectEventListene
         connectEventListener.onSendMessageSuccess(message)
     }
 
-    fun connectToWss()
-    {
-        client = OkHttpClient.Builder(
-        ).connectTimeout(60, TimeUnit.SECONDS)
-            .pingInterval(10, TimeUnit.SECONDS)
-            .build()
-        val request =
-            Request.Builder().url("wss://gateway-qltt.tek4tv.vn/ws/ipradio")
-                .addHeader("Authorization", "Bearer $hubToken").build()
-        val listener = EchoWebSocketListener()
+    fun connectToWss() {
+            client = OkHttpClient.Builder(
+            ).connectTimeout(60, TimeUnit.SECONDS)
+                .pingInterval(10, TimeUnit.SECONDS)
+                .build()
+            val request =
+                Request.Builder().url("wss://websocket-staging.thongtinnguon.vn/ws/ipradio")
+                    .addHeader("Authorization", "Bearer $hubToken").build()
+            val listener = EchoWebSocketListener()
 
-        webSocket = client?.newWebSocket(request, listener)
+            webSocket = client?.newWebSocket(request, listener)
 
     }
     fun closeWebsocket() {

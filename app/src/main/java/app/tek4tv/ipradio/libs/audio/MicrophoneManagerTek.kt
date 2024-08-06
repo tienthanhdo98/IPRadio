@@ -183,11 +183,27 @@ open class MicrophoneManagerTek(private val getMicrophoneData: GetMicrophoneData
      */
     protected fun read(): Frame? {
         val size = audioRecord!!.read(pcmBuffer, 0, pcmBuffer.size)
+
+//        return if (size < 0) null else Frame(
+//            if (isMuted) pcmBufferMuted else customAudioEffect.process(
+//                pcmBuffer
+//            ), 0, size
+//        )
         return if (size < 0) null else Frame(
             if (isMuted) pcmBufferMuted else customAudioEffect.process(
-                pcmBuffer
+                adjustGain(pcmBuffer,0.5f)
             ), 0, size
         )
+
+    }
+    fun adjustGain(audioData: ByteArray, gainFactor: Float): ByteArray {
+        for (i in audioData.indices step 2) {
+            val audioSample = (audioData[i + 1].toInt() shl 8) or (audioData[i].toInt() and 0xFF)
+            val newSample = (audioSample * gainFactor).toInt()
+            audioData[i] = (newSample and 0xFF).toByte()
+            audioData[i + 1] = (newSample shr 8).toByte()
+        }
+        return audioData
     }
 
 
@@ -226,4 +242,6 @@ open class MicrophoneManagerTek(private val getMicrophoneData: GetMicrophoneData
             pcmBuffer = ByteArray(maxInputSize)
             pcmBufferMuted = ByteArray(maxInputSize)
         }
+
+
 }

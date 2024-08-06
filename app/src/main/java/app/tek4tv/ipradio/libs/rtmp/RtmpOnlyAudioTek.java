@@ -14,18 +14,18 @@
  * limitations under the License.
  */
 
-package app.tek4tv.ipradio.libs;
+package app.tek4tv.ipradio.libs.rtmp;
 
 import android.media.MediaCodec;
 
 import androidx.annotation.Nullable;
 
+import com.pedro.rtmp.utils.ConnectCheckerRtmp;
 import com.pedro.rtplibrary.base.OnlyAudioBase;
-import com.pedro.rtsp.rtsp.Protocol;
-import com.pedro.rtsp.rtsp.RtspClient;
-import com.pedro.rtsp.utils.ConnectCheckerRtsp;
 
 import java.nio.ByteBuffer;
+
+import app.tek4tv.ipradio.libs.OnlyAudioBaseTek;
 
 /**
  * More documentation see:
@@ -33,127 +33,145 @@ import java.nio.ByteBuffer;
  *
  * Created by pedro on 10/07/18.
  */
-public class RtspOnlyAudioTek extends OnlyAudioBaseTek {
+public class RtmpOnlyAudioTek extends OnlyAudioBaseTek {
 
-  private final RtspClientTek rtspClient;
+  private final RtmpClientTek rtmpClient;
 
-  public RtspOnlyAudioTek(ConnectCheckerRtsp connectCheckerRtsp) {
+  public RtmpOnlyAudioTek(ConnectCheckerRtmp connectChecker) {
     super();
-    rtspClient = new RtspClientTek(connectCheckerRtsp);
-    rtspClient.setOnlyAudio(true);
-  }
-
-  /**
-   * Internet protocol used.
-   *
-   * @param protocol Could be Protocol.TCP or Protocol.UDP.
-   */
-  public void setProtocol(Protocol protocol) {
-    rtspClient.setProtocol(protocol);
+    rtmpClient = new RtmpClientTek(connectChecker);
+    rtmpClient.setOnlyAudio(true);
   }
 
   @Override
   public void resizeCache(int newSize) throws RuntimeException {
-    rtspClient.resizeCache(newSize);
+    rtmpClient.resizeCache(newSize);
   }
 
   @Override
   public int getCacheSize() {
-    return rtspClient.getCacheSize();
+    return rtmpClient.getCacheSize();
   }
 
   @Override
   public long getSentAudioFrames() {
-    return rtspClient.getSentAudioFrames();
+    return rtmpClient.getSentAudioFrames();
   }
 
   @Override
   public long getSentVideoFrames() {
-    return rtspClient.getSentVideoFrames();
+    return rtmpClient.getSentVideoFrames();
   }
 
   @Override
   public long getDroppedAudioFrames() {
-    return rtspClient.getDroppedAudioFrames();
+    return rtmpClient.getDroppedAudioFrames();
   }
 
   @Override
   public long getDroppedVideoFrames() {
-    return rtspClient.getDroppedVideoFrames();
+    return rtmpClient.getDroppedVideoFrames();
   }
 
   @Override
   public void resetSentAudioFrames() {
-    rtspClient.resetSentAudioFrames();
+    rtmpClient.resetSentAudioFrames();
   }
 
   @Override
   public void resetSentVideoFrames() {
-    rtspClient.resetSentVideoFrames();
+    rtmpClient.resetSentVideoFrames();
   }
 
   @Override
   public void resetDroppedAudioFrames() {
-    rtspClient.resetDroppedAudioFrames();
+    rtmpClient.resetDroppedAudioFrames();
   }
 
   @Override
   public void resetDroppedVideoFrames() {
-    rtspClient.resetDroppedVideoFrames();
+    rtmpClient.resetDroppedVideoFrames();
   }
 
   @Override
   public void setAuthorization(String user, String password) {
-    rtspClient.setAuthorization(user, password);
+    rtmpClient.setAuthorization(user, password);
+  }
+
+  /**
+   * Some Livestream hosts use Akamai auth that requires RTMP packets to be sent with increasing
+   * timestamp order regardless of packet type.
+   * Necessary with Servers like Dacast.
+   * More info here:
+   * https://learn.akamai.com/en-us/webhelp/media-services-live/media-services-live-encoder-compatibility-testing-and-qualification-guide-v4.0/GUID-F941C88B-9128-4BF4-A81B-C2E5CFD35BBF.html
+   */
+  public void forceAkamaiTs(boolean enabled) {
+    rtmpClient.forceAkamaiTs(enabled);
+  }
+
+  /**
+   * Must be called before start stream.
+   *
+   * Default value 128
+   * Range value: 1 to 16777215.
+   *
+   * The most common values example: 128, 4096, 65535
+   *
+   * @param chunkSize packet's chunk size send to server
+   */
+  public void setWriteChunkSize(int chunkSize) {
+    if (!isStreaming()) {
+      rtmpClient.setWriteChunkSize(chunkSize);
+    }
   }
 
   @Override
   protected void prepareAudioRtp(boolean isStereo, int sampleRate) {
-    rtspClient.setAudioInfo(sampleRate, isStereo);
+    rtmpClient.setAudioInfo(sampleRate, isStereo);
   }
 
   @Override
   protected void startStreamRtp(String url) {
-    rtspClient.connect(url);
+    rtmpClient.connect(url);
   }
 
   @Override
   protected void stopStreamRtp() {
-    rtspClient.disconnect();
+    rtmpClient.disconnect();
   }
 
   @Override
   public void setReTries(int reTries) {
-    rtspClient.setReTries(reTries);
+    rtmpClient.setReTries(reTries);
   }
 
   @Override
   protected boolean shouldRetry(String reason) {
-    return rtspClient.shouldRetry(reason);
+    return rtmpClient.shouldRetry(reason);
   }
 
   @Override
   public void reConnect(long delay, @Nullable String backupUrl) {
-    rtspClient.reConnect(delay, backupUrl);
+    rtmpClient.reConnect(delay, backupUrl);
   }
 
   @Override
   public boolean hasCongestion() {
-    return rtspClient.hasCongestion();
+    return rtmpClient.hasCongestion();
   }
 
   @Override
   protected void getAacDataRtp(ByteBuffer aacBuffer, MediaCodec.BufferInfo info) {
-    rtspClient.sendAudio(aacBuffer, info);
+    rtmpClient.sendAudio(aacBuffer, info);
   }
 
   @Override
   public void setLogs(boolean enable) {
-    rtspClient.setLogs(enable);
+    rtmpClient.setLogs(enable);
   }
 
   @Override
   public void setCheckServerAlive(boolean enable) {
-    rtspClient.setCheckServerAlive(enable);
+    rtmpClient.setCheckServerAlive(enable);
   }
 }

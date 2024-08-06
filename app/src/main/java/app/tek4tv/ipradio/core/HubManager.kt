@@ -47,6 +47,7 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val deviceImei = Utils.getDeviceId(appContext)
+    // private val deviceImei = "57c0bd73-7aa9-4196-bc78-57464decff42"
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
@@ -56,9 +57,10 @@ class HubManager(
     )
     var jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
 
+
     var pingCounter = 0
 
-    //current response Hub
+
     var responseHub = ResponseHub()
 
     //player info
@@ -89,7 +91,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    private val isMQTT = true
+    private val isMQTT = false
     private var mqttClient: MQTTManager? = null
 
     init {
@@ -107,39 +109,37 @@ class HubManager(
 
     private fun getHubToken() {
         try {
-            //Encrypted json variable name
             val body = mapOf(
-                "Username" to "provider_tek4tv",
-                "Password" to "733929b7-33e3-44fe-b03f-1e7430ad64d6",
+                "Username" to "tek4tv_bacgiang",
+                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
             )
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://gateway-qltt.tek4tv.vn/api/v2/oauth/token"
+                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
             )
             Log.i("urlbase", url!!)
             val call = authService.getToken(body, url)
             val response = call.execute()
             if (response.isSuccessful) {
-                hubToken = response.body()!!.noiDung.token
-                Log.i(TAG, "getHubToken: $hubToken")
+                if ((response.body()?.trangThaiGUI ?: 1) != 1) {
+                    hubToken = response.body()!!.noiDung.token
+                    Log.i(TAG, "getHubToken: $hubToken")
+                }
             } else {
                 hubToken = null
                 pingCounter ++
             }
         } catch (e: Exception) {
-
             Log.i(TAG, "getHubToken error: ${e.message}")
             Log.i(TAG, "getHubToken error: ${e.printStackTrace()}")
-
             hubToken = null
             pingCounter ++
-
-
         }
     }
 
     fun connectToServer() {
+        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
             while (hubToken == null) {
@@ -149,13 +149,18 @@ class HubManager(
             }
         }
         if (hubToken == null) return
+        getTokenJob?.cancel()
+
         if (isMQTT) {
-            mqttClient = MQTTManager(hubToken, this)
+            mqttClient =
+                MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId)
             mqttClient?.connectToMQTT(appContext)
         } else {
-            wssManager = WssManager(hubToken, this)
+            wssManager = WssManager(hubToken, this@HubManager)
             wssManager?.connectToWss()
         }
+        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
+
     }
 
     override fun onConnectSuccess() {
@@ -163,12 +168,14 @@ class HubManager(
     }
 
     override fun onConnectFailure(message: String?) {
-        hubToken = null
-        closeConnect()
+        startPingTimer()
+
+
     }
     override fun onReceiveMessageSuccess(message: String) {
         pingCounter = 0
         convertToHubCommand(message)
+
     }
 
     override fun onSendMessageSuccess(responseMessage: String) {
@@ -180,7 +187,6 @@ class HubManager(
     }
 
     override fun onDisconnectFailure(message: String?) {
-
     }
 
 
@@ -244,12 +250,14 @@ class HubManager(
                 phienBanUngDung = versionName,
             )
         )
-        Log.d(TAG, "sendPingWss: $request")
+        Log.d(TAG, "sendPingWss: ${request.payload}")
+        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
 
     fun convertToHubCommand(jsonMessage: String) {
+        Log.d("livelive", "convertToHubCommand: ${Thread.currentThread()}")
         val wssData = wssAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
@@ -260,7 +268,9 @@ class HubManager(
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    onMessageListener.invoke(hubCommand, jsonMess)
+                    coroutineScope.launch(Dispatchers.Main) {
+                        onMessageListener.invoke(hubCommand, jsonMess)
+                    }
                     sendLogSchedule(HubCommand.DV006, body)
                 }
             }
@@ -309,7 +319,10 @@ class HubManager(
                     )
                 }
                 Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
-                onMessageListener.invoke(hubCommand, jsonMessage)
+                coroutineScope.launch(Dispatchers.Main) {
+                    onMessageListener.invoke(hubCommand, jsonMessage)
+                }
+
             }
             //Hủy lịch
             HubCommand. DV004 ->{
@@ -317,11 +330,13 @@ class HubManager(
                 val body = res!!.payload
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
-                    onMessageListener.invoke(hubCommand, "null")
+                    coroutineScope.launch(Dispatchers.Main) {
+                        onMessageListener.invoke(hubCommand, "null")
+                    }
                     sendLogSchedule(HubCommand.DV007, body)
                 }
             }
-
+            //dieu khien volume, pa
             HubCommand.DV009 -> {
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
@@ -350,6 +365,16 @@ class HubManager(
                             } else {
                                 responseHub = ResponseHub().apply {
                                     message = "1"
+                                }
+                            }
+                        }
+                        //update thiet bi
+                        "4" -> {
+                            hubCommand = HubCommand.UPDATE_VERSION
+                            if(giaTri != "")
+                            {
+                                responseHub = ResponseHub().apply {
+                                    message = giaTri
                                 }
                             }
                         }
@@ -401,7 +426,7 @@ class HubManager(
                 loaiLinhVuc =  mediaItem.fieldType?.value ,
             )
         )
-
+        Log.d(TAG, "sendLogMediaSuccess: dv005")
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
@@ -475,7 +500,7 @@ class HubManager(
             mapData[it] =
                 jsonSchedule
         }
-//        Log.d("wssplaylist", "Convert Map: $mapData")
+
         mapData.forEach{
             Log.d("wssplaylist", "Convert Map: ${it.key}")
         }
