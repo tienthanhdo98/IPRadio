@@ -9,6 +9,7 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import app.tek4tv.ipradio.core.SerialPortController
+import kotlinx.coroutines.*
 import java.io.File
 
 
@@ -45,6 +46,8 @@ import java.io.File
     }
     context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 }*/
+
+
 
 fun downloadUpdateApk(
     url: String,
@@ -89,19 +92,18 @@ fun downloadUpdateApk(
                 val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 val test = proc.waitFor() // Error is here.
                 Log.d("install", test.toString() + "")
+                deleteFileAfterUpdate(file)
                 Thread.sleep(30000)
                 doRestart(controller)
 
             } catch (e: Exception) {
                 Log.d("install", "failed root")
+                deleteFileAfterUpdate(file)
                 e.printStackTrace()
             }
 
 
-
-
         }
-
 
     }
 
@@ -111,5 +113,21 @@ fun downloadUpdateApk(
 
 private fun doRestart(controller: SerialPortController) {
     controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
+}
+@OptIn(DelicateCoroutinesApi::class)
+private fun deleteFileAfterUpdate(file:File)
+{
+    GlobalScope.launch(Dispatchers.IO) {
+        delay(20000)
+        try {
+            if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
+                file.delete()
+            Log.d("install", "Delete file success")
+        }catch (e: Exception)
+        {
+            Log.d("install", "Delete file error ${e.message} ")
+        }
+
+    }
 }
 

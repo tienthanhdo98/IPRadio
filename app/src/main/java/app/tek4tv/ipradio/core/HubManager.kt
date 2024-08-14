@@ -34,8 +34,8 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
     private val TAG = "HubManager"
-    private val CONNECT_COUNTER_LIMIT = 30
 
+    private val CONNECT_COUNTER_LIMIT = 5
     private val PING_HUB_INTERVAL = 60000L
     private val moshi = MoshiInst.moshi
 
@@ -136,10 +136,16 @@ class HubManager(
             hubToken = null
             pingCounter ++
         }
+        Log.i(TAG, "getHubToken ping: ${pingCounter}")
     }
 
     fun connectToServer() {
-        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
+        //reset sau 5 phút khi không lấy được token
+        if (pingCounter >= 60) {
+            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+
+            hubComm.forceRestartApp(countForHardRestart)
+        }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
             while (hubToken == null) {
@@ -159,7 +165,7 @@ class HubManager(
             wssManager = WssManager(hubToken, this@HubManager)
             wssManager?.connectToWss()
         }
-        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
+
 
     }
 
@@ -217,8 +223,8 @@ class HubManager(
         }
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV008, payload = PayloadStatus(
-                dichID = "H02",
-                tenDich = "Bắc Giang",
+                dichID = GlobalProperties.getInst().dichId,
+                tenDich = GlobalProperties.getInst().tenDich,
                 nguonID = GlobalProperties.getInst().destinationId,
                 tenNguon = GlobalProperties.getInst().destinationName,
                 cumLoaID = deviceImei,
