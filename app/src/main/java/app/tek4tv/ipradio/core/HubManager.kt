@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.core.websocket.WssManager
 import app.tek4tv.ipradio.di.MoshiInst
@@ -42,20 +43,19 @@ class HubManager(
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
-
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
+
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val deviceImei = Utils.getDeviceId(appContext)
-    // private val deviceImei = "57c0bd73-7aa9-4196-bc78-57464decff42"
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
-    var typeMediaItem: ParameterizedType = Types.newParameterizedType(
+    private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
         MediaItem::class.java
     )
-    var jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
+    private var jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
 
 
     var pingCounter = 0
@@ -77,9 +77,6 @@ class HubManager(
 
     private var hubToken: String? = null
 
-
-    private var hubUrl = ""
-
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
         moshi.adapter(WssStatusModel::class.java)
     private val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
@@ -91,7 +88,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    private val isMQTT = false
+    val isMQTT = false
     private var mqttClient: MQTTManager? = null
 
     init {
@@ -100,17 +97,14 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-        hubUrl = ConfigUtil.getStringEncrypt(
-            appContext,
-            ConfigUtil.URL_HUB,
-            "wss://gateway-qltt.tek4tv.vn/ws/ipradio"
-        )!!
     }
 
     private fun getHubToken() {
         try {
+
+            val authInfo = Secrets().getgetToken(MyApp.instance!!.packageName).split('-')
             val body = mapOf(
-                "Username" to "tek4tv_bacgiang",
+                "Username" to authInfo[0],
                 "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
             )
             val url = ConfigUtil.getStringEncrypt(
@@ -118,25 +112,23 @@ class HubManager(
                 ConfigUtil.URL_TOKEN,
                 "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
             )
-            Log.i("urlbase", url!!)
-            val call = authService.getToken(body, url)
+            val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
-                    Log.i(TAG, "getHubToken: $hubToken")
                 }
             } else {
+                Log.i(TAG, "getHubToken fail")
                 hubToken = null
                 pingCounter ++
             }
         } catch (e: Exception) {
             Log.i(TAG, "getHubToken error: ${e.message}")
-            Log.i(TAG, "getHubToken error: ${e.printStackTrace()}")
             hubToken = null
             pingCounter ++
         }
-        Log.i(TAG, "getHubToken ping: ${pingCounter}")
+        Log.i(TAG, "getHubToken ping: $pingCounter")
     }
 
     fun connectToServer() {
@@ -256,7 +248,7 @@ class HubManager(
                 phienBanUngDung = versionName,
             )
         )
-        Log.d(TAG, "sendPingWss: ${request.payload}")
+        Log.d(TAG, "sendPing: ${request.payload}")
         Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
         sendMessage(wssStatusAdapter.toJson(request))
     }
@@ -293,7 +285,7 @@ class HubManager(
                     name = mediaItemMoshiAdapter.toJson(
                         MediaItem(
                             projectID = body.banTinID!!,
-                            mediaID = body.banTinID.toInt(),
+                            mediaID = body.banTinID,
                             id = 0,
                             sourceID = body.nguonID,
                             sourceName = body.tenNguon,
@@ -551,7 +543,7 @@ class HubManager(
                 )
                 val obj = MediaItem(
                     id = count,
-                    mediaID = count,
+                    mediaID = count.toString(),
                     projectID = item.danhSachBanTin.banTinID,
                     sourceID = payload.nguonID,
                     sourceName = payload.tenNguon,
@@ -617,7 +609,7 @@ class HubManager(
             Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
             val tObjStart = MediaItem(
                 id = firstId,
-                mediaID = firstId,
+                mediaID = firstId.toString(),
                 projectID = firstId.toString(),
                 title = "Khung ${listItem.first().start}",
                 body = "start",
@@ -630,7 +622,7 @@ class HubManager(
             val lastId: Int = listItem.last().id?.plus(1) ?: 0
             val tObEnd = MediaItem(
                 id = lastId,
-                mediaID = lastId,
+                mediaID = lastId.toString(),
                 projectID = lastId.toString(),
                 title = "End Khung ${listItem.first().start}",
                 body = "end",
@@ -661,12 +653,12 @@ class HubManager(
                 val list : MutableList<MediaItem> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
                 Log.d(
                     "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${list}"
+                    "convertToTimeFrame: Nhiều khung $list"
                 )
                 val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
                 val tObjStart = MediaItem(
                     id = firstId,
-                    mediaID = firstId,
+                    mediaID = firstId.toString(),
                     projectID = firstId.toString(),
                     title = "Khung ${listItem[it.keys.first()].start}",
                     body = "start",
@@ -679,7 +671,7 @@ class HubManager(
                 val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
                 val tObEnd = MediaItem(
                     id = lastId,
-                    mediaID = lastId,
+                    mediaID = lastId.toString(),
                     projectID = lastId.toString(),
                     title = "End Khung ${listItem[it.values.first()].start}",
                     body = "end",

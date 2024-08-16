@@ -58,7 +58,7 @@ data class ForceMedia(
             startTime = mediaItem!!.startTime,
             createDate = mediaItem!!.createDate,
             id = mediaItem!!.id,
-            projectID = mediaItem!!.mediaID.toString(),
+            projectID = mediaItem!!.mediaID,
             fieldType = mediaItem!!.fieldType
         ).also { it.level = level }
     }

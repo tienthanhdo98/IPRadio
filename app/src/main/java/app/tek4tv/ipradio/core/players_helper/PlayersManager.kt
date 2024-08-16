@@ -383,9 +383,14 @@ class PlayersManager(
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
 
-                    if (currentForceMedia != null && currentForceMedia.level < level) return
+                    if (currentForceMedia != null && currentForceMedia.level < level) {
+                        Log.d("alarmx", " ko đủ level ${currentForceMedia.level} - $level")
+                        return}
+                    Log.d("alarmx", " đủ level ${currentForceMedia!!.level} - $level")
                 }
+
             }
+
 
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {

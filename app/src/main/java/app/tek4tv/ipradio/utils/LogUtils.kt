@@ -213,7 +213,7 @@ class LogUtils private constructor() {
             sourceName = sourceName,
             destinationId = destinationId,
             destinationName = destinationName,
-            mediaID = mediaItem.mediaID.toString(),
+            mediaID = mediaItem.mediaID,
             body = mediaItem.pathBackup,
             endTime = currentTime.time,
             status = "1",

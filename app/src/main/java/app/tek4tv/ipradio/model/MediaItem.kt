@@ -24,7 +24,7 @@ data class MediaItem(
     val fixTime: String? = null,
 
     @Json(name = "MediaID")
-    var mediaID: Any? = null,
+    var mediaID: String? = null,
 
     @Json(name = "SourceID")
     val sourceID: String? = null,

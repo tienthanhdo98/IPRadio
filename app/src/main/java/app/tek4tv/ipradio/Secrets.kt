@@ -24,4 +24,6 @@ class Secrets {
 
     //token binh dinh
     external fun getqmHINDtk(packageName: String): String
+
+    external fun getgetToken(packageName: String): String
 }

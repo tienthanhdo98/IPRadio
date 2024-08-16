@@ -650,7 +650,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     }
 
     private fun initHubConnect() {
-//        hubManager.connectToHub()
         hubManager.connectToServer()
         locationTracker.getLocation(this@MainActivity)
 
@@ -686,6 +685,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
                         currentTime.toString()
                     )
+                    
                     playerManager.stopForceMedia()
                 }
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {

@@ -361,7 +361,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 Handler(Looper.getMainLooper()).postDelayed({
                     countReplayLive++;
                     Log.d(TAG, "onLiveErrorVlc: Chay lai live")
-                    playMedia(currentMedia!!, true)
+                    if(currentMedia != null) {
+                        playMedia(currentMedia!!, true)
+                    }
                 }, 5000)
 
             } else {
