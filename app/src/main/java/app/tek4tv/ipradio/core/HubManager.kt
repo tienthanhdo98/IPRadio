@@ -398,8 +398,8 @@ class HubManager(
             id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
                 nguonID = GlobalProperties.getInst().destinationId,
                 tenNguon = GlobalProperties.getInst().destinationName,
-                dichID = "H02",
-                tenDich = "Bắc Giang",
+                dichID = GlobalProperties.getInst().dichId,
+                tenDich = GlobalProperties.getInst().tenDich,
                 cumLoaID = deviceImei,
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
@@ -450,8 +450,8 @@ class HubManager(
             id = "", topic = commanDV, payload = WssMediaLogModel(
                 nguonID = GlobalProperties.getInst().destinationId,
                 tenNguon = GlobalProperties.getInst().destinationName,
-                dichID = "H02",
-                tenDich = "Bắc Giang",
+                dichID = GlobalProperties.getInst().dichId,
+                tenDich = GlobalProperties.getInst().tenDich,
                 cumLoaID = deviceImei,
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,

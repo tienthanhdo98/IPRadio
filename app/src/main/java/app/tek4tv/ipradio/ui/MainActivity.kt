@@ -477,7 +477,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     },
     "DieuKhienThietBi": {
         "MaLenh": "4",
-        "ThamSo": "https://quanlytruyenthanh.tek4tv.vn/download/dev/ipradio3.1.1.android4.2.apk"
+        "ThamSo": "https://quanlytruyenthanh.tek4tv.vn/download/dev/ipradio.apk"
     }
 }}
 """

@@ -14,7 +14,7 @@ class MQTTManager(
     private val destinationId: String
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "c2d3d6af-80be-42c4-ae7f-b5f6c2757b0c"
+    var clientID = "d89cebe7-28e7-4d76-8a44-b8d69d1a0908"
     private var publishTopicTinh = "tinh/$clientID"
 
     private var mqttClient: MqttAndroidClient? = null
