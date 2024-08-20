@@ -264,7 +264,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-        if (typeScreen != FULL_SCREEN) {
+        if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
             setContentView(R.layout.activity_main_multiple_view2)
@@ -334,8 +334,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         viewModel.hideSystemUI(this)
-//
-//        initDataByScreen()
+       initDataByScreen()
 
 
     }
