@@ -65,7 +65,6 @@ class MediaRepo @Inject constructor(
                 KEY_MODIFY_TIME_PLAYLIST,
                 monthScenario.first().ppdatedAt
             )
-
             //4.1.6e luu du lieu cua lich thang
             val monthlyScenarioData = scheduleMonthlyAdapter.toJson(fetchResult.body())
             ConfigUtil.putString(
@@ -75,7 +74,7 @@ class MediaRepo @Inject constructor(
             )
 
             //if there are only a single scenario for every day
-            //trường hợp là lịch tháng nhưng chỉ c
+            //trường hợp là lịch tháng nhưng chỉ
 //            val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
 
             //in case of single scenario, continue to use old scenario

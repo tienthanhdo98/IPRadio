@@ -518,6 +518,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
             }
+
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                     lifecycleScope.launch {
                         serialPortController.turnOffPA()

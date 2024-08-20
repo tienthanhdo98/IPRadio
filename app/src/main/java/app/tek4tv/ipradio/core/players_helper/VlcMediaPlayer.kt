@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -372,7 +371,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 )
                 //playMedia(currentMedia!!)
                 Handler(Looper.getMainLooper()).postDelayed({
-                    countReplayLive++;
+                    countReplayLive++
                     Log.d(TAG, "onLiveErrorVlc: Chay lai live")
                     playMedia(currentMedia!!, true)
                 }, 5000)
