@@ -79,7 +79,6 @@ class HubManager(
 
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
         moshi.adapter(WssStatusModel::class.java)
-    private val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
     private val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
@@ -254,14 +253,12 @@ class HubManager(
     }
 
 
-    fun convertToHubCommand(jsonMessage: String) {
-        Log.d("livelive", "convertToHubCommand: ${Thread.currentThread()}")
-        val wssData = wssAdapter.fromJson(jsonMessage)
+    private fun convertToHubCommand(jsonMessage: String) {
+        val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
             HubCommand.DV002 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
@@ -273,8 +270,7 @@ class HubManager(
                 }
             }
             HubCommand. DV003 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 hubCommand = HubCommand.LIVE
                 responseHub = ResponseHub().apply {
                     type = HubCommand.LIVE
@@ -324,8 +320,7 @@ class HubManager(
             }
             //Hủy lịch
             HubCommand. DV004 ->{
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
                     coroutineScope.launch(Dispatchers.Main) {
@@ -336,8 +331,7 @@ class HubManager(
             }
             //dieu khien volume, pa
             HubCommand.DV009 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
 
                     val maLenh = body.dieuKhienThietBI?.maLenh
@@ -365,6 +359,17 @@ class HubManager(
                                     message = "1"
                                 }
                             }
+                        }
+                        /*  Dừng phát nội dung
+                        1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
+                        2 - Dừng phát
+                        3 - Phát tiếp nội dụng đã dừng*/
+                        "2" -> {
+
+                        }
+                        //Reset - Tham số (số giây khởi động lại)
+                        "3" -> {
+                            hubCommand =    HubCommand.RESTART
                         }
                         //update thiet bi
                         "4" -> {

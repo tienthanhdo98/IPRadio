@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import com.squareup.moshi.Json
 
 data class WssMediaLogModel(
     val nguonID: String? = "",
