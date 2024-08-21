@@ -2,20 +2,15 @@ package app.tek4tv.ipradio.core
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-@JsonClass(generateAdapter = true)
-data class ReceivedMessageModel (
-    val id: String?,
-    val topic: String?
-)
 
 @JsonClass(generateAdapter = true)
-data class WssLiveModel (
+data class ReceivedMessageModel(
     val id: String?,
     val topic: String?,
-    val payload: PayloadLive?
+    val payload: ReceivedPayload?
 )
 
-data class PayloadLive (
+data class ReceivedPayload(
     @Json(name = "DichID")
     val dichID: String?,
 
@@ -123,13 +118,6 @@ data class TacGia (
     val email: String?
 )
 
-//data class ThongTinChiTietBanTin(
-//    @Json(name = "Ten")
-//    val ten: String,
-//
-//    @Json(name = "GiaTri")
-//    val giaTri: String
-//)
 data class ThongTinChiTietBanTin(
     @Json(name = "ThoiGianBatDau")
     val thoiGianBatDau: Long,
@@ -200,16 +188,16 @@ data class DanhSachBanTin(
     val tenDiaBanTAO: String?,
 
     @Json(name = "ThongTinChiTietBanTin")
-    var thongTinChiTietBanTin: List<ThongTinChiTietBanTin>,
+    var thongTinChiTietBanTin: List<ThongTinChiTietBanTin>?,
 
     @Json(name = "NguonTin")
-    val nguonTin: String,
+    val nguonTin: String?,
 
     @Json(name = "TiepAm")
-    val tiepAm: Long,
+    val tiepAm: Long?,
 
     @Json(name = "NguonTiepAm")
-    val nguonTiepAm: String,
+    val nguonTiepAm: String?,
 
     @Json(name = "DanhSachNgayPhat")
     val danhSachNgayPhat: List<DanhSachNgayPhat>

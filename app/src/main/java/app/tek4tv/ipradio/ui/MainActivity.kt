@@ -46,13 +46,10 @@ import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.microsoft.signalr.HubConnectionBuilder
-import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import io.reactivex.Single
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -347,9 +344,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
-            val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-            val imei = Utils.getDeviceId(this)
-            tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+            val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+            tvMacAddress.text = info
         } else {
             initDefaultTopAndLeftArea()
         }

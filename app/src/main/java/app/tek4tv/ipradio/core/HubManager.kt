@@ -75,12 +75,9 @@ class HubManager(
     private var hubToken: String? = null
 
 
-    private var hubUrl = ""
-
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
         moshi.adapter(WssStatusModel::class.java)
     private val receivedMessageAdapter: JsonAdapter<ReceivedMessageModel> = moshi.adapter(ReceivedMessageModel::class.java)
-    private val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
@@ -88,7 +85,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    private val isMQTT = false
+    private val isMQTT = true
     private var mqttClient: MQTTManager? = null
 
     init {
@@ -97,16 +94,10 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
-        hubUrl = ConfigUtil.getStringEncrypt(
-            appContext,
-            ConfigUtil.URL_HUB,
-            "wss://gateway-qltt.tek4tv.vn/ws/ipradio"
-        )!!
     }
 
     private fun getHubToken() {
         try {
-            //Encrypted json variable name
             val body = mapOf(
                 "Username" to "provider_tek4tv",
                 "Password" to "733929b7-33e3-44fe-b03f-1e7430ad64d6",
@@ -147,7 +138,7 @@ class HubManager(
         }
         if (hubToken == null) return
         if (isMQTT) {
-            mqttClient = MQTTManager(hubToken, this)
+            mqttClient = MQTTManager(hubToken, this, destinationId = GlobalProperties.getInst().destinationId)
             mqttClient?.connectToMQTT(appContext)
         } else {
             wssManager = WssManager(hubToken, this)
@@ -245,25 +236,24 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-
     private fun convertToHubCommand(jsonMessage: String) {
-        val receivedMessage = receivedMessageAdapter.fromJson(jsonMessage)
+        val wssData = receivedMessageAdapter.fromJson(jsonMessage)
         var hubCommand = ""
-        when (receivedMessage!!.topic) {
+        when (wssData!!.topic) {
             HubCommand.DV002 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    onMessageListener.invoke(hubCommand, jsonMess)
+                    coroutineScope.launch(Dispatchers.Main) {
+                        onMessageListener.invoke(hubCommand, jsonMess)
+                    }
                     sendLogSchedule(HubCommand.DV006, body)
                 }
             }
             HubCommand. DV003 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 hubCommand = HubCommand.LIVE
                 responseHub = ResponseHub().apply {
                     type = HubCommand.LIVE
@@ -274,7 +264,7 @@ class HubManager(
                     name = mediaItemMoshiAdapter.toJson(
                         MediaItem(
                             projectID = body.banTinID!!,
-                            mediaID = body.banTinID.toInt(),
+                            mediaID = body.banTinID,
                             id = 0,
                             sourceID = body.nguonID,
                             sourceName = body.tenNguon,
@@ -306,22 +296,25 @@ class HubManager(
                     )
                 }
                 Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
-                onMessageListener.invoke(hubCommand, jsonMessage)
+                coroutineScope.launch(Dispatchers.Main) {
+                    onMessageListener.invoke(hubCommand, jsonMessage)
+                }
+
             }
             //Hủy lịch
             HubCommand. DV004 ->{
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
-                    onMessageListener.invoke(hubCommand, "null")
+                    coroutineScope.launch(Dispatchers.Main) {
+                        onMessageListener.invoke(hubCommand, "null")
+                    }
                     sendLogSchedule(HubCommand.DV007, body)
                 }
             }
-
+            //dieu khien volume, pa
             HubCommand.DV009 -> {
-                val res = wssLiveAdapter.fromJson(jsonMessage)
-                val body = res!!.payload
+                val body = wssData.payload
                 if (body != null) {
 
                     val maLenh = body.dieuKhienThietBI?.maLenh
@@ -350,6 +343,26 @@ class HubManager(
                                 }
                             }
                         }
+                        /*  Dừng phát nội dung
+                        1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
+                        2 - Dừng phát
+                        3 - Phát tiếp nội dụng đã dừng*/
+                        "2" -> {
+
+                        }
+                        //Reset - Tham số (số giây khởi động lại)
+                        "3" -> {
+                            hubCommand = HubCommand.RESTART
+                        }
+                        //update thiet bi
+                        "4" -> {
+                            hubCommand = HubCommand.UPDATE_VERSION
+                            if (giaTri != "") {
+                                responseHub = ResponseHub().apply {
+                                    message = giaTri
+                                }
+                            }
+                        }
 
                     }
                     onMessageListener.invoke(hubCommand, jsonMessage)
@@ -359,6 +372,7 @@ class HubManager(
 
         }
     }
+
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
 
@@ -402,7 +416,7 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    private fun sendLogSchedule(commanDV: String, body: PayloadLive) {
+    private fun sendLogSchedule(commanDV: String, body: ReceivedPayload) {
         val danhSachDiaBanNhan = listOf(
             DanhSachDiaBanNhan(
                 dichID = GlobalProperties.getInst().destinationId,
@@ -457,7 +471,7 @@ class HubManager(
 
     }
 
-    private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
+    private fun convertWssMessToPlaylist(payload: ReceivedPayload): Map<String, String> {
         val danhSachBanTin = payload.danhSachBanTin
         val mapData: MutableMap<String, String> = mutableMapOf()
         if (danhSachBanTin?.isNotEmpty() == true) {
@@ -480,7 +494,7 @@ class HubManager(
     }
 
 
-    private fun findScheduleByDate(payload: PayloadLive, ngayPhat: String): String {
+    private fun findScheduleByDate(payload: ReceivedPayload, ngayPhat: String): String {
         val danhSachBanTin = payload.danhSachBanTin
         val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()
         val listItemMedia = mutableListOf<itemMedia>()
@@ -516,7 +530,7 @@ class HubManager(
                 )
                 val obj = MediaItem(
                     id = count,
-                    mediaID = count,
+                    mediaID = count.toString(),
                     projectID = item.danhSachBanTin.banTinID,
                     sourceID = payload.nguonID,
                     sourceName = payload.tenNguon,
@@ -582,7 +596,7 @@ class HubManager(
             Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
             val tObjStart = MediaItem(
                 id = firstId,
-                mediaID = firstId,
+                mediaID = firstId.toString(),
                 projectID = firstId.toString(),
                 title = "Khung ${listItem.first().start}",
                 body = "start",
@@ -595,7 +609,7 @@ class HubManager(
             val lastId: Int = listItem.last().id?.plus(1) ?: 0
             val tObEnd = MediaItem(
                 id = lastId,
-                mediaID = lastId,
+                mediaID = lastId.toString(),
                 projectID = lastId.toString(),
                 title = "End Khung ${listItem.first().start}",
                 body = "end",
@@ -631,7 +645,7 @@ class HubManager(
                 val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
                 val tObjStart = MediaItem(
                     id = firstId,
-                    mediaID = firstId,
+                    mediaID = firstId.toString(),
                     projectID = firstId.toString(),
                     title = "Khung ${listItem[it.keys.first()].start}",
                     body = "start",
@@ -644,7 +658,7 @@ class HubManager(
                 val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
                 val tObEnd = MediaItem(
                     id = lastId,
-                    mediaID = lastId,
+                    mediaID = lastId.toString(),
                     projectID = lastId.toString(),
                     title = "End Khung ${listItem[it.values.first()].start}",
                     body = "end",
