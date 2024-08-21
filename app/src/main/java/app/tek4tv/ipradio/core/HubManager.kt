@@ -79,7 +79,7 @@ class HubManager(
 
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
         moshi.adapter(WssStatusModel::class.java)
-    private val wssAdapter: JsonAdapter<WssModel> = moshi.adapter(WssModel::class.java)
+    private val receivedMessageAdapter: JsonAdapter<ReceivedMessageModel> = moshi.adapter(ReceivedMessageModel::class.java)
     private val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
@@ -88,7 +88,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    private val isMQTT = true
+    private val isMQTT = false
     private var mqttClient: MQTTManager? = null
 
     init {
@@ -246,10 +246,10 @@ class HubManager(
     }
 
 
-    fun convertToHubCommand(jsonMessage: String) {
-        val wssData = wssAdapter.fromJson(jsonMessage)
+    private fun convertToHubCommand(jsonMessage: String) {
+        val receivedMessage = receivedMessageAdapter.fromJson(jsonMessage)
         var hubCommand = ""
-        when (wssData!!.topic) {
+        when (receivedMessage!!.topic) {
             HubCommand.DV002 -> {
                 val res = wssLiveAdapter.fromJson(jsonMessage)
                 val body = res!!.payload
@@ -525,14 +525,14 @@ class HubManager(
                     title = item.danhSachBanTin.tieuDe,
                     description = item.danhSachBanTin.noiDungTomTat,
                     duration = item.danhSachBanTin.thoiLuong,
-                    contentType = Utils.convertContentType(item.danhSachBanTin.loaiBanTin),
-                    fieldType = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc),
-                    priority = Utils.convertPriority(item.danhSachBanTin.mucDoUuTien),
-                    category = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc),
-                    author = convertAuthor(item.danhSachBanTin.tacGia),
+                    contentType = item.danhSachBanTin.loaiBanTin?.let { Utils.convertContentType(it) },
+                    fieldType = item.danhSachBanTin.loaiLinhVuc?.let { Utils.convertFiend(it) },
+                    priority = item.danhSachBanTin.mucDoUuTien?.let { Utils.convertPriority(it) },
+                    category = item.danhSachBanTin.loaiLinhVuc?.let { Utils.convertFiend(it) },
+                    author = item.danhSachBanTin.tacGia?.let { convertAuthor(it) },
                     body = item.danhSachBanTin.noiDung,
                     sourceReference = item.danhSachBanTin.tenDiaBanTAO,
-                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin.toInt()),
+                    type = item.danhSachBanTin.loaiBanTin?.let { getTypeOfMediaItem(it.toInt()) },
                     createDate = item.danhSachBanTin.thoiGianSANXuat.toString(),
                     metadata = mutableListOf(),
                     tag = mutableListOf(),

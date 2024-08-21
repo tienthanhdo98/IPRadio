@@ -1,6 +1,6 @@
 package app.tek4tv.ipradio.model
 
-import com.squareup.moshi.Json
+import app.tek4tv.ipradio.core.*
 
 data class WssMediaLogModel(
     val nguonID: String? = "",
@@ -34,4 +34,4 @@ data class WssMediaLogModel(
     var danhSachBanTin:  List<DanhSachBanTin>?,
     var danhSachThietBi:  List<DanhSachThietBi>?,
 
-)
+    )
