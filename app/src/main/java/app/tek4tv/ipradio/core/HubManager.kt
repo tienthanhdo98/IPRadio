@@ -87,8 +87,8 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = false
-    private var mqttClient: MQTTManager? = null
+    val isMQTT = true
+    var mqttClient: MQTTManager? = null
 
     init {
         versionName = try {
@@ -253,7 +253,7 @@ class HubManager(
     }
 
 
-    private fun convertToHubCommand(jsonMessage: String) {
+    fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {

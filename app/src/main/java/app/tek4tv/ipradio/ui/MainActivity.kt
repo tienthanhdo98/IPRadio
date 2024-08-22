@@ -2,13 +2,15 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -211,7 +213,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -423,6 +425,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
                         "0"
                     )!!
+                var deviceInfo = ""
+                if (hubManager.isMQTT && hubManager.mqttClient?.clientID?.isNotEmpty() == true) {
+                    deviceInfo =
+                        "${hubManager.mqttClient!!.clientID},${GlobalProperties.getInst().dichId},${GlobalProperties.getInst().tenDich},${GlobalProperties.getInst().destinationId}.${GlobalProperties.getInst().destinationName}"
+                }
                 val idPlaylist =
                     ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
                 val scheduledList = viewModel.mediaRepo.timeDividers
@@ -441,14 +448,20 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         timeUpdate,
                         getCurrentTime(),
                         strTimeFrame,
-                        strPlaylist
+                        strPlaylist, deviceInfo
                     )
                 } else {
                     logDeviceData =
-                        DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
+                        DataValueModel(
+                            idPlaylist,
+                            timeUpdate,
+                            getCurrentTime(),
+                            strTimeFrame,
+                            deviceInfo
+                        )
                 }
                 logUtils.logDataHub(imei, logDeviceData)
-                delay(300000)
+                delay(10000)
 
             }
         }
@@ -459,30 +472,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.setOnClickListener{
-            val json = """{"id":"","topic":"dv009","payload":{
-    "NguonID": "H02.37.27",
-    "TenNguon": "Xã Dương Hưu",
-    "DanhSachDiaBanNhan": [
-        {
-            "DichID": "H02.37.27",
-            "TenDich": "Xã Dương Hưu"
-        }
-    ],
-    "DanhSachThietBi": {
-        "CumLoaID": [
-            "50:41:1C:51:DA:9C",
-            "6C:21:A2:D1:8B:FA"
-        ]
-    },
-    "DieuKhienThietBi": {
-        "MaLenh": "4",
-        "ThamSo": "https://quanlytruyenthanh.tek4tv.vn/download/dev/ipradio.apk"
-    }
-}}
-"""
-            hubManager.convertToHubCommand(json)
-        }
 
     }
 
@@ -574,13 +563,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -1200,13 +1189,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
     private fun clearDatastore() {
         //limit free data 1 gb

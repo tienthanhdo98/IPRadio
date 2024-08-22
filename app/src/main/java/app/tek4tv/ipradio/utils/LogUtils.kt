@@ -299,6 +299,7 @@ class LogUtils private constructor() {
                     LOG_TAG,
                     "Log hub data ${reportObj}-${a!!.body()}"
                 )
+
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")
                 e.printStackTrace()

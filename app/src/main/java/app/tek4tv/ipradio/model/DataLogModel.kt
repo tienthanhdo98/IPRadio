@@ -12,7 +12,8 @@ data class  DataValueModel(
     val updateTime : String,
     val currentDeviceTime : Long,
     val timeFrame : List<String>,
-    val currentPlaylistData : String? = ""
+    val currentPlaylistData : String? = "",
+    val deviceInfo : String? = ""
 )
 
 fun DataValueModel.toJson(): String {
