@@ -444,20 +444,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         strPlaylist = readFile(fileStoragePath)
                     }
                     logDeviceData = DataValueModel(
-                        idPlaylist,
-                        timeUpdate,
-                        getCurrentTime(),
-                        strTimeFrame,
-                        strPlaylist, deviceInfo
+                        idPlaylist = idPlaylist,
+                        updateTime = timeUpdate,
+                        currentDeviceTime = getCurrentTime(),
+                        timeFrame = strTimeFrame,
+                        currentPlaylistData = strPlaylist,
+                        deviceInfo = deviceInfo
                     )
                 } else {
                     logDeviceData =
                         DataValueModel(
-                            idPlaylist,
-                            timeUpdate,
-                            getCurrentTime(),
-                            strTimeFrame,
-                            deviceInfo
+                            idPlaylist = idPlaylist,
+                            updateTime = timeUpdate,
+                            currentDeviceTime = getCurrentTime(),
+                            timeFrame = strTimeFrame,
+                            deviceInfo = deviceInfo
                         )
                 }
                 logUtils.logDataHub(imei, logDeviceData)
