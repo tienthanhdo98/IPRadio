@@ -125,7 +125,7 @@ class GlobalProperties {
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.20.12") ?: "H39.20.12"
         destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị Trấn Bến Lức") ?: "Thị Trấn Bến Lức"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "MQTT-VTC") ?: "MQTT-VTC"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "WS-Ha Noi") ?: "WS-Ha Noi"
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 10.637689f)

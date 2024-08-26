@@ -245,7 +245,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             },
             (getDurationInSecond(mediaItem.duration) * 1000).toLong() - currentTimeStamp * 1000
         )
-
     }
 
     //check xem có đang trong giờ phát luồng live

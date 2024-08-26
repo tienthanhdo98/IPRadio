@@ -37,7 +37,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 60000L
+    private val PING_HUB_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
@@ -47,7 +47,8 @@ class HubManager(
 
     val appContext: Context = MyApp.instance!!.applicationContext
 
-    private val deviceImei = Utils.getDeviceId(appContext)
+     private val deviceImei = Utils.getDeviceId(appContext)
+//    private val deviceImei = "1A:4E:2F:D3:15:12"
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
@@ -87,7 +88,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = true
+    val isMQTT = false
     var mqttClient: MQTTManager? = null
 
     init {
@@ -165,7 +166,7 @@ class HubManager(
     }
 
     override fun onConnectFailure(message: String?) {
-        startPingTimer()
+       startPingTimer()
 
 
     }
@@ -260,13 +261,16 @@ class HubManager(
             HubCommand.DV002 -> {
                 val body = wssData.payload
                 if (body != null) {
+                    Log.d("TestLog", "convertToHubCommand: body not null")
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
+                    Log.d("TestLog", "convertToHubCommand: body ${mapMonthSchedule}")
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                     coroutineScope.launch(Dispatchers.Main) {
                         onMessageListener.invoke(hubCommand, jsonMess)
+                        sendLogSchedule(HubCommand.DV006, body)
                     }
-                    sendLogSchedule(HubCommand.DV006, body)
+
                 }
             }
             HubCommand. DV003 -> {
@@ -483,9 +487,12 @@ class HubManager(
         danhSachNgayPhat.forEach {
             listDate.add(unixTimeStampToDateTime(it.ngayPhat))
         }
+        listDate.sort()
+
     }
 
     private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
+        listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
         val mapData: MutableMap<String, String> = mutableMapOf()
         if (danhSachBanTin?.isNotEmpty() == true) {
@@ -493,8 +500,8 @@ class HubManager(
                 findDate(item.danhSachNgayPhat)
             }
         }
-        listDate.sort()
-        listDate.toSet().forEach {
+
+        listDate.toSet().toMutableList().forEach {
 
             val jsonSchedule = findScheduleByDate(
                 payload,
@@ -506,6 +513,7 @@ class HubManager(
 
         mapData.forEach{
             Log.d("wssplaylist", "Convert Map: ${it.key}")
+            Log.d("wssplaylist", "Convert Map: ${it.value}")
         }
 
         return mapData
