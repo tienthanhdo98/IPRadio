@@ -145,10 +145,10 @@ enum class MediaType {
 }
 data class BroadcastRegion (
     @Json(name = "Id")
-    val id: Int?,
+    val id: String?,
 
     @Json(name = "Value")
-    val value: Int
+    val value: String
 )
 
 data class Author(

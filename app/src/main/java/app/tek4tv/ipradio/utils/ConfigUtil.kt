@@ -23,6 +23,7 @@ object ConfigUtil {
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
     const val CountForHardReset = "KeepAliveInterval"
+    const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
 
 
     fun putString(context: Context, key: String?, value: String?) {

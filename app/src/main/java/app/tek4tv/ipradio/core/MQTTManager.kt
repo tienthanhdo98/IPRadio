@@ -15,7 +15,7 @@ class MQTTManager(
     private val destinationId: String
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "09537da1-16f5-4460-8c6c-9c4546e2c216"
+    var clientID = "5b2a10f5-9144-4e63-825e-7fec113bb3e1"
     private var publishTopicTinh = "tinh/$clientID"
 
     private var mqttClient: MqttAndroidClient? = null
@@ -67,13 +67,13 @@ class MQTTManager(
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
                     getSubscribeTopic(destinationId = destinationId)
-                    connectEventListener.onSuccess()
+                    connectEventListener.onConnectSuccess()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d(TAG, "Connection failure ${exception!!.message}")
 
-                    connectEventListener.onFailure(exception.message)
+                    connectEventListener.onConnectFailure(exception.message)
                 }
             })
         } catch (e: MqttException) {

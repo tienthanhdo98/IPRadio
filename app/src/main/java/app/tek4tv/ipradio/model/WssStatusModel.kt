@@ -23,8 +23,8 @@ data class PayloadStatus (
     @Json(name = "TenDich")
     var tenDich: String,
 
-    @Json(name = "CumLoaID")
-    var cumLoaID: String,
+    @Json(name = "BangDienTuID")
+    var bangDienTuID: String,
 
     @Json(name = "TenThietBi")
     var tenThietBI: String,
@@ -46,6 +46,9 @@ data class PayloadStatus (
 
     @Json(name = "TrangThaiKetNoi")
     var trangThaiKetNoi: String,
+
+    @Json(name = "TrangThai")
+    var trangThai: String,
 
     @Json(name = "ViDo")
     var viDo: Float,
@@ -75,5 +78,8 @@ data class ThongTinThietBI (
     var nhietDo: String,
 
     @Json(name = "DungLuongSuDung")
-    var dungLuongSuDung: String
+    var dungLuongSuDung: String,
+
+    @Json(name = "DuLieuKhac")
+    var duLieuKhac: String
 )

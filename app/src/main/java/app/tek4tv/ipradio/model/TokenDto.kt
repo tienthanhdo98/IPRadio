@@ -7,7 +7,7 @@ data class TokenDto(
     val noiDung: NoiDung,
 
     @Json(name = "TrangThaiGui")
-    val trangThaiGUI: Long,
+    val trangThaiGUI: Int,
 
     @Json(name = "MoTa")
     val moTa: String

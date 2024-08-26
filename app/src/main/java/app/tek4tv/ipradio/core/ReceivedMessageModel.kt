@@ -29,8 +29,8 @@ data class ReceivedPayload(
     @Json(name = "PhanVungManHinh")
     val phanVungManHinh: String?,
 
-    @Json(name = "BanTinID")
-    val banTinID: String?,
+    @Json(name = "BanTinCongCongID")
+    val banTinCongCongID: String?,
 
     @Json(name = "LoaiBanTin")
     val loaiBanTin: String?,
@@ -155,16 +155,16 @@ data class DanhSachBanTin(
     val banTinID: String?,
 
     @Json(name = "LoaiBanTin")
-    val loaiBanTin: String?,
+    val loaiBanTin: String,
 
     @Json(name = "MucDoUuTien")
-    val mucDoUuTien: String?,
+    val mucDoUuTien: String,
 
     @Json(name = "TieuDe")
     val tieuDe: String?,
 
     @Json(name = "LoaiLinhVuc")
-    val loaiLinhVuc: String?,
+    val loaiLinhVuc: String,
 
     @Json(name = "NoiDungTomTat")
     val noiDungTomTat: String?,
@@ -176,7 +176,7 @@ data class DanhSachBanTin(
     val thoiLuong: String?,
 
     @Json(name = "TacGia")
-    val tacGia: TacGia?,
+    val tacGia: TacGia,
 
     @Json(name = "NoiDung")
     val noiDung: String?,

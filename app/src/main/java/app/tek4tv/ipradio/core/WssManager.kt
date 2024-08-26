@@ -17,7 +17,7 @@ class WssManager(private var hubToken : String?, private val connectEventListene
     inner class EchoWebSocketListener : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
             Log.d("WSS2", "onOpen: connnected")
-            connectEventListener.onSuccess()
+            connectEventListener.onConnectSuccess()
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
@@ -38,7 +38,7 @@ class WssManager(private var hubToken : String?, private val connectEventListene
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
             Log.d("WSS2", "onFailure: ${t.message} - ${t.cause}")
-            connectEventListener.onFailure(t.message)
+            connectEventListener.onConnectFailure(t.message)
         }
     }
     fun sendMessage(message : String)

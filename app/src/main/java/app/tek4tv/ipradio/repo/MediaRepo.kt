@@ -9,7 +9,6 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
@@ -25,6 +24,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.io.File
 import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
@@ -60,14 +60,7 @@ class MediaRepo @Inject constructor(
             Log.e(TAG, "updateMonthlyScenario")
 
             val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-            listMonthSchedule?.forEach{
-                Log.e(TAG, "updateMonthlyScenarioWss ${it.key}")
-                val list = jsonListMediaItemAdapter.fromJson(it.value)
-                list?.forEach {
-                    Log.e(TAG, "updateMonthlyScenarioWss ${it.title}")
-                }
-
-            }
+            
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_WSS_DATA,
@@ -105,13 +98,15 @@ class MediaRepo @Inject constructor(
     }
 
     private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
-        val result = listOf<MediaItem>()
+        var result = listOf<MediaItem>()
 
         try {
-            val res = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)
-            if (res?.isNotEmpty() == true) {
-                Log.e(TAG, "Save ${res.size} to local")
-                saveItemsToFile(res)
+            result = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)!!
+
+
+            if (result.isNotEmpty()) {
+                Log.e(TAG, "Save ${result.size} to local")
+                saveItemsToFile(result)
 
             } else {
                 Log.e(TAG, "Lịch rỗng rồi")
@@ -179,64 +174,7 @@ class MediaRepo @Inject constructor(
         return broadcastList
     }
 
-    suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
-        try {
-            val fetchResult = playlistService.getMonthlyPlaylist(url)
 
-            if (!fetchResult.isSuccessful) return
-            val monthScenario = fetchResult.body() ?: return
-
-            //if there are only a single scenario for every day
-            val isSingleScenario = monthScenario.size == 1 && monthScenario[0].date == ""
-
-            //in case of single scenario, continue to use old scenario
-            if (isSingleScenario && !forceNewScenario) {
-                Log.d("updateDailyScenario", "return update")
-                return
-            }
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-
-            val dayScenario = if (isSingleScenario) monthScenario[0]
-            else monthScenario.firstOrNull { it.date == currentDate }
-
-            if (dayScenario != null) {
-                ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-               // layoutType = dayScenario.broadcastRegionDigital.toInt()
-                Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital.toInt()}")
-                updateScenario(dayScenario.sourceUrl)
-            } else {
-                //In case there are no scenario for today, don't play anythings
-                saveItemsToFile(listOf())
-            }
-
-        } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
-        }
-    }
-
-    suspend fun getScenario(needUpdate: Boolean, listUrl: String): List<MediaItem> {
-        scheduledList.clear()
-        unscheduledList.clear()
-        scheduledMediaItems.clear()
-
-        val res = if (needUpdate) {
-            updateScenario(listUrl)
-        } else {
-            val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-                Log.d("readplaylist", "local ")
-                readItemsFromFile()
-            } else listOf()
-            result
-
-        }
-        broadcastList.clear()
-
-        broadcastList.addAll(res)
-
-        filterMedia(broadcastList)
-
-        return broadcastList
-    }
 
 
     private fun filterMedia(mediaList: List<MediaItem>) {
@@ -276,39 +214,6 @@ class MediaRepo @Inject constructor(
     )
     val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
 
-//    val mediaJsonAdapter = MoshiInst.moshi.adapter<List<MediaItem>>( List::class.java, MediaItem::class.java)
-    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
-
-        try {
-            val res = playlistService.getPlaylist(listUrl)
-            if (res.isSuccessful) {
-                val resBody = res.body()
-                if (resBody != null) {
-
-//                    result =  resBody
-                    result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
-
-                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA  && it.body != null && it.body != "start" && it.body != "end"} as MutableList<MediaItem>
-
-                    val srt = mediaJsonAdapter.toJson(leftScheduledList)
-                    ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
-
-//                    var i = 1
-//                    result.onEach{ mediaItem ->
-//                        mediaItem.mediaID = i++
-//                    }
-                    saveItemsToFile(result)
-                }
-            } else {
-                Log.e("yee", "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e("yee", e.toString())
-        }
-
-        return result
-    }
 
     fun startDownloadMedia() {
         if (broadcastList.isNullOrEmpty()) return
@@ -318,15 +223,35 @@ class MediaRepo @Inject constructor(
         }
     }
 
+    private fun getConfigExtension() : String?
+    {
+        return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
+    }
+
     fun downloadAMediaItem(it: MediaItem) {
-        Log.i("download", "downloadAMediaItem: ${it.getMediaType()}")
-        if (it.getMediaType() != MediaType.FILE) return
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4
+        if (it.body == "start" || it.body == "end") return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
+
+        //xác định có là file hay không, lấy đuôi file
+        val extMedia = File(it.body).extension
+
+        if(extMedia.isEmpty()) return
+        val isFile = getConfigExtension()!!.contains(extMedia)
+
+        if (!isFile) return
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
-        Log.i("download", "downloadAMediaItem: ${url}")
+
         val fileName = getFileNameFromUrl(url!!)
-        Log.i("download", "downloadAMediaItem: ${fileName}")
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
@@ -335,7 +260,6 @@ class MediaRepo @Inject constructor(
                     saveItemsToFile(broadcastList)
                 }
             }
-
             return
         }
 
@@ -358,9 +282,10 @@ class MediaRepo @Inject constructor(
                     Log.d("downloadcomplete", it.body!!)
                 }
 
-                override fun onError(error: Error?) {
+                override fun onError(error: com.downloader.Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }

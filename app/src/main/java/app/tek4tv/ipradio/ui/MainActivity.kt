@@ -115,7 +115,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: Int = FULL_SCREEN
+    private var typeScreen: String = FULL_SCREEN
     private lateinit var tvTopArea: TextView
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
@@ -188,12 +188,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
-            val oldTypeScreen = ConfigUtil.getInt(
+            val oldTypeScreen = ConfigUtil.getString(
                             context = baseContext,
                             TYPE_PRE_SCREEN_KEY,
                             FULL_SCREEN
                         )
-            ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
+            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 
             startPlayingMedia()
             if(oldTypeScreen != typeScreen)
@@ -230,7 +230,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
 
-                val displayName = mediaItem?.title ?: ""
+                val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
                 if (mediaItem.getMediaType() != MediaType.FM) {
@@ -262,14 +262,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+      //  Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -609,19 +609,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-//            if (command == null || command.isEmpty()) {
-//                return
-//            }
-//            if (message == null || message.isEmpty()) {
-//                return
-//            }
 
             val responseHub = hubManager.responseHub
 
-//            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
-
-//            if (!isImei) return
-            // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     clearDatastore()
@@ -703,13 +693,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
 
-                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
-                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+//                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0"))
+//                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-                    Handler().postDelayed({
-                        onPlayForce(responseHub)
-                        recreate()
-                    }, 1000)
+//                    Handler().postDelayed({
+//                        onPlayForce(responseHub)
+//                        recreate()
+//                    }, 1000)
+                    onPlayForce(responseHub)
                 }
 
 

@@ -364,7 +364,7 @@ class PlayersManager(
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
                 forceMedia.saveItemToPref(context)
-//            playForceMedia(context, forceMedia, mediaScheduler,false)
+             playForceMedia(forceMedia, mediaScheduler,false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -390,9 +390,9 @@ class PlayersManager(
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-            if(isPlayAtStart) {
+//            if(isPlayAtStart) {
                 playMedia(forceMedia.toMediaItem())
-            }
+//            }
 
         } catch (e: Exception) {
             e.printStackTrace()

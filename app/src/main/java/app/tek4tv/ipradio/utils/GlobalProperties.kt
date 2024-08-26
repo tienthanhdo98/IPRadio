@@ -38,7 +38,8 @@ class GlobalProperties {
     var lng: Float = 0f
     var providerValue: String = "VATC"
 
-
+    var dichId = "H39"
+    var tenDich = "Long An"
 
 
     init {
@@ -59,16 +60,15 @@ class GlobalProperties {
 
         //bac giang
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H02.37.27") ?: "H02.37.27"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Dương Hưu") ?: "Xã Dương Hưu"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Dương Hưu") ?: "TB Xã Dương Hưu"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.20.12") ?: "H39.20.12"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị Trấn Bến Lức") ?: "Thị Trấn Bến Lức"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Digital MQTT") ?: "Digital MQTT"
         logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+        lat = ConfigUtil.getFloat(appContext, LATITUDE, 10.637689f)
+        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 106.45763f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
         providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
 
