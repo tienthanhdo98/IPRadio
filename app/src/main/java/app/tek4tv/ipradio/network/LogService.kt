@@ -15,10 +15,10 @@ interface LogService {
     suspend fun postDeviceLog(@Body dataLogModel: DataLogModel) : Response<Any>
 
     //dung cho thai nguyen, can tho,hanam
-    //     @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
+//    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
-    // binhd dinh, bac giang,binh duong
+    // binhd dinh, bac giang,binh duong,long an
     @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
