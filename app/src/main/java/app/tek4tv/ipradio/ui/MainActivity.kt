@@ -473,11 +473,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 mediaScheduler.scheduleEndLeftArea()
             }
 
-            MediaScheduleReceiver.ACTION_END_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "end media: $mediaIndex")
-                playerManager.endScheduledMediaByIndex(mediaIndex)
-            }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
                 playerManager.stopForceMedia()
@@ -542,15 +537,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
-//                mediaScheduler.scheduleForceMediaAlarm()
+                mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
                 if (forceMedia != null)
-                    playerManager.playForceMedia(
-                        forceMedia,
-                        mediaScheduler,
-                        true
-                    )
+                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
                 return@observe
             }
             //default
@@ -562,7 +552,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             sendLogDataHub()
 
             if (typeScreen == MULTIPLE_AREA) {
-                listLeftMedia = playerManager.currentTextPlaylist
+                listLeftMedia = playerManager.currentTextPlaylist.toMutableList()
                 if (listLeftMedia.isEmpty()) {
                     val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
                         moshi.adapter(type)
@@ -664,7 +654,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
                     val mess = responseHub.message!!
-                    playerManager.stopTimeFrame()
 //                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     hideTopLeftArea(false)
@@ -735,7 +724,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //Tạm dừng nội dung đang phát
                         2 ->{
-                            playerManager.pauseMedia()
+//                            playerManager.pauseMedia()
                         }
                         3 ->{
                             playerManager.resumeMedia()

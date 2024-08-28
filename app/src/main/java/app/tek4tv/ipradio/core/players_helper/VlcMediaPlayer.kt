@@ -19,9 +19,10 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
-class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
+class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener,    private val vlcVideoLayout: VLCVideoLayout) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private var mLibVLC: LibVLC
@@ -98,6 +99,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //        args.add("-vvv")
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
+        vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
+        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
 
     }

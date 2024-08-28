@@ -14,9 +14,16 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
+import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -28,14 +35,16 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    appContext: Context,
+    private val appContext: Context,
+    private val vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
+    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
+
     private var currentPlayingMedia: MediaItem? = null
 
     /**
@@ -68,6 +77,8 @@ class PlayersManager(
     var played = false
 
     private var handlerFMPlayer: Handler? = null
+
+    var currentTextPlaylist = listOf<MediaItem>()
 
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
@@ -151,7 +162,13 @@ class PlayersManager(
 
         playMode = timeFrame
 
-        currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        currentPlaylist =
+            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+                ?: listOf()
+
+        currentTextPlaylist =
+            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == LEFT_AREA }
+                ?: listOf()
 
         if (resumePoint != null) {
             playlistIndex = resumePoint.first

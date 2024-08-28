@@ -1,10 +1,22 @@
 package app.tek4tv.ipradio.utils
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
+import java.time.Instant
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.abs
+
+
+
+//fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
+//    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
+//}
 
 fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", timeZone: TimeZone = TimeZone.getDefault()): String {
     // Convert epoch time to milliseconds
@@ -30,6 +42,54 @@ fun convertTimeStampToHHMMSS(s: Long): String {
 }
 
 
+fun isInRangeTimePlay() : Boolean
+{
+    val currentTime = Calendar.getInstance()
+    //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
+    val rangeNightStart = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 21)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+    }
+    val rangeNightEnd= Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 23)
+        set(Calendar.MINUTE, 58)
+        set(Calendar.SECOND, 0)
+    }
+    // Nếu thời gian nằm trong khoảng từ 00:01 đến 4:00
+    val rangeEveningStart = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 1)
+        set(Calendar.SECOND, 0)
+    }
+    val rangeEveningEnd= Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 4)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+    }
+    if(currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return  false
+    if(currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return  false
+
+    return true
+}
+fun getCurrentTime() : Long
+{
+    return Calendar.getInstance().time.time
+}
+
+fun secToReadable(sec : Long) : String
+{
+    val h = sec / 3600
+    val m = (sec - h * 3600) / 60
+    val s = sec - h * 3600 - m * 60
+
+    val hs = if (h >= 10) "$h" else "0$h"
+    val ms = if (m >= 10) "$m" else "0$m"
+    val ss = if (s >= 10) "$s" else "0$s"
+
+    return if(h > 0)"$hs:$ms:$ss"
+    else "$ms:$ss"
+}
 fun toCalendar(time: String): Calendar {
     return try {
         Calendar.getInstance().apply {
@@ -81,10 +141,6 @@ fun setSystemTime(requireTime: String) {
         Log.e("timesync", e.message ?: "")
         e.printStackTrace()
     }
-}
-fun getCurrentTime() : Long
-{
-    return Calendar.getInstance().time.time
 }
 
 fun checkTime()

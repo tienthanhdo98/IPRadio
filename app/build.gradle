@@ -16,7 +16,7 @@ android {
             keyPassword '123456789'
         }
     }
-    compileSdkVersion 28
+    compileSdkVersion 33
     buildToolsVersion "30.0.3"
 
     defaultConfig {
@@ -111,9 +111,9 @@ dependencies {
 
     implementation 'commons-net:commons-net:3.7.2'
 
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
-    implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
-    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
+    implementation 'com.google.android.exoplayer:exoplayer-hls:2.16.1'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.16.1'
 
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
 
