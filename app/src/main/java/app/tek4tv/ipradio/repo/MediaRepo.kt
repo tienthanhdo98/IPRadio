@@ -45,11 +45,8 @@ class MediaRepo @Inject constructor(
 
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
 
-    var leftScheduledList = mutableListOf<MediaItem>()
-    //top scheduledList
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
-    var unscheduledList = mutableListOf<MediaItem>()
-    var scheduledMediaItems = mutableListOf<MediaItem>()
+
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -120,8 +117,6 @@ class MediaRepo @Inject constructor(
 
     fun getScenarioWss(): List<MediaItem> {
         scheduledList.clear()
-        unscheduledList.clear()
-        scheduledMediaItems.clear()
         timeDividers.clear()
 
         var res = listOf<MediaItem>()
@@ -198,21 +193,16 @@ class MediaRepo @Inject constructor(
                 scheduledIndex.addAll((startIndex..endIndex))
             }
         }
+        Log.d(TAG, "filterMedia: $scheduledList")
+        Log.d(TAG, "filterMedia: $timeDividers")
 
-        mediaList.indices.filter { !scheduledIndex.contains(it) }.forEach {
-            unscheduledList.add(mediaList[it])
-        }
 
-        scheduledMediaItems.addAll(mediaList.filter {
-            it.body != "start" && it.body != "end" && it.fixTime!!.isNotEmpty() && it.fixTime != "00:00:00"
-        })
     }
 
     val type: Type = Types.newParameterizedType(
         List::class.java,
         MediaItem::class.java
     )
-    val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
 
 
     fun startDownloadMedia() {

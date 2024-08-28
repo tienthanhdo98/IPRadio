@@ -27,9 +27,9 @@ class Utils {
         const val GET_RECORD = "GET_RECORD"
         const val FULL_SCREEN = "0"
         const val MULTIPLE_AREA = "1"
-        const val TOP_AREA = 1
-        const val LEFT_AREA = 2
-        const val RIGHT_AREA = 3
+        const val TOP_AREA = "1"
+        const val LEFT_AREA = "2"
+        const val RIGHT_AREA = "3"
 
 
         @SuppressLint("HardwareIds")

@@ -34,6 +34,7 @@ android {
                 cppFlags ""
             }
         }
+
     }
 
     buildTypes {

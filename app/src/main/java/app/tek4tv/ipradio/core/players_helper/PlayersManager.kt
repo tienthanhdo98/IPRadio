@@ -1,6 +1,8 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
@@ -14,14 +16,9 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
+import kotlinx.coroutines.*
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.log
 
 
 /**
@@ -31,13 +28,14 @@ import kotlin.math.log
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    private val appContext: Context,
-    private val vlcVideoLayout: VLCVideoLayout,
+    appContext: Context,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener, HubEventObserver {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
+    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
+    private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
+    private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaItem? = null
 
     /**
@@ -50,12 +48,12 @@ class PlayersManager(
      * 0 for init
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    private var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_INIT//"0"
 
     /**
      * List of media for a timeframe
      * **/
-    private var currentPlaylist = listOf<MediaItem>()
+
 
     var playlistIndex = 0
         private set
@@ -65,11 +63,11 @@ class PlayersManager(
     /**
      * Determine if we will not play any media in >= 15s to go
      * **/
-    var isTimeOver = false
+    private var isTimeOver = false
 
     var played = false
 
-
+    private var handlerFMPlayer: Handler? = null
 
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
@@ -86,19 +84,24 @@ class PlayersManager(
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
-        playerManagerListener?.onMediaEndReach(mediaItem!!)
         onMediaStopPlaying()
-//        stopAllPlayer()
         playNextMedia()
     }
 
+    override fun onMediaForceEndReached(mediaItem: MediaItem?) {
+        stopForceMedia()
+    }
 
     override fun onLostHubConnection() {
         vlcPlayer.disconnectedHub = true
+        exoPlayer.disconnectedHub = true
+        currentPlayer?.onLostHubConnection()
     }
 
     override fun onReconnectedToHub() {
         vlcPlayer.disconnectedHub = false
+        exoPlayer.disconnectedHub = false
+        currentPlayer?.onHubReconnected()
     }
 
     private fun onMediaStopPlaying() {
@@ -107,9 +110,9 @@ class PlayersManager(
             val duration = Calendar.getInstance().timeInMillis - mediaStartTime
             playerManagerListener?.onMediaStopPlaying(currentPlayingMedia!!, duration)
         }
-
         played = false
     }
+
 
     /**
      * Tìm khung thơi gian hiện tại cần phát
@@ -118,30 +121,34 @@ class PlayersManager(
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
+        val now = Calendar.getInstance().timeInMillis
+        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.keys}")
+        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
+            Log.d(LOGTAG, "onTimeOver: $period")
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-            val now = Calendar.getInstance().timeInMillis
             if (now in start.timeInMillis..end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
-                isInTimeFrame = true
                 found = true
-                Log.d("PMLOG", "startFirstTimeFrame: found, start")
+                isInTimeFrame = true
                 break
             }
         }
         if (!found) {
-            Log.d("PMLOG", "startFirstTimeFrame: not found")
+            isInTimeFrame = false
             playerManagerListener?.onTimeOver()
+            Log.d(LOGTAG, "onTimeOver: not time frame found")
         }
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
+
         stopAllPlayer()
-        playerManagerListener?.onStartTimeFrame(timeFrame)
+
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
@@ -149,98 +156,127 @@ class PlayersManager(
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
             playMediaByIndex(playlistIndex, resumePoint.second)
+            Log.d(LOGTAG, "resumePoint index : ${resumePoint.first}")
+            Log.d(LOGTAG, "resumePoint second: ${resumePoint.second}")
         } else {
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
         }
+
         isTimeOver = false
     }
 
     fun playNextMedia() {
-        Log.d("alarmx", "Play media next $isInTimeFrame" )
         if (playMode == "") return
-
+        if(currentPlayer == vlcPlayer) {
+            vlcPlayer.stop()
+        }
+        else {
+            exoPlayer.stop()
+        }
         playlistIndex++
-            if (playlistIndex < currentPlaylist.size) {
-                Log.d("PlayerLog", "Play media next")
-                playMediaByIndex(playlistIndex)
-            }
-//            else {
-//                if (isInTimeFrame) {
-//                    Log.d("PlayerLog", "Play media loop")
-//                    playlistIndex = 0
-//                    playMediaByIndex(playlistIndex)
-//                }
-////                else
-////                {
-////                    stopAllPlayer()
-////                }
-//            }
 
+        if (playlistIndex < currentPlaylist.size) {
+            Log.d(LOGTAG, "Play media phat tiep")
+            playMediaByIndex(playlistIndex)
+        }
+        else
+        {
+            Log.d(LOGTAG, "Play media phat tiep cham dich")
+            stopAllPlayer()
+            stopTimeFrame()
+        }
+    }
 
+    fun resumeMedia()
+    {
+        vlcPlayer.resume()
+        exoPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
+            Log.d(LOGTAG, "currentPlaylist ${currentPlaylist.size}")
             if (currentPlaylist.isEmpty()) return
             val mediaItem = currentPlaylist[index]
-
+            Log.d(LOGTAG, "play ${mediaItem.title}")
             playMedia(mediaItem, timeStamp)
 
-            Log.d("PlayerLog", "Play media $index")
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
-    fun pauseMedia()
-    {
-        vlcPlayer.pause()
-    }
-    fun resumeMedia()
-    {
-        vlcPlayer.resume()
-    }
-//    fun reset(){
-//        vlcPlayer.reset()
-//    }
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
-            Log.d("alarmx", "Play media next $isInTimeFrame" )
+
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
-                    vlcPlayer.playMedia(mediaItem, timeStamp)
-                    vlcPlayer
+                    if (mediaItem.body!!.contains("m3u8")) {
+                        playLiveStream(mediaItem, false, timeStamp)
+                    } else {
+                        // play live o trong lich
+                        if (mediaItem.contentType?.value == "5") {
+
+                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+                        } else {
+                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                        }
+                        currentPlayer = vlcPlayer
+                    }
                 }
                 MediaType.LIVE -> {
-                    playLiveStream(mediaItem)
+                    playLiveStream(mediaItem, true, timeStamp)
                 }
                 MediaType.FM -> {
+                    var currentTimeStamp = 0
+                    if (timeStamp != -1) currentTimeStamp = timeStamp
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
+                    if (playMode != PLAY_MODE_FORCE) {
+                        handlerFMPlayer?.removeCallbacksAndMessages(null)
+                        handlerFMPlayer = Handler(Looper.getMainLooper())
+                        handlerFMPlayer?.postDelayed(
+                            {
+                                Log.e(LOGTAG, "Player FM start")
+                                onMediaEndReached(mediaItem)
+                                Log.e(LOGTAG, "Player FM stop")
+                            },
+                            getDurationInSecond(mediaItem.duration!!).toLong() * 1000 - currentTimeStamp * 1000
+                        )
+                    }
                 }
                 else -> {
+                    Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
                 }
-
             }
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun playLiveStream(mediaItem: MediaItem) {
-     vlcPlayer.playMedia(mediaItem, -1)
-
+    private fun playLiveStream(mediaItem: MediaItem,isForce : Boolean,timeStamp: Int ) {
+        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+        Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
+        currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
+            exoPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
+            exoPlayer
+        } else {
+            vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
+            vlcPlayer
+        }
     }
-
 
     fun stopAllPlayer() {
+        handlerFMPlayer?.removeCallbacksAndMessages(null)
         vlcPlayer.stop()
+        exoPlayer.stop()
+        played = false
     }
-
-
 
 
     /**
@@ -251,6 +287,7 @@ class PlayersManager(
         coroutineScope.launch {
             delay(15000)
             if (isTimeOver) playerManagerListener?.onTimeOver()
+            Log.d("turnPA", "onTimeOver: check time over")
         }
     }
 
@@ -284,10 +321,18 @@ class PlayersManager(
 
             return Pair(0, 0)
         } catch (e: Exception) {
-            Log.e("PlayerLog", "Error calculate resume")
+            Log.e(LOGTAG, "Error calculate resume")
             e.printStackTrace()
             return Pair(0, 0)
         }
+    }
+
+    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
+        //với force media, fixtime dc gán là start time
+        val startTimeOfMedia = toCalendar(mediaItem.fixTime!!)
+        val now = Calendar.getInstance()
+        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+
     }
 
     fun stopPlaylist(cancelListKey: String) {
@@ -295,43 +340,30 @@ class PlayersManager(
         playMode = ""
         stopAllPlayer()
 
-        playerManagerListener?.onEndTimeFrame(cancelListKey)
-
         //check time over
         isTimeOver = true
         checkTimeOver()
     }
 
-    fun endScheduledMediaByIndex(mediaIndex: Int) {
-        val scheduledItems = mediaRepo.scheduledMediaItems
-        if (mediaIndex >= scheduledItems.size) return
-
-        val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
-
-        stopAllPlayer()
-        onMediaStopPlaying()
-
-        playNextMedia()
-    }
-    fun stopTimeFrame()
+    private fun stopTimeFrame()
     {
         playerManagerListener?.onTimeOver()
+        Log.d("turnPA", "onTimeOver: stop time frame")
     }
-
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
+
         stopAllPlayer()
         onMediaStopPlaying()
         playerManagerListener?.onEndForceMedia()
-        playerManagerListener?.onTimeOver()
+//        playerManagerListener?.onTimeOver()
     }
 
     /**
-     * Nhận lệnh phát khẩn cấp từ hub
+     * Nhận lệnh phát khẩn cấp từ hub, chuyen json "name" sang media va convert sang force media, tính thời điểm bắt đầu và kết thúc của force media
      * **/
 
-    fun onPlayForceCommand(
+    fun  onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
@@ -342,78 +374,83 @@ class PlayersManager(
             val type = responseHub.type
             val level = responseHub.level
             val mediaItemObject = responseAdapter.fromJson(responseHub.name)
-
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
+            Log.d("alarmx", "Duration $duration")
             if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
 
-                    if (currentForceMedia != null && currentForceMedia.level < level) return
+                    if (currentForceMedia != null && currentForceMedia.level < level) {
+                        Log.d("alarmx", " ko đủ level ${currentForceMedia.level} - $level")
+                        return}
+                    Log.d("alarmx", " đủ level ${currentForceMedia!!.level} - $level")
                 }
+
             }
+
+
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-
+                    val listDur = duration.split(":")
+                    val h = listDur[0].toInt()
+                    val m = listDur[1].toInt()
+                    val s = listDur[2].toInt()
                     val mediaEndTime = Calendar.getInstance().apply {
-                        add(Calendar.MINUTE, convertStringToInt(duration))
+                        add(Calendar.HOUR, h)
+                        add(Calendar.MINUTE, m)
+                        add(Calendar.SECOND, s)
                     }
+
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
-                forceMedia.saveItemToPref(context)
-             playForceMedia(forceMedia, mediaScheduler,false)
+            playForceMedia(context, forceMedia, mediaScheduler)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun convertStringToInt(time: String): Int {
-        val listDur = time.split(":")
-        val h = listDur[0].toInt()
-        val m = listDur[1].toInt()
-        val s = listDur[2].toInt()
-        return (h * 3600 + m * 60 + s) / 60
-    }
 
-    fun playForceMedia( forceMedia: ForceMedia, mediaScheduler: MediaScheduler,isPlayAtStart : Boolean) {
+    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
         try {
             Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllAlarm()
 
-//            forceMedia.saveItemToPref(context)
+            forceMedia.saveItemToPref(context)
             //hẹn giờ dừng media khẩn cấp
             mediaScheduler.scheduleForceMediaAlarm()
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-//            if(isPlayAtStart) {
-                playMedia(forceMedia.toMediaItem())
-//            }
+            playMedia(forceMedia.toMediaItem())
 
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-
+    fun onActivityStop() {
+        stopAllPlayer()
+    }
 
     fun onActivityDestroy() {
         vlcPlayer.release()
+        exoPlayer.release()
     }
 
     fun resetPlayMode() {
         playMode = PLAY_MODE_INIT//"0"
     }
 
-
     companion object {
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
         const val LOGTAG = "player"
+        var currentPlaylist = listOf<MediaItem>()
+        var handlerLivePlayer: Handler? = null
     }
-
 }

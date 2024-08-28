@@ -257,6 +257,11 @@ class HubManager(
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
+                    val typeScreen = wssData.payload.phanVungManHinh
+                    ConfigUtil.putString(context = appContext,
+                        GlobalProperties.TYPE_SCREEN_KEY,
+                        typeScreen
+                    )
                     coroutineScope.launch(Dispatchers.Main) {
                         onMessageListener.invoke(hubCommand, jsonMess)
                     }
@@ -580,6 +585,7 @@ class HubManager(
                     startTime = tObjStartTime,
                     start = tObjStartTime,
                     end = tObjEndTime,
+                    broadcastRegion = BroadcastRegion(id = item.danhSachBanTin.vungPhat, value = item.danhSachBanTin.vungPhat!!)
                 )
                 count++
                 listBanTinPhatTheoNgay.add(obj)

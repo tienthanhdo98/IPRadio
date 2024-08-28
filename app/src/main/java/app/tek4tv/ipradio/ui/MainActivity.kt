@@ -131,9 +131,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
-//            if (globalProperties.logEnabled) {
-//                logUtils.logStartTimeFrame(frame)
-//            }
             Log.d("onPlayMediaLog", "startFirstTimeFrame: onStartTimeFrame")
             if (typeScreen == MULTIPLE_AREA) {
                 showLeftArea()
@@ -142,17 +139,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Kết thúc khung gian
         override fun onEndTimeFrame(frame: String) {
-//            if (globalProperties.logEnabled) {
-//                logUtils.logEndTimeFrame(frame)
-//            }
             if (typeScreen == MULTIPLE_AREA) {
                 hideTopLeftArea(true)
             }
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
             val sdf = SimpleDateFormat("dd/M/yyyy")
             val currentDate = sdf.format(Date())
-            val currentDateStr = currentDate.replace("/", "")
-//            logUtils.sendLogFile("media", currentDateStr)
             Log.d("screeninfo", "showMac: nEndTimeFrame")
         }
 
@@ -336,7 +328,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         viewModel.hideSystemUI(this)
 
        initDataByScreen()
-
 
     }
 
@@ -571,7 +562,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             sendLogDataHub()
 
             if (typeScreen == MULTIPLE_AREA) {
-                listLeftMedia = viewModel.mediaRepo.leftScheduledList
+                listLeftMedia = playerManager.currentTextPlaylist
                 if (listLeftMedia.isEmpty()) {
                     val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
                         moshi.adapter(type)
@@ -615,10 +606,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     clearDatastore()
-                    CoroutineScope(Dispatchers.Main).launch {
-                        playerManager.stopAllPlayer()
-                    }
+//                    CoroutineScope(Dispatchers.Main).launch {
+//                        playerManager.stopAllPlayer()
+//                    }
                     playerManager.resetPlayMode()
+                    hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
@@ -633,6 +625,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         currentTime.toString()
                     )
                     playerManager.stopForceMedia()
+                    val preTypeScreen = ConfigUtil.getString(
+                        context = baseContext,
+                        TYPE_PRE_SCREEN_KEY,
+                        "0"
+                    )
+                    val typeScreen = ConfigUtil.getString(
+                        context = baseContext,
+                        TYPE_SCREEN_KEY,
+                        "0"
+                    )
+                    Handler().postDelayed({
+                        if (typeScreen != preTypeScreen) {
+                            ConfigUtil.putString(
+                                context = baseContext,
+                                TYPE_PRE_SCREEN_KEY,
+                                typeScreen
+                            )
+                            recreate()
+                        }
+                    }, 1000)
+
                 }
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
@@ -646,24 +659,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ForceMedia.clearMonthlyData(applicationContext)
 
                 }
-                HubCommand.UPDATE_LIST -> {
-                    val mess = responseHub.message!!
-                    playerManager.stopForceMedia()
-                    playerManager.stopTimeFrame()
-                    //add at 3.0.5
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
 
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
-
-                    serialPortController.writeForceSetVolume(responseHub.volume)
-
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-//
-//                    viewModel.getPlayerContent(mess, true)
-                }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
