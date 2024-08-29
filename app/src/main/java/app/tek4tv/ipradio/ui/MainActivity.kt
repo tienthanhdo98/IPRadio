@@ -10,6 +10,7 @@ import android.os.Handler
 import android.provider.Settings
 import android.util.Log
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -149,7 +150,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
+                hubManager.sendLogMediaSuccess(mediaItem,paState)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -213,7 +214,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
+                hubManager.sendLogMediaSuccess(mediaItem,paState)
                 if (globalProperties.logEnabled) {
                     try {
                         viewModel.currentMedia = mediaItem
@@ -400,6 +401,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private var listLeftTextView = mutableListOf<TextView>()
 
     private fun initDefaultTopAndLeftArea() {
+        var videoViewContainer = findViewById<FrameLayout>(R.id.root_layout)
+        videoViewContainer.clipToOutline = true
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
         tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
@@ -626,9 +629,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
-                    CoroutineScope(Dispatchers.Main).launch {
+
                         playerManager.stopAllPlayer()
-                    }
+
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()

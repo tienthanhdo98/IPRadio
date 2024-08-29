@@ -122,32 +122,29 @@
         </ScrollView>
     </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <com.google.android.material.card.MaterialCardView
+
+    <FrameLayout
         android:id="@+id/root_layout"
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintStart_toEndOf="@+id/rightArea"
         app:layout_constraintEnd_toEndOf="parent"
-        app:cardCornerRadius="@dimen/_10sdp"
         app:layout_constraintDimensionRatio="H,16:9"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintTop_toBottomOf="@+id/topArea"
         app:layout_constraintWidth_percent="0.7"
-        >
+        android:background="@drawable/video_rounded_bg"
+        android:outlineProvider="background"
+        android:keepScreenOn="true">
 
-        <FrameLayout
+        <org.videolan.libvlc.util.VLCVideoLayout
+            android:id="@+id/vlc_video_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
-            android:keepScreenOn="true">
+            android:layout_gravity="center" />
 
-            <org.videolan.libvlc.util.VLCVideoLayout
-                android:id="@+id/vlc_video_layout"
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:background="@color/black" />
 
-        </FrameLayout>
-    </com.google.android.material.card.MaterialCardView>
+    </FrameLayout>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>
