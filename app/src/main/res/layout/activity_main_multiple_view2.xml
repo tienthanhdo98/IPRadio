@@ -7,8 +7,6 @@
     android:background="@drawable/bg_main">
 
 
-
-
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:id="@+id/topArea"
@@ -138,7 +136,6 @@
         >
 
         <FrameLayout
-
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:keepScreenOn="true">
@@ -147,8 +144,7 @@
                 android:id="@+id/vlc_video_layout"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:background="@color/black"
-                android:fitsSystemWindows="true" />
+                android:background="@color/black" />
 
         </FrameLayout>
     </com.google.android.material.card.MaterialCardView>

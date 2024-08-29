@@ -258,14 +258,14 @@ class HubManager(
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                     val typeScreen = wssData.payload.phanVungManHinh
-                    ConfigUtil.putString(context = appContext,
+                    ConfigUtil.putString(
+                        context = appContext,
                         GlobalProperties.TYPE_SCREEN_KEY,
                         typeScreen
                     )
-                    coroutineScope.launch(Dispatchers.Main) {
-                        onMessageListener.invoke(hubCommand, jsonMess)
-                    }
+                    onMessageListener.invoke(hubCommand, jsonMess)
                     sendLogSchedule(HubCommand.DV014, body)
+
                 }
             }
             //Phát trực tiếp
@@ -318,9 +318,9 @@ class HubManager(
                         )
                     }
                     Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
-                    coroutineScope.launch(Dispatchers.Main) {
+
                         onMessageListener.invoke(hubCommand, jsonMessage)
-                    }
+
                 }catch (e : Exception)
                 {
                     Log.d("wss", "convertWssToHubCommad: fail ${e.message}")
@@ -334,9 +334,9 @@ class HubManager(
                 val body = wssData.payload
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
-                    coroutineScope.launch(Dispatchers.Main) {
-                        onMessageListener.invoke(hubCommand, "null")
-                    }
+
+                    onMessageListener.invoke(hubCommand, "null")
+
                     sendLogSchedule(HubCommand.DV012, body)
                 }
             }
@@ -438,7 +438,7 @@ class HubManager(
                 danhSachDiaBan = listOf(),
                 danhSachThietBi = listOf(),
                 loaiLinhVuc =  mediaItem.fieldType?.value ,
-                vungPhat = ""
+                vungPhat = mediaItem.broadcastRegion?.value
             )
         )
         sendMessage(wssStatusAdapter.toJson(request))
@@ -507,7 +507,7 @@ class HubManager(
             }
         }
 
-        listDate.toSet().toMutableList().forEach {
+        listDate.toSet().forEach {
 
             val jsonSchedule = findScheduleByDate(
                 payload,

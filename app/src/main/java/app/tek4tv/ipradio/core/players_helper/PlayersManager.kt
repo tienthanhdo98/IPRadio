@@ -165,10 +165,11 @@ class PlayersManager(
         currentPlaylist =
             mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
                 ?: listOf()
-
         currentTextPlaylist =
             mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == LEFT_AREA }
                 ?: listOf()
+        Log.d("monthlyinfo", "show right ${currentPlaylist.size}")
+        Log.d("monthlyinfo", "show left ${currentTextPlaylist.size}")
 
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
@@ -314,7 +315,7 @@ class PlayersManager(
      * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
-            val mediaList = mediaRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
+            val mediaList = mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN } ?: return Pair(0, 0)
             val now = Calendar.getInstance()
             val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
 
