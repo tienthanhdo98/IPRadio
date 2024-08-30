@@ -132,6 +132,7 @@ class ExoMediaPlayer(
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
+        exoPlayer.play()
     }
 
     /**

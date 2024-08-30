@@ -208,13 +208,14 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        currentPlayer = if (mediaItem.body!!.endsWith("m3u8")) {
+        currentPlayer = if (mediaItem.body!!.endsWith("m3u8") && mediaItem.body!!.startsWith("https")) {
             exoPlayer.playMedia(mediaItem, -1)
             exoPlayer
         } else {
             vlcPlayer.playMedia(mediaItem, -1)
             vlcPlayer
         }
+
     }
 
     fun stopAllPlayer() {

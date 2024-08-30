@@ -516,7 +516,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     Log.i("monthlyinfo", "Mess: $mess ")
                 }
-                //Phát khẩn cấp luồng live
+                //Phát khẩn cấp luồng!!
                 HubCommand.LIVE -> {
                     onPlayForce(responseHub)
                 }

@@ -5,13 +5,13 @@
     "kind": "Directory"
   },
   "applicationId": "app.tek4tv.ipradio",
-  "variantName": "processReleaseResources",
+  "variantName": "release",
   "elements": [
     {
       "type": "SINGLE",
       "filters": [],
-      "versionCode": 8,
-      "versionName": "3.1.2a",
+      "versionCode": 12,
+      "versionName": "3.1.2b",
       "outputFile": "app-release.apk"
     }
   ]
