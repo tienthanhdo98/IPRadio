@@ -11,9 +11,11 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
+import app.tek4tv.ipradio.ui.MainActivity.Companion.isEncoder
 import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
 import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
 import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
+
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
@@ -110,7 +112,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-longan.tek4tv.vn/hubServer"
+            "https://hubip-hanam.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -155,16 +157,27 @@ class HubManager(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
+//            val body = mapOf(
+//                "Username" to "tek4tv_bacgiang",
+//              "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5"
+//            )
 
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
                 "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
             )
+//            val url = ConfigUtil.getStringEncrypt(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
+//            )
             val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
-                val token = response.body()!!.token
+                 val token = response.body()!!.token
+//                val token = response.body()!!.noiDung.token
+
                 token
             } else {
                 null
@@ -424,7 +437,7 @@ class HubManager(
         val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
         listMetadata.add(playlistInfo)
         //thong tin stream encoder
-        if(MainActivity.isEncoder)
+        if(isEncoder)
         {
             val streamInfo = MetadataModel("STREAMINGINFO","${urlStream},${protocol_stream},${bitrate_stream},${samplerate}")
             listMetadata.add(streamInfo)

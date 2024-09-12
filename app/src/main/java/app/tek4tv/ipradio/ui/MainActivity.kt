@@ -120,6 +120,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
     var media: Media? = null
 
 
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -221,7 +222,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -336,17 +337,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            ""
+            "rtsp://radiolive2.tek4tv.vn:1935/livevovmobile"
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            ""
+            "tek4tv1"
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            ""
+            "tek4tv123"
         )!!
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -356,7 +357,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         bitrate_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.BITRATE_STREAM,
-            "65536"
+            "64000"
         )!!
         samplerate = ConfigUtil.getStringEncrypt(
             this,
@@ -1180,12 +1181,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     companion object {
         var alarmListener: AlarmListener? = null
-
-        //using for config app ip or ipencoder
-        var isEncoder = false
+        var isEncoder = true
         var urlStream = ""
-         var protocol_stream = ""
-         var bitrate_stream = ""
+        var protocol_stream = ""
+        var bitrate_stream = ""
         var samplerate = ""
     }
 }
