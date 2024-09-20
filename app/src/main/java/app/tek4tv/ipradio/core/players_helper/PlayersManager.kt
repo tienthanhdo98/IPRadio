@@ -125,8 +125,6 @@ class PlayersManager(
         var found = false
         val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
-        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.keys}")
-        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             Log.d(LOGTAG, "onTimeOver: $period")
@@ -193,8 +191,13 @@ class PlayersManager(
 
     fun resumeMedia()
     {
-        vlcPlayer.resume()
-        exoPlayer.resume()
+//        vlcPlayer.resume()
+        if(currentPlayer == vlcPlayer) {
+            vlcPlayer.resume()
+        }
+        if(currentPlayer == exoPlayer) {
+            exoPlayer.resume()
+        }
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {

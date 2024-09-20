@@ -10,11 +10,10 @@ import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity
-import app.tek4tv.ipradio.ui.MainActivity.Companion.bitrate_stream
+
 import app.tek4tv.ipradio.ui.MainActivity.Companion.isEncoder
-import app.tek4tv.ipradio.ui.MainActivity.Companion.protocol_stream
-import app.tek4tv.ipradio.ui.MainActivity.Companion.samplerate
-import app.tek4tv.ipradio.ui.MainActivity.Companion.urlStream
+import app.tek4tv.ipradio.ui.MainActivity.Companion.streamingModel
+
 
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
@@ -112,7 +111,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-hanam.tek4tv.vn/hubServer"
+            "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -437,9 +436,9 @@ class HubManager(
         val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
         listMetadata.add(playlistInfo)
         //thong tin stream encoder
-        if(isEncoder)
+        if(isEncoder &&  streamingModel != null)
         {
-            val streamInfo = MetadataModel("STREAMINGINFO","${urlStream},${protocol_stream},${bitrate_stream},${samplerate}")
+            val streamInfo = MetadataModel("STREAMINGINFO","${streamingModel!!.streamUrl},${streamingModel!!.protocolStream},${streamingModel!!.bitrateStream},${streamingModel!!.samplerate}")
             listMetadata.add(streamInfo)
         }
         return  listAdapter.toJson(listMetadata)

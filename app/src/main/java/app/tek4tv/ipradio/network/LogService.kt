@@ -14,13 +14,13 @@ interface LogService {
     @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog/device/log")
     suspend fun postDeviceLog(@Body dataLogModel: DataLogModel) : Response<Any>
 
-    //dung cho thai nguyen, can tho,hanam
-    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
-    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
-
-//    // binhd dinh, bac giang,binh duong,long an
-//    @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
+//    //dung cho thai nguyen, can tho,hanam
+//    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+
+    // binhd dinh, bac giang,binh duong,long an
+    @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
+    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
 //    @POST("https://datawarehouse-truyenthanh.tek4tv.vn/IpRadioDataLogConfirm")
 //    suspend fun postMediaInfoEnd(@Body record: MediaRecord)//doi media id

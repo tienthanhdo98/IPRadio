@@ -69,11 +69,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
         Manifest.permission.RECORD_AUDIO
     )
+    //        Manifest.permission.ACCESS_FINE_LOCATION,
+    //        Manifest.permission.ACCESS_COARSE_LOCATION,
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -119,6 +119,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     var media: Media? = null
 
+
+    var urlStream = ""
+    var protocol_stream = ""
+    var bitrate_stream = ""
+    var samplerate = ""
 
 
     // event media
@@ -222,7 +227,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -331,23 +336,24 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             }
         }
 
+
     }
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.URL_STREAM,
-            "rtsp://radiolive2.tek4tv.vn:1935/livevovmobile"
+            ""
         )!!
         user_name_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.USER_NAME_STREAM,
-            "tek4tv1"
+            ""
         )!!
         password_stream = ConfigUtil.getStringEncrypt(
             this,
             ConfigUtil.PASSWORD_STREAM,
-            "tek4tv123"
+            ""
         )!!
         protocol_stream = ConfigUtil.getStringEncrypt(
             this,
@@ -364,6 +370,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             ConfigUtil.SAMPLERATE_STREAM,
             "44100"
         )!!
+        streamingModel = StreamingModel(
+            streamUrl = urlStream,
+            protocolStream = protocol_stream,
+            bitrateStream = bitrate_stream,
+            samplerate = samplerate
+        )
     }
 
     override fun startStopWatch() {
@@ -393,7 +405,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         {
             micStreamRtsp.setProtocol(Protocol.UDP)
         }
-        if (micStreamRtsp.prepareAudio(bitrate_stream.toInt(), samplerate.toInt(), true, true, true)) {
+        if (micStreamRtsp.prepareAudio(bitrate_stream.toInt(), samplerate.toInt(), true, false, false)) {
             micStreamRtsp.startStream(urlStream)
             isStreaming = true
 //             checkStreamIsAvailableWithVlc()
@@ -1176,15 +1188,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
-
     }
 
     companion object {
         var alarmListener: AlarmListener? = null
-        var isEncoder = true
-        var urlStream = ""
-        var protocol_stream = ""
-        var bitrate_stream = ""
-        var samplerate = ""
+        var isEncoder = false
+        var streamingModel : StreamingModel? = null
     }
 }

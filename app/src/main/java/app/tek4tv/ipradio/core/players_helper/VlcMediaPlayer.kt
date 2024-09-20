@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -160,9 +161,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //        )
 //        val stream = Media(
 //            mLibVLC,
-//            Uri.parse("rtmp://truyenthanhthongminh.vn/s6909/live")
+//            Uri.parse("http://14.224.130.186:8000/binhdinh")
 //        )
-//        stream.addOption(":network-caching=20")
+//
 //        currentVlcMedia = stream
 //
 //        vlcPlayer.play(stream)
