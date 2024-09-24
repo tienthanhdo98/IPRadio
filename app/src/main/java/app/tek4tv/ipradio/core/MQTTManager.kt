@@ -1,13 +1,9 @@
-package app.tek4tv.ipradio.core.mqtt
+package app.tek4tv.ipradio.core
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.MyApp.Companion.appContext
-import app.tek4tv.ipradio.core.IConnectionServer
-import app.tek4tv.ipradio.utils.Utils
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
-import java.util.*
 
 class MQTTManager(
     private var hubToken: String?,
@@ -15,7 +11,7 @@ class MQTTManager(
     private val destinationId: String
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "5b2a10f5-9144-4e63-825e-7fec113bb3e1"
+    var clientID = "8518c82b-9263-4904-9570-fa068f12c60f"
     private var publishTopicTinh = "tinh/$clientID"
 
     private var mqttClient: MqttAndroidClient? = null
@@ -40,7 +36,8 @@ class MQTTManager(
     }
 
     fun connectToMQTT(context: Context) {
-        val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
+        val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
+//        val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {

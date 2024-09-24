@@ -228,7 +228,7 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-                val dataUsage = getNetworkUsage(appContext)
+//                val dataUsage = getNetworkUsage(appContext)
 
                 val level = when (networkClass) {
                     "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
@@ -243,7 +243,8 @@ class NetworkUtils private constructor() {
                     }
                 }
 
-                return "$networkClass,$dataUsage,$level"
+//                return "$networkClass,$dataUsage,$level"
+                return "$networkClass,$level"
             } catch (e: Exception) {
                 e.printStackTrace()
                 "error"

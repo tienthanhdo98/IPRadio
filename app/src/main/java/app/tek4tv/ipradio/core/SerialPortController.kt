@@ -36,7 +36,9 @@ class SerialPortController(
         try {
             initSerialPort(uart)
             readDevice()
+            Log.d("UARTCON", "connectToSerialPort: ok")
         } catch (e: Exception) {
+            Log.d("UARTCON", "connectToSerialPort: fail")
             e.printStackTrace()
         }
     }

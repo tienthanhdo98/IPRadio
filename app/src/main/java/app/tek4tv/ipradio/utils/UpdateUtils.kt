@@ -45,6 +45,15 @@ import java.io.File
     }
     context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
 }*/
+fun getDestinationApk() : String
+{
+    var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        .toString() + "/"
+    val fileName = "ipradio.apk"
+    destination += fileName
+    return  destination
+}
+
 
 fun downloadUpdateApk(
     url: String,

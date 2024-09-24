@@ -1,13 +1,13 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
-import android.provider.Settings
 import android.util.Log
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.FrameLayout
@@ -45,11 +45,11 @@ import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import cn.wch.uartlib.WCHUARTManager
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -66,6 +66,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
+    //        Manifest.permission.ACCESS_FINE_LOCATION,
+    //        Manifest.permission.ACCESS_COARSE_LOCATION,
     private val permissions = arrayOf(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -73,8 +75,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.ACCESS_FINE_LOCATION,
-        Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
         Manifest.permission.RECORD_AUDIO
     )
@@ -255,6 +255,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         }
 
+
+
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
 
@@ -308,7 +310,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                "{\"id\":\"\",\"topic\":\"dv010\",\"payload\":{\"Id\":\"d457c8f0-0c52-4df3-bc40-f4e5c4c44012\",\"NguonID\":\"H39.20.12\",\"TenNguon\":\"Thị trấn Bến Lức\",\"DichID\":\"H39\",\"TenDich\":\"Tỉnh Long An\",\"DanhSachDiaBanNhan\":[{\"DichID\":\"H39.20.12\",\"TenDich\":\"Thị trấn Bến Lức\",\"Email\":\"\",\"IsRead\":true,\"CumLoaID\":[],\"BangDienTuID\":[]}],\"PhanVungManHinh\":\"1\",\"LichPhatID\":\"782e8da9-e41b-42e4-8556-6700b588e17e\",\"TenLichPhat\":\"Lịch Digital.\",\"DanhSachBanTin\":[{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"310\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:11\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/912749979_y2mate.com---4k-ultra-hd-sony-4k-uhd-demo-another-world-madagascar_1080p.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830140,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"2\",\"BanTinCongCongID\":\"348\",\"LoaiBanTin\":\"1\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"CV 2455\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"CV 2455\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:00:00\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"Triển khai Quyết định số 135/QĐ-TTg ngày 20/01/2020 của Thủ tướng\\nChính phủ phê duyệt Đề án nâng cao hiệu quả hoạt động thông tin cơ sở dựa trên\\nứng dụng công nghệ thông tin, Bộ Thông tin và Truyền thông ban hành Hướng\\ndẫn nghiệp vụ về chức năng, tính năng kỹ thuật của Hệ thống thông tin nguồn\\ntrung ương và Hệ thống thông tin nguồn cấp tỉnh - Phiên bản 2.0 (gửi kèm theo\\nvăn bản này). Hướng dẫn này thay thế Hướng dẫn chức năng, tính năng kỹ thuật\\ncủa Hệ thống thông tin nguồn trung ương, Hệ thống thông tin nguồn cấp tỉnh và\\nkết nối các hệ thống thông tin - Phiên bản 1.0 ban hành theo Văn bản số\\n1273/BTTTT-TTCS ngày 27/4/2021.\\nBộ Thông tin và Truyền thông đề nghị Ủy ban nhân dân các tỉnh, thành phố\\ntrực thuộc Trung ương chỉ đạo, giao Sở Thông tin và Truyền thông chủ trì tham\\nmưu, xây dựng Hệ thống thông tin nguồn cấp tỉnh để cung cấp thông tin và quản\\nlý, giám sát hoạt động của đài truyền thanh cấp xã ứng dụng công nghệ thông tin\\n- viễn thông, bảng tin điện tử công cộng trên địa bàn.\\nTrong quá trình tổ chức thực hiện nếu có khó khăn, vướng mắc, đề nghị\\nliên hệ với Cục Thông tin cơ sở, Bộ Thông tin và Truyền thông để được hỗ trợ,\\nhướng dẫn.\\nTrân trọng./.\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"312\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"4ktv.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"4ktv.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:24\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/412883213_4ktv.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830535}]}]}],\"CreateTime\":1724830112,\"CreateDate\":1724778000,\"UserName\":\"\"}}"
 //            hubManager.convertToHubCommand(json)
 //        }
+        checkDeleteFileUpdate()
 
+    }
+    private  fun checkDeleteFileUpdate()
+    {
+        val destination = getDestinationApk()
+        val file = File(destination)
+        if (file.exists()) {
+            file.delete()
+            Log.d("deletefile", "checkDeleteFileUpdate: delete success")
+        }
+        else
+        {
+            Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
+        }
     }
 
 
@@ -510,10 +526,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
+//        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+//            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+//            startActivity(intent)
+//        }
 
         return needGrantPermission
     }
@@ -569,7 +585,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-        locationTracker.getLocation(this@MainActivity)
+//        locationTracker.getLocation(this@MainActivity)
 
     }
 

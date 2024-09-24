@@ -5,7 +5,6 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
-import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
@@ -94,15 +93,35 @@ class HubManager(
 
     private fun getHubToken() {
         try {
+//            val body = mapOf(
+//                "Username" to "tek4tv_bacgiang",
+//                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
+//            )
+//            val url = ConfigUtil.getStringEncrypt(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
+//            )
             val body = mapOf(
-                "Username" to "tek4tv_bacgiang",
-                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
+                "Username" to "longan_vatc",
+                "Password" to "db-47aa-a990-82",
             )
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
+                "https://gateway-ttn.longan.gov.vn/oauth/token"
             )
+
+//            val body = mapOf(
+//                "Username" to "tek4tv_hanoi",
+//                "Password" to "9eb8cbd3-d129-4dae-840c-8ecfcd342558",
+//            )
+//            val url = ConfigUtil.getStringEncrypt(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
+//            )
+
             val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {

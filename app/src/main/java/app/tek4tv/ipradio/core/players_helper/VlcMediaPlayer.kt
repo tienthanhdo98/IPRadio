@@ -1,10 +1,12 @@
 package app.tek4tv.ipradio.core.players_helper
 
+import android.R
 import android.content.Context
-import android.net.Uri
+import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.SurfaceView
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
@@ -21,6 +23,7 @@ import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
+
 
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener,    private val vlcVideoLayout: VLCVideoLayout) :
     IMediaPlayer {
@@ -97,12 +100,16 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
+        args.add("--no-drop-late-frames")
+        args.add("--file-caching=3000")
+        args.add("--network-caching=3000")
+        args.add("--skip-frames")
+
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
-        vlcPlayer.attachViews(vlcVideoLayout, null, true, false)
+        vlcPlayer.attachViews(vlcVideoLayout, null, false, true)
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
-
     }
 
 
@@ -133,24 +140,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 //        val stream = Media(
 //            mLibVLC,
-//            Uri.parse("http://luuchieu.truyenhinhso.vn:8000/media/live/6FD7C899AC6864C87A7C3258/index.m3u8")
-//        )
-//        stream.addOption(":network-caching=20")
-//
-//        stream.addOption(":run-time=600")
-//        currentVlcMedia = stream
-
-//        vlcPlayer.play(stream)
-//        val handler = Handler(Looper.getMainLooper())
-//        handler.postDelayed(
-//            {
-//                vlcPlayer.stop()
-//                playerEventListener.onMediaEndReached(currentMedia)
-//            },
-//            60000
-//        )
-//        val stream = Media(
-//            mLibVLC,
 //            Uri.parse("rtmp://truyenthanhthongminh.vn/s6909/live")
 //        )
 //        stream.addOption(":network-caching=20")
@@ -168,6 +157,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             isPlaying = false
             currentMedia = null
             currentVlcMedia = null
+            Log.d(TAG, "stop vlc")
         } catch (e: Exception) {
             Log.d(TAG, "stop error :$e ")
             isPlaying = false
@@ -215,7 +205,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
 //        stream.addOption(":rtsp-tcp")
-        stream.addOption(":network-caching=20")
+//        stream.addOption(":network-caching=20")
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
 //        stream.addOption(":run-time=${getDurationInSecond(mediaItem.duration) - currentTimeStamp}")
@@ -243,6 +233,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 } else {
                     Log.d(TAG, "Player vlc live stop force")
                     playerEventListener.onMediaForceEndReached(currentMedia)
+
                 }
 
             },
@@ -287,24 +278,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         return check
     }
 
-    private fun checkOldMediaPlaying(mediaItem: MediaItem): Boolean {
-//        if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
-        Log.d(TAG, "old media:${mediaItem.body} ")
-        val now = Calendar.getInstance()
-
-        val liveEndTime = toCalendar(mediaItem.start!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!) - 2)
-        }
-
-        val check = (now >= liveEndTime)
-
-        Log.e(TAG, "${getDurationInSecond(mediaItem.duration!!)}")
-        Log.e(TAG, "${now <= liveEndTime}")
-
-        Log.d(LOGTAG, "check old: $check")
-
-        return check
-    }
 
     private fun checkStreamError() {
         if (currentMedia == null || currentVlcMedia == null) return
@@ -361,7 +334,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                 )
                 //playMedia(currentMedia!!)
                 Handler(Looper.getMainLooper()).postDelayed({
-                    countReplayLive++;
+                    countReplayLive++
                     Log.d(TAG, "onLiveErrorVlc: Chay lai live")
                     if(currentMedia != null) {
                         playMedia(currentMedia!!, true)
