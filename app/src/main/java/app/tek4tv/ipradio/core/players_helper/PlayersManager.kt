@@ -209,7 +209,7 @@ class PlayersManager(
     fun resumeMedia()
     {
         vlcPlayer.resume()
-        exoPlayer.resume()
+//        exoPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
@@ -236,6 +236,14 @@ class PlayersManager(
                         playLiveStream(mediaItem, false, timeStamp)
                     } else {
                         // play live o trong lich
+//                        if (mediaItem.contentType?.value == "5") {
+//
+//                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+//                        } else {
+//                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+//                        }
+//                        currentPlayer = vlcPlayer
+
                         if (mediaItem.contentType?.value == "5") {
 
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
@@ -289,7 +297,7 @@ class PlayersManager(
         }
     }
 
-    fun stopAllPlayer() {
+    fun   stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
         vlcPlayer.stop()
         exoPlayer.stop()

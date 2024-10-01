@@ -66,19 +66,20 @@ object HubCommand {
 
 
     const val UPDATE_MONTHLY_WSS = "UPDATE_MONTHLY_WSS"
+    const val ROTATION = "ROTATION"
     const val DELETE_MONTHLY_LIST_WSS = "DELETE_MONTHLY_LIST_WSS"
 
     //wss cap nhật lịch
     const val DV010 = "dv010"
     //wss live
     const val DV011 = "dv011"
-    //wss gửi log hủy lịch phát
+    //wss hủy lịch phát
     const val DV012 = "dv012"
     //wss gửi log bản tin phát
-    const val DV013 = "dv013 "
+    const val DV013 = "dv013"
     //wss gửi log lịch phát
     const val DV014 = "dv014"
-    //wss huy lich phat
+    //wss nhat ky huy lich phat
     const val DV015 = "dv015"
     //Dịch vụ gửi trạng thái thiết bị
     const val DV016 = "dv016"

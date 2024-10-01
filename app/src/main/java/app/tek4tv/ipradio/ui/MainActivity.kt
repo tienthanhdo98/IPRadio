@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.app.Application
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Color
@@ -9,11 +8,10 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
-import android.widget.FrameLayout
-import android.widget.LinearLayout
-import android.widget.ScrollView
-import android.widget.TextView
+import android.widget.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.size
@@ -45,7 +43,6 @@ import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import cn.wch.uartlib.WCHUARTManager
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -133,9 +130,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
+
                 hubManager.currentMediaItem = mediaItem
 
                 val displayName = mediaItem.title ?: ""
@@ -150,7 +145,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-                hubManager.sendLogMediaSuccess(mediaItem,paState)
+                hubManager.sendLogMediaSuccess(mediaItem)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -211,10 +206,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         serialPortController.turnOnPAVod()
                     }
                 }
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
-                hubManager.sendLogMediaSuccess(mediaItem,paState)
+//                val paState =
+//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+//                    else "0"
+                hubManager.sendLogMediaSuccess(mediaItem)
                 if (globalProperties.logEnabled) {
                     try {
                         viewModel.currentMedia = mediaItem
@@ -235,7 +230,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-      //  Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -311,6 +306,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //            hubManager.convertToHubCommand(json)
 //        }
         checkDeleteFileUpdate()
+//        playerManager.resumeMedia()
 
     }
     private  fun checkDeleteFileUpdate()
@@ -417,7 +413,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private var listLeftTextView = mutableListOf<TextView>()
 
     private fun initDefaultTopAndLeftArea() {
-        var videoViewContainer = findViewById<FrameLayout>(R.id.root_layout)
+        val videoViewContainer = findViewById<FrameLayout>(R.id.root_layout)
         videoViewContainer.clipToOutline = true
         scrollLeftArea = findViewById(R.id.scrollView)
         tvTopArea = findViewById(R.id.tvTopArea)
@@ -507,13 +503,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
 
     private fun needGrantPermission(): Boolean {
@@ -595,6 +591,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val responseHub = hubManager.responseHub
 
             when (command) {
+                HubCommand.ROTATION -> {
+                    if (responseHub.message != null) {
+                        Log.d("rotation", responseHub.message!!)
+                        try {
+                            val requireOrientation = responseHub.message!!
+
+                            ConfigUtil.putString(this, "pref_orientation", requireOrientation)
+                            lifecycleScope.launch {
+                                Toast.makeText(
+                                    baseContext, "Màn hình sẽ xoay sau 5s",
+                                    Toast.LENGTH_SHORT
+                                ).show()
+                                delay(5000)
+                                CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                            }
+
+                        } catch (e: Exception) {
+                            Log.e("orientation", "Error parsing orientation")
+                        }
+                    }
+                }
                 HubCommand.UPDATE_MONTHLY_WSS -> {
 
                     clearDatastore()
@@ -646,8 +663,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
 
-                        playerManager.stopAllPlayer()
-
+                    playerManager.stopAllPlayer()
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()

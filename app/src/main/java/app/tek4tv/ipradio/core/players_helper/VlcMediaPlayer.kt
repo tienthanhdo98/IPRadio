@@ -1,21 +1,15 @@
 package app.tek4tv.ipradio.core.players_helper
 
-import android.R
 import android.content.Context
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.SurfaceView
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.isInRangeTimePlay
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -100,31 +94,64 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
-        args.add("--no-drop-late-frames")
+//        args.add("--no-drop-late-frames")
         args.add("--file-caching=3000")
         args.add("--network-caching=3000")
-        args.add("--skip-frames")
+//        args.add("--skip-frames")
+
+//        args.add("--codec=avcodec")
+//        args.add("--no-omxil-dr")
+//        args.add("--no-mediacodec-dr")
+//        args.add("--video-filter=transform")
+//        args.add("--transform-type=transpose")
+
+
+        // args.add("--android-display-chroma=YV12")
+//        when (ConfigUtil.getString(applicationContext, "pref_orientation", "0")) {
+//            "90" -> {
+//                RotateScreen("90", args)
+//            }
+//            "180" -> {
+//                RotateScreen("180", args)
+//            }
+//            "270" -> {
+//                RotateScreen("270", args)
+//            }
+//        }
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
-        vlcPlayer.attachViews(vlcVideoLayout, null, false, true)
+        vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
     }
 
+    private fun RotateScreen(degrees: String, args: ArrayList<String>) {
+        //option when rotate
+//        args.add("--no-mediacodec-dr")
+//        args.add("--no-omxil-dr")
+//        args.add("--avcodec-skiploopfilter=4")
+//        args.add("--file-caching=500")
+//        args.add("--network-caching=1200")
+//
+//        args.add("--video-filter=transform")
+        args.add("--transform-type=${degrees}")
 
-    override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
+    }
+
+
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+
         if (isPlaying) stop()
-        if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-            if (isForce) {
-                playLiveStream(mediaItem, timeStamp)
-            } else {
-                if (isInRangeTimePlay()) {
-                    playFile(mediaItem, timeStamp)
-                }
-            }
-            currentMedia = mediaItem
+
+        if (isForce) {
+            playLiveStream(mediaItem, timeStamp)
+        } else {
+            playFile(mediaItem, timeStamp)
+
         }
+        currentMedia = mediaItem
+
     }
 
     override fun reset() {
@@ -137,12 +164,13 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun resume() {
         vlcPlayer.play()
-
+//        val mediaStoragePath = appContext.filesDir.path
+//        Log.d("mediaStoragePath", "resume: $mediaStoragePath")
 //        val stream = Media(
 //            mLibVLC,
-//            Uri.parse("rtmp://truyenthanhthongminh.vn/s6909/live")
+//            Uri.parse("file://$mediaStoragePath/a.mp4")
 //        )
-//        stream.addOption(":network-caching=20")
+//
 //        currentVlcMedia = stream
 //
 //        vlcPlayer.play(stream)
@@ -154,6 +182,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         try {
             handlerLivePlayer?.removeCallbacksAndMessages(null)
             vlcPlayer.stop()
+//            vlcPlayer.detachViews()
             isPlaying = false
             currentMedia = null
             currentVlcMedia = null

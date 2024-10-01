@@ -31,6 +31,7 @@ class HubManager(
 
     private val CONNECT_COUNTER_LIMIT = 5
     private val PING_HUB_INTERVAL = 60000L
+  //  private val PING_HUB_INTERVAL = 30000L
     private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
@@ -41,6 +42,7 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val deviceImei = Utils.getDeviceId(appContext)
+//    private val deviceImei = "5A:4E:2F:D3:15:10"
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
@@ -72,7 +74,17 @@ class HubManager(
 
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
         moshi.adapter(WssStatusModel::class.java)
-    private val wssLiveAdapter: JsonAdapter<ReceivedMessageModel> = moshi.adapter(ReceivedMessageModel::class.java)
+    private val wssLiveAdapter: JsonAdapter<ReceivedMessageModel> =
+        moshi.adapter(ReceivedMessageModel::class.java)
+    private val wssPayloadScheduleAdapter: JsonAdapter<ReceivedMessageScheduleModel> =
+        moshi.adapter(ReceivedMessageScheduleModel::class.java)
+    private val wssPayloadLiveAdapter: JsonAdapter<ReceivedMessageLiveModel> =
+        moshi.adapter(ReceivedMessageLiveModel::class.java)
+    private val wssPayloadRemovePlaylistAdapter: JsonAdapter<ReceivedMessageRemovePlaylistModel> =
+        moshi.adapter(ReceivedMessageRemovePlaylistModel::class.java)
+    private val wssPayloadControlDeviceAdapter: JsonAdapter<ReceivedMessageControlDeviceModel> =
+        moshi.adapter(ReceivedMessageControlDeviceModel::class.java)
+
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
@@ -103,14 +115,23 @@ class HubManager(
 //                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
 //            )
             val body = mapOf(
-                "Username" to "longan_vatc",
-                "Password" to "db-47aa-a990-82",
+                "Username" to "tek4tv_hanam",
+                "Password" to "334d1805-cf96-4d17-9544-229f848e199a",
             )
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://gateway-ttn.longan.gov.vn/oauth/token"
+                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
+//            val body = mapOf(
+//                "Username" to "longan_vatc",
+//                "Password" to "db-47aa-a990-82",
+//            )
+//            val url = ConfigUtil.getStringEncrypt(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-ttn.longan.gov.vn/oauth/token"
+//            )
 
 //            val body = mapOf(
 //                "Username" to "tek4tv_hanoi",
@@ -127,6 +148,7 @@ class HubManager(
             if (response.isSuccessful) {
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
+                    Log.i(TAG, "getHubToken ${hubToken}")
                 }
             } else {
                 Log.i(TAG, "getHubToken fail")
@@ -223,6 +245,7 @@ class HubManager(
         if (currentMediaItem != null) {
             pathPlaying = currentMediaItem!!.pathBackup
         }
+
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV016, payload = PayloadStatus(
                 dichID = GlobalProperties.getInst().dichId,
@@ -234,9 +257,8 @@ class HubManager(
                 tenLoaiThietBI = "Bảng điện tử công cộng",
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                trangThaiHoatDong = "",
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
-                trangThai = "",
+                trangThai = "1",
                 amLuong = getDeviceInfo(
                     StringValue.deviceInfoVolume,
                     SerialPortController.deviceInfo
@@ -266,79 +288,89 @@ class HubManager(
     }
 
 
-    fun convertToHubCommand(jsonMessage: String) {
+    private fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
+
         when (wssData!!.topic) {
             HubCommand.DV010 -> {
-                val body = wssData.payload
+                val body = wssPayloadScheduleAdapter.fromJson(jsonMessage)
                 if (body != null) {
-                    val mapMonthSchedule = convertWssMessToPlaylist(body)
+                    val mapMonthSchedule = convertWssMessToPlaylist(body.payload!!)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    val typeScreen = wssData.payload.phanVungManHinh
+                    val typeScreen = body.payload.phanVungManHinh
                     ConfigUtil.putString(
                         context = appContext,
                         GlobalProperties.TYPE_SCREEN_KEY,
                         typeScreen
                     )
                     onMessageListener.invoke(hubCommand, jsonMess)
-                    sendLogSchedule(HubCommand.DV014, body)
+                    sendLogUpdatePlaylist(body.payload)
 
                 }
             }
             //Phát trực tiếp
             HubCommand.DV011 -> {
-                val body = wssData.payload
+                val body = wssPayloadLiveAdapter.fromJson(jsonMessage)
                 hubCommand = HubCommand.LIVE
                 try {
-                    responseHub = ResponseHub().apply {
-                        type = HubCommand.LIVE
-                        level = body?.mucDoUuTien!!.toInt()
-                        duration = body.thoiLuong.toString()
-                        message = body.noiDung
-                        userNameControl = ""
-                        name = mediaItemMoshiAdapter.toJson(
-                            MediaItem(
-                                projectID = body.banTinCongCongID!!,
-                                mediaID = body.banTinCongCongID,
-                                id = 0,
-                                sourceID = body.nguonID,
-                                sourceName = body.tenNguon,
-                                destinationID = body.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
-                                destinationName = body.danhSachDiaBanNhan.firstOrNull()?.tenDich,
-                                title = body.tieuDe,
-                                description = body.noiDungTomTat,
-                                duration = body.thoiLuong,
-                                body = body.noiDung,
-                                sourceReference = body.nguonID,
-                                startTime = "00:00:00",
-                                fieldType = Category(
-                                    id =  body.loaiLinhVuc?.toLong(),
-                                    value = body.loaiLinhVuc
-                                ),
-                                type = "LIVE",
-                                fixTime = "00:00:00",
-                                createDate = "",
-                                contentType = ContentType(
-                                    id = body.loaiBanTin!!.toLong(),
-                                    value = body.loaiBanTin
-                                ),
-                                priority = Priority(
-                                    id = body.mucDoUuTien.toLong(),
-                                    value = body.mucDoUuTien
-                                ),
-                                author = Author(
-                                    userName = body.tacGia?.butDanh,
-                                    fullName = body.tacGia?.tenDayDu,
-                                    email = body.tacGia?.email
-                                ),
+                    val bodyLive = body!!.payload
+                    val banTinPhat = bodyLive!!.danhSachBanTin!!.firstOrNull()
+                    if (banTinPhat != null) {
+                        responseHub = ResponseHub().apply {
+                            type = HubCommand.LIVE
+                            level = banTinPhat.mucDoUuTien!!.toInt()
+                            duration = banTinPhat.thoiLuong!!
+                            message = banTinPhat.noiDung
+                            userNameControl = ""
+                            name = mediaItemMoshiAdapter.toJson(
+                                MediaItem(
+                                    projectID = banTinPhat.banTinCongCongID,
+                                    mediaID = banTinPhat.banTinCongCongID,
+                                    id = 0,
+                                    sourceID = bodyLive.nguonID,
+                                    sourceName = bodyLive.tenNguon,
+                                    destinationID = bodyLive.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
+                                    destinationName = bodyLive.danhSachDiaBanNhan.firstOrNull()?.tenDich,
+                                    title = banTinPhat.tieuDe,
+                                    description = banTinPhat.noiDungTomTat,
+                                    duration = bodyLive.danhSachBanTin!!.firstOrNull()?.thoiLuong,
+                                    body = bodyLive.danhSachBanTin.firstOrNull()?.noiDung,
+                                    sourceReference = bodyLive.nguonID,
+                                    startTime = "00:00:00",
+                                    fieldType = Category(
+                                        id = banTinPhat.loaiLinhVuc?.toLong(),
+                                        value = banTinPhat.loaiLinhVuc
+                                    ),
+                                    type = "LIVE",
+                                    fixTime = "00:00:00",
+                                    createDate = banTinPhat.thoiGianSANXuat.toString(),
+                                    contentType = ContentType(
+                                        id = banTinPhat.loaiBanTin?.toLong(),
+                                        value = banTinPhat.loaiBanTin
+                                    ),
+                                    priority = Priority(
+                                        id = banTinPhat.mucDoUuTien.toLong(),
+                                        value = banTinPhat.mucDoUuTien
+                                    ),
+                                    author = Author(
+                                        userName = banTinPhat.tacGia?.butDanh,
+                                        fullName = banTinPhat.tacGia?.tenDayDu,
+                                        email = banTinPhat.tacGia?.email
+                                    ),
+                                    broadcastRegion = BroadcastRegion(
+                                        banTinPhat.vungPhat,
+                                        banTinPhat.vungPhat!!
+                                    )
+                                )
                             )
-                        )
-                    }
-                    Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
+                        }
+                        Log.d("wssLive", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
+                        Log.d("wssLive", "convertWssToHubCommad: ${responseHub}")
 
                         onMessageListener.invoke(hubCommand, jsonMessage)
+                    }
 
                 }catch (e : Exception)
                 {
@@ -346,26 +378,25 @@ class HubManager(
                 }
 
 
-
             }
-            //Hủy lịch
-            HubCommand. DV015 ->{
-                val body = wssData.payload
+//            //Hủy lịch
+            HubCommand.DV012 -> {
+                val body = wssPayloadRemovePlaylistAdapter.fromJson(jsonMessage)
                 if (body != null) {
                     hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
 
                     onMessageListener.invoke(hubCommand, "null")
 
-                    sendLogSchedule(HubCommand.DV012, body)
+                    sendLogRemovePlaylist(body.payload!!)
                 }
             }
             //dieu khien volume, pa
             HubCommand.DV017 -> {
-                val body = wssData.payload
+                val body = wssPayloadControlDeviceAdapter.fromJson(jsonMessage)
                 if (body != null) {
 
-                    val maLenh = body.dieuKhienThietBI?.maLenh
-                    val giaTri = body.dieuKhienThietBI?.thamSo
+                    val maLenh = body.payload!!.dieuKhienThietBI?.maLenh
+                    val giaTri = body.payload.dieuKhienThietBI?.thamSo
 
                     when (maLenh) {
                         //0 - Điều khiển volume
@@ -413,7 +444,9 @@ class HubManager(
                         }
 
                     }
+
                     onMessageListener.invoke(hubCommand, jsonMessage)
+                    Log.d("wss", "Control ${hubCommand}- ${responseHub}")
 
                 }
             }
@@ -421,13 +454,15 @@ class HubManager(
         }
     }
 
-    fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
+    fun sendLogMediaSuccess(mediaItem: MediaItem) {
 
         val tacGia = TacGia(
             tenDayDu = mediaItem.author?.fullName ?: "",
             butDanh = mediaItem.author?.userName ?: "",
-            email = mediaItem.author?.email ?: ""
+            email = mediaItem.author?.email ?: "",
+            tenDangNhap =   ""
         )
+        Log.d(TAG, "sendLogMediaSuccess: ${mediaItem.createDate}")
 
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV013, payload = WssMediaLogModel(
@@ -438,73 +473,79 @@ class HubManager(
                 bangDienTuID = deviceImei,
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                congSuat = paState,
-                banTinCongCongID = mediaItem.projectID,
-                loaiBanTin = mediaItem.contentType?.value,
+                banTinCongCongID = mediaItem.projectID!!,
+                loaiBanTin = mediaItem.contentType?.value!!,
                 mucDoUuTien = mediaItem.priority?.id.toString(),
                 noiDung = mediaItem.pathBackup,
-                noiDungTomTat = mediaItem.description,
+                noiDungTomTat = mediaItem.description!!,
                 tacGia = tacGia,
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-                thoiLuong = mediaItem.duration,
-                tieuDe = mediaItem.title,
-                danhSachBanTin = listOf(),
-                danhSachDiaBan = listOf(),
-                danhSachThietBi = listOf(),
-                loaiLinhVuc =  mediaItem.fieldType?.value ,
-                vungPhat = mediaItem.broadcastRegion?.value
+                tenThietBI = GlobalProperties.getInst().nameDevice,
+                thoiLuong = mediaItem.duration!!,
+                tieuDe = mediaItem.title!!,
+                loaiLinhVuc = mediaItem.fieldType!!.value!!,
+                vungPhat = mediaItem.broadcastRegion!!.value,
+                thongTinChiTietBanTin = mutableListOf(
+                    ThongTinChiTietBanTinTa("", "")
+                ),
+                nguonTin = mediaItem.sourceName!!,
+                thoiGianSANXuat = mediaItem.createDate?.toLong() ?: 0
             )
         )
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    private fun sendLogSchedule(commanDV: String, body: ReceivedPayload) {
-        val danhSachDiaBanNhan = listOf(
-            DanhSachDiaBanNhan(
-                dichID = GlobalProperties.getInst().destinationId,
-                tenDich = GlobalProperties.getInst().destinationName,
-                cumLoaID = listOf(
-                    deviceImei
-                )
-            )
-        )
-        val danhSachThietBi = listOf(
-            DanhSachThietBi(
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-            )
-        )
+    private fun sendLogUpdatePlaylist( body: ReceivedPayloadSchedule) {
         val request = WssStatusModel(
-            id = "", topic = commanDV, payload = WssMediaLogModel(
+            id = "", topic = HubCommand.DV014, payload = PayloadUpdatePlaylist(
                 nguonID = GlobalProperties.getInst().destinationId,
                 tenNguon = GlobalProperties.getInst().destinationName,
                 dichID = GlobalProperties.getInst().dichId,
                 tenDich = GlobalProperties.getInst().tenDich,
-                bangDienTuID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
+                danhSachDiaBan = body.danhSachDiaBanNhan,
+                danhSachThietBI = mutableListOf(
+                    DanhSachThietBi(
+                        bangDienTuID = deviceImei,
+                        tenThietBI = GlobalProperties.getInst().nameDevice,
+                        maNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                    )
                 ),
-                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                tenThietBi = GlobalProperties.getInst().nameDevice,
+                phanVungManHinh = body.phanVungManHinh,
                 lichPhatID = body.lichPhatID,
                 tenLichPhat = body.tenLichPhat,
-                tacGia = body.tacGia,
-                    danhSachBanTin = body.danhSachBanTin,
-                danhSachDiaBan = danhSachDiaBanNhan,
-                danhSachThietBi = danhSachThietBi
+                danhSachBanTin = body.danhSachBanTin,
+
+
+                )
+        )
+        Log.d("WebsocketLog", "sendLogSchedule: $request")
+        sendMessage(wssStatusAdapter.toJson(request))
+    }
+
+
+    private fun sendLogRemovePlaylist(body: PayloadRemovePlaylist) {
+        val request = WssStatusModel(
+            id = "", topic = HubCommand.DV015, payload = PayloadSendLogRemovePlaylist(
+                nguonID = body.nguonID,
+                tenNguon = body.tenNguon,
+                dichID = body.danhSachDiaBanNhan?.firstOrNull()?.dichID,
+                tenDich =  body.danhSachDiaBanNhan?.firstOrNull()?.dichID,
+                lichPhatID = body.lichPhatID,
+                tenLichPhat = body.tenLichPhat,
+                danhSachThietBI = mutableListOf(
+                    DanhSachThietBi(
+                        bangDienTuID = deviceImei,
+                        tenThietBI = GlobalProperties.getInst().nameDevice,
+                        maNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                    )
+                ),
+
+
             )
         )
-        Log.d("WebsocketLog", "sendLogSchedule: $commanDV - $request")
+        Log.d("WebsocketLog", "sendLogRemovePlaylist: $request")
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
@@ -516,13 +557,13 @@ class HubManager(
         listDate.sort()
     }
 
-    private fun convertWssMessToPlaylist(payload: ReceivedPayload): Map<String, String> {
+    private fun convertWssMessToPlaylist(payload: ReceivedPayloadSchedule): Map<String, String> {
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
         val mapData: MutableMap<String, String> = mutableMapOf()
-        if (danhSachBanTin?.isNotEmpty() == true) {
+        if (danhSachBanTin!!.isNotEmpty()) {
             for (item in danhSachBanTin) {
-                findDate(item.danhSachNgayPhat)
+                findDate(item.danhSachNgayPhat!!)
             }
         }
 
@@ -544,13 +585,13 @@ class HubManager(
         return mapData
     }
 
-    private fun findScheduleByDate(payload: ReceivedPayload, ngayPhat: String): String {
+    private fun findScheduleByDate(payload: ReceivedPayloadSchedule, ngayPhat: String): String {
         val danhSachBanTin = payload.danhSachBanTin
         val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()
         val listItemMedia = mutableListOf<itemMedia>()
         //tim nhung ban tin co ngay la date
-        for (item in danhSachBanTin!!) {
-            item.danhSachNgayPhat.forEach {
+        for (item in danhSachBanTin) {
+            item.danhSachNgayPhat!!.forEach {
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
                     it.thoiDiemPhat.forEach { thoiDiemPhat ->
                         val time = ThongTinChiTietBanTin(
@@ -581,22 +622,22 @@ class HubManager(
                 val obj = MediaItem(
                     id = count,
                     mediaID = count.toString(),
-                    projectID = item.danhSachBanTin.banTinID,
+                    projectID = item.danhSachBanTin.banTinCongCongID,
                     sourceID = payload.nguonID,
                     sourceName = payload.tenNguon,
-                    destinationID = payload.dichID,
-                    destinationName = payload.tenDich,
+                    destinationID = payload.danhSachDiaBanNhan.firstOrNull()!!.dichID,
+                    destinationName = payload.danhSachDiaBanNhan.firstOrNull()!!.tenDich,
                     title = item.danhSachBanTin.tieuDe,
                     description = item.danhSachBanTin.noiDungTomTat,
                     duration = item.danhSachBanTin.thoiLuong,
-                    contentType = Utils.convertContentType(item.danhSachBanTin.loaiBanTin),
-                    fieldType = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc),
-                    priority = Utils.convertPriority(item.danhSachBanTin.mucDoUuTien),
-                    category = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc),
-                    author = convertAuthor(item.danhSachBanTin.tacGia),
+                    contentType = Utils.convertContentType(item.danhSachBanTin.loaiBanTin!!),
+                    fieldType = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc!!),
+                    priority = Utils.convertPriority(item.danhSachBanTin.mucDoUuTien!!),
+                    category = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc!!),
+                    author = convertAuthor(item.danhSachBanTin.tacGia!!),
                     body = item.danhSachBanTin.noiDung,
                     sourceReference = item.danhSachBanTin.tenDiaBanTAO,
-                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin.toInt()),
+                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin!!.toInt()),
                     createDate = item.danhSachBanTin.thoiGianSANXuat.toString(),
                     metadata = mutableListOf(),
                     tag = mutableListOf(),
@@ -604,7 +645,10 @@ class HubManager(
                     startTime = tObjStartTime,
                     start = tObjStartTime,
                     end = tObjEndTime,
-                    broadcastRegion = BroadcastRegion(id = item.danhSachBanTin.vungPhat, value = item.danhSachBanTin.vungPhat!!)
+                    broadcastRegion = BroadcastRegion(
+                        id = item.danhSachBanTin.vungPhat,
+                        value = item.danhSachBanTin.vungPhat!!
+                    )
                 )
                 count++
                 listBanTinPhatTheoNgay.add(obj)
@@ -780,3 +824,4 @@ interface HubEventObserver {
     fun onLostHubConnection()
     fun onReconnectedToHub()
 }
+

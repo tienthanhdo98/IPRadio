@@ -1,38 +1,73 @@
 package app.tek4tv.ipradio.model
 
 import app.tek4tv.ipradio.core.*
+import com.squareup.moshi.Json
 
 data class WssMediaLogModel(
-    val nguonID: String? = "",
-    val tenNguon: String? = "",
-    val dichID: String? = "",
-    val tenDich: String? = "",
-    val bangDienTuID : String? = "",
-    val tenThietBi: String? = "",
-    val maNhaCungCap: String? = "",
-    val tenNhaCungCap: String? = "",
-    val vungPhat : String ? = "",
-    val banTinCongCongID: String?= "",
-    val loaiBanTin: String?= "",
-    val mucDoUuTien: String?= "",
-    val tieuDe: String?= "",
-    val loaiLinhVuc: String? = "",
-    val noiDungTomTat: String?= "",
-    val thoiGianSanXuat: Long? = 0,
-    val thoiLuong: String? = "",
-    val tacGia: TacGia?,
-    val thoiDiemBatDau: Long? = 0,
-    val tiepAm: Long? = 0,
-    val nguonTiepAm: String? = "",
-    val noiDung: String? = "",
-    val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>? = listOf(),
-    val nguonTin: String? = "",
-    val amLuong: String? = "",
-    val congSuat: String? = "",
-    var lichPhatID: String? = "",
-    var tenLichPhat: String? = "",
-    var danhSachDiaBan: List<DanhSachDiaBanNhan>?,
-    var danhSachBanTin:  List<DanhSachBanTin>?,
-    var danhSachThietBi:  List<DanhSachThietBi>?,
+    @Json(name = "NguonID")
+    val nguonID: String,
+
+    @Json(name = "TenNguon")
+    val tenNguon: String,
+
+    @Json(name = "DichID")
+    val dichID: String,
+
+    @Json(name = "TenDich")
+    val tenDich: String,
+
+    @Json(name = "BangDienTuID")
+    val bangDienTuID: String,
+
+    @Json(name = "TenThietBi")
+    val tenThietBI: String,
+
+    @Json(name = "MaNhaCungCap")
+    val maNhaCungCap: String,
+
+    @Json(name = "TenNhaCungCap")
+    val tenNhaCungCap: String,
+
+    @Json(name = "VungPhat")
+    val vungPhat: String,
+
+    @Json(name = "BanTinCongCongID")
+    val banTinCongCongID: String,
+
+    @Json(name = "LoaiBanTin")
+    val loaiBanTin: String,
+
+    @Json(name = "MucDoUuTien")
+    val mucDoUuTien: String,
+
+    @Json(name = "TieuDe")
+    val tieuDe: String,
+
+    @Json(name = "LoaiLinhVuc")
+    val loaiLinhVuc: String,
+
+    @Json(name = "NoiDungTomTat")
+    val noiDungTomTat: String,
+
+    @Json(name = "ThoiGianSanXuat")
+    val thoiGianSANXuat: Long,
+
+    @Json(name = "ThoiLuong")
+    val thoiLuong: String,
+
+    @Json(name = "TacGia")
+    val tacGia: TacGia,
+
+    @Json(name = "ThoiDiemBatDau")
+    val thoiDiemBatDau: Long,
+
+    @Json(name = "NoiDung")
+    val noiDung: String,
+
+    @Json(name = "ThongTinChiTietBanTin")
+    val thongTinChiTietBanTin: List<ThongTinChiTietBanTinTa>,
+
+    @Json(name = "NguonTin")
+    val nguonTin: String
 
     )

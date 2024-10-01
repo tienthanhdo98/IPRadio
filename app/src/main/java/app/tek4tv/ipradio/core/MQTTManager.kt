@@ -11,7 +11,7 @@ class MQTTManager(
     private val destinationId: String
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "8518c82b-9263-4904-9570-fa068f12c60f"
+    var clientID = "854fc1b8-598e-4803-9ca1-92dd560396f0"
     private var publishTopicTinh = "tinh/$clientID"
 
     private var mqttClient: MqttAndroidClient? = null
@@ -30,14 +30,14 @@ class MQTTManager(
         if (listDesId.count() >= 3) {
             subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
         } else {
-
             subscribe("thon/$destinationId".toLowerCase())
         }
     }
 
     fun connectToMQTT(context: Context) {
-        val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
-//        val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
+ //       val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
+  //      val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
+        val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {

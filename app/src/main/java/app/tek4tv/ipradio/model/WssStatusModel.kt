@@ -41,8 +41,7 @@ data class PayloadStatus (
     @Json(name = "AmLuong")
     var amLuong: String,
 
-    @Json(name = "TrangThaiHoatDong")
-    var trangThaiHoatDong: String,
+
 
     @Json(name = "TrangThaiKetNoi")
     var trangThaiKetNoi: String,

@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D62.4.1.7e"
+        versionName "D90MQTT.4.1.8"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

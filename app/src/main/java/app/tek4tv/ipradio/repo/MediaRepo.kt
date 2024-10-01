@@ -272,7 +272,7 @@ class MediaRepo @Inject constructor(
                     Log.d("downloadcomplete", it.body!!)
                 }
 
-                override fun onError(error: com.downloader.Error?) {
+                override fun onError(error: Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
 

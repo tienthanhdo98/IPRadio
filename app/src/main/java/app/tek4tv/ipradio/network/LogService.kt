@@ -20,6 +20,9 @@ interface LogService {
     @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/log")
     suspend fun postDeviceLog(@Body dataLogModel: DataLogModel) : Response<Any>
 
+
+
+
 //    @POST("https://datawarehouse-truyenthanh.tek4tv.vn/DigitalDataLogConfirm")
 //    suspend fun postMediaInfoEnd(@Body record: MediaRecord)//doi media id
 //
