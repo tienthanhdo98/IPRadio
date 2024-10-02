@@ -3,18 +3,16 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.*
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.size
+import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -37,15 +35,14 @@ import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
-import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -99,10 +96,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private var volume = "80"
 
-    var locationTracker = LocationTracker()
-
-    private lateinit var mediaCapture: MediaCapture
-
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
@@ -110,11 +103,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: String = FULL_SCREEN
-    private lateinit var tvTopArea: TextView
-    private lateinit var tvTitleRight: TextView
-    private lateinit var scrollLeftArea: ScrollView
-    private lateinit var layoutTvLeft: LinearLayout
+    private var typeScreen: String = MULTIPLE_AREA
+    private lateinit var rootMultiLayout: ConstraintLayout
+    private lateinit var ivBackgroundMultiLayout: ImageView
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -153,19 +144,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
-//            ForceMedia.deleteForeMediaPref(applicationContext)
-//            val oldTypeScreen = ConfigUtil.getString(
-//                            context = baseContext,
-//                            TYPE_PRE_SCREEN_KEY,
-//                            FULL_SCREEN
-//                        )
-//            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
-//
-//            startPlayingMedia()
-//            if(oldTypeScreen != typeScreen)
-//            {
-//                recreate()
-//            }
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
 
@@ -181,8 +159,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-//            logUtils.logMediaEnd(mediaItem)
-
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
@@ -223,7 +199,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+//        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
@@ -255,7 +231,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
 
-        mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
@@ -300,13 +275,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         initDataByScreen()
 
-//        tvTopArea.setOnClickListener {
-//            val json =
-//                "{\"id\":\"\",\"topic\":\"dv010\",\"payload\":{\"Id\":\"d457c8f0-0c52-4df3-bc40-f4e5c4c44012\",\"NguonID\":\"H39.20.12\",\"TenNguon\":\"Thị trấn Bến Lức\",\"DichID\":\"H39\",\"TenDich\":\"Tỉnh Long An\",\"DanhSachDiaBanNhan\":[{\"DichID\":\"H39.20.12\",\"TenDich\":\"Thị trấn Bến Lức\",\"Email\":\"\",\"IsRead\":true,\"CumLoaID\":[],\"BangDienTuID\":[]}],\"PhanVungManHinh\":\"1\",\"LichPhatID\":\"782e8da9-e41b-42e4-8556-6700b588e17e\",\"TenLichPhat\":\"Lịch Digital.\",\"DanhSachBanTin\":[{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"310\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:11\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/912749979_y2mate.com---4k-ultra-hd-sony-4k-uhd-demo-another-world-madagascar_1080p.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830140,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"2\",\"BanTinCongCongID\":\"348\",\"LoaiBanTin\":\"1\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"CV 2455\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"CV 2455\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:00:00\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"Triển khai Quyết định số 135/QĐ-TTg ngày 20/01/2020 của Thủ tướng\\nChính phủ phê duyệt Đề án nâng cao hiệu quả hoạt động thông tin cơ sở dựa trên\\nứng dụng công nghệ thông tin, Bộ Thông tin và Truyền thông ban hành Hướng\\ndẫn nghiệp vụ về chức năng, tính năng kỹ thuật của Hệ thống thông tin nguồn\\ntrung ương và Hệ thống thông tin nguồn cấp tỉnh - Phiên bản 2.0 (gửi kèm theo\\nvăn bản này). Hướng dẫn này thay thế Hướng dẫn chức năng, tính năng kỹ thuật\\ncủa Hệ thống thông tin nguồn trung ương, Hệ thống thông tin nguồn cấp tỉnh và\\nkết nối các hệ thống thông tin - Phiên bản 1.0 ban hành theo Văn bản số\\n1273/BTTTT-TTCS ngày 27/4/2021.\\nBộ Thông tin và Truyền thông đề nghị Ủy ban nhân dân các tỉnh, thành phố\\ntrực thuộc Trung ương chỉ đạo, giao Sở Thông tin và Truyền thông chủ trì tham\\nmưu, xây dựng Hệ thống thông tin nguồn cấp tỉnh để cung cấp thông tin và quản\\nlý, giám sát hoạt động của đài truyền thanh cấp xã ứng dụng công nghệ thông tin\\n- viễn thông, bảng tin điện tử công cộng trên địa bàn.\\nTrong quá trình tổ chức thực hiện nếu có khó khăn, vướng mắc, đề nghị\\nliên hệ với Cục Thông tin cơ sở, Bộ Thông tin và Truyền thông để được hỗ trợ,\\nhướng dẫn.\\nTrân trọng./.\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"312\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"4ktv.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"4ktv.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:24\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/412883213_4ktv.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830535}]}]}],\"CreateTime\":1724830112,\"CreateDate\":1724778000,\"UserName\":\"\"}}"
-//            hubManager.convertToHubCommand(json)
-//        }
+
         checkDeleteFileUpdate()
-//        playerManager.resumeMedia()
+        playerManager.resumeMedia()
 
     }
     private  fun checkDeleteFileUpdate()
@@ -324,7 +295,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
@@ -336,90 +306,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private fun startAutoScroll() {
-        val runnable: Runnable = object : Runnable {
-            override fun run() {
-                // Scroll the ScrollView vertically
-                scrollLeftArea.scrollBy(0, scrollSpeed)
-
-                // Check if reached the bottom
-                if (scrollLeftArea.scrollY >= scrollLeftArea.getChildAt(0)
-                        .height - scrollLeftArea.height
-                ) {
-                    // val typeface = resources.getFont(R.font.verdanabold)
-                    listLeftMedia.forEach {
-                        val textView = TextView(baseContext)
-                        textView.text = it.body
-                        textView.setTextColor(Color.parseColor("#F2FB0A"))
-                        textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
-//                        textView.typeface = typeface
-                        listLeftTextView.add(textView)
-                        layoutTvLeft.addView(textView)
-                    }
-                    //if(layoutTvLeft.size >= listLeftMedia.size*3)
-                    if (layoutTvLeft.size >= 30) {
-                        layoutTvLeft.removeAllViews()
-                        handler.removeCallbacksAndMessages(null)
-                        showLeftArea()
-                    }
-                }
-
-                handler.postDelayed(this, 50) // Adjust the delay as needed
-            }
-        }
-        handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
-    }
-
-    private fun showLeftArea() {
-        listLeftMedia = playerManager.currentTextPlaylist.toMutableList()
-        Log.d("monthlyinfo", "showLeftArea ${listLeftMedia.size}")
-        if (listLeftMedia.isEmpty()) return
-        Log.d("monthlyinfo", "show left")
-        //   val typeface = resources.getFont(R.font.verdanabold)
-        listLeftMedia.forEach {
-            val textView = TextView(baseContext)
-            textView.text = it.body
-            textView.setTextColor(Color.parseColor("#F2FB0A"))
-            textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
-            //   textView.typeface = typeface
-            listLeftTextView.add(textView)
-            layoutTvLeft.addView(textView)
-        }
-
-        scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                startAutoScroll()
-                scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
-            }
-        })
-    }
-
-
-    private fun hideTopLeftArea(isStillTimeFrame : Boolean) {
-        if(typeScreen != FULL_SCREEN ) {
-            layoutTvLeft.removeAllViews()
-            handler.removeCallbacksAndMessages(null)
-            if (!isStillTimeFrame) {
-                listLeftMedia.clear()
-                ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-                Log.e("monthlyinfo", "Hub hide left")
-            }
-        }
-    }
-
-    private val scrollSpeed = 1
-    private val handler: Handler = Handler()
     private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
-    private var listLeftTextView = mutableListOf<TextView>()
+
 
     private fun initDefaultTopAndLeftArea() {
-        val videoViewContainer = findViewById<FrameLayout>(R.id.root_layout)
+        rootMultiLayout = findViewById(R.id.root_multi_layout)
+        ivBackgroundMultiLayout = findViewById(R.id.iv_bg_multi_layout)
+        val videoViewContainer = findViewById<FrameLayout>(R.id.frame_player_layout)
         videoViewContainer.clipToOutline = true
-        scrollLeftArea = findViewById(R.id.scrollView)
-        tvTopArea = findViewById(R.id.tvTopArea)
-        tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-        tvTopArea.isSelected = true
-        layoutTvLeft = findViewById(R.id.layoutTvLeft)
+
+
     }
 
     override fun onStart() {
@@ -441,7 +337,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
 
-        handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
 //        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
@@ -461,7 +356,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (typeScreen == MULTIPLE_AREA) {
 
                         Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
-                        showLeftArea()
+
                     }
                 }
             }
@@ -474,7 +369,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (typeScreen == MULTIPLE_AREA) {
                     Log.d("onPlayMediaLog", "show left ACTION_END_PLAYLIST ${typeScreen}")
                     Log.d("onPlayMediaLog", "hideTopLeftArea")
-                    hideTopLeftArea(true)
                 }
             }
 
@@ -551,19 +445,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //default
             mediaScheduler.scheduleAllAlarms()
 
+            listLeftMedia = playerManager.currentTextPlaylist.toMutableList()
+
+            if (typeScreen == MULTIPLE_AREA) {
+                Picasso.get()
+                    .load("https://i.ibb.co/KjWTv5F/01.png")
+
+                    .into(ivBackgroundMultiLayout)
+//                if (listLeftMedia.isEmpty() && playerManager.isInTimeFrame) {
+//                    Picasso.get()
+//                        .load("https://brand-pcms.ggg.systems/media/catalog/product/cache/fccf9bc1c56510f6f2e84ded9c30a375/c/o/combo-khong-gioi-han_1_1.jpg")
+//                        .fit()
+//                        .into(ivBackgroundMultiLayout)
+//                } else {
+//                    Log.i("monthlyinfo", "Mess: left not show")
+//                }
+
+            }
+
             playerManager.startFirstTimeFrame()
 
 
             sendLogDataHub()
 
-            if (typeScreen == MULTIPLE_AREA) {
-                if (listLeftMedia.isEmpty() && playerManager.isInTimeFrame) {
-                    showLeftArea()
-                } else {
-                    Log.i("monthlyinfo", "Mess: left not show")
-                }
-
-            }
 
             //all load done, check
             viewModel.checkPlaylist()
@@ -620,7 +524,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopAllPlayer()
 
                     playerManager.resetPlayMode()
-                    hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
@@ -678,7 +581,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
 //                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
-                    hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
 //                    viewModel.updateMonthlyScenario(mess, true)
@@ -784,19 +686,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
                 }
-                HubCommand.GET_LOCATION -> {
-                    val connectionId = responseHub.message
-                    if (locationTracker.mlocation != null && connectionId != null) {
 
-                        val result =
-                            "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
-
-//                        hubManager.sendHubDirectMessage(
-//                            connectionId, Utils.DEVICE_LOCATION,
-//                            result
-//                        )
-                    } else Log.d("location", "location not found")
-                }
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
@@ -921,35 +811,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     appStorageManager.deleteAllMedia()
                 }
 
-                HubCommand.RECORD -> {
-                    //mess chua user control
-//                    val shouldStart = responseHub.start!! == "1"
-//
-//                    if (shouldStart) {
-//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-//
-//                        mediaCapture.startCaptureAudio()
-//                    } else {
-//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-//                    }
-                    val duration = responseHub.message
-                    val shouldStart = responseHub.start!! == "1"
-
-                    if (shouldStart) {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                        mediaCapture.startCaptureAudio()
-                        Log.i("kakaka", "record.... ")
-                    } else {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                    }
-                    Timer().schedule(object : TimerTask() {
-                        override fun run() {
-                            mediaCapture.stopAudioCapture()
-                            Log.i("kakaka", "stop record.... ")
-                        }
-                    }, duration!!.toLong() * 60 * 1000)
-                }
-
                 HubCommand.GET_RECORD -> {
                     val connectionId = responseHub.message!!
                     val recordedAudioList =
@@ -961,10 +822,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 }
 
-                HubCommand.UPLOAD_RECORDED -> {
-                    val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
-                }
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
