@@ -4,10 +4,10 @@ import android.Manifest
 import android.content.*
 import android.content.pm.PackageManager
 import android.database.Cursor
-import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -289,6 +289,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //readSms(baseContext)
         //sendSms("191","KTTK",baseContext)
+
+        val telephonyManager = baseContext.getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+        val simOperatorName = telephonyManager.simOperatorName
+        Log.d("simOperatorName", "onCreate: ping count ${simOperatorName}")
     }
 
     fun readSms(context: Context): String? {
