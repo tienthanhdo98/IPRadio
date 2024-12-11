@@ -138,6 +138,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("onPlayMediaLog", "startFirstTimeFrame: onStartTimeFrame")
             if (typeScreen == MULTIPLE_AREA) {
                 showLeftArea()
+                if (listLeftMedia.isEmpty()) return
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                    else "0"
+                listLeftMedia.forEach{
+                    logUtils.logMediaStart(it, 0, globalProperties.volume, paState,typeScreen)
+                }
             }
         }
 
@@ -270,7 +277,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -299,7 +306,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        serialPortController.connectToSerialPort(UART_S1_NAME)
+                    serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
             delay(10000)
             if (!serialPortController.isUart1) {
@@ -335,7 +342,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         viewModel.hideSystemUI(this)
        initDataByScreen()
-
 
     }
 
@@ -535,10 +541,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
+//        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+//            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+//            startActivity(intent)
+//        }
 
         return needGrantPermission
     }
@@ -672,6 +678,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         onPlayForce(responseHub)
                         recreate()
                     }, 1000)
+//                    onPlayForce(responseHub)
                 }
 
 

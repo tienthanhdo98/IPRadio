@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
 import java.util.*
-import kotlin.math.log
 
 
 /**
@@ -200,9 +199,9 @@ class PlayersManager(
     {
         vlcPlayer.resume()
     }
-//    fun reset(){
-//        vlcPlayer.reset()
-//    }
+    fun reset(){
+        vlcPlayer.reset()
+    }
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
         try {
@@ -364,7 +363,7 @@ class PlayersManager(
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
                 forceMedia.saveItemToPref(context)
-//            playForceMedia(context, forceMedia, mediaScheduler,false)
+                playForceMedia(forceMedia, mediaScheduler,false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -384,7 +383,7 @@ class PlayersManager(
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllAlarm()
 
-//            forceMedia.saveItemToPref(context)
+//           forceMedia.saveItemToPref()
             //hẹn giờ dừng media khẩn cấp
             mediaScheduler.scheduleForceMediaAlarm()
 
@@ -393,6 +392,7 @@ class PlayersManager(
             if(isPlayAtStart) {
                 playMedia(forceMedia.toMediaItem())
             }
+//            playMedia(forceMedia.toMediaItem())
 
         } catch (e: Exception) {
             e.printStackTrace()

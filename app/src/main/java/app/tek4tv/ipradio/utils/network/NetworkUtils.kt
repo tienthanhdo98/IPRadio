@@ -228,7 +228,8 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-                val dataUsage = getNetworkUsage(appContext)
+//                val dataUsage = getNetworkUsage(appContext)
+                 val dataUsage = ""
 
                 val level = when (networkClass) {
                     "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
