@@ -389,10 +389,10 @@ class PlayersManager(
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-            if(isPlayAtStart) {
-                playMedia(forceMedia.toMediaItem())
-            }
-//            playMedia(forceMedia.toMediaItem())
+//            if(isPlayAtStart) {
+//                playMedia(forceMedia.toMediaItem())
+//            }
+           playMedia(forceMedia.toMediaItem())
 
         } catch (e: Exception) {
             e.printStackTrace()

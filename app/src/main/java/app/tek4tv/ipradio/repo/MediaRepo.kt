@@ -149,7 +149,7 @@ class MediaRepo @Inject constructor(
     )
     val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
 
-//    val mediaJsonAdapter = MoshiInst.moshi.adapter<List<MediaItem>>( List::class.java, MediaItem::class.java)
+//    val mediaJsonAdapter = MoshiInst.moshi.adapterListString<List<MediaItem>>( List::class.java, MediaItem::class.java)
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 

@@ -670,15 +670,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-
+                    Log.d("tesstlive", "handleFromCommandServer: live")
                     ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
                     ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-                    Handler().postDelayed({
-                        onPlayForce(responseHub)
-                        recreate()
-                    }, 1000)
-//                    onPlayForce(responseHub)
+//                    Handler().postDelayed({
+//                        onPlayForce(responseHub)
+//                        recreate()
+//                    }, 1000)
+                    onPlayForce(responseHub)
                 }
 
 

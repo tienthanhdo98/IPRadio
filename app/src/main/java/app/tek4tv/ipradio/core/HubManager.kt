@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.content.SharedPreferences
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -50,9 +49,10 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val videoAdapter = moshi.adapter(Video::class.java)
+    val adapterListString = moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-//    private val deviceImei = Utils.getDeviceId(appContext)
-    private val deviceImei = "72:BE:B5:09:30:45"
+    private val deviceImei = Utils.getDeviceId(appContext)
+//    private val deviceImei = "72:BE:B5:09:30:45"
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
@@ -426,10 +426,14 @@ class HubManager(
                 else "0"
             }
 
+            //neu chay da man hinh path se gui la "path1,path2" path vùng 1,2,3
+
             val video = Video("" + i, mode).apply {
                 if (currentMediaItem != null) {
+                    val listPath = listOf(currentMediaItem!!.pathBackup,currentMediaItem!!.pathBackup)
+                    val jsonString = adapterListString.toJson(listPath)
                     mediaName = curMediaName
-                    path = currentMediaItem!!.pathBackup
+                    path = jsonString
                     level = currentMediaItem!!.level
                 }
             }
