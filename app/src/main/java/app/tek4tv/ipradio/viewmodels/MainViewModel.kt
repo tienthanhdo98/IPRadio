@@ -2,12 +2,12 @@ package app.tek4tv.ipradio.viewmodels
 
 import android.app.Activity
 import android.view.View
-import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.MyApp.Companion.appContext
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.di.RetrofitInstance.moshi
+import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
@@ -15,16 +15,15 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
-class MainViewModel @ViewModelInject constructor(
-    internal val mediaRepo: MediaRepo
-) : ViewModel() {
-    val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
+class MainViewModel  : ViewModel() {
+    val mediaRepo : MediaRepo = MediaRepo(moshi,appContext)
+    val content = MutableLiveData<Pair<List<MediaItemModel>, List<String>>>()
 
     private var getContentJob: Job? = null
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia: MediaItem? = null
+    var currentMedia: MediaItemModel? = null
 
     fun rescheduleMonthlyPlaylist()
     {

@@ -125,10 +125,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP, time.timeInMillis,
-            alarmIntent
-        )
+        if (alarmIntent != null) {
+            alarmManager.setExactAndAllowWhileIdle(
+                AlarmManager.RTC_WAKEUP, time.timeInMillis,
+                alarmIntent
+            )
+        }
     }
 
     private fun cancelAllListAlarm() {
@@ -157,7 +159,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.cancel(alarmIntent)
+        if (alarmIntent != null) {
+            alarmManager.cancel(alarmIntent)
+        }
         alarmIntent?.cancel()
     }
 

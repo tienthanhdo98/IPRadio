@@ -1,16 +1,8 @@
 package app.tek4tv.ipradio
 
-import android.util.Log
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import app.tek4tv.ipradio.core.players_helper.IPlayerEventListener
-import app.tek4tv.ipradio.core.players_helper.VlcMediaPlayer
-import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.*
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 
 import org.junit.Test
 import org.junit.runner.RunWith

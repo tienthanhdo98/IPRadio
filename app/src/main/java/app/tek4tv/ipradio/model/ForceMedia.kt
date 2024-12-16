@@ -1,9 +1,8 @@
 package app.tek4tv.ipradio.model
 
 import android.content.Context
-import app.tek4tv.ipradio.di.MoshiInst
+import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
 import com.squareup.moshi.Json
 import java.text.SimpleDateFormat
 import java.util.*
@@ -20,7 +19,7 @@ data class ForceMedia(
     @Json(name = "Level")
     var level: Int = 0,
 
-    var mediaItem : MediaItem ? = null
+    var mediaItem : MediaItemModel ? = null
 ) {
     //Thời điểm kết thúc
     @Json(name = "EndTime")
@@ -33,14 +32,14 @@ data class ForceMedia(
     @Json(name = "Name")
     var name = ""
 
-    fun toMediaItem(): MediaItem {
+    fun toMediaItem(): MediaItemModel {
 //        val h = duration / 60
 //        val m = duration - h * 60
 //
 //        val hs = if (h >= 10) "$h" else "0$h"
 //        val ms = if (m >= 10) "$m" else "0$m"
 
-        return MediaItem(
+        return MediaItemModel(
             body = path,
             title = mediaItem!!.title,
             type = type,
@@ -74,7 +73,7 @@ data class ForceMedia(
     //duration = "$hs:$ms:00",
 
     companion object {
-        val jsonAdapter = MoshiInst.moshi.adapter(ForceMedia::class.java)
+        val jsonAdapter = moshi.adapter(ForceMedia::class.java)
 
         fun getLocalForceMedia(appContext: Context): ForceMedia? {
             val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")

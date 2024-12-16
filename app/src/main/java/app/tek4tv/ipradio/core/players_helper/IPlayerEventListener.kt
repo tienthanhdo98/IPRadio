@@ -1,13 +1,13 @@
 package app.tek4tv.ipradio.core.players_helper
 
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaItemModel
 
 /**
  * Event listener for IMediaPlayer
  * **/
 interface IPlayerEventListener {
-    fun onPlayerError(e: Exception? = null, isLiveError : Boolean = false,mediaItem: MediaItem)
-    fun onPlayMediaSuccess(mediaItem: MediaItem?)
-    fun onMediaEndReached(mediaItem: MediaItem?)
-    fun onMediaForceEndReached(mediaItem: MediaItem?)
+    fun onPlayerError(e: Exception? = null, isLiveError : Boolean = false,mediaItem: MediaItemModel)
+    fun onPlayMediaSuccess(mediaItem: MediaItemModel?)
+    fun onMediaEndReached(mediaItem: MediaItemModel?)
+    fun onMediaForceEndReached(mediaItem: MediaItemModel?)
 }

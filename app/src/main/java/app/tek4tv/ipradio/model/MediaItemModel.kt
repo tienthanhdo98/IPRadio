@@ -10,7 +10,7 @@ import java.io.File
 import java.io.Serializable
 
 @JsonClass(generateAdapter = true)
-data class MediaItem(
+data class MediaItemModel(
     @Json(name = "ID")
     val id: Int? = null,
 

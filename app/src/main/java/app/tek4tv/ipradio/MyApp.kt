@@ -8,11 +8,10 @@ import android.util.Log
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import cn.wch.uartlib.WCHUARTManager
-import dagger.hilt.android.HiltAndroidApp
 import java.io.IOException
 import java.nio.charset.StandardCharsets
 
-@HiltAndroidApp
+
 class MyApp : Application() {
     val TAG = "WUART"
     val wUart = WCHUARTManager.getInstance()

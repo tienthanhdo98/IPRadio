@@ -9,7 +9,10 @@ import android.os.Handler
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
-import android.widget.*
+import android.widget.FrameLayout
+import android.widget.ImageView
+import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
@@ -22,51 +25,39 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.di.MoshiInst.moshi
+import app.tek4tv.ipradio.di.RetrofitInstance
+import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
-import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import com.squareup.picasso.Picasso
-import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
-import java.io.IOException
 import java.lang.reflect.Type
 import java.util.*
-import javax.inject.Inject
 
 
-@AndroidEntryPoint
 class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
-    //        Manifest.permission.ACCESS_FINE_LOCATION,
-    //        Manifest.permission.ACCESS_COARSE_LOCATION,
     private val permissions = arrayOf(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
         Manifest.permission.REQUEST_INSTALL_PACKAGES,
-        Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
         Manifest.permission.ACCESS_WIFI_STATE,
@@ -75,14 +66,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val viewModel by viewModels<MainViewModel>()
 
-    @Inject
-    lateinit var moshi: Moshi
 
-    @Inject
-    lateinit var authService: AuthService
-
-    @Inject
-    lateinit var logService: LogService
+//    lateinit var logService: LogService
 
     private lateinit var hubManager: HubManager
 
@@ -103,7 +88,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: String = MULTIPLE_AREA
+    private var typeScreen: String = FULL_SCREEN
     private lateinit var rootMultiLayout: ConstraintLayout
     private lateinit var ivBackgroundMultiLayout: ImageView
     // event media
@@ -115,32 +100,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
-        //Phát FM
-        override fun onPlayTuner(mediaItem: MediaItem) {
-            try {
-                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
-                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
-
-                hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
-
-                hubManager.sendLogMediaSuccess(mediaItem)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
@@ -150,7 +109,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         //Lỗi luồng live
-        override fun onLiveError(mediaItem: MediaItem) {
+        override fun onLiveError(mediaItem: MediaItemModel) {
             hubManager.curMediaName = "Live Error"
             hubManager.currentMediaItem = mediaItem
 
@@ -158,11 +117,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
 
-        override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
+        override fun onMediaStopPlaying(mediaItem: MediaItemModel, duration: Long) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
-        override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+        override fun onPlayMediaSuccess(mediaItem: MediaItemModel?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
 
             if (mediaItem != null) {
@@ -206,7 +165,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -229,10 +188,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
         logUtils = LogUtils.getInst()
-        logUtils.logService = logService
+//        logUtils.logService = logService
 
 
-        hubManager = HubManager(hubComm, authService) { command, message ->
+        hubManager = HubManager(hubComm) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -255,7 +214,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         playerManager.playerManagerListener = playerCallback
 
-        hubManager.hubEventObserver.add(playerManager)
+
 
         NetworkUtils.instance.startNetworkListener(this)
 
@@ -275,21 +234,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         initDataByScreen()
 
-
         checkDeleteFileUpdate()
-        playerManager.resumeMedia()
 
     }
-    private  fun checkDeleteFileUpdate()
-    {
+
+
+
+    private fun checkDeleteFileUpdate() {
         val destination = getDestinationApk()
         val file = File(destination)
         if (file.exists()) {
             file.delete()
             Log.d("deletefile", "checkDeleteFileUpdate: delete success")
-        }
-        else
-        {
+        } else {
             Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
     }
@@ -306,7 +263,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
+    private var listLeftMedia: MutableList<MediaItemModel> = mutableListOf()
 
 
     private fun initDefaultTopAndLeftArea() {
@@ -314,15 +271,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         ivBackgroundMultiLayout = findViewById(R.id.iv_bg_multi_layout)
         val videoViewContainer = findViewById<FrameLayout>(R.id.frame_player_layout)
         videoViewContainer.clipToOutline = true
-
-
     }
 
-    override fun onStart() {
-        Log.i("ChangeLayout", "Mess: recreate onStart")
-        super.onStart()
-        startPlayingMedia()
-    }
+//    override fun onStart() {
+//        Log.i("ChangeLayout", "Mess: recreate onStart")
+//        super.onStart()
+//        startPlayingMedia()
+//    }
 
 
     override fun onStop() {
@@ -476,7 +431,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     val type: Type = Types.newParameterizedType(
         List::class.java,
-        MediaItem::class.java
+        MediaItemModel::class.java
     )
 
     fun startPlayingMedia() {
@@ -575,30 +530,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 }
 
-
-                HubCommand.UPDATE_MONTHLY_LIST -> {
-                    clearDatastore()
-                    val mess = responseHub.message!!
-//                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-//                    viewModel.updateMonthlyScenario(mess, true)
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-                    // lưu thời gian cập nhật lịch để gửi log
-                    val currentTime = Calendar.getInstance().time.time / 1000
-                    ConfigUtil.putString(
-                        applicationContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        currentTime.toString()
-                    )
-                    playerManager.stopForceMedia()
-                    //delete pref list left
-                    ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-                    Handler().postDelayed({
-                        recreate()
-                    }, 1000)
-                }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
 
@@ -658,27 +589,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-                HubCommand.PLAYLIST_INFO -> {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
-                            val dataFromPlaylist: String = readFile(path)
-                            Log.d("readplaylist", "value2 $dataFromPlaylist ")
-                            val connectionId = responseHub.message
-                            Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
-                            if (connectionId != null) {
-//                                hubManager.sendHubDirectMessage(
-//                                    connectionId,
-//                                    HubCommand.PLAYLIST_INFO,
-//                                    dataFromPlaylist
-//                                )
-                            }
-                        } catch (e: IOException) {
-                            Log.e("readplaylist", "error reading playlist!!!")
-                        }
-                    }
-                    sendLogDataHub(true)
-                }
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
                 }
@@ -777,13 +687,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.readDeviceInfo()
                 }
 
-                HubCommand.NETWORK_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val result = NetworkUtils.getNetworkInfo(applicationContext)
-//                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
-                    }
-                }
+
 
                 HubCommand.STORAGE_INFO -> {
                     val connectionId = responseHub.message
@@ -793,17 +697,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
 
 //                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
-                    }
-                }
-
-                HubCommand.GET_MEDIA_PATH -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        Log.d("connectionId", connectionId)
-                        val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
-//                        hubManager.sendHubDirectMessage(
-//                            connectionId, Utils.GET_MEDIA_PATH, mediaList
-//                        )
                     }
                 }
 
@@ -838,15 +731,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     appStorageManager.deleteAllLog()
                 }
 
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"
@@ -879,10 +763,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                    viewModel.getPlayerContent("", false)
                 }
 
-                HubCommand.GET_LOG_FILE -> {
-                    val data = responseHub.message?.split('-') ?: return
-//                    logUtils.sendLogFile(data[0], data[1])
-                }
+
             }
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
                 if (command != null) {
@@ -982,11 +863,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        val typeListMediaItem = Types.newParameterizedType(List::class.java, MediaItem::class.java)
-        val jsonListMediaItemAdapter = moshi.adapter<List<MediaItem>>(typeListMediaItem)
-
+        val typeListMediaItem =
+            Types.newParameterizedType(List::class.java, MediaItemModel::class.java)
+        val jsonListMediaItemAdapter = moshi.adapter<List<MediaItemModel>>(typeListMediaItem)
+        val retrofit = RetrofitInstance.authService
         val typeMap =
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
-        val jsonMapAdapter: JsonAdapter<Map<String, String>> = moshi.adapter<Map<String, String>>(typeMap)
+        val jsonMapAdapter: JsonAdapter<Map<String, String>> =
+            moshi.adapter<Map<String, String>>(typeMap)
     }
 }

@@ -1,16 +1,15 @@
 package app.tek4tv.ipradio.core.players_helper
 
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaItemModel
 
 /**
  * Event listener for PlayersManager
  * **/
 interface IPlayerManagerListener {
     fun onTimeOver()
-    fun onPlayTuner(mediaItem: MediaItem)
-    fun onLiveError(mediaItem: MediaItem)
+    fun onLiveError(mediaItem: MediaItemModel)
     fun onEndForceMedia()
-    fun onPlayMediaSuccess(mediaItem: MediaItem?)
-    fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long)
+    fun onPlayMediaSuccess(mediaItem: MediaItemModel?)
+    fun onMediaStopPlaying(mediaItem: MediaItemModel, duration: Long)
 
 }

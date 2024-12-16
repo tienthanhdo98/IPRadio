@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
+import java.util.*
 
 class MQTTManager(
     private var hubToken: String?,
@@ -11,7 +12,7 @@ class MQTTManager(
     private val destinationId: String
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "854fc1b8-598e-4803-9ca1-92dd560396f0"
+    var clientID = ""
     private var publishTopicTinh = "tinh/$clientID"
 
     private var mqttClient: MqttAndroidClient? = null
@@ -22,15 +23,15 @@ class MQTTManager(
         Log.d(TAG, "Subscribed: ${listDesId.count()}")
         if (listDesId.isNotEmpty()) {
 
-            subscribe("tinh/${listDesId[0]}".toLowerCase())
+            subscribe("tinh/${listDesId[0]}".toLowerCase(Locale.ROOT))
         }
         if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
+            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase(Locale.ROOT))
         }
         if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
+            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase(Locale.ROOT))
         } else {
-            subscribe("thon/$destinationId".toLowerCase())
+            subscribe("thon/$destinationId".toLowerCase(Locale.ROOT))
         }
     }
 

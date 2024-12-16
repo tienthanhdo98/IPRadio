@@ -2,17 +2,12 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.network.PlaylistService
+import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -22,30 +17,28 @@ import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import dagger.hilt.android.qualifiers.ApplicationContext
+
 import kotlinx.coroutines.launch
 import java.io.File
 import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
-import javax.inject.Inject
-import javax.inject.Singleton
 
-@Singleton
-class MediaRepo @Inject constructor(
-    private val playlistService: PlaylistService,
+
+
+class MediaRepo constructor(
     moshi: Moshi,
-    @ApplicationContext private val appContext: Context
-) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
+   private val appContext: Context
+) : BaseRepo<MediaItemModel>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
     val TAG = "MEDIA_REPO"
-    override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
-        Types.newParameterizedType(List::class.java, MediaItem::class.java)
+    override val jsonAdapter: JsonAdapter<List<MediaItemModel>> = moshi.adapter(
+        Types.newParameterizedType(List::class.java, MediaItemModel::class.java)
     )
-    var broadcastList = mutableListOf<MediaItem>()
+    var broadcastList = mutableListOf<MediaItemModel>()
 
-    var scheduledList = LinkedHashMap<String, List<MediaItem>>()
+    var scheduledList = LinkedHashMap<String, List<MediaItemModel>>()
 
-    var timeDividers = LinkedHashMap<String, List<MediaItem>>()
+    var timeDividers = LinkedHashMap<String, List<MediaItemModel>>()
 
 
     private val downloadHelper = DownloadHelper2.getInstance()
@@ -94,12 +87,11 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
+    private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItemModel> {
+        var result = listOf<MediaItemModel>()
 
         try {
             result = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)!!
-
 
             if (result.isNotEmpty()) {
                 Log.e(TAG, "Save ${result.size} to local")
@@ -115,11 +107,11 @@ class MediaRepo @Inject constructor(
         return result
     }
 
-    fun getScenarioWss(): List<MediaItem> {
+    fun getScenarioWss(): List<MediaItemModel> {
         scheduledList.clear()
         timeDividers.clear()
 
-        var res = listOf<MediaItem>()
+        var res = listOf<MediaItemModel>()
 
         val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
         Log.e(TAG, "get scenario ${jsonMonthlyListData}")
@@ -172,7 +164,7 @@ class MediaRepo @Inject constructor(
 
 
 
-    private fun filterMedia(mediaList: List<MediaItem>) {
+    private fun filterMedia(mediaList: List<MediaItemModel>) {
         val dividerIndices = mediaList.indices.filter {
             mediaList[it].body == "start" || mediaList[it].body == "end"
         }.chunked(2)
@@ -195,13 +187,11 @@ class MediaRepo @Inject constructor(
         }
         Log.d(TAG, "filterMedia: $scheduledList")
         Log.d(TAG, "filterMedia: $timeDividers")
-
-
     }
 
     val type: Type = Types.newParameterizedType(
         List::class.java,
-        MediaItem::class.java
+        MediaItemModel::class.java
     )
 
 
@@ -218,7 +208,7 @@ class MediaRepo @Inject constructor(
         return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
     }
 
-    fun downloadAMediaItem(it: MediaItem) {
+    fun downloadAMediaItem(it: MediaItemModel) {
         //1 - bản tin ký tự
         //2 - bản tin hình ảnh
         //3 - bản tin âm thanh
@@ -245,8 +235,11 @@ class MediaRepo @Inject constructor(
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
+                Log.d("ĐÂSDF", "${mediaStoragePath}/${fileName}")
+                Log.d("ĐÂSDF", "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
+
                     saveItemsToFile(broadcastList)
                 }
             }
