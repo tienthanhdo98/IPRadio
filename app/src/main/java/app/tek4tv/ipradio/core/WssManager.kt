@@ -53,8 +53,9 @@ class WssManager(private var hubToken : String?, private val connectEventListene
         ).connectTimeout(60, TimeUnit.SECONDS)
             .pingInterval(10, TimeUnit.SECONDS)
             .build()
+        //wss://gateway-qltt.tek4tv.vn/ws/ipradio
         val request =
-            Request.Builder().url("wss://gateway-qltt.tek4tv.vn/ws/ipradio")
+            Request.Builder().url("wss://gateway-thongtinnguon.tek4tv.vn/ws/ipradio")
                 .addHeader("Authorization", "Bearer $hubToken").build()
         val listener = EchoWebSocketListener()
 

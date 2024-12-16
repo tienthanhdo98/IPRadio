@@ -1,19 +1,31 @@
-package app.tek4tv.ipradio.utils.media
+package app.tek4tv.digitalsignage.utils
 
 
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.PixelFormat
+import android.hardware.display.DisplayManager
 import android.media.AudioManager
+import android.media.ImageReader
 import android.media.MediaRecorder
+import android.media.projection.MediaProjection
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.util.Base64
 import android.util.Log
-import app.tek4tv.ipradio.utils.GlobalProperties
+import android.view.PixelCopy
+import android.view.SurfaceView
+import android.widget.FrameLayout
+import android.widget.Toast
+import androidx.core.graphics.createBitmap
+import androidx.core.view.children
 import app.tek4tv.ipradio.utils.Utils
-import app.tek4tv.ipradio.utils.createFolder
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+import app.tek4tv.ipradio.utils.storage.createFolder
+import kotlinx.coroutines.*
 import org.apache.commons.net.ftp.FTP
 import org.apache.commons.net.ftp.FTPClient
+import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.*
 import java.text.SimpleDateFormat
 import java.util.*
@@ -43,7 +55,7 @@ class MediaCapture(
             setAudioEncodingBitRate(32000)
             setAudioSamplingRate(getBestSampleRate())
             val dateformat = SimpleDateFormat("ddMMyyyyHHmmss")
-            val fileName = "${dateformat.format(Date())}_${GlobalProperties.getInst().userNameController}.aac"
+            val fileName = "${dateformat.format(Date())}.aac"
             setOutputFile("$recordedAudioPath/$fileName")
             setOutputFormat(MediaRecorder.OutputFormat.AAC_ADTS)
             setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
@@ -58,53 +70,91 @@ class MediaCapture(
         mediaRecorder.stop()
     }
 
-    fun updateRecordedAudio(filePath: String) {
-        scope.launch {
-            withContext(Dispatchers.IO) {
-                if (!File(filePath).exists()) return@withContext
 
-                try {
-                    val macDevice = Utils.getDeviceId(appContext).replace(":", "-")
+    fun captureSurfaceView(
+        isPortrait: Boolean, mVideoLayout: VLCVideoLayout
+    ) {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) return
 
-                    val nameDevice = GlobalProperties.getInst().nameDevice
-                    val path = "/$nameDevice/$macDevice"
-                    val ftpClient = FTPClient()
-                    ftpClient.connect("14.225.16.145")
-                    ftpClient.login("sondev", "123456")
-                    ftpClient.setFileType(FTP.BINARY_FILE_TYPE)
+        scope.launch(Dispatchers.Default) {
 
-                    val pathElements = path.split("/")
-                    if (pathElements.isNotEmpty()) {
-                        for (singleDir in pathElements) {
-                            val existed = ftpClient.changeWorkingDirectory(singleDir)
-                            if (!existed) {
-                                val created = ftpClient.makeDirectory(singleDir)
-                                if (created) {
-                                    println("CREATED directory: $singleDir")
-                                    ftpClient.changeWorkingDirectory(singleDir)
-                                } else {
-                                    println("COULD NOT create directory: $singleDir")
-                                }
-                            }
-                        }
-                    }
+            try {
+                val surfaceView = (mVideoLayout.getChildAt(
+                    0) as FrameLayout).children.filter { it is SurfaceView }
+                    .first() as SurfaceView
 
-
-//                        ftpClient.makeDirectory("/$nameDevice")
-//                        ftpClient.changeWorkingDirectory(nameDevice)
-//                    }
-
-                    val buffIn = BufferedInputStream(FileInputStream(filePath))
-                    ftpClient.enterLocalPassiveMode()
-                    val res = ftpClient.storeFile(File(filePath).name, buffIn)
-                    Log.d("upfile", res.toString())
-                    buffIn.close()
-                    ftpClient.logout()
-                    ftpClient.disconnect()
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+                val bitmap = if (!isPortrait) Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_4444)
+                else Bitmap.createBitmap(360, 640, Bitmap.Config.ARGB_4444)
+                PixelCopy.request(surfaceView, bitmap, {
+                    saveMediaToStorage(bitmap)
+                }, Handler(Looper.getMainLooper()))
+            } catch (e: Exception) {
+                e.printStackTrace()
             }
         }
     }
+
+//    private fun sendPictureToSever(service: PlaylistService, bitmap: Bitmap) {
+//        scope.launch {
+//            val base64Img = withContext(Dispatchers.Default) {
+//                val bs = ByteArrayOutputStream()
+//                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, bs)
+//                Base64.encodeToString(bs.toByteArray(), Base64.DEFAULT)
+//            }
+//
+//            withContext(Dispatchers.IO) {
+//                try {
+//                    val body = mapOf("Data" to base64Img, "Imei" to Utils.getDeviceId(appContext),
+//                        "Extension" to ".jpg")
+//                    service.postScreenshot(body)
+//                    Log.i("capture", "Send picture by base64 to server success ")
+//                    Log.i("capture", "base64:  + ${base64Img.trim()}")
+//                } catch (e: Exception) {
+//                    e.printStackTrace()
+//                }
+//            }
+//        }
+//    }
+    // this method saves the image to gallery
+    fun storeScreenShot(bm: Bitmap?, context: Context?): File {
+        val fileName = "${System.currentTimeMillis()}.jpg"
+        val dir = File(context?.filesDir?.path)
+        if (!dir.exists())
+            dir.mkdirs()
+        val file = File(context?.filesDir?.path, fileName)
+
+        try {
+            val fOut = FileOutputStream(file)
+            bm?.compress(Bitmap.CompressFormat.JPEG, 100, fOut)
+            fOut.flush()
+            fOut.close()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+        return file
+    }
+    // this method saves the image to gallery
+    private fun saveMediaToStorage(bitmap: Bitmap) {
+        // Generating a file name
+        val filename = "${System.currentTimeMillis()}.jpg"
+
+        // Output stream
+        var fos: OutputStream? = null
+
+        // For devices running android >= 0
+        // These for devices running on android < Q
+        val imagesDir = File(appContext.filesDir?.path)
+        val image = File(imagesDir, filename)
+        fos = FileOutputStream(image)
+
+        fos.use {
+            // Finally writing the bitmap to the output stream that we opened
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, it)
+            Toast.makeText(appContext, "Captured View and saved to Gallery", Toast.LENGTH_SHORT).show()
+        }
+
+
+    }
+
 }

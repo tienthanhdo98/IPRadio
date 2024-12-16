@@ -70,7 +70,6 @@ class ExoMediaPlayer(
             {
                 Log.i(TAG, "onPlaybackStateChanged: play")
             }
-
         }
 
         override fun onPlayerError(error: PlaybackException) {

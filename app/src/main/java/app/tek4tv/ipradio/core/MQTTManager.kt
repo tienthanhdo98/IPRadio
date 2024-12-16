@@ -2,17 +2,20 @@ package app.tek4tv.ipradio.core
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.model.NoiDungMQTT
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val destinationId: String
+    private val destinationId: String,
+    private val listMQTTInfo : List<NoiDungMQTT>
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "854fc1b8-598e-4803-9ca1-92dd560396f0"
-    private var publishTopicTinh = "tinh/$clientID"
+    var clientID = ""
+    private var publishTopicTinh = ""
+
 
     private var mqttClient: MqttAndroidClient? = null
 
@@ -35,8 +38,17 @@ class MQTTManager(
     }
 
     fun connectToMQTT(context: Context) {
- //       val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
-  //      val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
+        listMQTTInfo.forEach {
+            if(it.topic.contains("thietbi"))
+            {
+                clientID = it.topic.substringAfter("/")
+
+            }
+        }
+        publishTopicTinh = "tinh/$clientID"
+        Log.d(TAG, "clientID ${clientID}")
+        //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
+        //     val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
         val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
@@ -63,7 +75,7 @@ class MQTTManager(
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
-                    getSubscribeTopic(destinationId = destinationId)
+                    getSubscribeTopic(destinationId)
                     connectEventListener.onConnectSuccess()
                 }
 

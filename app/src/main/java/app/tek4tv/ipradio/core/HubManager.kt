@@ -42,7 +42,7 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val deviceImei = Utils.getDeviceId(appContext)
-//    private val deviceImei = "5A:4E:2F:D3:15:10"
+    //private val deviceImei = "5A:4E:2F:D3:15:10"
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
 
@@ -94,6 +94,7 @@ class HubManager(
     //mqtt
     val isMQTT = true
     var mqttClient: MQTTManager? = null
+    lateinit var listMQTTInfo : List<NoiDungMQTT>
 
     init {
         versionName = try {
@@ -105,6 +106,7 @@ class HubManager(
 
     private fun getHubToken() {
         try {
+            //api
 //            val body = mapOf(
 //                "Username" to "tek4tv_bacgiang",
 //                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
@@ -114,15 +116,26 @@ class HubManager(
 //                ConfigUtil.URL_TOKEN,
 //                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
 //            )
+            //mqtt
+//            val body = mapOf(
+//                "Username" to "tek4tv_hanam",
+//                "Password" to "334d1805-cf96-4d17-9544-229f848e199a",)
+//
+//            val url = ConfigUtil.getString(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
+//            )
             val body = mapOf(
-                "Username" to "tek4tv_hanam",
-                "Password" to "334d1805-cf96-4d17-9544-229f848e199a",
-            )
-            val url = ConfigUtil.getStringEncrypt(
+                "Username" to "tek4tv_quangngai",
+                "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",)
+
+            val url = ConfigUtil.getString(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
                 "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
+            //binh dinh, long an
 //            val body = mapOf(
 //                "Username" to "longan_vatc",
 //                "Password" to "db-47aa-a990-82",
@@ -162,6 +175,35 @@ class HubManager(
         }
         Log.i(TAG, "getHubToken ping: $pingCounter")
     }
+    private fun getMqttInfo()
+    {
+        try {
+
+            val body = MQTTInfoModel(deviceImei)
+            val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+//            val url = "https://gateway-ttn.longan.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+
+            val call = authService.getMQTTInfo(body,"Bearer $hubToken", url)
+            val response = call.execute()
+            if (response.isSuccessful) {
+                listMQTTInfo = response.body()!!.noiDung
+                Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
+                if (isMQTT) {
+                    mqttClient =
+                        MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId,listMQTTInfo)
+                    mqttClient?.connectToMQTT(appContext)
+                } else {
+                    wssManager = WssManager(hubToken, this@HubManager)
+                    wssManager?.connectToWss()
+                }
+            } else {
+                listMQTTInfo = listOf()
+                Log.i(TAG, "MqttInfo null")
+            }
+        } catch (e: Exception) {
+            Log.i(TAG, "MqttInfo fail: ${e.message}")
+        }
+    }
 
     fun connectToServer() {
         //reset sau 5 phút khi không lấy được token
@@ -180,17 +222,7 @@ class HubManager(
         }
         if (hubToken == null) return
         getTokenJob?.cancel()
-
-        if (isMQTT) {
-            mqttClient =
-                MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId)
-            mqttClient?.connectToMQTT(appContext)
-        } else {
-            wssManager = WssManager(hubToken, this@HubManager)
-            wssManager?.connectToWss()
-        }
-
-
+        getMqttInfo()
     }
 
     override fun onConnectSuccess() {
@@ -241,9 +273,13 @@ class HubManager(
 
     private fun sendPing() {
         pingCounter++
-        var pathPlaying = ""
+        var noiDungPhat = listOf<String>()
         if (currentMediaItem != null) {
-            pathPlaying = currentMediaItem!!.pathBackup
+            noiDungPhat = listOf(currentMediaItem!!.pathBackup)
+        }
+        else
+        {
+            noiDungPhat = listOf()
         }
 
         val request = WssStatusModel(
@@ -278,7 +314,8 @@ class HubManager(
                     duLieuKhac = ""
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                noiDungPhat = pathPlaying,
+                //conver sttring to list String
+                noiDungPhat = noiDungPhat ,
                 phienBanUngDung = versionName,
             )
         )
@@ -426,7 +463,7 @@ class HubManager(
                         2 - Dừng phát
                         3 - Phát tiếp nội dụng đã dừng*/
                         "2" -> {
-
+                            hubCommand =  HubCommand.DELETE_MONTHLY_LIST_WSS
                         }
                         //Reset - Tham số (số giây khởi động lại)
                         "3" -> {
@@ -477,7 +514,8 @@ class HubManager(
                 banTinCongCongID = mediaItem.projectID!!,
                 loaiBanTin = mediaItem.contentType?.value!!,
                 mucDoUuTien = mediaItem.priority?.id.toString(),
-                noiDung = mediaItem.pathBackup,
+                //conver sttring to list String
+                noiDung = listOf(mediaItem.pathBackup),
                 noiDungTomTat = mediaItem.description!!,
                 tacGia = tacGia,
                 tenThietBI = GlobalProperties.getInst().nameDevice,
@@ -561,12 +599,11 @@ class HubManager(
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
         val mapData: MutableMap<String, String> = mutableMapOf()
-        if (danhSachBanTin!!.isNotEmpty()) {
+        if (danhSachBanTin.isNotEmpty()) {
             for (item in danhSachBanTin) {
                 findDate(item.danhSachNgayPhat!!)
             }
         }
-
         listDate.toSet().forEach {
 
             val jsonSchedule = findScheduleByDate(

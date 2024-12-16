@@ -3,19 +3,24 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.media.AudioManager
-import android.os.Bundle
-import android.os.Handler
+import android.os.*
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.PixelCopy
+import android.view.SurfaceView
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
 import android.widget.*
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.children
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
+import app.tek4tv.digitalsignage.utils.MediaCapture
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
@@ -36,12 +41,12 @@ import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.POTRAIT_SPLIT
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -52,6 +57,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
+import java.io.FileOutputStream
 import java.io.IOException
 import java.lang.reflect.Type
 import java.util.*
@@ -63,8 +69,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
-    //        Manifest.permission.ACCESS_FINE_LOCATION,
-    //        Manifest.permission.ACCESS_COARSE_LOCATION,
     private val permissions = arrayOf(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -121,34 +125,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+
             Log.d("PMLOG", "startFirstTimeFrame: time over")
-        }
-
-        //Phát FM
-        override fun onPlayTuner(mediaItem: MediaItem) {
-            try {
-                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
-                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
-
-                hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
-
-                hubManager.sendLogMediaSuccess(mediaItem)
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
         }
 
         //Dừng phát khẩn cấp
@@ -166,6 +144,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //            {
 //                recreate()
 //            }
+            hubManager.curMediaName = ""
+            hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
 
@@ -196,16 +176,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
-                if (mediaItem.getMediaType() != MediaType.FM) {
-                    if (!serialPortController.isUart1) {
-                        lifecycleScope.launch {
-                            delay(11000)
-                            serialPortController.turnOnPAVod()
-                        }
-                    } else {
-                        serialPortController.turnOnPAVod()
-                    }
-                }
+
+                serialPortController.turnOnPAVod()
 //                val paState =
 //                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
 //                    else "0"
@@ -221,16 +193,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
-        } else {
+        } else if(typeScreen == MULTIPLE_AREA) {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -300,24 +273,62 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         initDataByScreen()
 
-//        tvTopArea.setOnClickListener {
-//            val json =
-//                "{\"id\":\"\",\"topic\":\"dv010\",\"payload\":{\"Id\":\"d457c8f0-0c52-4df3-bc40-f4e5c4c44012\",\"NguonID\":\"H39.20.12\",\"TenNguon\":\"Thị trấn Bến Lức\",\"DichID\":\"H39\",\"TenDich\":\"Tỉnh Long An\",\"DanhSachDiaBanNhan\":[{\"DichID\":\"H39.20.12\",\"TenDich\":\"Thị trấn Bến Lức\",\"Email\":\"\",\"IsRead\":true,\"CumLoaID\":[],\"BangDienTuID\":[]}],\"PhanVungManHinh\":\"1\",\"LichPhatID\":\"782e8da9-e41b-42e4-8556-6700b588e17e\",\"TenLichPhat\":\"Lịch Digital.\",\"DanhSachBanTin\":[{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"310\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"y2mate.com - 4K Ultra HD  SONY 4K UHD Demo Another World Madagascar_1080p.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:11\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/912749979_y2mate.com---4k-ultra-hd-sony-4k-uhd-demo-another-world-madagascar_1080p.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830140,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"2\",\"BanTinCongCongID\":\"348\",\"LoaiBanTin\":\"1\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"CV 2455\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"CV 2455\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:00:00\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"Triển khai Quyết định số 135/QĐ-TTg ngày 20/01/2020 của Thủ tướng\\nChính phủ phê duyệt Đề án nâng cao hiệu quả hoạt động thông tin cơ sở dựa trên\\nứng dụng công nghệ thông tin, Bộ Thông tin và Truyền thông ban hành Hướng\\ndẫn nghiệp vụ về chức năng, tính năng kỹ thuật của Hệ thống thông tin nguồn\\ntrung ương và Hệ thống thông tin nguồn cấp tỉnh - Phiên bản 2.0 (gửi kèm theo\\nvăn bản này). Hướng dẫn này thay thế Hướng dẫn chức năng, tính năng kỹ thuật\\ncủa Hệ thống thông tin nguồn trung ương, Hệ thống thông tin nguồn cấp tỉnh và\\nkết nối các hệ thống thông tin - Phiên bản 1.0 ban hành theo Văn bản số\\n1273/BTTTT-TTCS ngày 27/4/2021.\\nBộ Thông tin và Truyền thông đề nghị Ủy ban nhân dân các tỉnh, thành phố\\ntrực thuộc Trung ương chỉ đạo, giao Sở Thông tin và Truyền thông chủ trì tham\\nmưu, xây dựng Hệ thống thông tin nguồn cấp tỉnh để cung cấp thông tin và quản\\nlý, giám sát hoạt động của đài truyền thanh cấp xã ứng dụng công nghệ thông tin\\n- viễn thông, bảng tin điện tử công cộng trên địa bàn.\\nTrong quá trình tổ chức thực hiện nếu có khó khăn, vướng mắc, đề nghị\\nliên hệ với Cục Thông tin cơ sở, Bộ Thông tin và Truyền thông để được hỗ trợ,\\nhướng dẫn.\\nTrân trọng./.\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830331}]}]},{\"VungPhat\":\"3\",\"BanTinCongCongID\":\"312\",\"LoaiBanTin\":\"4\",\"MucDoUuTien\":\"3\",\"TieuDe\":\"4ktv.mp4\",\"LoaiLinhVuc\":\"1\",\"NoiDungTomTat\":\"4ktv.mp4\",\"ThoiGianSanXuat\":1724830112,\"ThoiLuong\":\"00:03:24\",\"TacGia\":{\"TenDayDu\":\"Cán bộ TT Bến Lức 2\",\"TenDangNhap\":\"CBTTBenLuc\",\"ButDanh\":\"Cán bộ TT Bến Lức 2\",\"Email\":\"demo@gmail.com\"},\"NoiDung\":\"https://storage-staging.thongtinnguon.vn/2024/8/22/17/412883213_4ktv.mp4\",\"DiaBanTao\":\"H39.20.12\",\"TenDiaBanTao\":\"Thị trấn Bến Lức\",\"ThongTinChiTietBanTin\":[],\"NguonTin\":\"Tỉnh Long An\",\"DanhSachNgayPhat\":[{\"NgayPhat\":1724778000,\"ThoiDiemPhat\":[{\"ThoiGianBatDau\":1724830331,\"ThoiGianKetThuc\":1724830535}]}]}],\"CreateTime\":1724830112,\"CreateDate\":1724778000,\"UserName\":\"\"}}"
-//            hubManager.convertToHubCommand(json)
-//        }
         checkDeleteFileUpdate()
 //        playerManager.resumeMedia()
 
+     //  doSwap("/data/data/app.tek4tv.ipradio/files/tt2.mp3",SwapType.BackToFront,SwapEncryptDecryptMode.Decrypt)
+
     }
-    private  fun checkDeleteFileUpdate()
-    {
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun capture(){
+        try {
+            val surfaceView = (vlcVideoLayout.getChildAt(
+                0) as FrameLayout).children.filter { it is SurfaceView }
+                .first() as SurfaceView
+
+            val bitmap =Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
+
+            PixelCopy.request(surfaceView, bitmap, {
+                saveBitmap(bitmap)
+            }, Handler(Looper.getMainLooper()))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+
+
+
+    }
+    private fun saveBitmap(bitmap: Bitmap) {
+        // Create directory for saving
+        val path: File =
+            File(Environment.getExternalStorageDirectory().toString() + "/Screenshots/")
+        if (!path.exists()) {
+            path.mkdirs()
+        }
+
+        // Create the file for saving
+        val imageFile = File(path, "screenshot_" + System.currentTimeMillis() + ".png")
+        try {
+            FileOutputStream(imageFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // Compress to PNG
+                Toast.makeText(this, "Screenshot saved: " + imageFile.path, Toast.LENGTH_SHORT)
+                    .show()
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show()
+        }
+    }
+
+
+    private fun checkDeleteFileUpdate() {
         val destination = getDestinationApk()
         val file = File(destination)
         if (file.exists()) {
             file.delete()
             Log.d("deletefile", "checkDeleteFileUpdate: delete success")
-        }
-        else
+        } else
         {
             Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
@@ -330,10 +341,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
             tvMacAddress.text = info
-        } else {
+            tvMacAddress.setOnClickListener{
+//                capture()
+            }
+        } else if(typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
         }
     }
+
 
 
     private fun startAutoScroll() {
@@ -396,7 +411,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     private fun hideTopLeftArea(isStillTimeFrame : Boolean) {
-        if(typeScreen != FULL_SCREEN ) {
+        if(typeScreen == MULTIPLE_AREA ) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
             if (!isStillTimeFrame) {
@@ -411,6 +426,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val handler: Handler = Handler()
     private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
+
+
 
     private fun initDefaultTopAndLeftArea() {
         val videoViewContainer = findViewById<FrameLayout>(R.id.root_layout)
@@ -454,12 +471,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 playerManager.isInTimeFrame = true
+
                 Log.d("onPlayMediaLog", "show typescreen ${typeScreen}")
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
                     if (typeScreen == MULTIPLE_AREA) {
-
                         Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
                         showLeftArea()
                     }
@@ -581,7 +598,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-//        locationTracker.getLocation(this@MainActivity)
 
     }
 
@@ -664,12 +680,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.d("sds", "handleFromCommandServer: $message ")
 
                     playerManager.stopAllPlayer()
-
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
-
+                    hubManager.curMediaName = ""
+                    hubManager.currentMediaItem = null
                 }
 
 
@@ -705,11 +721,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //
 //                    Handler().postDelayed({
 //                        onPlayForce(responseHub)
-//                        if(typeScreen != FULL_SCREEN) {
+//                        if (typeScreen != FULL_SCREEN) {
 //                            recreate()
 //                        }
 //                    }, 1000)
-                    onPlayForce(responseHub)
+                  onPlayForce(responseHub)
                 }
 
 
@@ -800,9 +816,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
-                HubCommand.SWITCH_MODE_FM -> {
-                    onPlayForce(responseHub)
-                }
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
@@ -856,6 +869,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     }
                 }
+                
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
@@ -963,7 +977,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPLOAD_RECORDED -> {
                     val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
                 }
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
@@ -1036,6 +1049,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             e.printStackTrace()
         }
     }
+
     private fun changeVolume(volumeValue: Int)
     {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
@@ -1057,8 +1071,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-//        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
-//        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
+        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
+        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
     private fun clearDatastore()
     {

@@ -62,7 +62,7 @@ data class WssMediaLogModel(
     val thoiDiemBatDau: Long,
 
     @Json(name = "NoiDung")
-    val noiDung: String,
+    val noiDung: List<String>,
 
     @Json(name = "ThongTinChiTietBanTin")
     val thongTinChiTietBanTin: List<ThongTinChiTietBanTinTa>,

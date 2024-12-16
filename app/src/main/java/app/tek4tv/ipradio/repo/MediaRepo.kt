@@ -3,18 +3,14 @@ package app.tek4tv.ipradio.repo
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
-import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
-import app.tek4tv.ipradio.utils.getFileNameFromUrl
-import app.tek4tv.ipradio.utils.isFileExisted
+import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.storage.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
@@ -215,7 +211,7 @@ class MediaRepo @Inject constructor(
 
     private fun getConfigExtension() : String?
     {
-        return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
+        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
     }
 
     fun downloadAMediaItem(it: MediaItem) {

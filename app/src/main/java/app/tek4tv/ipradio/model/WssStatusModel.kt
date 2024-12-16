@@ -41,8 +41,6 @@ data class PayloadStatus (
     @Json(name = "AmLuong")
     var amLuong: String,
 
-
-
     @Json(name = "TrangThaiKetNoi")
     var trangThaiKetNoi: String,
 
@@ -62,12 +60,15 @@ data class PayloadStatus (
     var thoiDiemBatDau: Long,
 
     @Json(name = "NoiDungPhat")
-    var noiDungPhat: String,
+    var noiDungPhat: List<String>,
+
+//    @Json(name = "NoiDungPhat")
+//    var noiDungPhat: String,
 
     @Json(name = "PhienBanUngDung")
     var phienBanUngDung: String,
 
-)
+    )
 
 data class ThongTinThietBI (
     @Json(name = "CongSuat")

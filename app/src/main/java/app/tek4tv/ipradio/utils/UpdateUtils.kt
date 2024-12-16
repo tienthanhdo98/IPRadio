@@ -98,6 +98,7 @@ fun downloadUpdateApk(
                 val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
                 val test = proc.waitFor() // Error is here.
                 Log.d("install", test.toString() + "")
+
                 Thread.sleep(30000)
                 doRestart(controller)
 

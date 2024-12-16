@@ -1,8 +1,8 @@
 package app.tek4tv.ipradio.repo
 
 import android.util.Log
-import app.tek4tv.ipradio.utils.readFile
-import app.tek4tv.ipradio.utils.writeFile
+import app.tek4tv.ipradio.utils.storage.readFile
+import app.tek4tv.ipradio.utils.storage.writeFile
 import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.*
 import java.io.IOException
