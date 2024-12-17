@@ -61,8 +61,9 @@ data class PayloadStatus (
     @Json(name = "ThoiDiemBatDau")
     var thoiDiemBatDau: Long,
 
+    //Doi tu string sang list string tu ban moi de co the nhan thiet bi
     @Json(name = "NoiDungPhat")
-    var noiDungPhat: String,
+    var noiDungPhat: List<String>,
 
     @Json(name = "PhienBanUngDung")
     var phienBanUngDung: String,

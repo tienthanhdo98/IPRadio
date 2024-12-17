@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Tek4TV Digital</string>
+    <string name="online">Online </string>
+    <string name="offine">Offline </string>
 </resources>

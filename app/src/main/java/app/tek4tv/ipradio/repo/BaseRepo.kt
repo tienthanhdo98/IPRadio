@@ -30,7 +30,7 @@ abstract class BaseRepo<T>(
                         Log.e("BaseRepo", "error writing playlist!!!")
                         e.printStackTrace()
                     }
-                    //saveFileJob = null
+                    saveFileJob = null
                 }
             }
             saveFileJob?.join()

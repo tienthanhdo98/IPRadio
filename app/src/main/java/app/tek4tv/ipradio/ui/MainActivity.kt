@@ -9,6 +9,7 @@ import android.os.Handler
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
+import android.view.View
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
@@ -47,6 +48,7 @@ import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.lang.reflect.Type
+import java.text.SimpleDateFormat
 import java.util.*
 
 
@@ -158,7 +160,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else {
@@ -254,14 +256,38 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
-            val tvMacAddress = findViewById<TextView>(R.id.tvMac)
-            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-            tvMacAddress.text = info
+//            val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+//            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+//            tvMacAddress.text = info
+            checkInternetAndTime()
         } else {
             initDefaultTopAndLeftArea()
         }
     }
+    private fun checkInternetAndTime() {
+        val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
+        val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+        val df = SimpleDateFormat("HH:mm aa")
+        lifecycleScope.launch {
+            while (true) {
+                if (hubManager.pingCounter == 0) {
+                    tvCheckInternet.setTextColor(getColor(R.color.green_online))
+                    tvCheckInternet.text = resources.getString(R.string.online)
+                } else {
+                    tvCheckInternet.setTextColor(getColor(R.color.red_offline))
+                    tvCheckInternet.text = resources.getString(R.string.offine)
+                }
+                delay(5000)
+            }
+        }
+        val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+        tvMacAddress.text = info
+        lifecycleScope.launch {
+            delay(10000)
+            tvMacAddress.visibility = View.GONE
 
+        }
+    }
 
     private var listLeftMedia: MutableList<MediaItemModel> = mutableListOf()
 
@@ -404,7 +430,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             if (typeScreen == MULTIPLE_AREA) {
                 Picasso.get()
-                    .load("https://i.ibb.co/KjWTv5F/01.png")
+                    .load("https://storage-devkhanhhoa.tek4tv.vn//2024/12/17/9/562351598_z6137866333659_6f3153b2fb9439f012d874d247725c92.jpg")
 
                     .into(ivBackgroundMultiLayout)
 //                if (listLeftMedia.isEmpty() && playerManager.isInTimeFrame) {
@@ -515,8 +541,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             recreate()
                         }
                     }, 1000)
-
-
                 }
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
@@ -533,16 +557,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
 
-//                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-//                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-//
-//                    Handler().postDelayed({
-//                        onPlayForce(responseHub)
-//                        if(typeScreen != FULL_SCREEN) {
-//                            recreate()
-//                        }
-//                    }, 1000)
-                    onPlayForce(responseHub)
+                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+
+                    Handler().postDelayed({
+                        onPlayForce(responseHub)
+                        if(typeScreen != FULL_SCREEN) {
+                            recreate()
+                        }
+                    }, 1000)
+//                    onPlayForce(responseHub)
                 }
 
 

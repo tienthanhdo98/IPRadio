@@ -31,8 +31,8 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    private val appContext: Context,
-    private val vlcVideoLayout: VLCVideoLayout,
+    appContext: Context,
+    vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
@@ -229,7 +229,6 @@ class PlayersManager(
 //                        currentPlayer = vlcPlayer
 
                         if (mediaItem.contentType?.value == "5") {
-
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         } else {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
