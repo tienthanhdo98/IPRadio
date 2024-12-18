@@ -2,11 +2,13 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItemModel
+import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
@@ -170,12 +172,11 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        if(currentPlayer == vlcPlayer) {
-            vlcPlayer.stop()
-        }
-//        else {
-//            exoPlayer.stop()
+//        if(currentPlayer == vlcPlayer) {
+//            vlcPlayer.stop()
 //        }
+        Log.d(LOGTAG, "Play media start ")
+        Log.d(LOGTAG, "Play media size ${currentPlaylist.size} ")
         playlistIndex++
 
         if (playlistIndex < currentPlaylist.size) {
@@ -184,9 +185,9 @@ class PlayersManager(
         }
         else
         {
-            Log.d(LOGTAG, "Play media phat tiep cham dich")
-            stopAllPlayer()
-            stopTimeFrame()
+            Log.d(LOGTAG, "Play media loop")
+            playlistIndex = 0
+            playMediaByIndex(playlistIndex)
         }
     }
 

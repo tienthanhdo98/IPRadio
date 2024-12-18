@@ -18,22 +18,24 @@ abstract class BaseRepo<T>(
 
     suspend fun saveItemsToFile(playlist: List<T>) {
         try {
-            saveFileJob?.join()
-            saveFileJob = coroutineScope.launch {
-                withContext(Dispatchers.IO) {
-                    val json = jsonAdapter.toJson(playlist)
-                    Log.d("writefile", "$fileStoragePath")
 
-                    try {
-                        writeFile(fileStoragePath, json)
-                    } catch (e: IOException) {
-                        Log.e("BaseRepo", "error writing playlist!!!")
-                        e.printStackTrace()
+                saveFileJob?.join()
+                saveFileJob = coroutineScope.launch {
+                    withContext(Dispatchers.IO) {
+                        try {
+                            val json = jsonAdapter.toJson(playlist)
+                            Log.d("writefile", "$fileStoragePath")
+                            writeFile(fileStoragePath, json)
+                        } catch (e: Exception) {
+                            Log.e("BaseRepo", "error writing playlist!!!")
+                            e.printStackTrace()
+                        }
+                        saveFileJob = null
                     }
-                    saveFileJob = null
                 }
-            }
-            saveFileJob?.join()
+                saveFileJob?.join()
+
+
         }catch (e: Exception)
         {
             Log.e("BaseRepo", "error writing playlist!!!")

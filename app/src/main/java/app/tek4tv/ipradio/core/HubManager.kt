@@ -1,8 +1,6 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.RetrofitInstance
@@ -29,8 +27,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 40000L
-    //private val PING_HUB_INTERVAL = 30000L
+    private val PING_HUB_INTERVAL = 60000L
     private val moshi = RetrofitInstance.moshi
 
 
@@ -42,7 +39,6 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val deviceImei = Utils.getDeviceId(appContext)
-    //private val deviceImei = "5A:4E:2F:D3:15:10"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -62,8 +58,6 @@ class HubManager(
     var curMediaName = ""
 
     var versionName = ""
-
-    private val mainHandler = Handler(Looper.getMainLooper())
 
     private val notifyDisconnected = AtomicBoolean(false)
 
@@ -86,7 +80,7 @@ class HubManager(
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItemModel> =
         moshi.adapter(MediaItemModel::class.java)
 
-    
+
     //mqtt
     lateinit var listMQTTInfo : List<NoiDungMQTT>
     val isMQTT = true
@@ -102,15 +96,6 @@ class HubManager(
 
     private fun getHubToken() {
         try {
-//            val body = mapOf(
-//                "Username" to "tek4tv_bacgiang",
-//                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
-//            )
-//            val url = ConfigUtil.getStringEncrypt(
-//                context = appContext,
-//                ConfigUtil.URL_TOKEN,
-//                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
-//            )
             val body = mapOf(
                 "Username" to "tek4tv_quangngai",
                 "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",
@@ -120,28 +105,6 @@ class HubManager(
                 ConfigUtil.URL_TOKEN,
                 "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
-//            val body = mapOf(
-//                "Username" to "longan_vatc",
-//                "Password" to "db-47aa-a990-82",
-//            )
-//            val url = ConfigUtil.getStringEncrypt(
-//                context = appContext,
-//                ConfigUtil.URL_TOKEN,
-//                "https://gateway-ttn.longan.gov.vn/oauth/token"
-//            )
-
-//            val body = mapOf(
-//                "Username" to "tek4tv_hanoi",
-//                "Password" to "9eb8cbd3-d129-4dae-840c-8ecfcd342558",
-//            )
-//            val url = ConfigUtil.getStringEncrypt(
-//                context = appContext,
-//                ConfigUtil.URL_TOKEN,
-//                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
-//            )
-
-
-
             val call = retrofit.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
@@ -164,10 +127,8 @@ class HubManager(
     private fun getMqttInfo()
     {
         try {
-
             val body = MQTTInfoModel(deviceImei)
             val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
-//            val url = "https://gateway-ttn.longan.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
 
             val call = retrofit.getMQTTInfo(body,"Bearer $hubToken", url)
             val response = call.execute()
@@ -179,10 +140,6 @@ class HubManager(
                         MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId,listMQTTInfo)
                     mqttClient?.connectToMQTT(appContext)
                 }
-//                else {
-//                    wssManager = WssManager(hubToken, this@HubManager)
-//                    wssManager?.connectToWss()
-//                }
             } else {
                 listMQTTInfo = listOf()
                 Log.i(TAG, "MqttInfo null")
@@ -213,15 +170,19 @@ class HubManager(
     }
 
     override fun onConnectSuccess() {
+
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
         startPingTimer()
     }
+
     override fun onReceiveMessageSuccess(message: String) {
         pingCounter = 0
+        Log.d(TAG, "onReceiveMessageSuccess: ${pingCounter}")
         convertToHubCommand(message)
+
     }
 
     override fun onSendMessageSuccess(responseMessage: String) {
@@ -251,25 +212,23 @@ class HubManager(
     }
 
      private fun sendPing() {
-        pingCounter++
-        var noiDungPhat = listOf<String>()
-        if (currentMediaItem != null) {
-            noiDungPhat = listOf(currentMediaItem!!.pathBackup)
-        }
-        else
-        {
-            noiDungPhat = listOf()
-        }
+         pingCounter++
+         var noiDungPhat: List<String>
+         noiDungPhat = if (currentMediaItem != null) {
+             listOf(currentMediaItem!!.pathBackup)
+         } else {
+             listOf()
+         }
 
-        val request = WssStatusModel(
-            id = "", topic = HubCommand.DV016, payload = PayloadStatus(
-                dichID = GlobalProperties.getInst().dichId,
-                tenDich = GlobalProperties.getInst().tenDich,
-                nguonID = GlobalProperties.getInst().destinationId,
-                tenNguon = GlobalProperties.getInst().destinationName,
-                bangDienTuID = deviceImei,
-                tenThietBI = GlobalProperties.getInst().nameDevice,
-                tenLoaiThietBI = "Bảng điện tử công cộng",
+         val request = WssStatusModel(
+             id = "", topic = HubCommand.DV016, payload = PayloadStatus(
+                 dichID = GlobalProperties.getInst().dichId,
+                 tenDich = GlobalProperties.getInst().tenDich,
+                 nguonID = GlobalProperties.getInst().destinationId,
+                 tenNguon = GlobalProperties.getInst().destinationName,
+                 bangDienTuID = deviceImei,
+                 tenThietBI = GlobalProperties.getInst().nameDevice,
+                 tenLoaiThietBI = "Bảng điện tử công cộng",
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
@@ -299,7 +258,6 @@ class HubManager(
             )
         )
         Log.d(TAG, "sendPing: ${request.payload}")
-        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
@@ -309,6 +267,7 @@ class HubManager(
 
         when (wssData!!.topic) {
             HubCommand.DV010 -> {
+
                 val body = wssPayloadScheduleAdapter.fromJson(jsonMessage)
                 if (body != null) {
                     val mapMonthSchedule = convertWssMessToPlaylist(body.payload!!)
@@ -322,6 +281,8 @@ class HubManager(
                     )
                     onMessageListener.invoke(hubCommand, jsonMess)
                     sendLogUpdatePlaylist(body.payload)
+
+
 
                 }
             }
@@ -477,7 +438,6 @@ class HubManager(
             email = mediaItem.author?.email ?: "",
             tenDangNhap =   ""
         )
-        Log.d(TAG, "sendLogMediaSuccess: ${mediaItem.createDate}")
 
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV013, payload = WssMediaLogModel(
@@ -492,7 +452,7 @@ class HubManager(
                 banTinCongCongID = mediaItem.projectID!!,
                 loaiBanTin = mediaItem.contentType?.value!!,
                 mucDoUuTien = mediaItem.priority?.id.toString(),
-                noiDung = mediaItem.pathBackup,
+                noiDung = listOf(mediaItem.pathBackup),
                 noiDungTomTat = mediaItem.description!!,
                 tacGia = tacGia,
                 tenThietBI = GlobalProperties.getInst().nameDevice,
@@ -601,11 +561,10 @@ class HubManager(
     }
 
     private fun findScheduleByDate(payload: ReceivedPayloadSchedule, ngayPhat: String): String {
-        val danhSachBanTin = payload.danhSachBanTin
         val listBanTinPhatTheoNgay = mutableListOf<MediaItemModel>()
         val listItemMedia = mutableListOf<itemMedia>()
         //tim nhung ban tin co ngay la date
-        for (item in danhSachBanTin) {
+        for (item in payload.danhSachBanTin) {
             item.danhSachNgayPhat!!.forEach {
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
                     it.thoiDiemPhat.forEach { thoiDiemPhat ->
@@ -618,6 +577,9 @@ class HubManager(
                     }
                 }
             }
+        }
+        listItemMedia.forEach {
+            Log.d("playtesst", "findScheduleByDate: ${it.danhSachBanTin.tieuDe}")
         }
         //chuyển list ra list media
         if (listItemMedia.isNotEmpty()) {
@@ -675,7 +637,6 @@ class HubManager(
 
     private fun convertToTimeFrame(listItem: List<MediaItemModel>): String {
         val newList = listItem.toMutableList()
-        val res = mutableListOf<MediaItemModel>()
         val listTimeFrame: MutableList<Map<Int, Int>> = mutableListOf()
         val starts: MutableList<String> = mutableListOf()
         var startTime = 0
@@ -697,22 +658,20 @@ class HubManager(
                 endTime = i + 1
                 val map = mapOf(startTime to endTime)
                 listTimeFrame.add(map)
-
             }
         }
-        //Chỉ có 1 khung
-        if (starts.size == 0) {
-            val firstId: Int = listItem.first().id?.minus(1) ?: 0
-            Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
-            val tObjStart = MediaItemModel(
-                id = firstId,
-                mediaID = firstId.toString(),
-                projectID = firstId.toString(),
-                title = "Khung ${listItem.first().start}",
-                body = "start",
-                startTime = listItem.first().startTime,
-                start = listItem.first().startTime,
-                fixTime = listItem.first().startTime,
+
+        val firstId: Int = listItem.first().id?.minus(1) ?: 0
+        Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
+        val tObjStart = MediaItemModel(
+            id = firstId,
+            mediaID = firstId.toString(),
+            projectID = firstId.toString(),
+            title = "Khung ${listItem.first().start}",
+            body = "start",
+            startTime = listItem.first().startTime,
+            start = listItem.first().startTime,
+            fixTime = listItem.first().startTime,
                 end = listItem.first().end,
             )
             newList.add(0, tObjStart)
@@ -734,55 +693,7 @@ class HubManager(
                 "convertToTimeFrame: startTimes ${jsonMediaItemAdapter.toJson(newList)}"
             )
             return jsonMediaItemAdapter.toJson(newList)
-        }
-        //Có nhiều khung
-        else {
-            Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
-            listTimeFrame.forEach {
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
-                )
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${it.keys.first()} - ${it.values.first()}"
-                )
-                val list : MutableList<MediaItemModel> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung $list"
-                )
-                val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
-                val tObjStart = MediaItemModel(
-                    id = firstId,
-                    mediaID = firstId.toString(),
-                    projectID = firstId.toString(),
-                    title = "Khung ${listItem[it.keys.first()].start}",
-                    body = "start",
-                    startTime = listItem[it.keys.first()].startTime,
-                    start = listItem[it.keys.first()].startTime,
-                    fixTime = listItem[it.keys.first()].startTime,
-                    end = listItem[it.keys.first()].end,
-                )
-                list.add(0, tObjStart)
-                val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
-                val tObEnd = MediaItemModel(
-                    id = lastId,
-                    mediaID = lastId.toString(),
-                    projectID = lastId.toString(),
-                    title = "End Khung ${listItem[it.values.first()].start}",
-                    body = "end",
-                    startTime = listItem[it.values.first()].startTime,
-                    fixTime = listItem[it.values.first()].end,
-                    end = listItem[it.values.first()].end,
-                    start = listItem[it.values.first()].start
-                )
-                list.add(list.size, tObEnd)
-                res.addAll(list)
-            }
-            return jsonMediaItemAdapter.toJson(res)
 
-        }
 
     }
 

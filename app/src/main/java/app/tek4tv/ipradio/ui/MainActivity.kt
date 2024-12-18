@@ -174,11 +174,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart : Int) {
-                lifecycleScope.launch {
-                    serialPortController.turnOffPA()
-                    delay(3000)
-                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                }
+//                lifecycleScope.launch {
+//                    serialPortController.turnOffPA()
+//                    delay(3000)
+//                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                }
             }
 
             override fun forceRestartDevice() {
@@ -277,7 +277,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     tvCheckInternet.setTextColor(getColor(R.color.red_offline))
                     tvCheckInternet.text = resources.getString(R.string.offine)
                 }
-                delay(5000)
+                delay(10000)
             }
         }
         val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
@@ -310,6 +310,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.e("monthlyinfo", "onStop")
         playerManager.stopAllPlayer()
         cancelAllAlarm()
+        Log.d("alarmx", "Cancel cancelAllScheduledListAlarm onStop")
         Log.i("ChangeLayout", "Mess: recreate stop")
         super.onStop()
 
@@ -506,6 +507,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
+                    Log.d("alarmx", "Cancel cancelAllScheduledListAlarm UPDATE_MONTHLY_WSS")
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
@@ -549,6 +551,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
+                    Log.d("alarmx", "Cancel cancelAllScheduledListAlarm DELETE_MONTHLY_LIST_WSS")
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
 
@@ -783,6 +786,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.STOP_FORCE -> {
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
+                    Log.d("alarmx", "Cancel cancelAllScheduledListAlarm STOP_FORCE")
                     ForceMedia.deleteForeMediaPref(applicationContext)
 //                    viewModel.getPlayerContent("", false)
                 }

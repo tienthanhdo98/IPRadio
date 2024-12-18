@@ -79,6 +79,7 @@ class MediaRepo constructor(
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
+                Log.e("SavefileLog", "Save in updateMonthlyScenarioWss: Case not in day")
                 Log.e(TAG, "Không có lịch trong ngày")
             }
 
@@ -96,6 +97,7 @@ class MediaRepo constructor(
             if (result.isNotEmpty()) {
                 Log.e(TAG, "Save ${result.size} to local")
                 saveItemsToFile(result)
+                Log.e("SavefileLog", "Save in updateScenarioWss: Case have result")
 
             } else {
                 Log.e(TAG, "Lịch rỗng rồi")
@@ -114,7 +116,7 @@ class MediaRepo constructor(
         var res = listOf<MediaItemModel>()
 
         val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
-        Log.e(TAG, "get scenario ${jsonMonthlyListData}")
+        Log.e(TAG, "get scenario $jsonMonthlyListData")
         if (jsonMonthlyListData.isNotEmpty()) {
             val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
 
@@ -205,7 +207,7 @@ class MediaRepo constructor(
 
     private fun getConfigExtension() : String?
     {
-        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
+        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png")
     }
 
     fun downloadAMediaItem(it: MediaItemModel) {
@@ -229,7 +231,6 @@ class MediaRepo constructor(
         if (!isFile) return
 
         val url = it.body
-        //if (url.isEmpty() || !url.startsWith("http")) return
 
         val fileName = getFileNameFromUrl(url!!)
         if (isFileExisted(mediaStoragePath, fileName)) {
@@ -239,14 +240,14 @@ class MediaRepo constructor(
                 Log.d("ĐÂSDF", "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
-
                     saveItemsToFile(broadcastList)
+                    Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
                 }
             }
             return
         }
 
-        Log.d("download item", url)
+        Log.d("downloaditem", url)
 
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
@@ -260,6 +261,7 @@ class MediaRepo constructor(
 
                     coroutineScope.launch {
                         saveItemsToFile(broadcastList)
+                        Log.e("SavefileLog", "Save in onDownloadComplete: onDownloadComplete")
                     }
 
                     Log.d("downloadcomplete", it.body!!)

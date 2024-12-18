@@ -16,7 +16,8 @@ class MediaWatchDog(
 
     fun checkPlaylist() {
         checkPlaylistJob?.cancel()
-        val delayDuration = 180000L
+//        val delayDuration = 180000L
+        val delayDuration = 10000L
 
         checkPlaylistJob = scope.launch(Dispatchers.Default) {
             while (true) {
@@ -45,14 +46,17 @@ class MediaWatchDog(
 
                 val mediaPath = it.body
                 if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
+                    Log.e("SavefileLog", "Save broken  check: $mediaPath")
                     if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
                     foundBrokenPath = true
                     //Log.d("aaa",it.name)
+
                 }
             }
-
-            if (foundBrokenPath)
+            if (foundBrokenPath) {
                 mediaRepo.saveItemsToFile(mediaRepo.broadcastList)
+                Log.e("SavefileLog", "Save in checkBrokenPath")
+            }
         }
         catch (e: Exception)
         {

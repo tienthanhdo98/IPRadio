@@ -96,19 +96,19 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //        args.add("--no-drop-late-frames")
         args.add("--file-caching=3000")
         args.add("--network-caching=3000")
-//        args.add("--skip-frames")
+       args.add("--skip-frames")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
-        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
+        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_16_9
         vlcPlayer.eventListener = vlcEventListener
     }
 
 
     override fun playMedia(mediaItem: MediaItemModel, isForce: Boolean, timeStamp: Int) {
 
-        if (isPlaying) stop()
+//        if (isPlaying) stop()
 
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
