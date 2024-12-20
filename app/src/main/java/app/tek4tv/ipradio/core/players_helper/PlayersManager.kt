@@ -17,6 +17,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
+import com.google.android.exoplayer2.ui.PlayerView
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -35,11 +36,13 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
+    exoplayerView: PlayerView,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
+    private val exoMediaPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this,exoplayerView)
     private var currentPlayer: IMediaPlayer? = null
 
     private var currentPlayingMedia: MediaItemModel? = null
@@ -232,12 +235,18 @@ class PlayersManager(
 //                        }
 //                        currentPlayer = vlcPlayer
 
+//                        if (mediaItem.contentType?.value == "5") {
+//                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+//                        } else {
+//                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+//                        }
+//                        currentPlayer = vlcPlayer
                         if (mediaItem.contentType?.value == "5") {
-                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
+                            exoMediaPlayer.playMedia(mediaItem, true, timeStamp)
                         } else {
-                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                            exoMediaPlayer.playMedia(mediaItem, false, timeStamp)
                         }
-                        currentPlayer = vlcPlayer
+                        currentPlayer = exoMediaPlayer
                     }
                 }
                 MediaType.LIVE -> {

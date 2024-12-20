@@ -40,6 +40,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.exoplayer2.ui.PlayerView
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import com.squareup.picasso.Picasso
@@ -86,6 +87,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
+    private lateinit var exoPlayerView: PlayerView
 
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
@@ -208,9 +210,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
+        exoPlayerView = findViewById(R.id.exoPlayerView)
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
+            exoPlayerView,
             viewModel.mediaRepo
         )
 

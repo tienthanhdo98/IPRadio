@@ -73,9 +73,9 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.security:security-crypto-ktx:1.1.0-alpha02'
     implementation 'com.google.android.gms:play-services-basement:18.0.0'
-    implementation files('libs\\CH34XUARTDriver.jar')
-    implementation files('libs\\CH34XUARTDriver.jar')
-    implementation files('libs\\CH34XUARTDriver.jar')
+//    implementation files('libs\\CH34XUARTDriver.jar')
+//    implementation files('libs\\CH34XUARTDriver.jar')
+//    implementation files('libs\\CH34XUARTDriver.jar')
     testImplementation 'junit:junit:4.+'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
@@ -84,7 +84,7 @@ dependencies {
     implementation 'org.videolan.android:libvlc-all:3.6.0-eap10'
     //implementation fileTree(include: ['*.aar'], dir: 'libs')
 
-    implementation 'com.microsoft.signalr:signalr:5.0.1'
+//    implementation 'com.microsoft.signalr:signalr:5.0.1'
 
     //implementation 'com.google.code.gson:gson:2.8.6'
 
@@ -97,12 +97,6 @@ dependencies {
     //implementation 'androidx.legacy:legacy-support-v4:1.0.0'
     kapt("com.squareup.moshi:moshi-kotlin-codegen:1.13.0")
 
-//    //Hilt
-//    implementation 'com.google.dagger:hilt-android:2.44.2'
-//    kapt 'com.google.dagger:hilt-android-compiler:2.44.2'
-////    implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha02'
-////    kapt 'androidx.hilt:hilt-compiler:1.0.0-alpha02'
-//    implementation 'androidx.hilt:hilt-lifecycle-viewmodel:1.0.0-alpha03'
 
     implementation "androidx.lifecycle:lifecycle-runtime-ktx:2.2.0"
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0"
@@ -111,11 +105,14 @@ dependencies {
     //prdownloader
     implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.1'
 
-    implementation 'commons-net:commons-net:3.7.2'
+//    implementation 'commons-net:commons-net:3.7.2'
 
-//    implementation 'com.google.android.exoplayer:exoplayer-core:2.18.5'
-//    implementation 'com.google.android.exoplayer:exoplayer-hls:2.18.1'
-//    implementation 'com.google.android.exoplayer:extension-okhttp:2.18.1'
+    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
+    implementation 'com.google.android.exoplayer:exoplayer-core:2.19.1'
+    implementation 'com.google.android.exoplayer:exoplayer-hls:2.19.1'
+    implementation 'com.google.android.exoplayer:extension-okhttp:2.19.1'
+
+
 
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
 
