@@ -27,7 +27,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 60000L
+    private val PING_HUB_INTERVAL = 10000L
     private val moshi = RetrofitInstance.moshi
 
 
@@ -583,7 +583,7 @@ class HubManager(
         }
         //chuyển list ra list media
         if (listItemMedia.isNotEmpty()) {
-            listItemMedia.sortBy { itemMedia -> itemMedia.time.thoiGianBatDau }
+//            listItemMedia.sortBy { itemMedia -> itemMedia.time.thoiGianBatDau }
             var count = 1
             var checkCountStart = 0
             for (item in listItemMedia) {
@@ -636,8 +636,12 @@ class HubManager(
     }
 
     private fun convertToTimeFrame(listItem: List<MediaItemModel>): String {
+        listItem.forEach {
+            Log.d("playtesst2", "findScheduleByDate: ${it.title}")
+        }
         val newList = listItem.toMutableList()
         val listTimeFrame: MutableList<Map<Int, Int>> = mutableListOf()
+        val res = mutableListOf<MediaItemModel>()
         val starts: MutableList<String> = mutableListOf()
         var startTime = 0
         var endTime: Int
@@ -647,7 +651,7 @@ class HubManager(
             if (i == 0) {
                 startTime = 0
             }
-            if (listItem[i].end != listItem[i + 1].start) {
+            if (listItem[i].start != listItem[i + 1].start) {
                 endTime = i
                 starts.add(listItem[i].end!!)
                 val map = mapOf(startTime to endTime)
@@ -661,17 +665,19 @@ class HubManager(
             }
         }
 
-        val firstId: Int = listItem.first().id?.minus(1) ?: 0
-        Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
-        val tObjStart = MediaItemModel(
-            id = firstId,
-            mediaID = firstId.toString(),
-            projectID = firstId.toString(),
-            title = "Khung ${listItem.first().start}",
-            body = "start",
-            startTime = listItem.first().startTime,
-            start = listItem.first().startTime,
-            fixTime = listItem.first().startTime,
+        //Chỉ có 1 khung
+        if (starts.size == 0) {
+            val firstId: Int = listItem.first().id?.minus(1) ?: 0
+            Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
+            val tObjStart = MediaItemModel(
+                id = firstId,
+                mediaID = firstId.toString(),
+                projectID = firstId.toString(),
+                title = "Khung ${listItem.first().start}",
+                body = "start",
+                startTime = listItem.first().startTime,
+                start = listItem.first().startTime,
+                fixTime = listItem.first().startTime,
                 end = listItem.first().end,
             )
             newList.add(0, tObjStart)
@@ -693,6 +699,95 @@ class HubManager(
                 "convertToTimeFrame: startTimes ${jsonMediaItemAdapter.toJson(newList)}"
             )
             return jsonMediaItemAdapter.toJson(newList)
+        }
+        //Có nhiều khung
+        else {
+            Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
+            listTimeFrame.forEach {
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung : Thoi gian tong${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
+                )
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung : lay item tu ${it.keys.first()} den ${it.values.first()}"
+                )
+                val list : MutableList<MediaItemModel> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung $list"
+                )
+                val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
+                val tObjStart = MediaItemModel(
+                    id = firstId,
+                    mediaID = firstId.toString(),
+                    projectID = firstId.toString(),
+                    title = "Khung ${listItem[it.keys.first()].start}",
+                    body = "start",
+                    startTime = listItem[it.keys.first()].startTime,
+                    start = listItem[it.keys.first()].startTime,
+                    fixTime = listItem[it.keys.first()].startTime,
+                    end = listItem[it.keys.first()].end,
+                )
+                list.add(0, tObjStart)
+                val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
+                val tObEnd = MediaItemModel(
+                    id = lastId,
+                    mediaID = lastId.toString(),
+                    projectID = lastId.toString(),
+                    title = "End Khung ${listItem[it.values.first()].start}",
+                    body = "end",
+                    startTime = listItem[it.values.first()].startTime,
+                    fixTime = listItem[it.values.first()].end,
+                    end = listItem[it.values.first()].end,
+                    start = listItem[it.values.first()].start
+                )
+                list.add(list.size, tObEnd)
+                res.addAll(list)
+            }
+            res.forEach {
+                Log.d("playtesst3", "findScheduleByDate: ${it.title}")
+                Log.d("playtesst3", "findScheduleByDate: ${it.start}")
+                Log.d("playtesst3", "findScheduleByDate: ${it.end}")
+                Log.d("playtesst3", "------------------")
+            }
+            return jsonMediaItemAdapter.toJson(res)
+
+        }
+
+
+//        val firstId: Int = listItem.first().id?.minus(1) ?: 0
+//        Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
+//        val tObjStart = MediaItemModel(
+//            id = firstId,
+//            mediaID = firstId.toString(),
+//            projectID = firstId.toString(),
+//            title = "Khung ${listItem.first().start}",
+//            body = "start",
+//            startTime = listItem.first().startTime,
+//            start = listItem.first().startTime,
+//            fixTime = listItem.first().startTime,
+//                end = listItem.first().end,
+//            )
+//            newList.add(0, tObjStart)
+//            val lastId: Int = listItem.last().id?.plus(1) ?: 0
+//            val tObEnd = MediaItemModel(
+//                id = lastId,
+//                mediaID = lastId.toString(),
+//                projectID = lastId.toString(),
+//                title = "End Khung ${listItem.first().start}",
+//                body = "end",
+//                startTime = listItem.last().startTime,
+//                fixTime = listItem.last().end,
+//                end = listItem.last().end,
+//                start = listItem.last().start
+//            )
+//            newList.add(tObEnd)
+//            Log.d(
+//                "wssTImeFrame",
+//                "convertToTimeFrame: startTimes ${jsonMediaItemAdapter.toJson(newList)}"
+//            )
+//            return jsonMediaItemAdapter.toJson(newList)
 
 
     }

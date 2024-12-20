@@ -172,9 +172,6 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-//        if(currentPlayer == vlcPlayer) {
-//            vlcPlayer.stop()
-//        }
         Log.d(LOGTAG, "Play media start ")
         Log.d(LOGTAG, "Play media size ${currentPlaylist.size} ")
         playlistIndex++
@@ -183,6 +180,12 @@ class PlayersManager(
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
         }
+//        else
+//        {
+//            Log.d(LOGTAG, "Play media phat tiep cham dich")
+//            stopAllPlayer()
+//            stopTimeFrame()
+//        }
         else
         {
             Log.d(LOGTAG, "Play media loop")
