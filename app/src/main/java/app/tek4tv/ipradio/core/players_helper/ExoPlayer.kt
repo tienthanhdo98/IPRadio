@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.widget.FrameLayout
 import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
@@ -21,8 +22,8 @@ import java.util.*
 
 //Mainly for playing m3u8 stream
 class ExoMediaPlayer(
-    appContext: Context,
-    private val eventListener: IPlayerEventListener,exoplayerView: PlayerView
+    private val appContext: Context,
+    private val eventListener: IPlayerEventListener,private val exoplayerView: PlayerView
 ) : IMediaPlayer {
 
     private val TAG = "ExoMediaPlayer"
@@ -126,13 +127,12 @@ class ExoMediaPlayer(
         if(isPlaying) stop()
 
         try {
-
-
             currentPlayingMedia = mediaItem
             isForceValue = isForce
             Log.e(TAG, "Exoplayer is force $isForceValue")
-            playHlsExo(mediaItem, timeStamp)
-
+            applyEndingTransformation(exoplayerView) {
+                playHlsExo(mediaItem, timeStamp)
+            }
 
         }
         catch (e :Exception)
@@ -163,8 +163,23 @@ class ExoMediaPlayer(
                 (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
             )
         }
+    }
+    private fun applyEndingTransformation(playerView: PlayerView, onComplete: () -> Unit) {
+        val overlay = FrameLayout(appContext).apply {
+            setBackgroundColor(0xAA000000.toInt()) // Semi-transparent overlay
+            alpha = 0f
+        }
+        (playerView.parent as FrameLayout).addView(overlay)
 
-
+        // Apply fade-out animation
+        overlay.animate()
+            .alpha(1f)
+            .setDuration(1000) // 1-second fade-out
+            .withEndAction {
+                (playerView.parent as FrameLayout).removeView(overlay)
+                onComplete() // Callback to play the next video
+            }
+            .start()
     }
 
     override fun reset() {

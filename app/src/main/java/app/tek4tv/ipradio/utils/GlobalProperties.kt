@@ -55,7 +55,6 @@ class GlobalProperties {
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
         providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
-
     }
 
     fun saveProperties(responseHub: ResponseHub) {

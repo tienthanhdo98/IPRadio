@@ -3,6 +3,8 @@ package app.tek4tv.ipradio.core.players_helper
 import android.content.Context
 import android.os.Handler
 import android.util.Log
+import android.widget.FrameLayout
+import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -36,7 +38,7 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
-    exoplayerView: PlayerView,
+    private  val exoplayerView: PlayerView,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
@@ -212,10 +214,16 @@ class PlayersManager(
             playMedia(mediaItem, timeStamp)
 
 
+
+
+
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
+
+
 
     private fun playMedia(mediaItem: MediaItemModel, timeStamp: Int = -1) {
         try {
@@ -235,18 +243,18 @@ class PlayersManager(
 //                        }
 //                        currentPlayer = vlcPlayer
 
-//                        if (mediaItem.contentType?.value == "5") {
-//                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
-//                        } else {
-//                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
-//                        }
-//                        currentPlayer = vlcPlayer
                         if (mediaItem.contentType?.value == "5") {
-                            exoMediaPlayer.playMedia(mediaItem, true, timeStamp)
+                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         } else {
-                            exoMediaPlayer.playMedia(mediaItem, false, timeStamp)
+                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
-                        currentPlayer = exoMediaPlayer
+                        currentPlayer = vlcPlayer
+//                        if (mediaItem.contentType?.value == "5") {
+//                            exoMediaPlayer.playMedia(mediaItem, true, timeStamp)
+//                        } else {
+//                            exoMediaPlayer.playMedia(mediaItem, false, timeStamp)
+//                        }
+//                        currentPlayer = exoMediaPlayer
                     }
                 }
                 MediaType.LIVE -> {

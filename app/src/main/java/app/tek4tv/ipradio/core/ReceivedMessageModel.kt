@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.core
 
+import app.tek4tv.ipradio.model.ThoiDiemPhat
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -32,16 +33,16 @@ data class DanhSachDiaBanNhan (
 
 data class TacGia (
     @Json(name = "TenDayDu")
-    val tenDayDu: String,
+    val tenDayDu: String?,
 
     @Json(name = "TenDangNhap")
-    val tenDangNhap: String,
+    val tenDangNhap: String?,
 
     @Json(name = "ButDanh")
-    val butDanh: String,
+    val butDanh: String?,
 
     @Json(name = "Email")
-    val email: String
+    val email: String?
 )
 
 data class ThongTinChiTietBanTin(
@@ -148,11 +149,11 @@ data class DanhSachNgayPhat(
     val thoiDiemPhat: List<ThoiDiemPhat>
 )
 
-data class ThoiDiemPhat(
-    @Json(name = "ThoiGianBatDau")
-    val thoiGianBatDau: Long,
-
-    @Json(name = "ThoiGianKetThuc")
-    val thoiGianKetThuc: Long
-)
+//data class ThoiDiemPhat(
+//    @Json(name = "ThoiGianBatDau")
+//    val thoiGianBatDau: Long,
+//
+//    @Json(name = "ThoiGianKetThuc")
+//    val thoiGianKetThuc: Long
+//)
 
