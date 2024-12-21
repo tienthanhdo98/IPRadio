@@ -71,9 +71,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val viewModel by viewModels<MainViewModel>()
 
-
-//    lateinit var logService: LogService
-
     private lateinit var hubManager: HubManager
 
     private lateinit var playerManager: PlayersManager
@@ -230,9 +227,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
-//            val tvMacAddress = findViewById<TextView>(R.id.tvMac)
-//            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-//            tvMacAddress.text = info
             checkInternetAndTime()
         } else {
             initDefaultTopAndLeftArea()
@@ -512,7 +506,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ForceMedia.clearMonthlyData(applicationContext)
 
                 }
-
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
 
@@ -527,14 +520,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }, 1000)
 //                    onPlayForce(responseHub)
                 }
-
-
-                HubCommand.LiveRemoteControl ->{
-                    val mess = responseHub.message!!
-                    Log.i("LiveRemoteControl", "Mess: $mess ")
-                }
-
-
                 HubCommand.TURN_ON_PA -> {
                     if (responseHub.message == "1") {
                         serialPortController.turnOffPA()
@@ -572,10 +557,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-                HubCommand.UPDATE_STATUS -> {
-                    serialPortController.updateStatus()
-                }
-
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
@@ -611,6 +592,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.SET_VOLUME_DEVICE -> {
 //                    if (responseHub.message != null) {
 //                        serialPortController.writeForceSetVolume(responseHub.message!!)
@@ -644,27 +626,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.setTimeOver()
                 }
 
-                HubCommand.SET_TIME_ON -> {
-                    serialPortController.setTimeOn(volume)
-                }
-
-                HubCommand.SETUP_PI_PS_NAME -> {
-                    serialPortController.setUpPiPsName(responseHub.message ?: "")
-                }
-
-                HubCommand.PLAY_VOD_LIVE_FORCE -> {
-                    serialPortController.writePlayVodLiveForce(responseHub.message ?: "")
-                }
-
-                HubCommand.PLAY_TUNER_LIVE_FORCE -> {
-                    serialPortController.playTunerLiveForce(responseHub.message ?: "")
-                }
-
                 HubCommand.READ_DEVICE_INFO -> {
                     serialPortController.readDeviceInfo()
                 }
-
-
 
                 HubCommand.STORAGE_INFO -> {
                     val connectionId = responseHub.message
@@ -707,7 +671,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.DELETE_ALL_LOG -> {
                     appStorageManager.deleteAllLog()
                 }
-
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"

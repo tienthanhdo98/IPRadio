@@ -184,7 +184,7 @@ class PlayersManager(
 //        exoPlayer.resume()
     }
 
-    private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
+    private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
         try {
             Log.d(LOGTAG, "currentPlaylist ${currentPlaylist.size}")
             if (currentPlaylist.isEmpty()) return
@@ -200,7 +200,7 @@ class PlayersManager(
 
 
 
-    private fun playMedia(mediaItem: MediaItemModel, timeStamp: Int = -1) {
+    private fun playMedia(mediaItem: MediaItemModel, timeStamp: Int = 0) {
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {

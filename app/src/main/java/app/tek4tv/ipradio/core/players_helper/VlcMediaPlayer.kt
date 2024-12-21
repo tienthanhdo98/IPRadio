@@ -105,7 +105,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
-        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_16_9
+        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
     }
 
