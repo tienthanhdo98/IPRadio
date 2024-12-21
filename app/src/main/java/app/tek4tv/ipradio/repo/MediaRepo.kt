@@ -191,12 +191,6 @@ class MediaRepo constructor(
         Log.d(TAG, "filterMedia: $timeDividers")
     }
 
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItemModel::class.java
-    )
-
-
     fun startDownloadMedia() {
         if (broadcastList.isNullOrEmpty()) return
 

@@ -79,6 +79,8 @@ object HubCommand {
     const val DV013 = "dv013"
     //wss gửi log lịch phát
     const val DV014 = "dv014"
+    //wss gửi log lịch phát cho ban ggg
+    const val DV014A = "dv014a"
     //wss nhat ky huy lich phat
     const val DV015 = "dv015"
     //Dịch vụ gửi trạng thái thiết bị

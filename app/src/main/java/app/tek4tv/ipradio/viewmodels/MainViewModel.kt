@@ -23,7 +23,6 @@ class MainViewModel  : ViewModel() {
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia: MediaItemModel? = null
 
     fun rescheduleMonthlyPlaylist()
     {

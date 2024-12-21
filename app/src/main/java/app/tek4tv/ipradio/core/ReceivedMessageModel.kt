@@ -11,12 +11,6 @@ data class ReceivedMessageModel(
     val payload: Any?
 )
 
-data class itemMedia
-    (
-    var time: ThongTinChiTietBanTin,
-    var danhSachBanTin: DanhSachBanTin
-)
-
 data class DanhSachDiaBanNhan (
     @Json(name = "DichID")
     val dichID: String?,

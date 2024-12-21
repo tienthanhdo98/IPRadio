@@ -28,7 +28,10 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItemModel
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
@@ -48,7 +51,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
-import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -87,7 +89,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
-    private lateinit var exoPlayerView: PlayerView
 
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
@@ -99,7 +100,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
-            hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
@@ -114,9 +114,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItemModel) {
-            hubManager.curMediaName = "Live Error"
             hubManager.currentMediaItem = mediaItem
-
             serialPortController.turnOffPA()
         }
 
@@ -129,33 +127,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
 
             if (mediaItem != null) {
-                hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
-                if (mediaItem.getMediaType() != MediaType.FM) {
-                    if (!serialPortController.isUart1) {
-                        lifecycleScope.launch {
-                            delay(11000)
-                            serialPortController.turnOnPAVod()
-                        }
-                    } else {
-                        serialPortController.turnOnPAVod()
-                    }
-                }
-//                val paState =
-//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-//                    else "0"
+                serialPortController.turnOnPAVod()
                 hubManager.sendLogMediaSuccess(mediaItem)
-                if (globalProperties.logEnabled) {
-                    try {
-                        viewModel.currentMedia = mediaItem
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
             }
         }
     }
@@ -189,8 +163,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         }
 
-
-
         logUtils = LogUtils.getInst()
 //        logUtils.logService = logService
 
@@ -210,11 +182,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
-        exoPlayerView = findViewById(R.id.exoPlayerView)
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
-            exoPlayerView,
             viewModel.mediaRepo
         )
 
@@ -271,7 +241,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun checkInternetAndTime() {
         val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
         val tvMacAddress = findViewById<TextView>(R.id.tvMac)
-        val df = SimpleDateFormat("HH:mm aa")
         lifecycleScope.launch {
             while (true) {
                 if (hubManager.pingCounter == 0) {
@@ -303,13 +272,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         videoViewContainer.clipToOutline = true
     }
 
-//    override fun onStart() {
-//        Log.i("ChangeLayout", "Mess: recreate onStart")
-//        super.onStart()
-//        startPlayingMedia()
-//    }
-
-
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
         playerManager.stopAllPlayer()
@@ -335,10 +297,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 playerManager.isInTimeFrame = true
-                Log.d("onPlayMediaLog", "show typescreen ${typeScreen}")
+                Log.d("onPlayMediaLog", "show typescreen $typeScreen")
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
-                    playerManager.setTimeFrame(listKey, null)
+                    playerManager.setTimeFrame(listKey)
                     if (typeScreen == MULTIPLE_AREA) {
 
                         Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
@@ -448,22 +410,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                }
 
             }
-
             playerManager.startFirstTimeFrame()
 
-
             sendLogDataHub()
-
 
             //all load done, check
             viewModel.checkPlaylist()
         }
     }
-
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItemModel::class.java
-    )
 
     fun startPlayingMedia() {
         viewModel.getPlayerContentWss()
@@ -471,8 +425,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-//        locationTracker.getLocation(this@MainActivity)
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -620,10 +572,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-                HubCommand.FM -> {
-                    onPlayForce(responseHub)
-                }
-
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
                 }
@@ -631,9 +579,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
-                HubCommand.SWITCH_MODE_FM -> {
-                    onPlayForce(responseHub)
-                }
+
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
@@ -797,7 +743,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
             }
-            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
+            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
                 if (command != null) {
                     logUtils.logHubCommand(command, responseHub.message ?: "")
                 }
@@ -821,8 +767,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 

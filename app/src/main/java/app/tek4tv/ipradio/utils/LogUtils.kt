@@ -35,9 +35,6 @@ class LogUtils private constructor() {
     private val playerLogFolderPath = "$logFolderPath/$PLAYER_LOG_FOLDER_NAME"
     private val timeframeLogFolderPath = "$logFolderPath/$TIMEFRAME_LOG_FOLDER_NAME"
     private val commandLogFolderPath = "$logFolderPath/$COMMAND_LOG_FOLDER_NAME"
-
-    private val imei = Utils.getDeviceId(appContext)
-
     private val mediaReportAdapter = moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = moshi.adapter(HubStateRecord::class.java)
@@ -45,7 +42,6 @@ class LogUtils private constructor() {
     var logService: AuthService? = null
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = GlobalProperties.getInst().providerValue
 
     init {
         listOf(
