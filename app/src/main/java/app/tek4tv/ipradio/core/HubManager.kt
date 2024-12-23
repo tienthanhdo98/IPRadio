@@ -34,6 +34,7 @@ class HubManager(
 
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
+    private var getMQTTInfoJob: Job? = null
 
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
@@ -41,7 +42,7 @@ class HubManager(
 
     private val deviceImei = Utils.getDeviceId(appContext)
 
-    var pingCounter = 0
+    var pingCounter = -1
 
     var responseHub = ResponseHub()
 
@@ -70,7 +71,7 @@ class HubManager(
         moshi.adapter(MediaItemModel::class.java)
 
     //mqtt
-    lateinit var listMQTTInfo: List<NoiDungMQTT>
+    private var listMQTTInfo: List<NoiDungMQTT> = listOf()
     var mqttClient: MQTTManager? = null
 
     init {
@@ -113,12 +114,13 @@ class HubManager(
     }
     private fun getMqttInfo()
     {
+        Log.i(TAG, "get MqttInfo ")
         try {
             val body = MQTTInfoModel(deviceImei)
             val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
-
             val call = retrofit.getMQTTInfo(body,"Bearer $hubToken", url)
             val response = call.execute()
+            Log.i(TAG, "get MqttInfo ${response.code()}")
             if (response.isSuccessful) {
                 listMQTTInfo = response.body()!!.noiDung
                 Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
@@ -145,20 +147,35 @@ class HubManager(
         //reset sau 5 phút khi không lấy được token
         if (pingCounter >= 60) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-
             hubComm.forceRestartApp(countForHardRestart)
         }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (hubToken == null) {
-                getHubToken()
-                delay(5000)
-                connectToServer()
+            while (isActive) {
+                if (hubToken == null) {
+                    getHubToken()
+                    delay(5000)
+                } else {
+                    break
+                }
             }
         }
-        if (hubToken == null) return
-        getTokenJob?.cancel()
-        getMqttInfo()
+        getMQTTInfoJob = CoroutineScope(Dispatchers.Default).launch {
+            getTokenJob?.join()
+            if (hubToken == null) return@launch
+            getMQTTInfoJob?.cancel()
+            getMQTTInfoJob = CoroutineScope(Dispatchers.Default).launch {
+                while (isActive) {
+                    if (listMQTTInfo.isEmpty()) {
+                        getMqttInfo()
+                        delay(5000)
+                    } else {
+                        break
+                    }
+                }
+            }
+            getMQTTInfoJob?.join()
+        }
     }
 
     override fun onConnectSuccess() {

@@ -3,20 +3,20 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.media.AudioManager
-import android.os.Bundle
-import android.os.Handler
+import android.os.*
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
-import android.view.View
+import android.view.*
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.constraintlayout.widget.ConstraintLayout
+import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -51,6 +51,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
+import java.io.FileOutputStream
+import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -98,7 +100,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
             hubManager.currentMediaItem = null
-            Log.d("PMLOG", "startFirstTimeFrame: time over")
+            Log.d("PMLOG", "playerCallback: time over")
         }
 
 
@@ -131,6 +133,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
@@ -211,6 +214,44 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     }
 
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun capture(){
+        try {
+            val surfaceView = (vlcVideoLayout.getChildAt(
+                0) as FrameLayout).children.filter { it is SurfaceView }
+                .first() as SurfaceView
+
+            val bitmap = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
+
+            PixelCopy.request(surfaceView, bitmap, {
+                saveBitmap(bitmap)
+            }, Handler(Looper.getMainLooper()))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    private fun saveBitmap(bitmap: Bitmap) {
+        // Create directory for saving
+        val path: File =
+            File(Environment.getExternalStorageDirectory().toString() + "/Screenshots/")
+        if (!path.exists()) {
+            path.mkdirs()
+        }
+
+        // Create the file for saving
+        val imageFile = File(path, "screenshot_" + System.currentTimeMillis() + ".png")
+        try {
+            FileOutputStream(imageFile).use { out ->
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // Compress to PNG
+                Toast.makeText(this, "Screenshot saved: " + imageFile.path, Toast.LENGTH_SHORT)
+                    .show()
+            }
+        } catch (e: IOException) {
+            e.printStackTrace()
+            Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show()
+        }
+    }
+
 
 
     private fun checkDeleteFileUpdate() {
@@ -225,6 +266,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
             checkInternetAndTime()
@@ -232,6 +274,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             initDefaultTopAndLeftArea()
         }
     }
+    @RequiresApi(Build.VERSION_CODES.N)
     private fun checkInternetAndTime() {
         val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
         val tvMacAddress = findViewById<TextView>(R.id.tvMac)
@@ -253,6 +296,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             delay(10000)
             tvMacAddress.visibility = View.GONE
 
+        }
+        tvCheckInternet.setOnClickListener{
+            Log.d("capturecapture", "checkInternetAndTime: click capture")
+            capture()
+            Log.d("capturecapturecapturecapture", "checkInternetAndTime: click capture ok")
         }
     }
 
@@ -339,13 +387,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return false
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return false
+//    }
 
 
     private fun needGrantPermission(): Boolean {

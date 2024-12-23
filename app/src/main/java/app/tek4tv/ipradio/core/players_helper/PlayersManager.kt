@@ -11,9 +11,7 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
-import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -42,9 +40,6 @@ class PlayersManager(
 
     private var currentPlayingMedia: MediaItemModel? = null
 
-    /**
-     * The timestamp when a media begin to play
-     * **/
     private var mediaStartTime = 0L
 
     /**
@@ -78,7 +73,6 @@ class PlayersManager(
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItemModel) {
         if (isLiveError) {
             //To log stream played duration
-            onMediaStopPlaying()
             playerManagerListener?.onLiveError(mediaItem)
         }
     }
@@ -90,24 +84,14 @@ class PlayersManager(
     }
 
     override fun onMediaEndReached(mediaItem: MediaItemModel?) {
-        onMediaStopPlaying()
+
+        played = false
         playNextMedia()
     }
 
     override fun onMediaForceEndReached(mediaItem: MediaItemModel?) {
         stopForceMedia()
     }
-
-
-    private fun onMediaStopPlaying() {
-        if (played) {
-            Log.e("AAA", "Đừng vào đây lần 2")
-            val duration = Calendar.getInstance().timeInMillis - mediaStartTime
-            playerManagerListener?.onMediaStopPlaying(currentPlayingMedia!!, duration)
-        }
-        played = false
-    }
-
 
     /**
      * Tìm khung thơi gian hiện tại cần phát
@@ -155,7 +139,7 @@ class PlayersManager(
         Log.d("monthlyinfo", "show left ${currentTextPlaylist.size}")
 
         playlistIndex = 0
-            playMediaByIndex(playlistIndex)
+        playMediaByIndex(playlistIndex)
 
         isTimeOver = false
     }
@@ -181,7 +165,6 @@ class PlayersManager(
     fun resumeMedia()
     {
         vlcPlayer.resume()
-//        exoPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
@@ -191,7 +174,6 @@ class PlayersManager(
             val mediaItem = currentPlaylist[index]
             Log.d(LOGTAG, "play ${mediaItem.title}")
             playMedia(mediaItem, timeStamp)
-
 
         } catch (e: Exception) {
             e.printStackTrace()
@@ -231,7 +213,8 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItemModel,isForce : Boolean,timeStamp: Int ) {
-        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+//        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+        val resumeLiveTime = 0
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
         currentPlayer = vlcPlayer
@@ -256,41 +239,6 @@ class PlayersManager(
         }
     }
 
-    /**
-     * Find media and the second from start which it should be played at the moment
-     * trả về index của media cần phát tịa thời điểm hiện tại và nếu là file thì thời gian tính từ lúc bắt đầu
-     * **/
-    private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
-        try {
-            val mediaList = mediaRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
-            val now = Calendar.getInstance()
-            val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
-
-            var t = 0
-
-            for (i in mediaList.indices) {
-                val media = mediaList[i]
-                val mediaDuration = getDurationInSecond(media.duration!!)
-
-                t += mediaDuration
-
-                if (t > secondFromStart) {
-                    return if (GlobalProperties.getInst().resumeFromStart) {
-                        Pair(i, 0)
-                    } else {
-                        val startTimeStamp = mediaDuration - (t - secondFromStart)
-                        Pair(i, startTimeStamp)
-                    }
-                }
-            }
-
-            return Pair(0, 0)
-        } catch (e: Exception) {
-            Log.e(LOGTAG, "Error calculate resume")
-            e.printStackTrace()
-            return Pair(0, 0)
-        }
-    }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItemModel): Int {
         //với force media, fixtime dc gán là start time
@@ -320,7 +268,6 @@ class PlayersManager(
         if (playMode != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
-        onMediaStopPlaying()
         playerManagerListener?.onEndForceMedia()
 //        playerManagerListener?.onTimeOver()
     }
@@ -356,8 +303,6 @@ class PlayersManager(
                 }
 
             }
-
-
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
                     val listDur = duration.split(":")

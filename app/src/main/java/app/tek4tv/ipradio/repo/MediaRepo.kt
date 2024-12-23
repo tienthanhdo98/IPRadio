@@ -59,7 +59,7 @@ class MediaRepo constructor(
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-//            val dayScenario = listMonthSchedule?.firstOrNull { it.date == currentDate }
+
             var dayScenario : String? = null
 
             if (listMonthSchedule != null) {

@@ -4,6 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import android.view.animation.AlphaAnimation
+import android.view.animation.Animation
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItemModel
@@ -30,8 +32,10 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var isPlaying = false
 
     private var lastError = -1
+
     // private var endCount = 0
     var countReplayLive = 0
+
 
 
     override fun isPlaying(): Boolean = isPlaying
@@ -52,11 +56,17 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //                } else {
 //                    playerEventListener.onMediaForceEndReached(currentMedia)
 //                }
+
                 Log.e(TAG, "EndReached ${currentMedia?.getMediaType()}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
+
                 }
-            }
+                else {
+                    playerEventListener.onMediaForceEndReached(currentMedia)
+                }
+
+                }
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
@@ -72,41 +82,34 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             }
 
             MediaPlayer.Event.Playing -> {
-                if (!isPlaying) {
+//                if (!isPlaying) {
                     Log.e(TAG, "Playing ${currentMedia?.title}")
                     isPlaying = true
                     playerEventListener.onPlayMediaSuccess(currentMedia)
-                }
+//                }
             }
 
-            else -> {
-            }
+
         }
     }
-
-//    private fun calculateResumePoint(mediaItem: MediaItemModel): Int {
-//
-//        val startTimeOfMedia = toCalendar(mediaItem.start!!)
-//        val now = Calendar.getInstance()
-//
-//        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-//
-//    }
 
     init {
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
 //        args.add("--no-drop-late-frames")
-        args.add("--file-caching=3000")
-        args.add("--network-caching=3000")
+//        args.add("--file-caching=3000")
+//        args.add("--network-caching=3000")
        args.add("--skip-frames")
+       args.add("--no-drop-late-frames")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
+
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
+
     }
 
 
@@ -118,7 +121,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             playLiveStream(mediaItem, timeStamp)
         } else {
             playFile(mediaItem, timeStamp)
-
         }
         currentMedia = mediaItem
 
@@ -163,11 +165,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 
     private fun playFile(mediaItem: MediaItemModel, timeStamp: Int) {
-        Log.e(TAG, "vlc play file : time stamp $timeStamp")
+        Log.e(TAG, "vlc play file")
         val media = mediaItem.getVlcMedia(mLibVLC)
-        Log.e(TAG, "vlc play timeStamp $timeStamp")
-        if (timeStamp != -1)
-            media.addOption(":start-time=$timeStamp")
 
         currentVlcMedia = media
 
