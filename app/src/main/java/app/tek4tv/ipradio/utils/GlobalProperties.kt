@@ -45,8 +45,8 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.51.02") ?: "H48.51.02"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Lê Hồng Phong") ?: "Phường Lê Hồng Phong"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.51.03") ?: "H48.51.03"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Nghĩa Chánh") ?: "Phường Nghĩa Chánh"
         nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử") ?: "Bảng Điện Tử"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)

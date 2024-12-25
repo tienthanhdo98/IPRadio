@@ -230,11 +230,11 @@ class Utils {
                     }
                 }
                 return result
-            }
-            else
-            {
-                return  ""
+            } else {
+                return ""
             }
         }
     }
+
+
 }

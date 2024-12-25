@@ -29,7 +29,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 10000L
+    private val PING_HUB_INTERVAL = 60000L
     private val moshi = RetrofitInstance.moshi
 
     private var pingHubJob: Job? = null
@@ -98,7 +98,7 @@ class HubManager(
             if (response.isSuccessful) {
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
-                    Log.i(TAG, "getHubToken ${hubToken}")
+                    Log.i(TAG, "getHubToken $hubToken")
                 }
             } else {
                 Log.i(TAG, "getHubToken fail")
@@ -124,16 +124,6 @@ class HubManager(
             if (response.isSuccessful) {
                 listMQTTInfo = response.body()!!.noiDung
                 Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
-
-                mqttClient =
-                    MQTTManager(
-                        hubToken,
-                        this,
-                        GlobalProperties.getInst().destinationId,
-                        listMQTTInfo
-                    )
-                mqttClient?.connectToMQTT(appContext)
-
             } else {
                 listMQTTInfo = listOf()
                 Log.i(TAG, "MqttInfo null")
@@ -151,30 +141,37 @@ class HubManager(
         }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive) {
+            while (isActive && hubToken == null) {
+                getHubToken()
                 if (hubToken == null) {
-                    getHubToken()
                     delay(5000)
-                } else {
-                    break
+
                 }
-            }
-        }
-        getMQTTInfoJob = CoroutineScope(Dispatchers.Default).launch {
-            getTokenJob?.join()
-            if (hubToken == null) return@launch
-            getMQTTInfoJob?.cancel()
-            getMQTTInfoJob = CoroutineScope(Dispatchers.Default).launch {
-                while (isActive) {
-                    if (listMQTTInfo.isEmpty()) {
+                if (hubToken == null) return@launch
+
+                // Cancel and start a new MQTT info retrieval job
+                getMQTTInfoJob?.cancel()
+                getMQTTInfoJob = launch {
+                    while (isActive && listMQTTInfo.isEmpty()) {
                         getMqttInfo()
-                        delay(5000)
-                    } else {
-                        break
+                        if (listMQTTInfo.isEmpty()) {
+                            delay(5000)
+                        }
                     }
+                    if (listMQTTInfo.isEmpty()) return@launch
+
+                    mqttClient = MQTTManager(
+                        hubToken,
+                        this@HubManager,
+                        GlobalProperties.getInst().destinationId,
+                        listMQTTInfo
+                    )
+                    mqttClient?.connectToMQTT(appContext)
+
                 }
+                getMQTTInfoJob?.join()
             }
-            getMQTTInfoJob?.join()
+
         }
     }
 

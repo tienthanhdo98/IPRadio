@@ -104,6 +104,7 @@ class MQTTManager(
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d(TAG, "Failed to publish to $publishTopicTinh")
+                    Log.d(TAG, "Failed to publish to $exception?.message")
                     connectEventListener.onSendMessageFailure("onFailure: ${exception?.message}")
                 }
             })

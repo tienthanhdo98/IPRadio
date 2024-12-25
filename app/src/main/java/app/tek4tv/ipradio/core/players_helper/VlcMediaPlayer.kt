@@ -11,6 +11,7 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLi
 import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
@@ -43,24 +44,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
-//                if (currentMedia?.getMediaType() == MediaType.FILE) {
-//                    val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
-//                    if (!isStreamFailed) {
-//                        Log.e(TAG, "EndReached ${currentMedia?.title}")
-//                        playerEventListener.onMediaEndReached(currentMedia)
-//                        isPlaying = false
-//                    } else {
-//                        Log.e(TAG, "EncounteredError  ${currentMedia?.title}")
-//                        checkStreamError()
-//                    }
-//                } else {
-//                    playerEventListener.onMediaForceEndReached(currentMedia)
-//                }
-
                 Log.e(TAG, "EndReached ${currentMedia?.getMediaType()}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
-
                 }
                 else {
                     playerEventListener.onMediaForceEndReached(currentMedia)
@@ -167,7 +153,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private fun playFile(mediaItem: MediaItemModel, timeStamp: Int) {
         Log.e(TAG, "vlc play file")
         val media = mediaItem.getVlcMedia(mLibVLC)
-
+        if(mediaItem.body!!.contains("jpg") || mediaItem.body!!.contains("png"))
+        {
+            Log.e(TAG, "vlc play file img Duration: ${getMediaDuration(mediaItem) / 1000} ")
+            media.addOption(":image-duration=${getMediaDuration(mediaItem) / 1000}")
+        }
         currentVlcMedia = media
 
         vlcPlayer.play(media)
@@ -289,6 +279,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //        } catch (e: Exception) {
 //            e.printStackTrace()
 //        }
+    }
+    fun getMediaDuration(mediaItem: MediaItemModel): Int {
+        if (mediaItem.duration != null) {
+            val mediaDuration = getDurationInSecond(mediaItem.duration)
+            if (mediaDuration > 0) return mediaDuration * 1000
+        }
+        return 15000
+
     }
 
     private fun onLiveErrorVlc() {

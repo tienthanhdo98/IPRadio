@@ -121,7 +121,6 @@ data class MediaItemModel(
 //            Log.d("player", "live: $body")
 //            return Media(mLibVLC, Uri.parse(body))
 //        }
-
         return if (body!!.isNotEmpty() && File(body).exists()) {
             Log.d("player", "local: $body")
             Media(mLibVLC, Uri.parse("file://$body"))
