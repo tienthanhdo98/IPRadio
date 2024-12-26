@@ -29,7 +29,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 60000L
+    private val PING_HUB_INTERVAL = 30000L
     private val moshi = RetrofitInstance.moshi
 
     private var pingHubJob: Job? = null
@@ -135,10 +135,10 @@ class HubManager(
 
     fun connectToServer() {
         //reset sau 5 phút khi không lấy được token
-        if (pingCounter >= 60) {
-            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-            hubComm.forceRestartApp(countForHardRestart)
-        }
+//        if (pingCounter >= 60) {
+//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+//            hubComm.forceRestartApp(countForHardRestart)
+//        }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
             while (isActive && hubToken == null) {
@@ -644,17 +644,18 @@ class HubManager(
     }
 
     private fun checkConnection() {
-        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-
-            hubComm.forceRestartApp(countForHardRestart)
-        }
+//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+//
+//            hubComm.forceRestartApp(countForHardRestart)
+//        }
         if (pingCounter >= 3) {
             Log.e(TAG, "Losed hub connection")
-            if (notifyDisconnected.compareAndSet(false, true)) {
-                hubToken = null
-                Log.e(TAG, "Hub Disconnected")
-            }
+//            if (notifyDisconnected.compareAndSet(false, true)) {
+//                hubToken = null
+//                Log.e(TAG, "Hub Disconnected")
+//            }
+            hubToken = null
             //Try to reconnect to hub
             Log.e(TAG, "Try to reconnect Websocket")
             connectToServer()

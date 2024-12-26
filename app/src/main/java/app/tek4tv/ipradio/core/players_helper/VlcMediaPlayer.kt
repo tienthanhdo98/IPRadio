@@ -1,17 +1,19 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.animation.AlphaAnimation
 import android.view.animation.Animation
+import android.view.animation.AnimationUtils
+import android.widget.FrameLayout
+import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
-import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
@@ -22,7 +24,7 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
 
-class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener, vlcVideoLayout: VLCVideoLayout) :
+class VlcMediaPlayer(private  val appContext: Context, private val playerEventListener: IPlayerEventListener,private  val vlcVideoLayout: VLCVideoLayout) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private var mLibVLC: LibVLC
@@ -36,8 +38,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     // private var endCount = 0
     var countReplayLive = 0
-
-
 
     override fun isPlaying(): Boolean = isPlaying
 
@@ -91,6 +91,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
+        vlcVideoLayout.setBackgroundColor(Color.BLACK)
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
 
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
@@ -139,7 +140,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             currentMedia = null
             currentVlcMedia = null
         }
-
     }
 
     override fun release() {
@@ -158,9 +158,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             Log.e(TAG, "vlc play file img Duration: ${getMediaDuration(mediaItem) / 1000} ")
             media.addOption(":image-duration=${getMediaDuration(mediaItem) / 1000}")
         }
+        vlcPlayer.play(media)
         currentVlcMedia = media
 
-        vlcPlayer.play(media)
 
     }
 

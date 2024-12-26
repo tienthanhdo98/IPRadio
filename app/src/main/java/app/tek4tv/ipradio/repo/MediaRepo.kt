@@ -233,10 +233,10 @@ class MediaRepo constructor(
                 Log.d("ĐÂSDF", "${mediaStoragePath}/${fileName}")
                 Log.d("ĐÂSDF", "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
-                coroutineScope.launch {
-                    saveItemsToFile(broadcastList)
-                    Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
-                }
+//                coroutineScope.launch {
+//                    saveItemsToFile(broadcastList)
+//                    Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
+//                }
             }
             return
         }

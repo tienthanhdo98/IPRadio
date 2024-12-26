@@ -43,7 +43,6 @@ import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.google.android.exoplayer2.ui.PlayerView
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import com.squareup.picasso.Picasso
@@ -53,7 +52,6 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.FileOutputStream
 import java.io.IOException
-import java.text.SimpleDateFormat
 import java.util.*
 
 
@@ -136,14 +134,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
-        if (typeScreen == FULL_SCREEN) {
-            setContentView(R.layout.activity_main)
-        } else {
-            setContentView(R.layout.activity_main_multiple_view2)
-        }
+//        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+//        if (typeScreen == FULL_SCREEN) {
+//            setContentView(R.layout.activity_main)
+//        } else {
+//            setContentView(R.layout.activity_main_multiple_view2)
+//        }
+        setContentView(R.layout.activity_main)
         supportActionBar?.hide()
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -158,7 +157,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             override fun forceRestartDevice() {
-                serialPortController.hardRestart()
+//                serialPortController.hardRestart()
             }
 
         }
@@ -182,6 +181,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
+
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
@@ -189,8 +189,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         )
 
         playerManager.playerManagerListener = playerCallback
-
-
 
         NetworkUtils.instance.startNetworkListener(this)
 
@@ -253,7 +251,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-
     private fun checkDeleteFileUpdate() {
         val destination = getDestinationApk()
         val file = File(destination)
@@ -265,7 +262,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-
     @RequiresApi(Build.VERSION_CODES.N)
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
@@ -274,6 +270,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             initDefaultTopAndLeftArea()
         }
     }
+
     @RequiresApi(Build.VERSION_CODES.N)
     private fun checkInternetAndTime() {
         val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
@@ -344,9 +341,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey)
                     if (typeScreen == MULTIPLE_AREA) {
-
                         Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
-
                     }
                 }
             }
@@ -387,13 +382,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return false
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return false
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
 
     private fun needGrantPermission(): Boolean {
@@ -450,7 +445,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                } else {
 //                    Log.i("monthlyinfo", "Mess: left not show")
 //                }
-
             }
             playerManager.startFirstTimeFrame()
 

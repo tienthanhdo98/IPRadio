@@ -107,10 +107,10 @@ dependencies {
 
 //    implementation 'commons-net:commons-net:3.7.2'
 
-    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
-    implementation 'com.google.android.exoplayer:exoplayer-core:2.19.1'
-    implementation 'com.google.android.exoplayer:exoplayer-hls:2.19.1'
-    implementation 'com.google.android.exoplayer:extension-okhttp:2.19.1'
+//    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
+//    implementation 'com.google.android.exoplayer:exoplayer-core:2.19.1'
+//    implementation 'com.google.android.exoplayer:exoplayer-hls:2.19.1'
+//    implementation 'com.google.android.exoplayer:extension-okhttp:2.19.1'
 
 
 

@@ -224,7 +224,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     fun scheduleAllAlarms() {
         scheduleListAlarms()
         setRescheduleAllAlarms()
-        setCheckHubAndResetAlarms()
+//        setCheckHubAndResetAlarms()
     }
 
     fun cancelAllScheduledListAlarm() {
