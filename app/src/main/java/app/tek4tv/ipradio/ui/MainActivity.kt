@@ -6,6 +6,7 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,6 +18,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -59,9 +61,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : StreamBaseFrag(), AlarmListener  {
-
-    private val UPDATE_PERMISSION_REQUEST_CODE = 1
-
     private val permissions = arrayOf(
         Manifest.permission.WRITE_EXTERNAL_STORAGE,
         Manifest.permission.READ_EXTERNAL_STORAGE,
@@ -70,10 +69,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
         Manifest.permission.ACCESS_WIFI_STATE,
-        Manifest.permission.RECORD_AUDIO
     )
-    //        Manifest.permission.ACCESS_FINE_LOCATION,
-    //        Manifest.permission.ACCESS_COARSE_LOCATION,
+
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -222,14 +219,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
+        if (needGrantPermission()) {
+            grantPermissionThoughAdb()
+        }
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart : Int) {
@@ -335,37 +335,54 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 delay(5000)
             }
         }
+        checkDeleteFileUpdate()
 
+        //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
+    }
 
+    private  fun checkDeleteFileUpdate()
+    {
+        try {
+            val destination = getDestinationApk()
+            val file = File(destination)
+            if (file.exists()) {
+                file.delete()
+                Log.d("deletefile", "checkDeleteFileUpdate: delete success")
+            } else {
+                Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
+            }
+        }catch (e : Exception){
+            Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
+        }
     }
 
     private fun getSteamInfo() {
-        urlStream = ConfigUtil.getStringEncrypt(
+        urlStream = ConfigUtil.getString(
             this,
             ConfigUtil.URL_STREAM,
             ""
         )!!
-        user_name_stream = ConfigUtil.getStringEncrypt(
+        user_name_stream = ConfigUtil.getString(
             this,
             ConfigUtil.USER_NAME_STREAM,
             ""
         )!!
-        password_stream = ConfigUtil.getStringEncrypt(
+        password_stream = ConfigUtil.getString(
             this,
             ConfigUtil.PASSWORD_STREAM,
             ""
         )!!
-        protocol_stream = ConfigUtil.getStringEncrypt(
+        protocol_stream = ConfigUtil.getString(
             this,
             ConfigUtil.PROTOCOL_STREAM,
             "TCP"
         )!!
-        bitrate_stream = ConfigUtil.getStringEncrypt(
+        bitrate_stream = ConfigUtil.getString(
             this,
             ConfigUtil.BITRATE_STREAM,
             "64000"
         )!!
-        samplerate = ConfigUtil.getStringEncrypt(
+        samplerate = ConfigUtil.getString(
             this,
             ConfigUtil.SAMPLERATE_STREAM,
             "44100"
@@ -597,14 +614,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             }
         }
 
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
-
+//        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+//            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+//            startActivity(intent)
+//        }
         return needGrantPermission
     }
+    private fun grantPermissionThoughAdb() {
+        execSu("pm grant app.tek4tv.ipradio android.permission.READ_EXTERNAL_STORAGE")
+        execSu("pm grant app.tek4tv.ipradio android.permission.WRITE_EXTERNAL_STORAGE")
+        execSu("pm grant app.tek4tv.ipradio android.permission.PACKAGE_USAGE_STATS")
+        execSu("pm grant app.tek4tv.ipradio android.permission.READ_PHONE_STATE")
+    }
 
+
+    @RequiresApi(Build.VERSION_CODES.O)
     private fun registerObservers() {
         /**
          * khi cần
@@ -630,9 +654,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             playerManager.startFirstTimeFrame()
             sendLogDataHub()
             //all load done, check
-            viewModel.checkPlaylist()
-
-
+//            viewModel.checkPlaylist()
         }
     }
 
@@ -685,65 +707,50 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 //                    viewModel.getPlayerContent(mess, true)
                 }
                 HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message!!
+                    val mess = responseHub.message ?: return
                     Log.i("config_config", "updateconfig $mess")
+
                     val listInfoConfig = mess.split(",")
 
                     val newResponseHub = ResponseHub().apply {
-                        if(listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
-                            volume = listInfoConfig[0]
-                            serialPortController.writeForceSetVolume(responseHub.message!!)
+                        listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
+                            volume = it
+                            serialPortController.writeForceSetVolume(mess)
                         }
-                        if(listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
-                            lat = listInfoConfig[1].toFloat()
+                        listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
+                            lat = it.toFloat()
                         }
-                        if(listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
-                            lng = listInfoConfig[2].toFloat()
+                        listInfoConfig.getOrNull(2)?.takeIf { it != "null" }?.let {
+                            lng = it.toFloat()
                         }
-                        if(listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
-                            destinationId = listInfoConfig[3]
+                        listInfoConfig.getOrNull(3)?.takeIf { it != "null" }?.let {
+                            destinationId = it
                         }
-                        if(listInfoConfig.size >= 5 && listInfoConfig[4] != "null") {
-                            destinationName = listInfoConfig[4]
+                        listInfoConfig.getOrNull(4)?.takeIf { it != "null" }?.let {
+                            destinationName = it
                         }
-                        if(listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
-                            deviceName = listInfoConfig[5]
+                        listInfoConfig.getOrNull(5)?.takeIf { it != "null" }?.let {
+                            deviceName = it
                         }
                     }
-                    if(listInfoConfig.size >= 7 && listInfoConfig[6] != "null")
-                    {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listInfoConfig[6]
-                        )
-                        globalProperties.providerValue =  listInfoConfig[6]
-                    }
-                    if(listInfoConfig.size >= 8 && listInfoConfig[7] != "null")
-                    {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.Minute_TURN_ON_PA,
-                            listInfoConfig[7].toInt()
-                        )
-                    }
-                    if(listInfoConfig.size >= 9 && listInfoConfig[8] != "null")
-                    {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.ServerTimeout,
-                            listInfoConfig[8].toInt()
-                        )
 
+                    listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putString(applicationContext, ConfigUtil.PROVIDER, it)
+                        globalProperties.providerValue = it
                     }
-                    if(listInfoConfig.size >= 10 && listInfoConfig[9] != "null")
-                    {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.KeepAliveInterval,
-                            listInfoConfig[9].toInt()
-                        )
+
+                    listInfoConfig.getOrNull(7)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.Minute_TURN_ON_PA, it.toInt())
                     }
+
+                    listInfoConfig.getOrNull(8)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.ServerTimeout, it.toInt())
+                    }
+
+                    listInfoConfig.getOrNull(9)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.KeepAliveInterval, it.toInt())
+                    }
+
                     globalProperties.saveProperties(newResponseHub)
                 }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -783,56 +790,56 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
                     if (listValue.size >= 3 && listValue[2] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.PROVIDER,
                             listValue[2]
                         )
                     }
                     if (listValue.size >= 4 && listValue[3] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.URL_STREAM,
                             listValue[3]
                         )
                     }
                     if (listValue.size >= 5 && listValue[4] != "null")  {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.USER_NAME_STREAM,
                             listValue[4]
                         )
                     }
                     if (listValue.size >= 6 && listValue[5] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.PASSWORD_STREAM,
                             listValue[5]
                         )
                     }
                     if (listValue.size >= 7 && listValue[6] != "null")  {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.PROTOCOL_STREAM,
                             listValue[6]
                         )
                     }
                     if (listValue.size >= 8 && listValue[7] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.BITRATE_STREAM,
                             listValue[7]
                         )
                     }
                     if (listValue.size >= 9 && listValue[8] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.SAMPLERATE_STREAM,
                             listValue[8]
                         )
                     }
                     if (listValue.size >= 10 && listValue[9] != "null") {
-                        ConfigUtil.putStringEncrypt(
+                        ConfigUtil.putString(
                             applicationContext,
                             ConfigUtil.KEY_EXTEND_FILE,
                             listValue[9]
@@ -852,12 +859,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     lifecycleScope.launch {
                         val id = hubManager.openConnection2(hubConnection)
                         if (id != null) {
-                            ConfigUtil.putStringEncrypt(
+                            ConfigUtil.putString(
                                 applicationContext,
                                 ConfigUtil.URL_HUB,
                                 urlHub
                             )
-                            ConfigUtil.putStringEncrypt(
+                            ConfigUtil.putString(
                                 applicationContext,
                                 ConfigUtil.URL_TOKEN,
                                 urlToken

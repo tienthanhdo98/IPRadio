@@ -295,7 +295,7 @@ class MediaRepo @Inject constructor(
     }
     private fun getConfigExtension() : String?
     {
-        return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp3#aac#wav#wma#ac3")
+        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp3#aac#wav#wma#ac3")
 
     }
 

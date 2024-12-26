@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.core
 
+
 import android.content.Context
 import android.os.Handler
 import android.os.Looper
@@ -9,12 +10,8 @@ import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.ui.MainActivity
-
 import app.tek4tv.ipradio.ui.MainActivity.Companion.isEncoder
 import app.tek4tv.ipradio.ui.MainActivity.Companion.streamingModel
-
-
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
@@ -60,6 +57,8 @@ class HubManager(
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
+
+
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
     private val listAdapter = moshi.adapter(List::class.java)
 
@@ -108,10 +107,10 @@ class HubManager(
             ""
         }
         //https://hubip-alpha-binhdinh.tek4tv.vn/
-        hubUrl = ConfigUtil.getStringEncrypt(
+        hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
+            "https://hubip-quangngai.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -146,31 +145,25 @@ class HubManager(
     private fun getHubToken(): String? {
         return try {
             //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            // val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
 
-            val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
-            )
 //            val body = mapOf(
-//                "Username" to "tek4tv_bacgiang",
-//              "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5"
+//                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+//                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
 //            )
+            val body = mapOf("Username" to "device", "Password" to "Device@123")
+            //Auth Url encrypted in c++ lib
 
-            val url = ConfigUtil.getStringEncrypt(
+            val url = ConfigUtil.getString(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
                 "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
             )
-//            val url = ConfigUtil.getStringEncrypt(
-//                context = appContext,
-//                ConfigUtil.URL_TOKEN,
-//                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
-//            )
+
             val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
@@ -317,7 +310,7 @@ class HubManager(
                                     notifyHubReconnected()
                                     notifyDisconnected.compareAndSet(true, false)
                                 }
-                                
+
                                 if (firstConnect) firstConnect = false
 
                                 pingCounter = 0

@@ -81,8 +81,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val period = scheduledList.keys.elementAt(i)
             //setAlarmsForFrame(period)
             var isNewDayStarted = false
-            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
+            val requestCode = mediaRepo.timeDividers[period]!![0].id
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             val t = period.split("-")
             val start = toCalendar(t[0]) //start time
@@ -137,8 +137,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
 
-            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
+            val requestCode = mediaRepo.timeDividers[period]!![0].id
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             cancelListAlarm(period, requestCode!!)
             cancelListAlarm(period, endRequestCode!!, true)

@@ -225,7 +225,6 @@ class PlayersManager(
                         // play live o trong lich
                         if(mediaItem.contentType?.value == "5")
                         {
-
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
                         else {
