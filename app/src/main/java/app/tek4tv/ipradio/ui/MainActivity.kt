@@ -295,9 +295,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         } catch (e: Exception) {
             e.printStackTrace()
         }
-
-
-
     }
     private fun saveBitmap(bitmap: Bitmap) {
         // Create directory for saving
