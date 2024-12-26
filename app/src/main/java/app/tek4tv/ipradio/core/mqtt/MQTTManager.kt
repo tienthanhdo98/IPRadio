@@ -2,20 +2,21 @@ package app.tek4tv.ipradio.core.mqtt
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.IConnectionServer
-import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.model.NoiDungMQTT
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val destinationId: String
+    private val destinationId: String,
+    private val listMQTTInfo : List<NoiDungMQTT>
 ) {
     val TAG = "MQTTLOG"
-    var clientID = "46b6e6cb-0191-43ea-9f6f-9377061649ee"
-    private var publishTopicTinh = "tinh/$clientID"
+    var clientID = ""
+    private var publishTopicTinh = ""
+
 
     private var mqttClient: MqttAndroidClient? = null
 
@@ -25,21 +26,29 @@ class MQTTManager(
         Log.d(TAG, "Subscribed: ${listDesId.count()}")
         if (listDesId.isNotEmpty()) {
 
-            subscribe("tinh/${listDesId[0]}".lowercase())
+            subscribe("tinh/${listDesId[0]}".toLowerCase())
         }
         if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".lowercase())
+            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
         }
         if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".lowercase())
+            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
         } else {
-
-            subscribe("thon/$destinationId".lowercase())
+            subscribe("thon/$destinationId".toLowerCase())
         }
     }
 
     fun connectToMQTT(context: Context) {
-        val serverURI = "tcp://mqtt-staging.thongtinnguon.vn:1883"
+        listMQTTInfo.forEach {
+            if(it.topic.contains("thietbi"))
+            {
+                clientID = it.topic.substringAfter("/")
+            }
+        }
+        publishTopicTinh = "tinh/$clientID"
+        Log.d(TAG, "clientID ${clientID}")
+        //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
+        val serverURI = "tcp://ipradio-mqtt-thongtinnguon.tek4tv.vn:1886"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
@@ -65,7 +74,7 @@ class MQTTManager(
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
-                    getSubscribeTopic(destinationId = destinationId)
+                    getSubscribeTopic(destinationId)
                     connectEventListener.onConnectSuccess()
                 }
 

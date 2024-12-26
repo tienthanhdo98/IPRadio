@@ -22,7 +22,7 @@ data class WssMediaLogModel(
     val thoiDiemBatDau: Long? = 0,
     val tiepAm: Long? = 0,
     val nguonTiepAm: String? = "",
-    val noiDung: String? = "",
+    val noiDung: List<String>? = listOf(),
     val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>? = listOf(),
     val nguonTin: String? = "",
     val amLuong: String? = "",
@@ -33,4 +33,4 @@ data class WssMediaLogModel(
     var danhSachBanTin:  List<DanhSachBanTin>?,
     var danhSachThietBi:  List<DanhSachThietBi>?,
 
-)
+    )

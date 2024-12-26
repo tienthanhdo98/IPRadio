@@ -33,11 +33,24 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0F
     var lng: Float = 0F
-    var providerValue: String = "VATC"
-    var dichId = "H39"
-    var tenDich = "Long An"
+    var providerValue: String = "TEK4TV"
+    var dichId = "H48"
+    var tenDich = "Quảng Ngãi"
 
     init {
+        //Quang ngai
+        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
+        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Thị trấn Ba Tơ") ?: "TB Thị trấn Ba Tơ"
+        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
+        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
+        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
         //hai phong
 //        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
 //        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
@@ -120,18 +133,18 @@ class GlobalProperties {
 //        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "") ?: ""
 
         //bac giang
-        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.20.12") ?: "H39.20.12"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị Trấn Bến Lức") ?: "Thị Trấn Bến Lức"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "WS-Ha Noi") ?: "WS-Ha Noi"
-        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
-        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-        lat = ConfigUtil.getFloat(appContext, LATITUDE, 10.637689f)
-        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 106.45763f)
-        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
+//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
+//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.20.12") ?: "H39.20.12"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị Trấn Bến Lức") ?: "Thị Trấn Bến Lức"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "WS-Ha Noi") ?: "WS-Ha Noi"
+//        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
+//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 10.637689f)
+//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 106.45763f)
+//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
         //
 //        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
 //        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"

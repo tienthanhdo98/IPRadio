@@ -60,7 +60,7 @@ data class PayloadStatus (
     var thoiDiemBatDau: Long,
 
     @Json(name = "NoiDungPhat")
-    var noiDungPhat: String,
+    var noiDungPhat: List<String>,
 
     @Json(name = "PhienBanUngDung")
     var phienBanUngDung: String,

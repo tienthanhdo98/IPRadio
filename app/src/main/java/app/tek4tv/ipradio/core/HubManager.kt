@@ -88,7 +88,9 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = false
+    var listMQTTInfo : List<NoiDungMQTT> = listOf()
+    val isMQTT = true
+    private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
     init {
@@ -103,14 +105,23 @@ class HubManager(
         try {
 
             val authInfo = Secrets().getgetToken(MyApp.instance!!.packageName).split('-')
+//            val body = mapOf(
+//                "Username" to authInfo[0],
+//                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
+//            )
             val body = mapOf(
-                "Username" to authInfo[0],
-                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
+                "Username" to "tek4tv_quangngai",
+                "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",
             )
+//            val url = ConfigUtil.getStringEncrypt(
+//                context = appContext,
+//                ConfigUtil.URL_TOKEN,
+//                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
+//            )
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
+                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
             val call = authService.getToken(body, url!!)
             val response = call.execute()
@@ -118,6 +129,7 @@ class HubManager(
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
                 }
+                Log.i(TAG, "getHubToken ok: ${hubToken}")
             } else {
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
@@ -131,36 +143,77 @@ class HubManager(
         Log.i(TAG, "getHubToken ping: $pingCounter")
     }
 
+    private fun getMqttInfo()
+    {
+        try {
+
+            val body = MQTTInfoModel(deviceImei)
+            val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-ipradio/Ipradio/mqtt/dangkythietbi"
+//            val url = "https://gateway-ttn.longan.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+
+            val call = authService.getMQTTInfo(body,"Bearer $hubToken", url)
+            val response = call.execute()
+            if (response.isSuccessful) {
+                listMQTTInfo = response.body()!!.noiDung
+                Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
+                if (isMQTT) {
+                    mqttClient =
+                        MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId,listMQTTInfo)
+                    mqttClient?.connectToMQTT(appContext)
+                }
+//                else {
+//                    wssManager = WssManager(hubToken, this@HubManager)
+//                    wssManager?.connectToWss()
+//                }
+            } else {
+                listMQTTInfo = listOf()
+                Log.i(TAG, "MqttInfo null")
+            }
+        } catch (e: Exception) {
+            Log.i(TAG, "MqttInfo fail: ${e.message}")
+        }
+    }
+
     fun connectToServer() {
         //reset sau 5 phút khi không lấy được token
         if (pingCounter >= 60) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-
             hubComm.forceRestartApp(countForHardRestart)
         }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (hubToken == null) {
+            while (isActive && hubToken == null) {
                 getHubToken()
-                delay(5000)
-                connectToServer()
+                if (hubToken == null) {
+                    delay(5000)
+                }
+                if (hubToken == null) return@launch
+
+                // Cancel and start a new MQTT info retrieval job
+                getMQTTInfoJob?.cancel()
+                getMQTTInfoJob = launch {
+                    while (isActive && listMQTTInfo.isEmpty()) {
+                        getMqttInfo()
+                        if (listMQTTInfo.isEmpty()) {
+                            delay(5000)
+                        }
+                    }
+                    if (listMQTTInfo.isEmpty()) return@launch
+
+                    mqttClient = MQTTManager(
+                        hubToken,
+                        this@HubManager,
+                        GlobalProperties.getInst().destinationId,
+                        listMQTTInfo
+                    )
+                    mqttClient?.connectToMQTT(appContext)
+
+                }
+                getMQTTInfoJob?.join()
             }
+
         }
-        if (hubToken == null) return
-        getTokenJob?.cancel()
-
-        if (isMQTT) {
-            mqttClient =
-                MQTTManager(hubToken, this, GlobalProperties.getInst().destinationId)
-            mqttClient?.connectToMQTT(appContext)
-        } else {
-            wssManager = WssManager(hubToken, this@HubManager)
-            wssManager?.connectToWss()
-        }
-
-
     }
-
     override fun onConnectSuccess() {
         startPingTimer()
     }
@@ -209,9 +262,10 @@ class HubManager(
 
     private fun sendPing() {
         pingCounter++
-        var pathPlaying = ""
-        if (currentMediaItem != null) {
-            pathPlaying = currentMediaItem!!.pathBackup
+        val noiDungPhat: List<String> = if (currentMediaItem != null) {
+            listOf(currentMediaItem!!.pathBackup)
+        } else {
+            listOf()
         }
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV008, payload = PayloadStatus(
@@ -244,7 +298,7 @@ class HubManager(
                     dungLuongSuDung = "1024000"
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                noiDungPhat = pathPlaying,
+                noiDungPhat = noiDungPhat,
                 phienBanUngDung = versionName,
             )
         )
@@ -270,7 +324,6 @@ class HubManager(
                         onMessageListener.invoke(hubCommand, jsonMess)
                         sendLogSchedule(HubCommand.DV006, body)
                     }
-
                 }
             }
             HubCommand. DV003 -> {
@@ -421,7 +474,7 @@ class HubManager(
                 banTinID = mediaItem.projectID,
                 loaiBanTin = mediaItem.contentType?.value,
                 mucDoUuTien = mediaItem.priority?.id.toString(),
-                noiDung = mediaItem.pathBackup,
+                noiDung = listOf(mediaItem.pathBackup),
                 noiDungTomTat = mediaItem.description,
                 tacGia = tacGia,
                 tenThietBi = GlobalProperties.getInst().nameDevice,
@@ -475,7 +528,7 @@ class HubManager(
                 tacGia = body.tacGia,
                 danhSachBanTin = body.danhSachBanTin,
                 danhSachDiaBan = danhSachDiaBanNhan,
-                danhSachThietBi = danhSachThietBi
+                danhSachThietBi = danhSachThietBi,
             )
         )
         Log.d("WebsocketLog", "sendLogSchedule: $commanDV - $request")
