@@ -40,7 +40,7 @@ class HubManager(
 
     val appContext: Context = MyApp.instance!!.applicationContext
 
-    private val deviceImei = Utils.getDeviceId(appContext)
+    val deviceImei = Utils.getDeviceId(appContext)
 
     var pingCounter = -1
 
@@ -567,7 +567,7 @@ class HubManager(
         val endTimeFrame = convertTimeStampToHHMMSS(thoiDiemPhat.thoiGianKetThuc!!)
         val newList : MutableList<MediaItemModel> = mutableListOf()
         val tObjStart = MediaItemModel(
-            id = 0,
+            id = countId,
             mediaID = "0",
             projectID = "0",
             title = "Khung $startTimeFrame - $endTimeFrame",
@@ -578,6 +578,7 @@ class HubManager(
             end = endTimeFrame,
         )
         newList.add(tObjStart)
+        countId ++
         thoiDiemPhat.danhSachBanTin?.forEach {
             val obj = MediaItemModel(
                 id = countId,
@@ -613,10 +614,9 @@ class HubManager(
             )
             countId ++
             newList.add(obj)
-
         }
         val tObEnd = MediaItemModel(
-            id = 0,
+            id = countId,
             mediaID = "0",
             projectID = "0",
             title = "Khung $startTimeFrame - $endTimeFrame",
@@ -627,6 +627,7 @@ class HubManager(
             start = startTimeFrame
         )
         newList.add(tObEnd)
+        countId ++
         return newList
     }
 

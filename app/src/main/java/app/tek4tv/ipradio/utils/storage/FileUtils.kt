@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+package app.tek4tv.ipradio.utils.storage
 
 import android.net.Uri
 import android.util.Log
@@ -16,7 +16,6 @@ fun isFileExisted(storagePath: String, fileName: String): Boolean {
     val file = File(storagePath, fileName)
     return file.exists() && file.isFile
 }
-
 
 @Throws(IOException::class)
 suspend fun readFile(filePath: String): String {

@@ -7,9 +7,9 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
-import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.getFileNameFromUrl
-import app.tek4tv.ipradio.utils.isFileExisted
+import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.storage.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
@@ -20,7 +20,6 @@ import com.squareup.moshi.Types
 
 import kotlinx.coroutines.launch
 import java.io.File
-import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -74,7 +73,7 @@ class MediaRepo constructor(
                 }
             }
             if (dayScenario != null) {
-                Log.e(TAG, "có lịch trong ngày: update ${dayScenario}")
+                Log.e(TAG, "có lịch trong ngày: update $dayScenario")
                 updateScenarioWss(dayScenario)
             } else {
                 //In case there are no scenario for today, don't play anythings

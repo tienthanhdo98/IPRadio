@@ -52,8 +52,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val cal_alarm = Calendar.getInstance()
 
-        cal_alarm[Calendar.HOUR_OF_DAY] =0
-        cal_alarm[Calendar.MINUTE] = 4
+        cal_alarm[Calendar.HOUR_OF_DAY] =17
+        cal_alarm[Calendar.MINUTE] = 58
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
@@ -72,7 +72,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             cal_alarm.timeInMillis,
             alarmIntent
         )
-
     }
 
     private fun scheduleListAlarms() {
@@ -83,7 +82,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             var isNewDayStarted = false
             val requestCode = mediaRepo.timeDividers[period]!![0].id
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
-
             val t = period.split("-")
             val start = toCalendar(t[0]) //start time
             val end = toCalendar(t[1]) //end time
@@ -224,7 +222,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     fun scheduleAllAlarms() {
         scheduleListAlarms()
         setRescheduleAllAlarms()
-//        setCheckHubAndResetAlarms()
+        setCheckHubAndResetAlarms()
     }
 
     fun cancelAllScheduledListAlarm() {

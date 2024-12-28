@@ -28,10 +28,7 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
-import app.tek4tv.ipradio.model.DataValueModel
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItemModel
-import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
@@ -39,9 +36,10 @@ import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.bitmapToBase64
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
@@ -50,8 +48,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
-import java.io.FileOutputStream
-import java.io.IOException
 import java.util.*
 
 
@@ -157,13 +153,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             override fun forceRestartDevice() {
-//                serialPortController.hardRestart()
+                serialPortController.hardRestart()
             }
 
         }
 
         logUtils = LogUtils.getInst()
-//        logUtils.logService = logService
 
 
         hubManager = HubManager(hubComm) { command, message ->
@@ -209,6 +204,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         initDataByScreen()
 
         checkDeleteFileUpdate()
+        lifecycleScope.launch{
+            while (true)
+            {
+                delay(300000)
+                capture()
+            }
+        }
 
     }
 
@@ -219,35 +221,56 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 0) as FrameLayout).children.filter { it is SurfaceView }
                 .first() as SurfaceView
 
-            val bitmap = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
+            val bitmap = Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888)
 
-            PixelCopy.request(surfaceView, bitmap, {
-                saveBitmap(bitmap)
+            PixelCopy.request(surfaceView, bitmap, { saveBitmap(bitmap)
             }, Handler(Looper.getMainLooper()))
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
+
     private fun saveBitmap(bitmap: Bitmap) {
         // Create directory for saving
-        val path: File =
-            File(Environment.getExternalStorageDirectory().toString() + "/Screenshots/")
-        if (!path.exists()) {
-            path.mkdirs()
+        val captureModel = CaptureScreenModel(
+            Imei = hubManager.deviceImei,
+            SourceId = GlobalProperties.getInst().destinationId,
+            SourceName = GlobalProperties.getInst().destinationName,
+            Base64Image = bitmapToBase64(bitmap)
+        )
+        try {
+            lifecycleScope.launch{
+                val res =  retrofit.postScreenCapture(
+                    captureModel,
+                    "https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/capture"
+                )
+                Log.d("captureError", "saveBitmap S: ${res}")
+               // Log.d("captureError", "saveBitmap S: ${captureModel.Base64Image}")
+            }
+
+        }catch (e : Exception)
+        {
+            Log.d("captureError", "saveBitmap ERR: ${e.message}")
         }
 
-        // Create the file for saving
-        val imageFile = File(path, "screenshot_" + System.currentTimeMillis() + ".png")
-        try {
-            FileOutputStream(imageFile).use { out ->
-                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // Compress to PNG
-                Toast.makeText(this, "Screenshot saved: " + imageFile.path, Toast.LENGTH_SHORT)
-                    .show()
-            }
-        } catch (e: IOException) {
-            e.printStackTrace()
-            Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show()
-        }
+//        val path: File =
+//            File(Environment.getExternalStorageDirectory().toString() + "/Screenshots/")
+//        if (!path.exists()) {
+//            path.mkdirs()
+//        }
+//
+//        // Create the file for saving
+//        val imageFile = File(path, "screenshot_" + System.currentTimeMillis() + ".png")
+//        try {
+//            FileOutputStream(imageFile).use { out ->
+//                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // Compress to PNG
+//                Toast.makeText(this, "Screenshot saved: " + imageFile.path, Toast.LENGTH_SHORT)
+//                    .show()
+//            }
+//        } catch (e: IOException) {
+//            e.printStackTrace()
+//            Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show()
+//        }
     }
 
 
@@ -296,7 +319,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         tvCheckInternet.setOnClickListener{
             Log.d("capturecapture", "checkInternetAndTime: click capture")
-            capture()
             Log.d("capturecapturecapturecapture", "checkInternetAndTime: click capture ok")
         }
     }
@@ -365,7 +387,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-
                 viewModel.rescheduleMonthlyPlaylist()
             }
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -382,13 +403,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
 
     private fun needGrantPermission(): Boolean {

@@ -2,29 +2,23 @@ package app.tek4tv.ipradio.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
 import android.os.Environment
+import android.util.Base64
+import android.util.Base64.DEFAULT
+import android.util.Base64.encodeToString
 import androidx.core.content.ContextCompat
 import app.tek4tv.ipradio.core.TacGia
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import java.io.ByteArrayOutputStream
 import java.net.NetworkInterface
 import java.util.*
 
 class Utils {
     companion object {
-        const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
-        const val ping = "Ping"
         const val DEVICE_ID = "device_id"
-        const val APP_VERSION = "APP_VERSION"
-        const val NETWORK_INFO = "NETWORK_INFO"
-        const val DEVICE_LOCATION = "DEVICE_LOCATION"
-        const val DIRECT_MESSAGE = "DirectMessage"
-        const val DEVICE_INFO = "DEVICE_INFO"
-        const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
-        const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
-        const val GET_RECORD = "GET_RECORD"
         const val FULL_SCREEN = "0"
         const val MULTIPLE_AREA = "1"
         const val TOP_AREA = "1"
@@ -125,24 +119,17 @@ class Utils {
             }
             return contentType
         }
+        fun bitmapToBase64(bitmap: Bitmap): String {
+            val outputStream = ByteArrayOutputStream()
+            // Compress the bitmap to JPEG format, you can use PNG or WEBP as well
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            val byteArray = outputStream.toByteArray()
+            // Convert the byte array to a Base64 string
+            return encodeToString(byteArray, Base64.NO_WRAP)
+        }
 
         //do uu tien
         fun convertPriority(priorityLevel: String) : Priority{
-//            val priority : Priority = when (priorityLevel) {
-//                "1" -> {
-//                    Priority(1,StringValue.priority1)
-//
-//                }
-//                "2" -> {
-//                    Priority(2,StringValue.priority2)
-//                }
-//                "3" -> {
-//                    Priority(3, StringValue.priority3)
-//                }
-//                else -> {
-//                    Priority(1, StringValue.priority1)
-//                }
-//            }
             val priority : Priority = when (priorityLevel) {
                 "1" -> {
                     Priority(1,"1")
