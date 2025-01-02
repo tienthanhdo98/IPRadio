@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import app.tek4tv.ipradio.core.*
 import com.squareup.moshi.Json
 
 data class WssMediaLogModel(

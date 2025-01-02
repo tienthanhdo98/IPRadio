@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -48,6 +49,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
+import java.text.DecimalFormat
 import java.util.*
 
 
@@ -77,11 +79,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var logUtils: LogUtils
 
-    private var volume = "80"
-
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
+    private lateinit var vlcContainer: FrameLayout
+    private lateinit var rootLayout: ViewGroup
 
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
@@ -138,6 +140,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        }
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
+        viewModel.hideSystemUI(this)
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
@@ -167,6 +170,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
+
         lifecycleScope.launch {
             delay(10000)
             if (!serialPortController.isUart1) {
@@ -176,16 +180,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
+        rootLayout = findViewById(R.id.rootLayout)
+        vlcContainer = findViewById(R.id.vlc_container)
 
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
+            vlcContainer,
+            rootLayout,
             viewModel.mediaRepo
         )
 
         playerManager.playerManagerListener = playerCallback
-
-        NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
         registerObservers()
@@ -199,19 +205,22 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         setMaxVolume()
 
-        viewModel.hideSystemUI(this)
-
         initDataByScreen()
 
         checkDeleteFileUpdate()
+
         lifecycleScope.launch{
-            while (true)
+            repeat (Int.MAX_VALUE)
             {
                 delay(300000)
                 capture()
             }
         }
+    }
 
+    fun clearMemory()
+    {
+        System.gc()
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -311,15 +320,31 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
         val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-        tvMacAddress.text = info
-        lifecycleScope.launch {
-            delay(10000)
-            tvMacAddress.visibility = View.GONE
 
+
+        var resInfo = ""
+        val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+        val memInfo = ActivityManager.MemoryInfo()
+        val decimalFormat = DecimalFormat("#.##")
+        lifecycleScope.launch {
+            while (true) {
+                actManager.getMemoryInfo(memInfo)
+                // Fetching the available and total memory and converting into Giga Bytes
+                val availMemory = memInfo.availMem.toDouble()/(1024*1024*1024)
+                val totalMemory= memInfo.totalMem.toDouble()/(1024*1024*1024)
+                val usedMemory = totalMemory - availMemory
+                resInfo = "$info - ${decimalFormat.format(usedMemory)}/${decimalFormat.format(totalMemory)}"
+                Log.d("usedMemory", "checkInternetAndTime: $resInfo")
+                tvMacAddress.text = resInfo
+                delay(5000)
+            }
+//            tvMacAddress.visibility = View.GONE
         }
+
         tvCheckInternet.setOnClickListener{
             Log.d("capturecapture", "checkInternetAndTime: click capture")
             Log.d("capturecapturecapturecapture", "checkInternetAndTime: click capture ok")
+//          clearMemory()
         }
     }
 

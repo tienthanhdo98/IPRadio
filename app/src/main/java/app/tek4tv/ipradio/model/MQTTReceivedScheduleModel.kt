@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import app.tek4tv.ipradio.core.TacGia
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 

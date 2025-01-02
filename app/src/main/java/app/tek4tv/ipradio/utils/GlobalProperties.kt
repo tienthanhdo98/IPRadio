@@ -15,7 +15,6 @@ class GlobalProperties {
     val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
     val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
     val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
-    val DEFAULT_LOG_ENABLE = "DEFAULT_LOG_ENABLE"
     val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
     val NAME_DEVICE = "NAME_DEVICE"
     val LATITUDE = "LATITUDE"
@@ -33,10 +32,8 @@ class GlobalProperties {
     var lat: Float = 0f
     var lng: Float = 0f
     var providerValue: String = "VATC"
-
     var dichId = "H48"
-    var tenDich = "Quảng Ngãi"//
-
+    var tenDich = "Quảng Ngãi"
 
 
     init {
@@ -59,7 +56,6 @@ class GlobalProperties {
         if (responseHub.volume != "") {
             saveVolume(responseHub.volume)
         }
-
         if (responseHub.piCode != "") {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
             piCode = responseHub.piCode

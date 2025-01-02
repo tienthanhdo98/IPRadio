@@ -14,12 +14,12 @@ class AppStorageManager(appContext: Context) {
     private val audioDirPath = "$fileDirPath${File.separator}$AUDIO_FOLDER_NAME"
     private val recordedAudioDirPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
     private val logDirPath = "$fileDirPath${File.separator}$LOG_FOLDER_NAME"
-//    private val activityManager =
-//        appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+    private val activityManager =
+        appContext.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
     private val memoryInfo = ActivityManager.MemoryInfo()
 
     init {
-       // activityManager.getMemoryInfo(memoryInfo)
+       activityManager.getMemoryInfo(memoryInfo)
     }
 
     fun getTotalMediaSize() = getFolderSize(fileDirPath)

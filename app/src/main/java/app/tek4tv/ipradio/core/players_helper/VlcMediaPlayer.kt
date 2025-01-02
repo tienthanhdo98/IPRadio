@@ -1,14 +1,9 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.graphics.Color
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import android.view.animation.Animation
-import android.view.animation.AnimationUtils
-import android.widget.FrameLayout
-import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItemModel
@@ -19,7 +14,6 @@ import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
@@ -83,17 +77,20 @@ class VlcMediaPlayer(private  val appContext: Context, private val playerEventLi
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
-//        args.add("--no-drop-late-frames")
-//        args.add("--file-caching=3000")
-//        args.add("--network-caching=3000")
-       args.add("--skip-frames")
-       args.add("--no-drop-late-frames")
+         args.add("--no-drop-late-frames")
+         //args.add("--file-caching=500")
+         //args.add("--network-caching=1000")
+        //args.add("--skip-frames")
+       // args.add("--no-skip-frames")
+       // args.add("--no-drop-late-frames")
+        args.add("--vout=android-display")
+//        args.add("--aout=opensles")
+//        args.add("--verbose=2")
+//         args.add("--drop-late-frames")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
-        vlcVideoLayout.setBackgroundColor(Color.BLACK)
-        vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
-
+        vlcPlayer.attachViews(vlcVideoLayout, null, false, true)
         vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
         vlcPlayer.eventListener = vlcEventListener
 
@@ -102,13 +99,14 @@ class VlcMediaPlayer(private  val appContext: Context, private val playerEventLi
 
     override fun playMedia(mediaItem: MediaItemModel, isForce: Boolean, timeStamp: Int) {
 
-//        if (isPlaying) stop()
+        if (isPlaying) stop()
 
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
             playFile(mediaItem, timeStamp)
         }
+
         currentMedia = mediaItem
 
     }
@@ -149,18 +147,16 @@ class VlcMediaPlayer(private  val appContext: Context, private val playerEventLi
 
     override var disconnectedHub = false
 
-
     private fun playFile(mediaItem: MediaItemModel, timeStamp: Int) {
         Log.e(TAG, "vlc play file")
         val media = mediaItem.getVlcMedia(mLibVLC)
-        if(mediaItem.body!!.contains("jpg") || mediaItem.body!!.contains("png"))
-        {
-            Log.e(TAG, "vlc play file img Duration: ${getMediaDuration(mediaItem) / 1000} ")
+        // Handle image-specific options
+        if (mediaItem.body!!.contains("jpg") || mediaItem.body!!.contains("png")) {
             media.addOption(":image-duration=${getMediaDuration(mediaItem) / 1000}")
+            //media.addOption(":image-duration=5")
         }
         vlcPlayer.play(media)
         currentVlcMedia = media
-
 
     }
 
@@ -212,13 +208,9 @@ class VlcMediaPlayer(private  val appContext: Context, private val playerEventLi
         val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
-        val check = (now <= liveEndTime)
-                && (stream.state != IMedia.State.Playing)
 
-        Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
-        Log.d(TAG, "checkLiveStream isPlaying${stream.state != IMedia.State.Playing}")
-
-        return check
+        return ((now <= liveEndTime)
+                && (!isPlaying))
     }
 
 //    private fun checkTimeFrameStream(mediaItem: MediaItemModel, stream: Media): Boolean {

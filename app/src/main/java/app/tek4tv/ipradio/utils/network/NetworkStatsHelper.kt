@@ -10,10 +10,6 @@ import android.os.Build
 import android.os.RemoteException
 import android.telephony.TelephonyManager
 
-/**
- * Created by Robert Zagórski on 2016-09-09.
- */
-@TargetApi(Build.VERSION_CODES.M)
 class NetworkStatsHelper {
     var networkStatsManager: NetworkStatsManager
     var packageUid = 0

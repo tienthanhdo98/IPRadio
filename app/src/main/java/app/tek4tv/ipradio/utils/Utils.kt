@@ -5,10 +5,9 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.os.Environment
 import android.util.Base64
-import android.util.Base64.DEFAULT
 import android.util.Base64.encodeToString
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.core.TacGia
+import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -53,7 +52,7 @@ class Utils {
                     }
                     return res1.toString()
                 }
-            } catch (ex: Exception) {
+            } catch (_: Exception) {
             }
             return "02:00:00:00:00:00"
         }

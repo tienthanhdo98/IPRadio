@@ -19,7 +19,6 @@ import com.squareup.moshi.JsonEncodingException
 import com.squareup.moshi.Moshi
 import kotlinx.coroutines.*
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 
 class HubManager(
@@ -29,7 +28,7 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 5
-    private val PING_HUB_INTERVAL = 30000L
+    private val PING_HUB_INTERVAL = 60000L
     private val moshi = RetrofitInstance.moshi
 
     private var pingHubJob: Job? = null
@@ -51,9 +50,6 @@ class HubManager(
 
     var versionName = ""
 
-    private val notifyDisconnected = AtomicBoolean(false)
-
-
     private var hubToken: String? = null
 
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
@@ -66,7 +62,6 @@ class HubManager(
         moshi.adapter(ReceivedMessageRemovePlaylistModel::class.java)
     private val wssPayloadControlDeviceAdapter: JsonAdapter<ReceivedMessageControlDeviceModel> =
         moshi.adapter(ReceivedMessageControlDeviceModel::class.java)
-
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItemModel> =
         moshi.adapter(MediaItemModel::class.java)
 
@@ -347,7 +342,7 @@ class HubManager(
                                         value = banTinPhat.loaiBanTin
                                     ),
                                     priority = Priority(
-                                        id = banTinPhat.mucDoUuTien.toLong(),
+                                        id = banTinPhat.mucDoUuTien?.toLong(),
                                         value = banTinPhat.mucDoUuTien
                                     ),
                                     author = Author(
@@ -551,7 +546,7 @@ class HubManager(
         }
         return mapNgayPhat
     }
-    private var countId = 1
+    private var countId = 0
     private fun findScheduleByDate(ngayPhat : app.tek4tv.ipradio.model.DanhSachNgayPhat,playload : ReceivedPayloadSchedule): String {
         val danhSachBanTinTrongNgay : MutableList<MediaItemModel> = mutableListOf()
         //tim cac khung phat trong ngay

@@ -2,7 +2,10 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.os.Handler
+import android.transition.Transition
 import android.util.Log
+import android.view.View
+import android.view.ViewGroup
 import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
@@ -12,7 +15,6 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.CrashHandler
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
@@ -33,16 +35,15 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
+    private val vlcContainer: FrameLayout,
+    private val rootLayout: ViewGroup,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
     private var currentPlayer: IMediaPlayer? = null
-
     private var currentPlayingMedia: MediaItemModel? = null
-
-    private var mediaStartTime = 0L
 
     /**
      * -2 for force media
@@ -50,11 +51,6 @@ class PlayersManager(
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
     var playMode = PLAY_MODE_INIT//"0"
-
-    /**
-     * List of media for a timeframe
-     * **/
-
 
     var playlistIndex = 0
         private set
@@ -66,9 +62,6 @@ class PlayersManager(
      * **/
     private var isTimeOver = false
 
-    var played = false
-
-    private var handlerFMPlayer: Handler? = null
 
     var currentTextPlaylist = listOf<MediaItemModel>()
 
@@ -81,14 +74,16 @@ class PlayersManager(
 
     override fun onPlayMediaSuccess(mediaItem: MediaItemModel?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
-        mediaStartTime = Calendar.getInstance().timeInMillis
-        played = true
     }
 
     override fun onMediaEndReached(mediaItem: MediaItemModel?) {
+        coroutineScope.launch {
+            fadeAnimation(false)
+            delay(400)
+            playNextMedia()
+        }
 
-        played = false
-        playNextMedia()
+
     }
 
     override fun onMediaForceEndReached(mediaItem: MediaItemModel?) {
@@ -182,10 +177,30 @@ class PlayersManager(
         }
     }
 
+    private fun fadeAnimation(isShow: Boolean) {
+
+//        transition.duration = 400
+//        transition.addTarget(vlcContainer)
+//        TransitionManager.beginDelayedTransition(rootLayout, transition)
+//        vlcContainer.alpha = if (isShow) 1f else 0f
+        val targetAlpha = if (isShow) 1f else 0f
+        val duration = 400L
+
+        vlcContainer.animate()
+            .alpha(targetAlpha)
+            .setDuration(duration)
+            .withEndAction {
+                // Optionally handle visibility after the animation
+                vlcContainer.visibility = if (isShow) View.VISIBLE else View.GONE
+            }
+            .start()
+
+    }
 
 
     private fun playMedia(mediaItem: MediaItemModel, timeStamp: Int = 0) {
         try {
+            fadeAnimation(true)
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
@@ -223,9 +238,7 @@ class PlayersManager(
     }
 
     fun   stopAllPlayer() {
-        handlerFMPlayer?.removeCallbacksAndMessages(null)
         vlcPlayer.stop()
-        played = false
     }
 
 
@@ -254,7 +267,6 @@ class PlayersManager(
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-
         //check time over
         isTimeOver = true
         checkTimeOver()
