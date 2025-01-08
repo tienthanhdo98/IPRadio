@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.view.WindowManager
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -225,12 +226,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
         }
 
-        override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-//            logUtils.logMediaEnd(mediaItem)
-
-            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
-        }
-
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
 
@@ -238,7 +233,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
 
-                val displayName = mediaItem?.title ?: ""
+                val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
                 if (mediaItem.getMediaType() != MediaType.FM) {
@@ -276,8 +271,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         } else {
             setContentView(R.layout.activity_main_multiple_view2)
         }
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportActionBar?.hide()
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -471,7 +467,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                playerManager.isInTimeFrame = true
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
@@ -480,7 +475,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
                 mediaScheduler.scheduleShowListLeft()
@@ -804,7 +798,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if(playerManager.isInTimeFrame)
+                            if(!playerManager.isTimeOver)
                             {
                                 playerManager.playNextMedia()
                             }

@@ -5,16 +5,16 @@ import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
 class Video(
-    @Json(name = "Index") var index: String,
+    @Json(name = "Index") var index: String?,
     @Json(
         name = "Time"
-    ) var time: String,
+    ) var time: String?,
 
-    @Json(name = "MediaName") var mediaName: String = "",
+    @Json(name = "MediaName") var mediaName: String? = "",
 
-    @Json(name = "AudioName") var audioName: String = " ",
+    @Json(name = "AudioName") var audioName: String? = " ",
 
-    @Json(name = "Path") var path: String = "",
+    @Json(name = "Path") var path: String? = null,
 
-    @Json(name = "Level") var level: Int = -1
+    @Json(name = "Level") var level: Int? = -1
 )

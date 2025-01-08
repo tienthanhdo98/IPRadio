@@ -3,17 +3,17 @@ package app.tek4tv.ipradio.core
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.app.PendingIntent.FLAG_IMMUTABLE
+import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
-import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
@@ -22,6 +22,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private val requestCodeCheckHubAndResetAlarms = 102
     private val requestCodeEndLeftArea = 106
     private val requestScheduleShowListLeft = 107
+    private val requestEndForce= 108
     private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
@@ -57,8 +58,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val period = scheduledList.keys.elementAt(i)
             //setAlarmsForFrame(period)
             var isNewDayStarted = false
-            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
+            val requestCode = mediaRepo.timeDividers[period]!![0].id
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             val t = period.split("-")
             val start = toCalendar(t[0])
@@ -112,8 +113,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
 
-            val requestCode = mediaRepo.timeDividers[period]!![0].mediaID
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].mediaID
+            val requestCode = mediaRepo.timeDividers[period]!![0].id
+            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             cancelListAlarm(period, requestCode!!)
             cancelListAlarm(period, endRequestCode!!, true)
@@ -185,7 +186,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                         &&*/ getScheduleMediaIntent(
                 index,
                 MediaScheduleReceiver.ACTION_END_MEDIA,
-                mediaItem.mediaID!!,
+                mediaItem.id!!,
                 PendingIntent.FLAG_NO_CREATE
             ) != null
 
@@ -201,7 +202,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 val endIntent = getScheduleMediaIntent(
                     index,
                     MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.mediaID!!,
+                    mediaItem.id!!,
                     0
                 )
 
@@ -230,7 +231,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                         &&*/ getScheduleMediaIntent(
                 index,
                 MediaScheduleReceiver.ACTION_END_MEDIA,
-                mediaItem.mediaID!!,
+                mediaItem.id!!,
                 PendingIntent.FLAG_NO_CREATE
             ) != null
 
@@ -244,7 +245,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 val endIntent = getScheduleMediaIntent(
                     index,
                     MediaScheduleReceiver.ACTION_END_MEDIA,
-                    mediaItem.mediaID!!,
+                    mediaItem.id,
                     0
                 )
                 //alarmManager.cancel(startIntent)
@@ -257,27 +258,16 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
     }
 
-    private fun getScheduleForceMediaIntent(flag: Int): PendingIntent? {
-        val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
-        if (!hasForceMedia) return null
+    fun scheduleForceMediaAlarm(forceMedia: ForceMedia) {
 
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
-        return PendingIntent.getBroadcast(appContext, -69, intent, flag)
-    }
 
-    fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_UPDATE_CURRENT) ?: return
-
-        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
-
-        if (fmValue == null || fmValue == "") return
-
-        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
+        val alarmIntent = PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
 
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
+            time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").parse(forceMedia.endTime)
         }.timeInMillis
 
         if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
@@ -298,15 +288,14 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val cal_alarm = Calendar.getInstance()
 
-        cal_alarm[Calendar.HOUR_OF_DAY] =0
+        cal_alarm[Calendar.HOUR_OF_DAY] = 0
         cal_alarm[Calendar.MINUTE] = 3
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
         var alarmDate = cal_alarm.time
-        if(alarmDate.before(date))
-        {
-            cal_alarm.add(Calendar.DATE,1)
+        if (alarmDate.before(date)) {
+            cal_alarm.add(Calendar.DATE, 1)
         }
         alarmDate = cal_alarm.time
 
@@ -319,7 +308,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleEndLeftArea() {
-        if(mediaRepo.scheduledList.isEmpty()) return
+        if (mediaRepo.scheduledList.isEmpty()) return
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.SCHEDULED_END_LEFT_AREA
         }
@@ -361,7 +350,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             PendingIntent.getBroadcast(
                 appContext,
                 requestScheduleShowListLeft,
-                intent,FLAG_IMMUTABLE
+                intent, FLAG_IMMUTABLE
             )
 
         val intentEND = Intent(appContext, MediaScheduleReceiver::class.java).apply {
@@ -402,10 +391,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun cancelForceMediaAlarm() {
-        Log.d("alarmx", "cancel force")
-        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_NO_CREATE) ?: return
-        alarmManager.cancel(alarmIntent)
-        alarmIntent.cancel()
+//        Log.d("alarmx", "cancel force")
+//        val alarmIntent = getScheduleForceMediaIntent(PendingIntent.FLAG_NO_CREATE) ?: return
+//        alarmManager.cancel(alarmIntent)
+//        alarmIntent.cancel()
     }
 
     fun scheduleAllAlarms() {

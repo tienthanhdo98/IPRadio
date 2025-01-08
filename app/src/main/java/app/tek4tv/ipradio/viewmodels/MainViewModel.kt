@@ -8,16 +8,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
-import app.tek4tv.ipradio.utils.toCalendar
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.test.withTestContext
-import kotlinx.coroutines.withContext
-import java.util.*
 
 
 class MainViewModel @ViewModelInject constructor(

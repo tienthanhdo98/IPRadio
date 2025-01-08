@@ -47,6 +47,7 @@ class MediaRepo @Inject constructor(
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
+    var layoutType : Int = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -74,7 +75,7 @@ class MediaRepo @Inject constructor(
 
             if (dayScenario != null) {
                 ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-               // layoutType = dayScenario.broadcastRegionDigital.toInt()
+                layoutType = dayScenario.broadcastRegionDigital.toInt()
                 Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital.toInt()}")
                 updateScenario(dayScenario.sourceUrl)
             } else {
@@ -160,10 +161,17 @@ class MediaRepo @Inject constructor(
                 if (resBody != null) {
 
 //                    result =  resBody
-                    result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
+                    if(layoutType == FULL_SCREEN)
+                    {
+                        result =  resBody
+                    }
+                    else {
+                        result =
+                            resBody.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
 
-                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA  && it.body != null && it.body != "start" && it.body != "end"} as MutableList<MediaItem>
-
+                        leftScheduledList =
+                            resBody.filter { it.broadcastRegion?.value == LEFT_AREA && it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
+                    }
                     val srt = mediaJsonAdapter.toJson(leftScheduledList)
                     ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 

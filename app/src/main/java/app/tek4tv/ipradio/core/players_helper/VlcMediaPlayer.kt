@@ -1,7 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
+import android.media.MediaMetadataRetriever
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -16,9 +16,9 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.util.*
 
 class VlcMediaPlayer(
-    private val appContext: Context,
+    appContext: Context,
     private val playerEventListener: IPlayerEventListener,
-    private val vlcVideoLayout: VLCVideoLayout
+    vlcVideoLayout: VLCVideoLayout
 ) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
@@ -30,9 +30,8 @@ class VlcMediaPlayer(
     private var isPlaying = false
 
     private var lastError = -1
-   // private var endCount = 0
-
-
+    // private var endCount = 0
+    
     override fun isPlaying(): Boolean = isPlaying
 
     private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
@@ -43,19 +42,21 @@ class VlcMediaPlayer(
                     playerEventListener.onMediaEndReached(currentMedia)
                     isPlaying = false
                 } else {
-                    if (!disconnectedHub)
-                        onLiveErrorVlc()
+                    onLiveErrorVlc()
                 }
             }
 
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
-                    playerEventListener.onPlayerError(VlcException("EncounteredError"),false,  currentMedia!!)
+                    playerEventListener.onPlayerError(
+                        VlcException("EncounteredError"),
+                        false,
+                        currentMedia!!
+                    )
                     isPlaying = false
                 } else {
-                    if (!disconnectedHub)
-                        onLiveErrorVlc()
+                    onLiveErrorVlc()
                 }
                 lastError = event
             }
@@ -66,10 +67,31 @@ class VlcMediaPlayer(
                     playerEventListener.onPlayMediaSuccess(currentMedia)
                 }
             }
+
             else -> {
             }
         }
     }
+
+    fun isVideoResolutionSupported(videoPath: String, maxWidth: Int, maxHeight: Int): Boolean {
+        val retriever = MediaMetadataRetriever()
+        return try {
+            retriever.setDataSource(videoPath)
+            val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
+                ?.toIntOrNull() ?: 0
+            val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
+                ?.toIntOrNull() ?: 0
+
+            width <= maxWidth && height <= maxHeight
+        } catch (e: Exception) {
+            false
+        } finally {
+            retriever.release()
+        }
+        // Example usage:
+
+    }
+
 
     init {
         val args = ArrayList<String>()
@@ -77,10 +99,10 @@ class VlcMediaPlayer(
 //        args.add("-vvv")
 //        args.add("--no-drop-late-frames")
 //        args.add("--no-skip-frames")
-//        args.add("--no-drop-late-frames")
-        args.add("--skip-frames")
-        args.add("--file-caching=5000")
-        args.add("--network-caching=5000")
+        args.add("--drop-late-frames")
+//        args.add("--skip-frames")
+//        args.add("--file-caching=5000")
+//        args.add("--network-caching=5000")
 //        args.add("--vout=android-display")
 //        RotateScreen("270",args)
 
@@ -94,9 +116,6 @@ class VlcMediaPlayer(
 
         vlcPlayer.eventListener = vlcEventListener
 
-//        android:keepScreenOn="true"
-//        android:fitsSystemWindows="true"
-
 
     }
 
@@ -109,14 +128,15 @@ class VlcMediaPlayer(
     }
 
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
-//        if (isPlaying) stop()
         when (mediaItem.getMediaType()) {
             MediaType.FILE -> {
                 playFile(mediaItem, timeStamp)
             }
+
             MediaType.LIVE -> {
                 playLiveStream(mediaItem)
             }
+
             else -> {
 
             }
@@ -126,47 +146,33 @@ class VlcMediaPlayer(
     }
 
     override fun reset() {
-        val media =  Media(mLibVLC, Uri.parse("https://storage-qltt.tek4tv.vn/2024//09//04//1920X1080MP4/aeca576005d74396ac87dd6a936c7bbe.mp4"))
-
-        currentVlcMedia = media
-
-        vlcPlayer.play(media)
+//        val media =  Media(mLibVLC, Uri.parse("https://storage-qltt.tek4tv.vn/2024//09//04//1920X1080MP4/aeca576005d74396ac87dd6a936c7bbe.mp4"))
+//
+//        currentVlcMedia = media
+//
+//        vlcPlayer.play(media)
     }
 
     override fun stop() {
-        if (vlcPlayer.isPlaying)
-            vlcPlayer.stop()
+        vlcPlayer.stop()
         isPlaying = false
         currentMedia = null
         currentVlcMedia = null
     }
 
     override fun release() {
-//        if(!vlcPlayer.isPlaying)
         vlcPlayer.release()
         mLibVLC.release()
     }
 
-    override var disconnectedHub = false
-
-    override fun onLostHubConnection() {
-        disconnectedHub = true
-    }
-
-    override fun onHubReconnected() {
-        disconnectedHub = false
-
-        if (currentMedia == null || currentMedia?.getMediaType() != MediaType.LIVE) return
-
-        if (checkLiveStream(currentMedia!!, currentVlcMedia!!))
-            playLiveStream(currentMedia!!)
-    }
-
-
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
         val media = mediaItem.getVlcMedia(mLibVLC)
-
+        //val videoPath = mediaItem.body
+//        if (!isVideoResolutionSupported(videoPath, 1920, 1080))
+//        {
+//            Log.d("player", "videoPath: $videoPath")
+//        }
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
 
@@ -177,7 +183,7 @@ class VlcMediaPlayer(
 
     private fun playLiveStream(mediaItem: MediaItem) {
         val stream = mediaItem.getVlcMedia(mLibVLC)
-        stream.addOption(":rtsp-tcp")
+//        stream.addOption(":rtsp-tcp")
         currentVlcMedia = stream
         vlcPlayer.play(stream)
     }
@@ -212,8 +218,12 @@ class VlcMediaPlayer(
 
             if (isStreamFailed) {
                 isPlaying = false
-                playerEventListener.onPlayerError(VlcException("Stream failed!"), true,currentMedia!!)
-              //  playLiveStream(currentMedia!!)
+                playerEventListener.onPlayerError(
+                    VlcException("Stream failed!"),
+                    true,
+                    currentMedia!!
+                )
+                //  playLiveStream(currentMedia!!)
             } else {
                 Log.d(TAG, "Stopping from reconnect")
                 stop()

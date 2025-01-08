@@ -36,7 +36,7 @@ class HubManager(
     private val authService: AuthService,
     var mediaCapture: MediaCapture,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-    ) {
+) {
     private val LOG_TAG = "HubManager"
     private val CONNECT_COUNTER_LIMIT = 5
     private val PING_INTERVAL = 15000L
@@ -52,7 +52,8 @@ class HubManager(
     val adapterListString = moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
-//    private val deviceImei = "72:BE:B5:09:30:45"
+
+    //    private val deviceImei = "72:BE:B5:09:30:45"
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
@@ -89,7 +90,7 @@ class HubManager(
 
     var privateKeyStr: String
     var logService: LogService? = null
-    private  var hubUrl = ""
+    private var hubUrl = ""
 
 
     init {
@@ -100,12 +101,12 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER,"VATC"
+            ConfigUtil.PROVIDER, "VATC"
         )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-quangngai.tek4tv.vn/hubServer"
+            "https://hubdi-longan.tek4tv.vn/hubServer"
         ).toString()
 //        hubUrl = ConfigUtil.getStringEncrypt(
 //            appContext,
@@ -170,7 +171,7 @@ class HubManager(
     }
 
     //check
-    fun getHubToken(urlToken : String): String? {
+    fun getHubToken(urlToken: String): String? {
         return try {
             //Encrypted json variable name
             val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
@@ -199,7 +200,7 @@ class HubManager(
         }
     }
 
-     suspend fun openConnection2(hubConnection: HubConnection): String? {
+    suspend fun openConnection2(hubConnection: HubConnection): String? {
         //open connection on another thread
         Log.i(LOG_TAG, "open connection")
         return withContext(Dispatchers.IO) {
@@ -278,8 +279,9 @@ class HubManager(
                     Log.d("alarmx", "Change 0")
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
-                if (i >= CONNECT_COUNTER_LIMIT){
-                    hubComm.forceRestartApp()}
+                if (i >= CONNECT_COUNTER_LIMIT) {
+                    hubComm.forceRestartApp()
+                }
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
@@ -343,7 +345,8 @@ class HubManager(
 
                                 pingCounter = 0
                             }
-                            HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION  -> {
+
+                            HubCommand.UPDATE_CONFIG, HubCommand.UPDATE_DESTINATION -> {
                                 meessDe = b64Decode(message)
                             }
 
@@ -420,7 +423,7 @@ class HubManager(
 
             var mode = "-1"
 
-            if (currentMediaItem  != null) {
+            if (currentMediaItem != null) {
                 val path = currentMediaItem!!.pathBackup
                 mode = if (path.isNotEmpty() && !File(path).exists()) "1"
                 else "0"
@@ -430,10 +433,15 @@ class HubManager(
 
             val video = Video("" + i, mode).apply {
                 if (currentMediaItem != null) {
-                    val listPath = listOf(currentMediaItem!!.pathBackup,currentMediaItem!!.pathBackup)
+                    val listPath = listOf(currentMediaItem!!.pathBackup)
                     val jsonString = adapterListString.toJson(listPath)
                     mediaName = curMediaName
-                    path = jsonString
+
+                    path = if(jsonString == "") {
+                        null
+                    }else {
+                        jsonString
+                    }
                     level = currentMediaItem!!.level
                 }
             }
@@ -467,7 +475,7 @@ class HubManager(
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub: ${request}")
             Log.i("loghub", "log hub device info: ${request.volume}")
-            Log.i("loghub", "log hub device info: ${ GlobalProperties.getInst().androidVolume}")
+            Log.i("loghub", "log hub device info: ${GlobalProperties.getInst().androidVolume}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

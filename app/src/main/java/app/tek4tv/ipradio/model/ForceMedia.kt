@@ -89,7 +89,7 @@ data class ForceMedia(
 
             val fm = jsonAdapter.fromJson(value) ?: return false
 
-            if (SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime) <= Date()) return false
+            if (SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").parse(fm.endTime) <= Date()) return false
 
             return true
         }

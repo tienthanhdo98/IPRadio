@@ -12,6 +12,8 @@ class MediaScheduleReceiver : BroadcastReceiver() {
         val alarmListener = MainActivity.alarmListener ?: return
 
         alarmListener.onAlarm(intent)
+
+//        val serviceIntent = Intent(context, MyForegroundService::class.java)
     }
 
     companion object {
