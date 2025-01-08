@@ -106,7 +106,6 @@ class LogUtils private constructor() {
 
 
     fun logDataHub(imei: String, data: DataValueModel) {
-        val LOG_TAG = "MYLOG"
         val strJs = data.toJson()
         coroutineScope.launch {
             val reportObj = DataLogModel(

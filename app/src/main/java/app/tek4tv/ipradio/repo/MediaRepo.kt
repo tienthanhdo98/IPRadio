@@ -1,33 +1,30 @@
 package app.tek4tv.ipradio.repo
 
-import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.model.MediaItemModel
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.media.DownloadHelper2
+import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
-import app.tek4tv.ipradio.utils.media.DownloadHelper2
-import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-
 import kotlinx.coroutines.launch
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
 
-
 class MediaRepo constructor(
     moshi: Moshi,
-   private val appContext: Context
 ) : BaseRepo<MediaItemModel>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
     val TAG = "MEDIA_REPO"
     override val jsonAdapter: JsonAdapter<List<MediaItemModel>> = moshi.adapter(
@@ -216,7 +213,7 @@ class MediaRepo constructor(
         if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
 
         //xác định có là file hay không, lấy đuôi file
-        val extMedia = File(it.body).extension
+        val extMedia = File(it.body ?: "").extension
 
         if(extMedia.isEmpty()) return
         val isFile = getConfigExtension()!!.contains(extMedia)

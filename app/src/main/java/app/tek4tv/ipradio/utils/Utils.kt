@@ -23,6 +23,10 @@ class Utils {
         const val TOP_AREA = "1"
         const val LEFT_AREA = "2"
         const val RIGHT_AREA = "3"
+        //Device info
+        const val deviceInfoPA = "PA"
+        const val deviceInfoVolume = "Volume"
+        const val deviceInfoTemperature = "Temperature"
 
 
         @SuppressLint("HardwareIds")
@@ -205,13 +209,13 @@ class Utils {
                 var result = ""
                 val listInfo = deviceInfo.split(",")
                 when (valueName) {
-                    StringValue.deviceInfoVolume -> {
+                    deviceInfoVolume -> {
                         result = listInfo[6]
                     }
-                    StringValue.deviceInfoPA -> {
+                    deviceInfoPA -> {
                         result = listInfo[8]
                     }
-                    StringValue.deviceInfoTemperature -> {
+                    deviceInfoTemperature -> {
                         result = listInfo[11]
                     }
                 }

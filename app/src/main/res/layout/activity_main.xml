@@ -5,27 +5,18 @@
     android:background="@color/black"
     android:layout_height="match_parent">
 
-    <FrameLayout
-        android:id="@+id/vlc_container"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:background="@color/black">
-
         <org.videolan.libvlc.util.VLCVideoLayout
             android:id="@+id/vlc_video_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:fitsSystemWindows="true"
             android:keepScreenOn="true" />
-    </FrameLayout>
-
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/layoutInfoNgang"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:visibility="visible"
-        android:background="@android:color/transparent">
+        android:visibility="visible">
 
         <TextView
             android:id="@+id/tvCheckInternet"
@@ -34,7 +25,6 @@
             android:layout_marginEnd="25dp"
             android:layout_marginBottom="30dp"
             android:elevation="16dp"
-            android:text="Online "
             android:textColor="@color/green_online"
             android:textSize="16sp"
             app:layout_constraintBottom_toBottomOf="parent"
@@ -47,12 +37,10 @@
             android:background="@color/black"
             android:backgroundTint="@color/black"
             android:layout_marginEnd="20dp"
-            android:text="00:00:00"
             android:textColor="@color/white"
             app:layout_constraintTop_toTopOf="@id/tvCheckInternet"
             app:layout_constraintBottom_toBottomOf="@id/tvCheckInternet"
             app:layout_constraintEnd_toStartOf="@id/tvCheckInternet"/>
-
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

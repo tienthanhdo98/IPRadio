@@ -42,9 +42,9 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.51.03") ?: "H48.51.03"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Nghĩa Chánh") ?: "Phường Nghĩa Chánh"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử") ?: "Bảng Điện Tử"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử 24") ?: "Bảng Điện Tử 24"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
@@ -113,8 +113,8 @@ class GlobalProperties {
     companion object {
 
         private var instance: GlobalProperties? = null
-        val TYPE_SCREEN_KEY = "TYPE_SCREEN_KEY"
-        val TYPE_PRE_SCREEN_KEY = "TYPE_SCREEN_PRE_KEY"
+        const val TYPE_SCREEN_KEY = "TYPE_SCREEN_KEY"
+        const val TYPE_PRE_SCREEN_KEY = "TYPE_SCREEN_PRE_KEY"
         fun getInst(): GlobalProperties {
             if (instance == null)
                 instance = GlobalProperties()

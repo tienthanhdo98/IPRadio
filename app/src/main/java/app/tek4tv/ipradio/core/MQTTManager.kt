@@ -9,32 +9,34 @@ import org.eclipse.paho.client.mqttv3.*
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val destinationId: String,
     private val listMQTTInfo : List<NoiDungMQTT>
 ) {
     val TAG = "MQTTLOG"
     var clientID = ""
     private var publishTopicTinh = ""
 
-
     private var mqttClient: MqttAndroidClient? = null
 
-    fun getSubscribeTopic(destinationId: String) {
-        subscribe("thietbi/$clientID")
-        val listDesId = destinationId.split(".")
-        Log.d(TAG, "Subscribed: ${listDesId.count()}")
-        if (listDesId.isNotEmpty()) {
+    fun getSubscribeTopic() {
+        listMQTTInfo.forEach {
+            if(it.topic.lowercase().contains("thietbi"))
+            {
+                subscribe(it.topic)
+            }
+            if(it.topic.lowercase().contains("tinh"))
+            {
+                subscribe(it.topic)
+            }
+            if(it.topic.lowercase().contains("huyen"))
+            {
+                subscribe(it.topic)
+            }
+            if(it.topic.lowercase().contains("xa"))
+            {
+                subscribe(it.topic)
+            }
+        }
 
-            subscribe("tinh/${listDesId[0]}".toLowerCase())
-        }
-        if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
-        }
-        if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
-        } else {
-            subscribe("thon/$destinationId".toLowerCase())
-        }
     }
 
     fun connectToMQTT(context: Context) {
@@ -42,11 +44,10 @@ class MQTTManager(
             if(it.topic.contains("thietbi"))
             {
                 clientID = it.topic.substringAfter("/")
-
             }
         }
         publishTopicTinh = "tinh/$clientID"
-        Log.d(TAG, "clientID ${clientID}")
+
         //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
         //     val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
         val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
@@ -75,7 +76,7 @@ class MQTTManager(
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
-                    getSubscribeTopic(destinationId)
+                    getSubscribeTopic()
                     connectEventListener.onConnectSuccess()
                 }
 

@@ -158,7 +158,6 @@ class HubManager(
                     mqttClient = MQTTManager(
                         hubToken,
                         this@HubManager,
-                        GlobalProperties.getInst().destinationId,
                         listMQTTInfo
                     )
                     mqttClient?.connectToMQTT(appContext)
@@ -226,18 +225,18 @@ class HubManager(
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
                 trangThai = "1",
                 amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
+                    Utils.deviceInfoVolume,
                     SerialPortController.deviceInfo
                 ),
                 viDo = GlobalProperties.getInst().lat,
                 kinhDo = GlobalProperties.getInst().lng,
                 thongTinThietBI = ThongTinThietBI(
                     congSuat = getDeviceInfo(
-                        StringValue.deviceInfoPA,
+                        Utils.deviceInfoPA,
                         SerialPortController.deviceInfo
                     ),
                     nhietDo = getDeviceInfo(
-                        StringValue.deviceInfoTemperature,
+                        Utils.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
                     dungLuongSuDung = "1024000",
@@ -431,7 +430,7 @@ class HubManager(
 
                     }
                     onMessageListener.invoke(hubCommand, jsonMessage)
-                    Log.d(TAG, "Command: dv017 - ${hubCommand}- ${responseHub}")
+                    Log.d(TAG, "Command: dv017 - ${hubCommand}- $responseHub")
 
                 }
             }
@@ -547,7 +546,7 @@ class HubManager(
         return mapNgayPhat
     }
     private var countId = 0
-    private fun findScheduleByDate(ngayPhat : app.tek4tv.ipradio.model.DanhSachNgayPhat,playload : ReceivedPayloadSchedule): String {
+    private fun findScheduleByDate(ngayPhat : DanhSachNgayPhat,playload : ReceivedPayloadSchedule): String {
         val danhSachBanTinTrongNgay : MutableList<MediaItemModel> = mutableListOf()
         //tim cac khung phat trong ngay
         countId = 0

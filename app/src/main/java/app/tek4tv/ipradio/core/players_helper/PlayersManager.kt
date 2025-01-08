@@ -1,12 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.os.Handler
-import android.transition.Transition
 import android.util.Log
-import android.view.View
-import android.view.ViewGroup
-import android.widget.FrameLayout
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -33,16 +28,15 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
-    private val vlcContainer: FrameLayout,
-    private val rootLayout: ViewGroup,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
-
+    private val LOGTAG = "player"
+    private val PLAY_MODE_FORCE = "-2"
+    private val PLAY_MODE_INIT = "0"
+    var currentPlaylist = listOf<MediaItemModel>()
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
-    private var currentPlayer: IMediaPlayer? = null
+    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(this, vlcVideoLayout)
     private var currentPlayingMedia: MediaItemModel? = null
 
     /**
@@ -77,12 +71,7 @@ class PlayersManager(
     }
 
     override fun onMediaEndReached(mediaItem: MediaItemModel?) {
-        coroutineScope.launch {
-            fadeAnimation(false)
-            delay(400)
-            playNextMedia()
-        }
-
+        playNextMedia()
 
     }
 
@@ -177,30 +166,9 @@ class PlayersManager(
         }
     }
 
-    private fun fadeAnimation(isShow: Boolean) {
-
-//        transition.duration = 400
-//        transition.addTarget(vlcContainer)
-//        TransitionManager.beginDelayedTransition(rootLayout, transition)
-//        vlcContainer.alpha = if (isShow) 1f else 0f
-        val targetAlpha = if (isShow) 1f else 0f
-        val duration = 400L
-
-        vlcContainer.animate()
-            .alpha(targetAlpha)
-            .setDuration(duration)
-            .withEndAction {
-                // Optionally handle visibility after the animation
-                vlcContainer.visibility = if (isShow) View.VISIBLE else View.GONE
-            }
-            .start()
-
-    }
-
 
     private fun playMedia(mediaItem: MediaItemModel, timeStamp: Int = 0) {
         try {
-            fadeAnimation(true)
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
@@ -212,7 +180,6 @@ class PlayersManager(
                         } else {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
-                        currentPlayer = vlcPlayer
                     }
                 }
                 MediaType.LIVE -> {
@@ -234,7 +201,6 @@ class PlayersManager(
         val resumeLiveTime = 0
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
-        currentPlayer = vlcPlayer
     }
 
     fun   stopAllPlayer() {
@@ -260,7 +226,6 @@ class PlayersManager(
         val startTimeOfMedia = toCalendar(mediaItem.fixTime!!)
         val now = Calendar.getInstance()
         return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-
     }
 
     fun stopPlaylist(cancelListKey: String) {
@@ -366,11 +331,5 @@ class PlayersManager(
         playMode = PLAY_MODE_INIT//"0"
     }
 
-    companion object {
-        const val PLAY_MODE_FORCE = "-2"
-        const val PLAY_MODE_INIT = "0"
-        const val LOGTAG = "player"
-        var currentPlaylist = listOf<MediaItemModel>()
-        var handlerLivePlayer: Handler? = null
-    }
+
 }

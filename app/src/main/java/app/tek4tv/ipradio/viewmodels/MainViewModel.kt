@@ -16,7 +16,7 @@ import kotlinx.coroutines.launch
 
 
 class MainViewModel  : ViewModel() {
-    val mediaRepo : MediaRepo = MediaRepo(moshi,appContext)
+    val mediaRepo : MediaRepo = MediaRepo(moshi)
     val content = MutableLiveData<Pair<List<MediaItemModel>, List<String>>>()
 
     private var getContentJob: Job? = null

@@ -82,9 +82,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
-    private lateinit var vlcContainer: FrameLayout
-    private lateinit var rootLayout: ViewGroup
-
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
@@ -180,18 +177,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
-        rootLayout = findViewById(R.id.rootLayout)
-        vlcContainer = findViewById(R.id.vlc_container)
 
         playerManager = PlayersManager(
-            applicationContext,
             vlcVideoLayout,
-            vlcContainer,
-            rootLayout,
             viewModel.mediaRepo
         )
 
         playerManager.playerManagerListener = playerCallback
+
+
 
         initHubConnect()
         registerObservers()
@@ -212,10 +206,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         lifecycleScope.launch{
             repeat (Int.MAX_VALUE)
             {
-                delay(300000)
                 capture()
+                delay(300000)
+
             }
         }
+        lifecycleScope.launch{
+            repeat (Int.MAX_VALUE)
+            {
+                delay(10000)
+                playerManager.resumeMedia()
+            }
+        }
+
+
     }
 
     fun clearMemory()
@@ -261,25 +265,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         {
             Log.d("captureError", "saveBitmap ERR: ${e.message}")
         }
-
-//        val path: File =
-//            File(Environment.getExternalStorageDirectory().toString() + "/Screenshots/")
-//        if (!path.exists()) {
-//            path.mkdirs()
-//        }
-//
-//        // Create the file for saving
-//        val imageFile = File(path, "screenshot_" + System.currentTimeMillis() + ".png")
-//        try {
-//            FileOutputStream(imageFile).use { out ->
-//                bitmap.compress(Bitmap.CompressFormat.PNG, 100, out) // Compress to PNG
-//                Toast.makeText(this, "Screenshot saved: " + imageFile.path, Toast.LENGTH_SHORT)
-//                    .show()
-//            }
-//        } catch (e: IOException) {
-//            e.printStackTrace()
-//            Toast.makeText(this, "Failed to save screenshot", Toast.LENGTH_SHORT).show()
-//        }
     }
 
 
@@ -320,8 +305,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
         val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-
-
         var resInfo = ""
         val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
         val memInfo = ActivityManager.MemoryInfo()
@@ -754,10 +737,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         appStorageManager.deleteAllRecord()
 
                     }
-                }
-
-                HubCommand.DELETE_ALL_LOG -> {
-                    appStorageManager.deleteAllLog()
                 }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
