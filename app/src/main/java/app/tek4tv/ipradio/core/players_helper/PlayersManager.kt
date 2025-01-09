@@ -97,7 +97,7 @@ class PlayersManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
             val now = Calendar.getInstance().timeInMillis
-            if (now in start.timeInMillis..end.timeInMillis) {
+            if (now >= start.timeInMillis && now <= end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 found = true
@@ -138,7 +138,7 @@ class PlayersManager(
         } else {
               Log.d(TAG, "Play media stop")
               stopAllPlayer()
-//            playMode = ""
+              playMode = ""
 //            isTimeOver = true
         }
 
@@ -249,27 +249,6 @@ class PlayersManager(
             e.printStackTrace()
             return Pair(0, 0)
         }
-    }
-
-    fun stopPlaylist(cancelListKey: String) {
-        if (cancelListKey != playMode) return
-        playMode = ""
-        stopAllPlayer()
-        playerManagerListener?.onEndTimeFrame(cancelListKey)
-        //check time over
-        isTimeOver = true
-        checkTimeOver()
-    }
-
-    fun endScheduledMediaByIndex(mediaIndex: Int) {
-        val scheduledItems = mediaRepo.scheduledMediaItems
-        if (mediaIndex >= scheduledItems.size) return
-
-        val itemToEnd = scheduledItems[mediaIndex]
-        if (itemToEnd.mediaID != currentPlayingMedia?.mediaID) return
-
-        stopAllPlayer()
-        playNextMedia()
     }
 
     fun stopTimeFrame() {

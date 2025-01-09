@@ -44,13 +44,19 @@ class MediaRepo @Inject constructor(
 
     var leftScheduledList = mutableListOf<MediaItem>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
-    var unscheduledList = mutableListOf<MediaItem>()
+    private var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()
-    var layoutType : Int = FULL_SCREEN
+    private var layoutType : Int = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
+
+    val type: Type = Types.newParameterizedType(
+        List::class.java,
+        MediaItem::class.java
+    )
+    private val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(type)
 
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {
@@ -67,7 +73,7 @@ class MediaRepo @Inject constructor(
                 Log.d("updateDailyScenario", "return update")
                 return
             }
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+            val currentDate = SimpleDateFormat("dd-MM-yyyy",Locale.getDefault()).format(Date())
 
             val dayScenario = if (isSingleScenario) monthScenario[0]
             else monthScenario.firstOrNull { it.date == currentDate }
@@ -97,6 +103,7 @@ class MediaRepo @Inject constructor(
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
                 Log.d("readplaylist", "local ")
+                layoutType = ConfigUtil.getInt(appContext, TYPE_SCREEN_KEY,1)
                 readItemsFromFile()
             } else listOf()
             result
@@ -110,7 +117,6 @@ class MediaRepo @Inject constructor(
 
         return broadcastList
     }
-
 
     private fun filterMedia(mediaList: List<MediaItem>) {
         val dividerIndices = mediaList.indices.filter {
@@ -143,13 +149,6 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
-    val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
-
-//    val mediaJsonAdapter = MoshiInst.moshi.adapterListString<List<MediaItem>>( List::class.java, MediaItem::class.java)
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
@@ -159,7 +158,6 @@ class MediaRepo @Inject constructor(
                 val resBody = res.body()
                 if (resBody != null) {
 
-//                    result =  resBody
                     if(layoutType == FULL_SCREEN)
                     {
                         result =  resBody
@@ -174,10 +172,6 @@ class MediaRepo @Inject constructor(
                     val srt = mediaJsonAdapter.toJson(leftScheduledList)
                     ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 
-//                    var i = 1
-//                    result.onEach{ mediaItem ->
-//                        mediaItem.mediaID = i++
-//                    }
                     saveItemsToFile(result)
                 }
             } else {
@@ -191,7 +185,7 @@ class MediaRepo @Inject constructor(
     }
 
     fun startDownloadMedia() {
-        if (broadcastList.isNullOrEmpty()) return
+        if (broadcastList.isEmpty()) return
 
         broadcastList.forEach {
             downloadAMediaItem(it)
@@ -204,9 +198,9 @@ class MediaRepo @Inject constructor(
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
-        Log.i("download", "downloadAMediaItem: ${url}")
+        Log.i("download", "downloadAMediaItem: $url")
         val fileName = getFileNameFromUrl(url!!)
-        Log.i("download", "downloadAMediaItem: ${fileName}")
+        Log.i("download", "downloadAMediaItem: $fileName")
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {

@@ -27,22 +27,39 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
+import app.tek4tv.ipradio.utils.CrashHandler
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LOG_FOLDER_NAME
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.RECORDED_AUDIO_FOLDER_NAME
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
+import app.tek4tv.ipradio.utils.deleteAFileInFolder
+import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.getCurrentTime
+import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.readFile
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
@@ -59,7 +76,8 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.IOException
 import java.lang.reflect.Type
-import java.util.*
+import java.util.Timer
+import java.util.TimerTask
 import javax.inject.Inject
 
 
@@ -104,18 +122,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private var volume = "80"
 
-    var locationTracker = LocationTracker()
+    private var locationTracker = LocationTracker()
 
     private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var vlcVideoLayout: VLCVideoLayout
-
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
+
     private var typeScreen: Int = FULL_SCREEN
+    private lateinit var vlcVideoLayout: VLCVideoLayout
     private lateinit var tvTopArea: TextView
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
@@ -140,7 +158,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 listLeftMedia.forEach {
-                    logUtils.logMediaStart(it, 0, globalProperties.volume, paState, typeScreen)
+                    logUtils.logMediaStart(
+                        it,
+                        0,
+                        globalProperties.volume,
+                        paState,
+                        typeScreen
+                    )
                 }
             }
         }
@@ -177,7 +201,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState, typeScreen)
+                logUtils.logMediaStart(
+                    mediaItem,
+                    0,
+                    globalProperties.volume,
+                    paState,
+                    typeScreen
+                )
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -197,9 +227,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (oldTypeScreen != typeScreen) {
                 recreate()
             }
-
-//            logUtils.logMediaEnd(mediaItem!!)
-
         }
 
         //Lỗi luồng live
@@ -237,13 +264,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState, typeScreen)
+                logUtils.logMediaStart(
+                    mediaItem,
+                    0,
+                    globalProperties.volume,
+                    paState,
+                    typeScreen
+                )
 
-                try {
-                    viewModel.currentMedia = mediaItem
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
+
+                viewModel.currentMedia = mediaItem
 
 
             }
@@ -297,7 +327,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.i("PA", "onCreate: s4")
             }
         }
-
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         playerManager = PlayersManager(
             applicationContext,
@@ -337,7 +366,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             initDefaultTopAndLeftArea()
         }
     }
-
 
     private fun startAutoScroll() {
         val runnable: Runnable = object : Runnable {
@@ -395,6 +423,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         })
     }
 
+    private fun initDefaultTopAndLeftArea() {
+        scrollLeftArea = findViewById(R.id.scrollView)
+        tvTopArea = findViewById(R.id.tvTopArea)
+        tvTitleRight = findViewById(R.id.tvTitleRight)
+        tvTopArea.isSelected = true
+        layoutTvLeft = findViewById(R.id.layoutTvLeft)
+    }
 
     private fun hideTopLeftArea(isStillTimeFrame: Boolean) {
         if (typeScreen != FULL_SCREEN) {
@@ -412,14 +447,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val handler: Handler = Handler()
     private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
-
-    private fun initDefaultTopAndLeftArea() {
-        scrollLeftArea = findViewById(R.id.scrollView)
-        tvTopArea = findViewById(R.id.tvTopArea)
-        tvTitleRight = findViewById<TextView>(R.id.tvTitleRight)
-        tvTopArea.isSelected = true
-        layoutTvLeft = findViewById(R.id.layoutTvLeft)
-    }
 
     override fun onStart() {
         Log.i("ChangeLayout", "Mess: recreate onStart")
@@ -497,13 +524,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
 
     private fun needGrantPermission(): Boolean {
@@ -547,7 +574,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 return@observe
             }
             //default
-            mediaScheduler.scheduleAllAlarms()
+            mediaScheduler.scheduleAllAlarms(typeScreen)
 
             playerManager.startFirstTimeFrame()
 
@@ -627,7 +654,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
-                    playerManager.stopAllPlayer()
+//                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     hideTopLeftArea(false)
                     cancelAllAlarm()
@@ -637,25 +664,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-//                    Handler().postDelayed({
-//                        recreate()
-//                    }, 1000)
+                    Handler().postDelayed({
+                        recreate()
+                    }, 1000)
+
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     Log.d("tesstlive", "handleFromCommandServer: live")
-//                    ConfigUtil.putInt(
-//                        baseContext,
-//                        TYPE_SCREEN_KEY,
-//                        (responseHub.mode ?: "0").toInt()
-//                    )
-//                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
+                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-//                    Handler().postDelayed({
-//                        onPlayForce(responseHub)
-//                        recreate()
-//                    }, 1000)
-                    onPlayForce(responseHub)
+                    Handler().postDelayed({
+                        onPlayForce(responseHub)
+                        recreate()
+                    }, 1000)
                 }
 
 

@@ -10,6 +10,7 @@ import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
 import java.util.Calendar
@@ -80,7 +81,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             if (!isFirstAlarm) {
                 start.add(Calendar.SECOND, 1)
             }
-            if (now in start.timeInMillis..end.timeInMillis ) {
+            if (now >= start.timeInMillis && now <= end.timeInMillis ) {
                 Log.d("alarmx", "Set In Frame $requestCode ${convertTimeInMillisToHHmmss(start.timeInMillis)}")
 
                 val alarmIntent = getScheduleListIntent(period, requestCode!!)
@@ -210,7 +211,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
             val now = Calendar.getInstance().timeInMillis
-            if (now in start.timeInMillis..end.timeInMillis) {
+            if (now >= start.timeInMillis && now <= end.timeInMillis) {
                 alarmManager.setExactAndAllowWhileIdle(
                     AlarmManager.RTC_WAKEUP,
                     end.timeInMillis,
@@ -279,12 +280,14 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 //        alarmIntent.cancel()
     }
 
-    fun scheduleAllAlarms() {
+    fun scheduleAllAlarms(typeSceen : Int) {
         setRescheduleAllAlarms()
         scheduleListAlarms()
         setCheckHubAndResetAlarms()
-//        scheduleShowListLeft()
-//        scheduleEndLeftArea()
+        if (typeSceen != FULL_SCREEN) {
+        scheduleShowListLeft()
+        scheduleEndLeftArea()
+        }
     }
 
     fun cancelAllScheduledListAlarm() {
