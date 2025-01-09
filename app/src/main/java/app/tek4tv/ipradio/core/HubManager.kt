@@ -56,8 +56,6 @@ class HubManager(
     //    private val deviceImei = "72:BE:B5:09:30:45"
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
-    val hubEventObserver = mutableListOf<HubEventObserver>()
-
     var pingCounter = 69
 
     var hubConnection: HubConnection
@@ -73,14 +71,8 @@ class HubManager(
 
     var versionName = ""
 
-    var registerOnMessageListener = false
-
-
     private val mainHandler = Handler(Looper.getMainLooper())
 
-    private val notifyDisconnected = AtomicBoolean(false)
-
-    private val logUtils = LogUtils.getInst()
 
     private var hubToken: String? = null
 
@@ -274,10 +266,6 @@ class HubManager(
             var i = 0
 
             while (connectionId == null) {
-                if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
-                    ConfigUtil.putString(appContext, "checkhub", "0")
-                    Log.d("alarmx", "Change 0")
-                }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) {
                     hubComm.forceRestartApp()
@@ -318,10 +306,6 @@ class HubManager(
      * Nhận lệnh từ hub
      * **/
     private fun onMessage() {
-        if (registerOnMessageListener) return
-
-        registerOnMessageListener = true
-
         hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
             try {
                 mainHandler.post {
@@ -337,8 +321,6 @@ class HubManager(
                                 //Vừa kết nối được lại hub
                                 if (pingCounter >= 3 && !firstConnect) {
                                     Log.e(LOG_TAG, "Hub Reconnected")
-                                    notifyHubReconnected()
-                                    notifyDisconnected.compareAndSet(true, false)
                                 }
 
                                 if (firstConnect) firstConnect = false
@@ -418,8 +400,6 @@ class HubManager(
         pingCounter++
         try {
             Log.d(LOG_TAG, "ping hub")
-            val i = playlistIndex
-            Log.d("player:", i.toString())
 
             var mode = "-1"
 
@@ -431,15 +411,15 @@ class HubManager(
 
             //neu chay da man hinh path se gui la "path1,path2" path vùng 1,2,3
 
-            val video = Video("" + i, mode).apply {
+            val video = Video("" + playlistIndex, mode).apply {
                 if (currentMediaItem != null) {
                     val listPath = listOf(currentMediaItem!!.pathBackup)
                     val jsonString = adapterListString.toJson(listPath)
                     mediaName = curMediaName
 
-                    path = if(jsonString == "") {
+                    path = if (jsonString == "") {
                         null
-                    }else {
+                    } else {
                         jsonString
                     }
                     level = currentMediaItem!!.level
@@ -488,12 +468,6 @@ class HubManager(
             while (true) {
                 sendPing()
                 Log.d(LOG_TAG, "ping: $pingCounter")
-                if (ConfigUtil.getString(appContext, "checkhub", "0") == "0") {
-                    if (pingCounter == 1) {
-                        ConfigUtil.putString(appContext, "checkhub", "1")
-                        Log.d("alarmx", "Change 1")
-                    }
-                }
                 delay(PING_INTERVAL)
                 checkConnection()
             }
@@ -504,45 +478,15 @@ class HubManager(
         if (pingCounter >= CONNECT_COUNTER_LIMIT) {
             hubComm.forceRestartApp()
         }
-        if (pingCounter >= 2) {
-            if (ConfigUtil.getString(appContext, "checkhub", "0") != "0") {
-                ConfigUtil.putString(appContext, "checkhub", "0")
-                Log.d("alarmx", "Change 0")
-            }
-        }
-
         if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
-            if (notifyDisconnected.compareAndSet(false, true)) {
-                hubToken = null
-                notifyHubDisconnected()
-                Log.e(LOG_TAG, "Hub Disconnected")
-                val currentTime = Calendar.getInstance().time
-                ConfigUtil.putString(
-                    appContext,
-                    ConfigUtil.DISCONNECT_START_TIME,
-                    currentTime.time.toString()
-                )
-                ConfigUtil.putString(appContext, ConfigUtil.DISCONNECT_STATE, "DISCONNECTED")
-            }
+            hubToken = null
+            Log.e(LOG_TAG, "Hub Disconnected")
             //Try to reconnect to hub
             openConnection()
         }
     }
 
-    @Synchronized
-    private fun notifyHubReconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onReconnectedToHub() }
-        }
-    }
-
-    @Synchronized
-    private fun notifyHubDisconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onLostHubConnection() }
-        }
-    }
 
     //parse hub command content
     private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
@@ -568,10 +512,6 @@ interface HubComm {
     fun forceRestartDevice()
 }
 
-interface HubEventObserver {
-    fun onLostHubConnection()
-    fun onReconnectedToHub()
-}
 
 val publicKey =
     "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="

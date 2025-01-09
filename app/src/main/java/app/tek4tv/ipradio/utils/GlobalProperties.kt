@@ -32,7 +32,6 @@ class GlobalProperties {
     var nameDevice = ""
     var destinationName = ""
     var destinationId = ""
-    var logEnabled = false
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
@@ -78,7 +77,6 @@ class GlobalProperties {
         destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.20.12") ?: "H39.20.12"
         destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Bến Lức") ?: "Thị trấn Bến Lức"
         nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Bến Lức") ?: "TB Thị trấn Bến Lức"
-        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
@@ -172,10 +170,6 @@ class GlobalProperties {
             destinationName = responseHub.destinationName?: ""
         }
 
-        if (responseHub.logEnabled != null) {
-            ConfigUtil.putBool(appContext, DEFAULT_LOG_ENABLE, responseHub.logEnabled!!)
-            logEnabled = responseHub.logEnabled!!
-        }
 
         if (responseHub.resumeFromStart != null) {
             ConfigUtil.putBool(appContext, DEFAULT_RESUME_FROM_START, responseHub.resumeFromStart!!)

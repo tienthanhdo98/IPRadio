@@ -12,8 +12,6 @@ object ConfigUtil {
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
     const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
-    const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
-    const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
     const val URL_TOKEN = "URL_TOKEN"
     const val KEY_LIST_LEFT_PREF = "KEY_LIST_LEFT_PREF"

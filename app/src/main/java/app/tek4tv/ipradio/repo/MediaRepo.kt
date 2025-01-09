@@ -43,7 +43,6 @@ class MediaRepo @Inject constructor(
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
 
     var leftScheduledList = mutableListOf<MediaItem>()
-    //top scheduledList
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
     var unscheduledList = mutableListOf<MediaItem>()
     var scheduledMediaItems = mutableListOf<MediaItem>()

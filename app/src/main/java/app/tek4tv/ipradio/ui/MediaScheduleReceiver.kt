@@ -1,8 +1,13 @@
 package app.tek4tv.ipradio.ui
 
+import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.os.Bundle
+import android.os.IBinder
+import android.util.Log
+import androidx.core.content.ContextCompat
 
 
 class MediaScheduleReceiver : BroadcastReceiver() {
@@ -13,7 +18,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
 
         alarmListener.onAlarm(intent)
 
-//        val serviceIntent = Intent(context, MyForegroundService::class.java)
+
     }
 
     companion object {

@@ -5,7 +5,6 @@ import android.media.MediaMetadataRetriever
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
@@ -13,7 +12,7 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.util.*
+import java.util.Calendar
 
 class VlcMediaPlayer(
     appContext: Context,
@@ -23,24 +22,17 @@ class VlcMediaPlayer(
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private var mLibVLC: LibVLC
-    private var vlcPlayer: CustomPlayer
+    private var vlcPlayer: MediaPlayer
     private var currentMedia: MediaItem? = null
     private var currentVlcMedia: Media? = null
 
-    private var isPlaying = false
-
-    private var lastError = -1
-    // private var endCount = 0
-    
-    override fun isPlaying(): Boolean = isPlaying
-
-    private val vlcEventListener = { event: Int, l: Long, l1: Long, fl: Float, s: String? ->
-        when (event) {
+    private var vlcEventListener = MediaPlayer.EventListener { event ->
+        when (event.type) {
             MediaPlayer.Event.EndReached -> {
                 Log.e(TAG, "EndReached")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     playerEventListener.onMediaEndReached(currentMedia)
-                    isPlaying = false
+
                 } else {
                     onLiveErrorVlc()
                 }
@@ -54,21 +46,15 @@ class VlcMediaPlayer(
                         false,
                         currentMedia!!
                     )
-                    isPlaying = false
                 } else {
                     onLiveErrorVlc()
                 }
-                lastError = event
             }
 
             MediaPlayer.Event.Playing -> {
-                if (!isPlaying) {
-                    isPlaying = true
-                    playerEventListener.onPlayMediaSuccess(currentMedia)
-                }
-            }
 
-            else -> {
+                playerEventListener.onPlayMediaSuccess(currentMedia)
+
             }
         }
     }
@@ -88,8 +74,6 @@ class VlcMediaPlayer(
         } finally {
             retriever.release()
         }
-        // Example usage:
-
     }
 
 
@@ -97,24 +81,23 @@ class VlcMediaPlayer(
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
-//        args.add("--no-drop-late-frames")
+        args.add("--no-drop-late-frames")
 //        args.add("--no-skip-frames")
-        args.add("--drop-late-frames")
-//        args.add("--skip-frames")
+        args.add("--skip-frames")
 //        args.add("--file-caching=5000")
 //        args.add("--network-caching=5000")
 //        args.add("--vout=android-display")
 //        RotateScreen("270",args)
 
         mLibVLC = LibVLC(appContext, args)
-        vlcPlayer = CustomPlayer(mLibVLC)
+        vlcPlayer = MediaPlayer(mLibVLC)
 //        vlcPlayer.aspectRatio = "9:16"
 //        vlcPlayer.scale = 3.0f
 //        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_16_9
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
 //        vlcPlayer.videoScale = MediaPlayer.ScaleType.SURFACE_BEST_FIT
 
-        vlcPlayer.eventListener = vlcEventListener
+        vlcPlayer.setEventListener(vlcEventListener)
 
 
     }
@@ -155,7 +138,6 @@ class VlcMediaPlayer(
 
     override fun stop() {
         vlcPlayer.stop()
-        isPlaying = false
         currentMedia = null
         currentVlcMedia = null
     }
@@ -217,7 +199,6 @@ class VlcMediaPlayer(
             val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
 
             if (isStreamFailed) {
-                isPlaying = false
                 playerEventListener.onPlayerError(
                     VlcException("Stream failed!"),
                     true,

@@ -19,7 +19,7 @@ class AppStorageManager(appContext: Context) {
     private val memoryInfo = ActivityManager.MemoryInfo()
 
     init {
-        activityManager.getMemoryInfo(memoryInfo)
+        //activityManager.getMemoryInfo(memoryInfo)
     }
 
     fun getTotalMediaSize() = getFolderSize(fileDirPath)

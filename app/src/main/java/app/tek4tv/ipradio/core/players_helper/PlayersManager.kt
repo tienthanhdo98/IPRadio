@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -20,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
 
 /**
@@ -30,11 +29,12 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-      appContext: Context,
-      vlcVideoLayout: VLCVideoLayout,
+    appContext: Context,
+    vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
-) : IPlayerEventListener, HubEventObserver {
+) : IPlayerEventListener {
 
+    var TAG = "PlayersManager"
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this, vlcVideoLayout)
     private var currentPlayingMedia: MediaItem? = null
@@ -84,15 +84,6 @@ class PlayersManager(
     }
 
 
-    override fun onLostHubConnection() {
-        vlcPlayer.disconnectedHub = true
-    }
-
-    override fun onReconnectedToHub() {
-        vlcPlayer.disconnectedHub = false
-    }
-
-
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -110,12 +101,12 @@ class PlayersManager(
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 found = true
-                Log.d("PMLOG", "startFirstTimeFrame: found, start")
+                Log.d(TAG, "startFirstTimeFrame: found, start")
                 break
             }
         }
         if (!found) {
-            Log.d("PMLOG", "startFirstTimeFrame: not found")
+            Log.d(TAG, "startFirstTimeFrame: not found")
             playerManagerListener?.onTimeOver()
         }
     }
@@ -142,32 +133,25 @@ class PlayersManager(
 
         playlistIndex++
         if (playlistIndex < currentPlaylist.size) {
-            Log.d("PlayerLog", "Play media next")
+            Log.d(TAG, "Play media next")
             playMediaByIndex(playlistIndex)
+        } else {
+              Log.d(TAG, "Play media stop")
+              stopAllPlayer()
+//            playMode = ""
+//            isTimeOver = true
         }
-//            else {
-//                if (isInTimeFrame) {
-//                    Log.d("PlayerLog", "Play media loop")
-//                    playlistIndex = 0
-//                    playMediaByIndex(playlistIndex)
-//                }
-////                else
-////                {
-////                    stopAllPlayer()
-////                }
-//            }
 
 
     }
 
-    private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
+    private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
         try {
             if (currentPlaylist.isEmpty()) return
             val mediaItem = currentPlaylist[index]
 
             playMedia(mediaItem, timeStamp)
 
-            Log.d("PlayerLog", "Play media $index")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -181,7 +165,7 @@ class PlayersManager(
         vlcPlayer.resume()
     }
 
-    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
+    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = 0) {
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
@@ -210,7 +194,7 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        vlcPlayer.playMedia(mediaItem, -1)
+        vlcPlayer.playMedia(mediaItem, 0)
 
     }
 
@@ -261,7 +245,7 @@ class PlayersManager(
 
             return Pair(0, 0)
         } catch (e: Exception) {
-            Log.e("PlayerLog", "Error calculate resume")
+            Log.e(TAG, "Error calculate resume")
             e.printStackTrace()
             return Pair(0, 0)
         }
@@ -271,9 +255,7 @@ class PlayersManager(
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-
         playerManagerListener?.onEndTimeFrame(cancelListKey)
-
         //check time over
         isTimeOver = true
         checkTimeOver()
@@ -334,7 +316,7 @@ class PlayersManager(
                     val mediaEndTime = Calendar.getInstance().apply {
                         add(Calendar.MINUTE, convertStringToInt(duration))
                     }
-                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss.SSS").format(mediaEndTime.time)
+                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
                     //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
             forceMedia.saveItemToPref(context)
@@ -358,9 +340,9 @@ class PlayersManager(
         isPlayAtStart: Boolean
     ) {
         try {
-            Log.d("aaa", "force")
+            Log.d(TAG, "Play force")
             //Hủy hẹn giờ của kịch bản đang phát
-            mediaScheduler.cancelAllAlarm()
+            mediaScheduler.cancelAllScheduledListAlarm()
 
 //           forceMedia.saveItemToPref()
             //hẹn giờ dừng media khẩn cấp
@@ -390,7 +372,6 @@ class PlayersManager(
     companion object {
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
-        const val LOGTAG = "player"
     }
 
 }

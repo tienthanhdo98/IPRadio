@@ -7,7 +7,6 @@ import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
-import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
@@ -60,7 +59,6 @@ import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.IOException
 import java.lang.reflect.Type
-import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 
@@ -122,6 +120,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -133,9 +132,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         //Bắt đầu khung thời gian
         override fun onStartTimeFrame(frame: String) {
-//            if (globalProperties.logEnabled) {
-//                logUtils.logStartTimeFrame(frame)
-//            }
             Log.d("onPlayMediaLog", "startFirstTimeFrame: onStartTimeFrame")
             if (typeScreen == MULTIPLE_AREA) {
                 showLeftArea()
@@ -143,26 +139,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
-                listLeftMedia.forEach{
-                    logUtils.logMediaStart(it, 0, globalProperties.volume, paState,typeScreen)
+                listLeftMedia.forEach {
+                    logUtils.logMediaStart(it, 0, globalProperties.volume, paState, typeScreen)
                 }
             }
         }
 
         //Kết thúc khung gian
         override fun onEndTimeFrame(frame: String) {
-//            if (globalProperties.logEnabled) {
-//                logUtils.logEndTimeFrame(frame)
-//            }
             if (typeScreen == MULTIPLE_AREA) {
                 hideTopLeftArea(true)
             }
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
-            val sdf = SimpleDateFormat("dd/M/yyyy")
-            val currentDate = sdf.format(Date())
-            val currentDateStr = currentDate.replace("/", "")
-//            logUtils.sendLogFile("media", currentDateStr)
-            Log.d("screeninfo", "showMac: nEndTimeFrame")
+
         }
 
         //Phát FM
@@ -188,7 +177,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.playTuner(pipsData, tunerData)
                 }
 
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
+                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState, typeScreen)
             } catch (e: Exception) {
                 e.printStackTrace()
             }
@@ -198,15 +187,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
             val oldTypeScreen = ConfigUtil.getInt(
-                            context = baseContext,
-                            TYPE_PRE_SCREEN_KEY,
-                            FULL_SCREEN
-                        )
+                context = baseContext,
+                TYPE_PRE_SCREEN_KEY,
+                FULL_SCREEN
+            )
             ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 
             startPlayingMedia()
-            if(oldTypeScreen != typeScreen)
-            {
+            if (oldTypeScreen != typeScreen) {
                 recreate()
             }
 
@@ -249,13 +237,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
-                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState,typeScreen)
-                if (globalProperties.logEnabled) {
-                    try {
-                        viewModel.currentMedia = mediaItem
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
+                logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState, typeScreen)
+
+                try {
+                    viewModel.currentMedia = mediaItem
+                } catch (e: Exception) {
+                    e.printStackTrace()
                 }
 
 
@@ -302,7 +289,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager.logService = logService
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-                    serialPortController.connectToSerialPort(UART_S1_NAME)
+        serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
             delay(10000)
             if (!serialPortController.isUart1) {
@@ -320,7 +307,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         playerManager.playerManagerListener = playerCallback
 
-        hubManager.hubEventObserver.add(playerManager)
 
         NetworkUtils.instance.startNetworkListener(this)
 
@@ -337,10 +323,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         setMaxVolume()
 
         viewModel.hideSystemUI(this)
-       initDataByScreen()
+        initDataByScreen()
 
     }
-
 
 
     private fun initDataByScreen() {
@@ -411,8 +396,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private fun hideTopLeftArea(isStillTimeFrame : Boolean) {
-        if(typeScreen != FULL_SCREEN ) {
+    private fun hideTopLeftArea(isStillTimeFrame: Boolean) {
+        if (typeScreen != FULL_SCREEN) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
             if (!isStillTimeFrame) {
@@ -466,25 +451,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onAlarm(intent: Intent) {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", "start: $listKey")
-                if (listKey != null) {
-                    playerManager.setTimeFrame(listKey, null)
-                }
+//                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+//                Log.d("alarmx", "start: $listKey")
+//                if (listKey != null) {
+//
+//                }
+                playerManager.startFirstTimeFrame()
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", "end: $listKey")
-                playerManager.stopPlaylist(listKey!!)
-                mediaScheduler.scheduleShowListLeft()
-                mediaScheduler.scheduleEndLeftArea()
-            }
-
-            MediaScheduleReceiver.ACTION_END_MEDIA -> {
-                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-                Log.d("alarmx", "end media: $mediaIndex")
-                playerManager.endScheduledMediaByIndex(mediaIndex)
+//                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+//                Log.d("alarmx", "end: $listKey")
+//                playerManager.stopPlaylist(listKey!!)
+//                mediaScheduler.scheduleShowListLeft()
+//                mediaScheduler.scheduleEndLeftArea()
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -502,6 +482,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 viewModel.updateMonthlyScenario(monthlyScenarioUrl)
             }
+
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 val isConnect = ConfigUtil.getString(this, "checkhub", "0")
                 if (isConnect == "0") {
@@ -567,8 +548,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
             //default
             mediaScheduler.scheduleAllAlarms()
-            //check hub
-            mediaScheduler.setCheckHubAndResetAlarms()
 
             playerManager.startFirstTimeFrame()
 
@@ -611,10 +590,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-            if (command == null || command.isEmpty()) {
+            if (command.isNullOrEmpty()) {
                 return
             }
-            if (message == null || message.isEmpty()) {
+            if (message.isNullOrEmpty()) {
                 return
             }
 
@@ -626,29 +605,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
                 HubCommand.UPDATE_LIST -> {
-                    val mess = responseHub.message!!
-                    playerManager.stopForceMedia()
-                    playerManager.stopTimeFrame()
-                    //add at 3.0.5
-                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
-
-                    //lưu thông số vol, pi,...
-                    globalProperties.saveProperties(responseHub)
-
-                    serialPortController.writeForceSetVolume(responseHub.volume)
-
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-
-                    viewModel.getPlayerContent(mess, true)
+//                    val mess = responseHub.message!!
+//                    playerManager.stopForceMedia()
+//                    playerManager.stopTimeFrame()
+//                    //add at 3.0.5
+//                    playerManager.stopAllPlayer()
+//                    playerManager.resetPlayMode()
+//
+//                    //lưu thông số vol, pi,...
+//                    globalProperties.saveProperties(responseHub)
+//
+//                    serialPortController.writeForceSetVolume(responseHub.volume)
+//
+//                    cancelAllAlarm()
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
+//
+//                    viewModel.getPlayerContent(mess, true)
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
-//                    playerManager.stopAllPlayer()
+                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     hideTopLeftArea(false)
                     cancelAllAlarm()
@@ -658,15 +637,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-                    Handler().postDelayed({
-                        recreate()
-                    }, 1000)
+//                    Handler().postDelayed({
+//                        recreate()
+//                    }, 1000)
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     Log.d("tesstlive", "handleFromCommandServer: live")
-                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
-                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+//                    ConfigUtil.putInt(
+//                        baseContext,
+//                        TYPE_SCREEN_KEY,
+//                        (responseHub.mode ?: "0").toInt()
+//                    )
+//                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
 //                    Handler().postDelayed({
 //                        onPlayForce(responseHub)
@@ -688,21 +671,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         if (listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
                             lat = listInfoConfig[1].toFloat()
                         }
-                        if(listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
+                        if (listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
                             lng = listInfoConfig[2].toFloat()
                         }
-                        if(listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
+                        if (listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
                             destinationId = listInfoConfig[3]
                         }
-                        if(listInfoConfig.size >= 5  && listInfoConfig[4] != "null") {
+                        if (listInfoConfig.size >= 5 && listInfoConfig[4] != "null") {
                             destinationName = listInfoConfig[4]
                         }
-                        if(listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
+                        if (listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
                             deviceName = listInfoConfig[5]
                         }
                     }
-                    if(listInfoConfig.size >= 7 && listInfoConfig[6] != "null" )
-                    {
+                    if (listInfoConfig.size >= 7 && listInfoConfig[6] != "null") {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PROVIDER,
@@ -717,10 +699,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
 
-                HubCommand.LiveRemoteControl ->{
+                HubCommand.LiveRemoteControl -> {
                     val mess = responseHub.message!!
                     Log.i("LiveRemoteControl", "Mess: $mess ")
                 }
+
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     Log.i("UPDATE_CONFIG be", responseHub.message!!)
@@ -728,8 +711,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val listValue = mess.split(",")
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
-                    if(listValue.size >= 3 )
-                    {
+                    if (listValue.size >= 3) {
                         ConfigUtil.putStringEncrypt(
                             applicationContext,
                             ConfigUtil.PROVIDER,
@@ -789,8 +771,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
-                    when(mess)
-                    {
+                    when (mess) {
                         //dung phat
                         0 -> {
                             playerManager.stopAllPlayer()
@@ -798,16 +779,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if(!playerManager.isTimeOver)
-                            {
+                            if (!playerManager.isTimeOver) {
                                 playerManager.playNextMedia()
                             }
                         }
                         //Tạm dừng nội dung đang phát
-                        2 ->{
+                        2 -> {
                             playerManager.pauseMedia()
                         }
-                        3 ->{
+
+                        3 -> {
                             playerManager.resumeMedia()
                         }
                     }
@@ -833,6 +814,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
                 }
@@ -840,6 +822,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
                 }
+
                 HubCommand.GET_LOCATION -> {
                     val connectionId = responseHub.message
                     if (locationTracker.mlocation != null && connectionId != null) {
@@ -853,12 +836,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         )
                     } else Log.d("location", "location not found")
                 }
+
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
+
                 HubCommand.SWITCH_MODE_FM -> {
                     onPlayForce(responseHub)
                 }
+
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
@@ -890,6 +876,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.SET_VOLUME_DEVICE -> {
 //                    if (responseHub.message != null) {
 //                        serialPortController.writeForceSetVolume(responseHub.message!!)
@@ -912,6 +899,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     }
                 }
+
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
@@ -1021,6 +1009,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val filePath = responseHub.message!!
                     mediaCapture.updateRecordedAudio(filePath)
                 }
+
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
@@ -1083,15 +1072,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                    logUtils.sendLogFile(data[0], data[1])
                 }
             }
-            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
+            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
                 logUtils.logHubCommand(command, responseHub.message ?: "")
             }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
     }
-    private fun changeVolume(volumeValue: Int)
-    {
+
+    private fun changeVolume(volumeValue: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
@@ -1105,30 +1094,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-         else mediaScheduler.cancelAllScheduledListAlarm()*/
-        mediaScheduler.cancelAllAlarm()
+        mediaScheduler.cancelAllScheduledListAlarm()
     }
 
     private fun setMaxVolume() {
 //        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
 //        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
-    private fun clearDatastore()
-    {
+
+    private fun clearDatastore() {
         //limit free data 1 gb
 //        val limit = 1000000000
         //limit free data 500 mb
         val limit = 524288000
-        val totalStorage  = appStorageManager.getTotalRomStorage()
+        val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
-        if(totalStorage - usedStorage <= limit)
-        {
+        if (totalStorage - usedStorage <= limit) {
             Log.d("clearDatastore", "clearDatastore: Must Clear")
             appStorageManager.deleteAllMedia()
-        }
-        else
-        {
+        } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
     }
