@@ -22,6 +22,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.io.File
 import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
@@ -192,28 +193,48 @@ class MediaRepo @Inject constructor(
         }
     }
 
+    private fun getConfigExtension() : String?
+    {
+        return ConfigUtil.getString(appContext,"KEY_EXTEND_FILE","mp4,jpg,png")
+    }
     fun downloadAMediaItem(it: MediaItem) {
-        Log.i("download", "downloadAMediaItem: ${it.getMediaType()}")
-        if (it.getMediaType() != MediaType.FILE) return
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4
+        if (it.body == "start" || it.body == "end") return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
+
+        //xác định có là file hay không, lấy đuôi file
+        val extMedia = File(it.body ?: "").extension
+
+        if(extMedia.isEmpty()) return
+        val isFile = getConfigExtension()!!.contains(extMedia)
+
+        if (!isFile) return
 
         val url = it.body
-        //if (url.isEmpty() || !url.startsWith("http")) return
-        Log.i("download", "downloadAMediaItem: $url")
+
         val fileName = getFileNameFromUrl(url!!)
-        Log.i("download", "downloadAMediaItem: $fileName")
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
+                Log.d("ĐÂSDF", "${mediaStoragePath}/${fileName}")
+                Log.d("ĐÂSDF", "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
                     saveItemsToFile(broadcastList)
+                    Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
                 }
             }
-
             return
         }
 
-        Log.d("download item", url)
+        Log.d("downloaditem", url)
 
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
@@ -227,6 +248,7 @@ class MediaRepo @Inject constructor(
 
                     coroutineScope.launch {
                         saveItemsToFile(broadcastList)
+                        Log.e("SavefileLog", "Save in onDownloadComplete: onDownloadComplete")
                     }
 
                     Log.d("downloadcomplete", it.body!!)
@@ -235,6 +257,7 @@ class MediaRepo @Inject constructor(
                 override fun onError(error: Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }
