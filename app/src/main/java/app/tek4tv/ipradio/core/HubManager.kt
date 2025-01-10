@@ -51,8 +51,8 @@ class HubManager(
 
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-//    private val deviceImei = Utils.getDeviceId(appContext)
-    private val deviceImei = "72:BE:B5:09:30:45"
+    private val deviceImei = Utils.getDeviceId(appContext)
+
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     val hubEventObserver = mutableListOf<HubEventObserver>()
@@ -105,7 +105,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-quangngai.tek4tv.vn/hubServer"
+            "https://hubdi-longan.tek4tv.vn/hubServer"
         ).toString()
 //        hubUrl = ConfigUtil.getStringEncrypt(
 //            appContext,

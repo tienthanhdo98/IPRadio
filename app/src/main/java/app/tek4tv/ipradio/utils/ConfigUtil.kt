@@ -10,6 +10,7 @@ object ConfigUtil {
 
     //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
+    const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
     const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"

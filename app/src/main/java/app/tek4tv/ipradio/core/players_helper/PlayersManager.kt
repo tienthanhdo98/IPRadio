@@ -356,8 +356,14 @@ class PlayersManager(
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
 
+                    val listDur = duration.split(":")
+                    val h = listDur[0].toInt()
+                    val m = listDur[1].toInt()
+                    val s = listDur[2].toInt()
                     val mediaEndTime = Calendar.getInstance().apply {
-                        add(Calendar.MINUTE, convertStringToInt(duration))
+                        add(Calendar.HOUR, h)
+                        add(Calendar.MINUTE, m)
+                        add(Calendar.SECOND, s)
                     }
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
                     fixTime = SimpleDateFormat("HH:mm:ss").format(Date())

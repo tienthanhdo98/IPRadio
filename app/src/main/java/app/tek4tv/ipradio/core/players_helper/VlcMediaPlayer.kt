@@ -75,12 +75,12 @@ class VlcMediaPlayer(
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
-//        args.add("--no-drop-late-frames")
+          args.add("--no-drop-late-frames")
 //        args.add("--no-skip-frames")
 //        args.add("--no-drop-late-frames")
-        args.add("--skip-frames")
-        args.add("--file-caching=5000")
-        args.add("--network-caching=5000")
+          args.add("--skip-frames")
+//        args.add("--file-caching=5000")
+//        args.add("--network-caching=5000")
 //        args.add("--vout=android-display")
 //        RotateScreen("270",args)
 
@@ -126,11 +126,11 @@ class VlcMediaPlayer(
     }
 
     override fun reset() {
-        val media =  Media(mLibVLC, Uri.parse("https://storage-qltt.tek4tv.vn/2024//09//04//1920X1080MP4/aeca576005d74396ac87dd6a936c7bbe.mp4"))
-
-        currentVlcMedia = media
-
-        vlcPlayer.play(media)
+//        val media =  Media(mLibVLC, Uri.parse("https://storage-qltt.tek4tv.vn/2024//09//04//1920X1080MP4/aeca576005d74396ac87dd6a936c7bbe.mp4"))
+//
+//        currentVlcMedia = media
+//
+//        vlcPlayer.play(media)
     }
 
     override fun stop() {

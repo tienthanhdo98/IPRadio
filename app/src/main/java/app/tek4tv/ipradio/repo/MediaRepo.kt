@@ -22,6 +22,7 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
+import java.io.File
 import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
@@ -51,7 +52,7 @@ class MediaRepo @Inject constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
-
+    var layoutType = -1
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {
             val fetchResult = playlistService.getMonthlyPlaylist(url)
@@ -74,7 +75,7 @@ class MediaRepo @Inject constructor(
 
             if (dayScenario != null) {
                 ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-               // layoutType = dayScenario.broadcastRegionDigital.toInt()
+                layoutType = dayScenario.broadcastRegionDigital.toInt()
                 Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital.toInt()}")
                 updateScenario(dayScenario.sourceUrl)
             } else {
@@ -149,38 +150,142 @@ class MediaRepo @Inject constructor(
     )
     val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter<List<MediaItem>>(type)
 
-//    val mediaJsonAdapter = MoshiInst.moshi.adapter<List<MediaItem>>( List::class.java, MediaItem::class.java)
-    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
 
-        try {
-            val res = playlistService.getPlaylist(listUrl)
-            if (res.isSuccessful) {
-                val resBody = res.body()
-                if (resBody != null) {
+private suspend fun updateScenario(listUrl: String): List<MediaItem> {
+    var result = listOf<MediaItem>()
+    try {
+        val res = playlistService.getPlaylist(listUrl)
+        if (res.isSuccessful) {
+            val resBody = res.body()
+            if (resBody != null) {
+                val listOnlyMedia = resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
 
-//                    result =  resBody
-                    result =  resBody.filter {it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN  }
+                result = convertToTimeFrame(listOnlyMedia)
 
-                    leftScheduledList = resBody.filter { it.broadcastRegion?.value == LEFT_AREA  && it.body != null && it.body != "start" && it.body != "end"} as MutableList<MediaItem>
+                leftScheduledList = listOnlyMedia.filter { it.broadcastRegion?.value == LEFT_AREA} as MutableList<MediaItem>
 
-                    val srt = mediaJsonAdapter.toJson(leftScheduledList)
-                    ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
+                val srt = mediaJsonAdapter.toJson(leftScheduledList)
+                ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
 
-//                    var i = 1
-//                    result.onEach{ mediaItem ->
-//                        mediaItem.mediaID = i++
-//                    }
-                    saveItemsToFile(result)
-                }
-            } else {
-                Log.e("yee", "Lịch rỗng rồi")
+                saveItemsToFile(result)
             }
-        } catch (e: Exception) {
-            Log.e("yee", e.toString())
+        } else {
+            Log.e("yee", "Lịch rỗng rồi")
+        }
+    } catch (e: Exception) {
+        Log.e("yee", e.toString())
+    }
+
+    return result
+}
+    private fun convertToTimeFrame(listItem: List<MediaItem>): List<MediaItem> {
+        val newList = listItem.toMutableList()
+        val res = mutableListOf<MediaItem>()
+        val listTimeFrame: MutableList<Map<Int, Int>> = mutableListOf()
+        val starts: MutableList<String> = mutableListOf()
+        var startTime = 0
+        var endTime: Int
+        for (i in 0..listItem.size - 2) {
+            Log.d("wssTImeFrame", "convertToTimeFrame: end ${listItem[i].end}")
+            Log.d("wssTImeFrame", "convertToTimeFrame: start ${listItem[i + 1].start}")
+            if (i == 0) {
+                startTime = 0
+            }
+            if (listItem[i].end != listItem[i + 1].start) {
+                endTime = i
+                starts.add(listItem[i].end!!)
+                val map = mapOf(startTime to endTime)
+                listTimeFrame.add(map)
+                startTime = i + 1
+            }
+            if (i == listItem.size - 2) {
+                endTime = i + 1
+                val map = mapOf(startTime to endTime)
+                listTimeFrame.add(map)
+
+            }
+        }
+        //Chỉ có 1 khung
+        if (starts.size == 0) {
+            val firstId: Int = listItem.first().id?.minus(1) ?: 0
+            Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
+            val tObjStart = MediaItem(
+                id = firstId,
+                mediaID = firstId,
+                projectID = firstId.toString(),
+                title = "Khung ${listItem.first().start}",
+                body = "start",
+                startTime = listItem.first().startTime,
+                start = listItem.first().startTime,
+                fixTime = listItem.first().startTime,
+                end = listItem.first().end,
+            )
+            newList.add(0, tObjStart)
+            val lastId: Int = listItem.last().id?.plus(1) ?: 0
+            val tObEnd = MediaItem(
+                id = lastId,
+                mediaID = lastId,
+                projectID = lastId.toString(),
+                title = "End Khung ${listItem.first().start}",
+                body = "end",
+                startTime = listItem.last().startTime,
+                fixTime = listItem.last().end,
+                end = listItem.last().end,
+                start = listItem.last().start
+            )
+            newList.add(tObEnd)
+
+            return newList
+        }
+        //Có nhiều khung
+        else {
+            Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
+            listTimeFrame.forEach {
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung ${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
+                )
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung ${it.keys.first()} - ${it.values.first()}"
+                )
+                val list : MutableList<MediaItem> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung $list"
+                )
+                val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
+                val tObjStart = MediaItem(
+                    id = firstId,
+                    mediaID = firstId,
+                    projectID = firstId.toString(),
+                    title = "Khung ${listItem[it.keys.first()].start}",
+                    body = "start",
+                    startTime = listItem[it.keys.first()].startTime,
+                    start = listItem[it.keys.first()].startTime,
+                    fixTime = listItem[it.keys.first()].startTime,
+                    end = listItem[it.keys.first()].end,
+                )
+                list.add(0, tObjStart)
+                val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
+                val tObEnd = MediaItem(
+                    id = lastId,
+                    mediaID = lastId,
+                    projectID = lastId.toString(),
+                    title = "End Khung ${listItem[it.values.first()].start}",
+                    body = "end",
+                    startTime = listItem[it.values.first()].startTime,
+                    fixTime = listItem[it.values.first()].end,
+                    end = listItem[it.values.first()].end,
+                    start = listItem[it.values.first()].start
+                )
+                list.add(list.size, tObEnd)
+                res.addAll(list)
+            }
+            return res
+
         }
 
-        return result
     }
 
     fun startDownloadMedia() {
@@ -190,16 +295,37 @@ class MediaRepo @Inject constructor(
             downloadAMediaItem(it)
         }
     }
+    private fun getConfigExtension() : String?
+    {
+        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png,wav")
+
+    }
 
     fun downloadAMediaItem(it: MediaItem) {
-        Log.i("download", "downloadAMediaItem: ${it.getMediaType()}")
-        if (it.getMediaType() != MediaType.FILE) return
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4
+        Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
+        if (it.body == "start" || it.body == "end") return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
+
+        //xác định có là file hay không, lấy đuôi file
+        val extMedia = File(it.body).extension
+
+        if(extMedia.isEmpty()) return
+        val isFile = getConfigExtension()!!.contains(extMedia)
+
+        if (!isFile) return
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
-        Log.i("download", "downloadAMediaItem: ${url}")
+
         val fileName = getFileNameFromUrl(url!!)
-        Log.i("download", "downloadAMediaItem: ${fileName}")
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
@@ -231,9 +357,10 @@ class MediaRepo @Inject constructor(
                     Log.d("downloadcomplete", it.body!!)
                 }
 
-                override fun onError(error: Error?) {
+                override fun onError(error: com.downloader.Error?) {
                     Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }
