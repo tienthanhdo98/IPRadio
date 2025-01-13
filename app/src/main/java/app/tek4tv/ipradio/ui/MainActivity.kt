@@ -585,7 +585,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
 
             if (!isImei) return
-            // Log.d("PLAYLIST_INFO", "command $command ")
+
             when (command) {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -626,41 +626,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
                 HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message!!
-                    Log.i("config_config", "updateconfig $mess")
+                    val mess = responseHub.message
+                    Log.i("config_config", "updateConfig: $mess")
+                    mess?.split(",")?.let { listInfoConfig ->
+                        val responseHub = ResponseHub().apply {
+                            volume = listInfoConfig.getOrNull(0)?.takeIf { it != "null" }.toString()
+                            lat = listInfoConfig.getOrNull(1)?.toFloatOrNull()
+                            lng = listInfoConfig.getOrNull(2)?.toFloatOrNull()
+                            destinationId = listInfoConfig.getOrNull(3)?.takeIf { it != "null" }
+                            destinationName = listInfoConfig.getOrNull(4)?.takeIf { it != "null" }
+                            deviceName = listInfoConfig.getOrNull(5)?.takeIf { it != "null" }
+                        }
 
-                    val listInfoConfig = mess.split(",")
-                    val resposnHub = ResponseHub().apply {
-                        if (listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
-                            volume = listInfoConfig[0]
+                        listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let { providerValue ->
+                            ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PROVIDER, providerValue)
+                            hubManager.providerValue = providerValue
                         }
-                        if (listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
-                            lat = listInfoConfig[1].toFloat()
-                        }
-                        if (listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
-                            lng = listInfoConfig[2].toFloat()
-                        }
-                        if (listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
-                            destinationId = listInfoConfig[3]
-                        }
-                        if (listInfoConfig.size >= 5 && listInfoConfig[4] != "null") {
-                            destinationName = listInfoConfig[4]
-                        }
-                        if (listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
-                            deviceName = listInfoConfig[5]
-                        }
+                        globalProperties.saveProperties(responseHub)
                     }
-                    if (listInfoConfig.size >= 7 && listInfoConfig[6] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listInfoConfig[6]
-                        )
-                        hubManager.providerValue = listInfoConfig[6]
-                    }
-                    globalProperties.saveProperties(resposnHub)
-                    Log.i("config_config", "updateconfig ${resposnHub.lat}")
-                    Log.i("config_config", "updateconfig ${resposnHub.lng}")
                     Log.i("config_config", "updateconfig success")
                 }
 
@@ -783,20 +766,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
-                }
-
-                HubCommand.GET_LOCATION -> {
-//                    val connectionId = responseHub.message
-//                    if (locationTracker.mlocation != null && connectionId != null) {
-//
-//                        val result =
-//                            "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
-//
-//                        hubManager.sendHubDirectMessage(
-//                            connectionId, Utils.DEVICE_LOCATION,
-//                            result
-//                        )
-//                    } else Log.d("location", "location not found")
                 }
 
                 HubCommand.RESTART -> {
