@@ -444,14 +444,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
-                mediaScheduler.scheduleShowListLeft()
-                mediaScheduler.scheduleEndLeftArea()
-            }
-
-            MediaScheduleReceiver.ACTION_END_MEDIA -> {
-//                val mediaIndex = intent.getIntExtra(MediaScheduleReceiver.SCHEDULED_MEDIA_INDEX, 0)
-//                Log.d("alarmx", "end media: $mediaIndex")
-//                playerManager.endScheduledMediaByIndex(mediaIndex)
+                if(typeScreen != FULL_SCREEN) {
+                    mediaScheduler.scheduleShowListLeft()
+                    mediaScheduler.scheduleEndLeftArea()
+                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -560,7 +556,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //all load done, check
             viewModel.checkPlaylist()
         }
-    }
+      }
 
     val type: Type = Types.newParameterizedType(
         List::class.java,
@@ -573,16 +569,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToHub()
-//        locationTracker.getLocation(this@MainActivity)
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-            if (command == null || command.isEmpty()) {
+            if (command.isNullOrEmpty()) {
                 return
             }
-            if (message == null || message.isEmpty()) {
+            if (message.isNullOrEmpty()) {
                 return
             }
 
@@ -616,7 +610,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-
                     ConfigUtil.putInt(
                         baseContext,
                         TYPE_SCREEN_KEY,
@@ -1066,7 +1059,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun setMaxVolume() {
         Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
-        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
+//        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
 
     private fun clearDatastore() {

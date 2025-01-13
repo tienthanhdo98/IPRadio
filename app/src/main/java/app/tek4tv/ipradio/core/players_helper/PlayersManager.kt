@@ -164,17 +164,12 @@ class PlayersManager(
                 Log.d("PlayerLog", "Play media next")
                 playMediaByIndex(playlistIndex)
             }
-//            else {
-//                if (isInTimeFrame) {
-//                    Log.d("PlayerLog", "Play media loop")
-//                    playlistIndex = 0
-//                    playMediaByIndex(playlistIndex)
-//                }
-////                else
-////                {
-////                    stopAllPlayer()
-////                }
-//            }
+            else
+            {
+                Log.d(LOGTAG, "Play media phat tiep cham dich")
+                stopAllPlayer()
+                stopTimeFrame()
+            }
 
 
     }
@@ -293,9 +288,7 @@ class PlayersManager(
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-
         playerManagerListener?.onEndTimeFrame(cancelListKey)
-
         //check time over
         isTimeOver = true
         checkTimeOver()
