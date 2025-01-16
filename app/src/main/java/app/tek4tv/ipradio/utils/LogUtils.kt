@@ -51,9 +51,7 @@ class LogUtils private constructor() {
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
     var logService: LogService? = null
-    val destinationId = GlobalProperties.getInst().destinationId
-    val destinationName = GlobalProperties.getInst().destinationName
-    var providerValue = GlobalProperties.getInst().providerValue
+
 
     init {
         listOf(

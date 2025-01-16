@@ -119,6 +119,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -182,13 +183,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
 //                    else "0"
                 hubManager.sendLogMediaSuccess(mediaItem)
-                if (globalProperties.logEnabled) {
-                    try {
-                        viewModel.currentMedia = mediaItem
-                    } catch (e: Exception) {
-                        e.printStackTrace()
-                    }
-                }
+
+
+                viewModel.currentMedia = mediaItem
+
+
             }
         }
     }
@@ -196,20 +195,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @RequiresApi(Build.VERSION_CODES.O)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+        typeScreen =
+            ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
-        } else if(typeScreen == MULTIPLE_AREA) {
+        } else if (typeScreen == MULTIPLE_AREA) {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-       Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
 
         val hubComm = object : HubComm {
-            override fun forceRestartApp(countHardRestart : Int) {
+            override fun forceRestartApp(countHardRestart: Int) {
                 lifecycleScope.launch {
                     serialPortController.turnOffPA()
                     delay(3000)
@@ -276,18 +276,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         checkDeleteFileUpdate()
 //        playerManager.resumeMedia()
 
-     //  doSwap("/data/data/app.tek4tv.ipradio/files/tt2.mp3",SwapType.BackToFront,SwapEncryptDecryptMode.Decrypt)
+        //  doSwap("/data/data/app.tek4tv.ipradio/files/tt2.mp3",SwapType.BackToFront,SwapEncryptDecryptMode.Decrypt)
 
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    fun capture(){
+    fun capture() {
         try {
             val surfaceView = (vlcVideoLayout.getChildAt(
-                0) as FrameLayout).children.filter { it is SurfaceView }
+                0
+            ) as FrameLayout).children.filter { it is SurfaceView }
                 .first() as SurfaceView
 
-            val bitmap =Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
+            val bitmap = Bitmap.createBitmap(640, 360, Bitmap.Config.ARGB_8888)
 
             PixelCopy.request(surfaceView, bitmap, {
                 saveBitmap(bitmap)
@@ -296,6 +297,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             e.printStackTrace()
         }
     }
+
     private fun saveBitmap(bitmap: Bitmap) {
         // Create directory for saving
         val path: File =
@@ -325,12 +327,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         if (file.exists()) {
             file.delete()
             Log.d("deletefile", "checkDeleteFileUpdate: delete success")
-        } else
-        {
+        } else {
             Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
     }
-
 
 
     private fun initDataByScreen() {
@@ -338,14 +338,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
             tvMacAddress.text = info
-            tvMacAddress.setOnClickListener{
+            tvMacAddress.setOnClickListener {
 //                capture()
             }
-        } else if(typeScreen == MULTIPLE_AREA) {
+        } else if (typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
         }
     }
-
 
 
     private fun startAutoScroll() {
@@ -407,8 +406,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private fun hideTopLeftArea(isStillTimeFrame : Boolean) {
-        if(typeScreen == MULTIPLE_AREA ) {
+    private fun hideTopLeftArea(isStillTimeFrame: Boolean) {
+        if (typeScreen == MULTIPLE_AREA) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
             if (!isStillTimeFrame) {
@@ -423,7 +422,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val handler: Handler = Handler()
     private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
-
 
 
     private fun initDefaultTopAndLeftArea() {
@@ -503,6 +501,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 viewModel.rescheduleMonthlyPlaylist()
             }
+
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 val isConnect = ConfigUtil.getString(this, "checkhub", "0")
                 if (isConnect == "0") {
@@ -625,6 +624,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.UPDATE_MONTHLY_WSS -> {
 
                     clearDatastore()
@@ -673,6 +673,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
                 }
+
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
 
@@ -722,11 +723,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                            recreate()
 //                        }
 //                    }, 1000)
-                  onPlayForce(responseHub)
+                    onPlayForce(responseHub)
                 }
 
 
-                HubCommand.LiveRemoteControl ->{
+                HubCommand.LiveRemoteControl -> {
                     val mess = responseHub.message!!
                     Log.i("LiveRemoteControl", "Mess: $mess ")
                 }
@@ -745,8 +746,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
-                    when(mess)
-                    {
+                    when (mess) {
                         //dung phat
                         0 -> {
                             playerManager.stopAllPlayer()
@@ -754,16 +754,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if(playerManager.isInTimeFrame)
-                            {
+                            if (playerManager.isInTimeFrame) {
                                 playerManager.playNextMedia()
                             }
                         }
                         //Tạm dừng nội dung đang phát
-                        2 ->{
+                        2 -> {
 //                            playerManager.pauseMedia()
                         }
-                        3 ->{
+
+                        3 -> {
                             playerManager.resumeMedia()
                         }
                     }
@@ -790,6 +790,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                     sendLogDataHub(true)
                 }
+
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
                 }
@@ -797,6 +798,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
                 }
+
                 HubCommand.GET_LOCATION -> {
                     val connectionId = responseHub.message
                     if (locationTracker.mlocation != null && connectionId != null) {
@@ -810,9 +812,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                        )
                     } else Log.d("location", "location not found")
                 }
+
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
+
                 HubCommand.SET_MUTE_DEVICE -> {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
@@ -844,6 +848,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.SET_VOLUME_DEVICE -> {
 //                    if (responseHub.message != null) {
 //                        serialPortController.writeForceSetVolume(responseHub.message!!)
@@ -866,7 +871,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     }
                 }
-                
+
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
@@ -975,6 +980,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.UPLOAD_RECORDED -> {
                     val filePath = responseHub.message!!
                 }
+
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
@@ -1037,7 +1043,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                    logUtils.sendLogFile(data[0], data[1])
                 }
             }
-            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
+            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
                 if (command != null) {
                     logUtils.logHubCommand(command, responseHub.message ?: "")
                 }
@@ -1047,8 +1053,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private fun changeVolume(volumeValue: Int)
-    {
+    private fun changeVolume(volumeValue: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
@@ -1071,21 +1076,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
         changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
-    private fun clearDatastore()
-    {
+
+    private fun clearDatastore() {
         //limit free data 1 gb
 //        val limit = 1000000000
         //limit free data 500 mb
         val limit = 524288000
-        val totalStorage  = appStorageManager.getTotalRomStorage()
+        val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
-        if(totalStorage - usedStorage <= limit)
-        {
+        if (totalStorage - usedStorage <= limit) {
             Log.d("clearDatastore", "clearDatastore: Must Clear")
             appStorageManager.deleteAllMedia()
-        }
-        else
-        {
+        } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
     }
@@ -1141,6 +1143,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         val typeMap =
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
-        val jsonMapAdapter: JsonAdapter<Map<String, String>> = moshi.adapter<Map<String, String>>(typeMap)
+        val jsonMapAdapter: JsonAdapter<Map<String, String>> =
+            moshi.adapter<Map<String, String>>(typeMap)
     }
 }

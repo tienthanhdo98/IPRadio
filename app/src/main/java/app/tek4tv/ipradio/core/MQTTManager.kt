@@ -9,7 +9,6 @@ import org.eclipse.paho.client.mqttv3.*
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val destinationId: String,
     private val listMQTTInfo : List<NoiDungMQTT>
 ) {
     val TAG = "MQTTLOG"
@@ -19,34 +18,16 @@ class MQTTManager(
 
     private var mqttClient: MqttAndroidClient? = null
 
-    fun getSubscribeTopic(destinationId: String) {
-        subscribe("thietbi/$clientID")
-        val listDesId = destinationId.split(".")
-        Log.d(TAG, "Subscribed: ${listDesId.count()}")
-        if (listDesId.isNotEmpty()) {
-
-            subscribe("tinh/${listDesId[0]}".toLowerCase())
-        }
-        if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
-        }
-        if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
-        } else {
-            subscribe("thon/$destinationId".toLowerCase())
-        }
-    }
-
     fun connectToMQTT(context: Context) {
         listMQTTInfo.forEach {
-            if(it.topic.contains("thietbi"))
+            if(it.topic?.contains("thietbi") == true)
             {
                 clientID = it.topic.substringAfter("/")
 
             }
         }
         publishTopicTinh = "tinh/$clientID"
-        Log.d(TAG, "clientID ${clientID}")
+
         //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
         //     val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
         val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
@@ -75,7 +56,10 @@ class MQTTManager(
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
-                    getSubscribeTopic(destinationId)
+//                    getSubscribeTopic(destinationId)
+                    listMQTTInfo.drop(1).forEach {
+                        subscribe(it.topic!!)
+                    }
                     connectEventListener.onConnectSuccess()
                 }
 

@@ -211,7 +211,7 @@ class MediaRepo @Inject constructor(
 
     private fun getConfigExtension() : String?
     {
-        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4")
+        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png")
     }
 
     fun downloadAMediaItem(it: MediaItem) {

@@ -27,9 +27,6 @@ class GlobalProperties {
     var piCode = "0"
     var psName = "AAA"
     var nameDevice = ""
-    var destinationName = ""
-    var destinationId = ""
-    var logEnabled = false
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
@@ -37,8 +34,6 @@ class GlobalProperties {
 
 //    var dichId = "H26"
 //    var tenDich = "Hà Nội"
-    var dichId = "H48"
-    var tenDich = "Quảng Ngãi"//
 //    var dichId = "H39"
 //    var tenDich = "Long An"
 
@@ -49,10 +44,7 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.51.02") ?: "H48.51.02"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Lê Hồng Phong") ?: "Phường Lê Hồng Phong"
         nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử") ?: "Bảng Điện Tử"
-        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
@@ -141,19 +133,8 @@ class GlobalProperties {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
             psName = responseHub.psName
         }
-        if (responseHub.destinationId != "" && responseHub.destinationId != null) {
-            ConfigUtil.putString(appContext, DEFAULT_DESTINATION_ID, responseHub.destinationId)
-            destinationId = responseHub.destinationId?: ""
-        }
-        if (responseHub.destinationName != "" && responseHub.destinationName != null) {
-            ConfigUtil.putString(appContext, DEFAULT_DESTINATION_NAME, responseHub.destinationName)
-            destinationName = responseHub.destinationName?: ""
-        }
 
-        if (responseHub.logEnabled != null) {
-            ConfigUtil.putBool(appContext, DEFAULT_LOG_ENABLE, responseHub.logEnabled!!)
-            logEnabled = responseHub.logEnabled!!
-        }
+
 
         if (responseHub.resumeFromStart != null) {
             ConfigUtil.putBool(appContext, DEFAULT_RESUME_FROM_START, responseHub.resumeFromStart!!)
