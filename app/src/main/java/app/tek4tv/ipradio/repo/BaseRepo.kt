@@ -20,9 +20,9 @@ abstract class BaseRepo<T>(
         saveFileJob?.join()
         saveFileJob = coroutineScope.launch {
             withContext(Dispatchers.IO) {
-                val json = jsonAdapter.toJson(playlist)
-                Log.d("writefile", "$fileStoragePath")
                 try {
+                    val json = jsonAdapter.toJson(playlist)
+                    Log.d("writefile", "$fileStoragePath")
                     writeFile(fileStoragePath, json)
                 } catch (e: IOException) {
                     Log.e("BaseRepo", "error writing playlist!!!")

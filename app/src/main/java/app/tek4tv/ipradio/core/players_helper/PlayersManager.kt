@@ -120,7 +120,6 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
-    var isInTimeFrame = false
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
@@ -135,12 +134,10 @@ class PlayersManager(
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 found = true
-                isInTimeFrame = true
                 break
             }
         }
         if (!found) {
-            isInTimeFrame = false
             playerManagerListener?.onTimeOver()
             Log.d(LOGTAG, "onTimeOver: not time frame found")
         }
@@ -180,22 +177,36 @@ class PlayersManager(
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
-        }
-        else
-        {
+        } else {
             Log.d(LOGTAG, "Play media phat tiep cham dich")
             stopAllPlayer()
             stopTimeFrame()
         }
     }
-
-    fun resumeMedia()
-    {
-//        vlcPlayer.resume()
-        if(currentPlayer == vlcPlayer) {
+    var currentPauseTimePlayer : Long = 0
+    fun pausePlayer() {
+        currentPauseTimePlayer = Calendar.getInstance().timeInMillis
+        vlcPlayer.pause()
+    }
+    fun resume() {
+        val now = Calendar.getInstance().timeInMillis
+        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
+        val timeEnd = currentPauseTimePlayer + mediaDuration
+        if(now < timeEnd)
+        {
             vlcPlayer.resume()
         }
-        if(currentPlayer == exoPlayer) {
+        else
+        {
+            startFirstTimeFrame()
+        }
+    }
+
+    fun resumeMedia() {
+        if (currentPlayer == vlcPlayer) {
+            vlcPlayer.resume()
+        }
+        if (currentPlayer == exoPlayer) {
             exoPlayer.resume()
         }
     }
@@ -284,10 +295,13 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
+        currentPlayingMedia = null
         vlcPlayer.stop()
         exoPlayer.stop()
         played = false
     }
+
+
 
 
     /**

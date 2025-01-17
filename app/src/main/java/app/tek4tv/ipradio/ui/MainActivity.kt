@@ -68,8 +68,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         Manifest.permission.INTERNET,
         Manifest.permission.ACCESS_NETWORK_STATE,
         Manifest.permission.READ_PHONE_STATE,
+        Manifest.permission.ACCESS_FINE_LOCATION,
+        Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
+        Manifest.permission.RECORD_AUDIO
     )
+    private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
 
     private val viewModel by viewModels<MainViewModel>()
@@ -191,14 +195,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             hubManager.curMediaName = displayName
 
             if (mediaItem?.getMediaType() != MediaType.FM) {
-//                if (!serialPortController.isUart1) {
-//                    lifecycleScope.launch {
-////                        delay(11000)
-//                        serialPortController.turnOnPAVod()
-//                    }
-//                } else {
-//                    serialPortController.turnOnPAVod()
-//                }
                 serialPortController.turnOnPAVod()
                 Log.i("onPlayMediaSuccess", "log media: success ${mediaItem?.title}")
             }
@@ -225,11 +221,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-       // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+       Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        if (needGrantPermission()) {
-            grantPermissionThoughAdb()
-        }
+//        if (needGrantPermission()) {
+//            grantPermissionThoughAdb()
+//        }
+        if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart : Int) {
@@ -613,19 +610,18 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 return@forEach
             }
         }
-
-//        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-//            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-//            startActivity(intent)
-//        }
+        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
         return needGrantPermission
     }
-    private fun grantPermissionThoughAdb() {
-        execSu("pm grant app.tek4tv.ipradio android.permission.READ_EXTERNAL_STORAGE")
-        execSu("pm grant app.tek4tv.ipradio android.permission.WRITE_EXTERNAL_STORAGE")
-        execSu("pm grant app.tek4tv.ipradio android.permission.PACKAGE_USAGE_STATS")
-        execSu("pm grant app.tek4tv.ipradio android.permission.READ_PHONE_STATE")
-    }
+//    private fun grantPermissionThoughAdb() {
+//        execSu("pm grant app.tek4tv.ipradio android.permission.READ_EXTERNAL_STORAGE")
+//        execSu("pm grant app.tek4tv.ipradio android.permission.WRITE_EXTERNAL_STORAGE")
+//        execSu("pm grant app.tek4tv.ipradio android.permission.PACKAGE_USAGE_STATS")
+//        execSu("pm grant app.tek4tv.ipradio android.permission.READ_PHONE_STATE")
+//    }
 
 
     @RequiresApi(Build.VERSION_CODES.O)
@@ -670,10 +666,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-            if (command == null || command.isEmpty()) {
+            if (command.isNullOrEmpty()) {
                 return
             }
-            if (message == null || message.isEmpty()) {
+            if (message.isNullOrEmpty()) {
                 return
             }
 
@@ -684,28 +680,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             if (!isImei) return
             // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
-                HubCommand.UPDATE_LIST -> {
-//                    val mess = responseHub.message!!
-//                    //add at 4.1.3a
-//                    playerManager.stopForceMedia()
-//                    //add at 3.0.5
-//                    playerManager.stopAllPlayer()
-//                    playerManager.resetPlayMode()
-//                    //lưu thông số vol, pi,...
-//                    globalProperties.saveProperties(responseHub)
-//                    if(responseHub.volume != ""){
-//                        serialPortController.writeForceSetVolume(responseHub.volume)
-//                        globalProperties.setTempVolume(responseHub.volume)
-//                    }
-//                    else
-//                    {
-//                        serialPortController.writeForceSetVolume("100")
-//                    }
-//                    cancelAllAlarm()
-//                    ForceMedia.deleteForeMediaPref(applicationContext)
-//
-//                    viewModel.getPlayerContent(mess, true)
-                }
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message ?: return
                     Log.i("config_config", "updateconfig $mess")
@@ -786,6 +760,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
                     val mess = responseHub.message!!
+                    Log.d("message handle", mess ?: "")
                     val listValue = mess.split(",")
                     val urlHub = listValue[0]
                     val urlToken = listValue[1]
@@ -881,7 +856,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
                 }
                 HubCommand.TURN_ON_PA -> {
-                    Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
                     if(mess == 0)
                     {
@@ -900,26 +874,25 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     val mess = responseHub.message!!.toInt()
                     if(playerManager.playMode != PLAY_MODE_FORCE ) {
                         when (mess) {
-                            //dung phat
-                            0,2 -> {
+                            //dung phat tat ca
+                            0 -> {
                                 playerManager.stopAllPlayer()
                                 playerManager.resetPlayMode()
                             }
-                            //dung phat va chuyen sang ban tin tiep
+                            //Tam dung
+                            2 -> {
+                                playerManager.pausePlayer()
+                            }
+                            //chuyen sang ban tin tiep
                             1 -> {
-                                Log.d("CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isInTimeFrame}")
-                                if (playerManager.isInTimeFrame) {
+                                Log.d("CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isTimeOver}")
+                                if (!playerManager.isTimeOver) {
                                     playerManager.playNextMedia()
                                 }
                             }
-
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
-                                if (playerManager.played) {
-                                    playerManager.resumeMedia()
-                                } else {
-                                    playerManager.startFirstTimeFrame()
-                                }
+                                playerManager.resume()
                             }
                         }
                     }
@@ -1199,7 +1172,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        var isEncoder = false
+        var isEncoder = true
         var streamingModel : StreamingModel? = null
     }
 }

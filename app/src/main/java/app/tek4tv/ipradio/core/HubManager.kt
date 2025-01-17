@@ -110,7 +110,7 @@ class HubManager(
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-quangngai.tek4tv.vn/hubServer"
+            "https://hubip-haiphong.tek4tv.vn/hubServer"
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -157,7 +157,6 @@ class HubManager(
 //            )
             val body = mapOf("Username" to "device", "Password" to "Device@123")
             //Auth Url encrypted in c++ lib
-
             val url = ConfigUtil.getString(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
@@ -183,21 +182,17 @@ class HubManager(
     //check
     fun getHubToken(urlToken : String): String? {
         return try {
-            //Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
-            //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
-
-            val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+            val body = mapOf("Username" to "device", "Password" to "Device@123")
+            //Auth Url encrypted in c++ lib
+            val url = ConfigUtil.getString(
+                context = appContext,
+                ConfigUtil.URL_TOKEN,
+                urlToken
             )
 
-            val call = authService.getToken(body, urlToken)
+            val call = authService.getToken(body, url!!)
             val response = call.execute()
-
             if (response.isSuccessful) {
                 val token = response.body()!!.token
                 token
@@ -217,7 +212,6 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -318,6 +312,7 @@ class HubManager(
                             }
                             HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION -> {
                                 meessDe = b64Decode(message)
+                                Log.d("meessDe", "onMessage: $meessDe")
                             }
 
                             HubCommand.UPDATE_STATUS -> {
