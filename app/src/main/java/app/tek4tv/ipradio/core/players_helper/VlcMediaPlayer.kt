@@ -71,18 +71,18 @@ class VlcMediaPlayer(
         }
     }
 
-    val path = "${appContext.filesDir.path}/vlc_log.txt"
+     val path = "${appContext.filesDir.path}/vlc_log.txt"
     init {
         val args = ArrayList<String>()
         //bật log vlc
-//        args.add("-vvv")
+        args.add("-vvv")
         args.add("--no-drop-late-frames")
-        //args.add("--file-caching=500")
-        //args.add("--network-caching=1000")
+         args.add("--file-caching=500")
+         args.add("--network-caching=2000")
         //args.add("--skip-frames")
         // args.add("--no-skip-frames")
-//        args.add("--aout=opensles")
-//        args.add("--verbose=2")
+        //args.add("--aout=opensles")
+        args.add("--verbose=2")
         args.add("--file-logging")
         args.add("--logfile=$path")
 
@@ -117,7 +117,7 @@ class VlcMediaPlayer(
     }
 
     override fun resume() {
-//         vlcPlayer.play()
+        // vlcPlayer.play()
 
         val mediaStoragePath = appContext.filesDir.path
         Log.d("mediaStoragePath", "resume: $mediaStoragePath")

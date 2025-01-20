@@ -2,13 +2,19 @@ package app.tek4tv.ipradio.ui
 
 import android.Manifest
 import android.app.ActivityManager
+import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.AudioManager
-import android.os.*
+import android.os.Build
+import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import android.view.*
+import android.view.PixelCopy
+import android.view.SurfaceView
 import android.widget.FrameLayout
 import android.widget.ImageView
 import android.widget.TextView
@@ -29,28 +35,47 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
-import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.model.CaptureScreenModel
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItemModel
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
+import app.tek4tv.ipradio.utils.CrashHandler
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.bitmapToBase64
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
+import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.getCurrentTime
+import app.tek4tv.ipradio.utils.getDestinationApk
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.*
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.RECORDED_AUDIO_FOLDER_NAME
+import app.tek4tv.ipradio.utils.storage.deleteAFileInFolder
+import app.tek4tv.ipradio.utils.storage.isFileExisted
+import app.tek4tv.ipradio.utils.storage.readFile
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
-import com.squareup.picasso.Picasso
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
+import java.io.BufferedReader
 import java.io.File
-import java.text.DecimalFormat
-import java.util.*
+import java.io.IOException
+import java.io.InputStreamReader
+import java.io.RandomAccessFile
+import java.util.Calendar
 
 
 class MainActivity : AppCompatActivity(), AlarmListener {
@@ -88,6 +113,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private var typeScreen: String = FULL_SCREEN
     private lateinit var rootMultiLayout: ConstraintLayout
     private lateinit var ivBackgroundMultiLayout: ImageView
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -144,7 +170,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
         val hubComm = object : HubComm {
-            override fun forceRestartApp(countHardRestart : Int) {
+            override fun forceRestartApp(countHardRestart: Int) {
 //                lifecycleScope.launch {
 //                    serialPortController.turnOffPA()
 //                    delay(3000)
@@ -203,40 +229,154 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         checkDeleteFileUpdate()
 
-        lifecycleScope.launch{
-            repeat (Int.MAX_VALUE)
+        lifecycleScope.launch {
+            repeat(Int.MAX_VALUE)
             {
                 capture()
                 delay(300000)
 
             }
         }
-        lifecycleScope.launch{
-            repeat (Int.MAX_VALUE)
-            {
-                delay(10000)
-                playerManager.resumeMedia()
-            }
-        }
+
+        prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
 
 
+//        lifecycleScope.launch{
+//            repeat (Int.MAX_VALUE)
+//            {
+//                delay(10000)
+//                playerManager.resumeMedia()
+//            }
+//        }
     }
 
-    fun clearMemory()
-    {
+
+    private fun getSystemCpuUsage(): Float {
+        try {
+            // Read CPU usage from /proc/stat
+            val reader = RandomAccessFile("/proc/stat", "r")
+            val firstLine = reader.readLine()
+            val toks = firstLine.split(" ").filter { it.isNotEmpty() }
+
+            // Total and idle times for the first reading
+            val idle1 = toks[4].toLong()
+            val total1 = toks.subList(1, toks.size).sumOf { it.toLong() }
+            reader.close()
+
+            Thread.sleep(100) // Wait for a short interval to take the second reading
+
+            // Read again for the second interval
+            val reader2 = RandomAccessFile("/proc/stat", "r")
+            val secondLine = reader2.readLine()
+            val toks2 = secondLine.split(" ").filter { it.isNotEmpty() }
+
+            // Total and idle times for the second reading
+            val idle2 = toks2[4].toLong()
+            val total2 = toks2.subList(1, toks2.size).sumOf { it.toLong() }
+            reader2.close()
+
+            // Calculate deltas
+            val idleDelta = idle2 - idle1
+            val totalDelta = total2 - total1
+
+            // Calculate CPU usage percentage
+            return if (totalDelta > 0) {
+                100.0f * (totalDelta - idleDelta) / totalDelta
+            } else {
+                0.0f
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            return 0.0f
+        }
+    }
+
+    private fun getAppCpuUsage(context: Context): Float {
+        try {
+            val activityManager =
+                context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
+            val appProcesses = activityManager.runningAppProcesses
+
+            for (appProcess in appProcesses) {
+                if (appProcess.processName == context.packageName) {
+                    val pid = appProcess.pid
+                    val statsFile = "/proc/$pid/stat"
+
+                    // Read the process-specific CPU usage from /proc/<pid>/stat
+                    val reader = RandomAccessFile(statsFile, "r")
+                    val stats = reader.readLine().split(" ").filter { it.isNotEmpty() }
+                    reader.close()
+
+                    val utime = stats[13].toLong() // User mode time
+                    val stime = stats[14].toLong() // System mode time
+                    val cutime = stats[15].toLong() // Child processes' user mode time
+                    val cstime = stats[16].toLong() // Child processes' system mode time
+                    val processTime1 = utime + stime + cutime + cstime
+
+                    // Get total CPU time from /proc/stat
+                    val systemReader = RandomAccessFile("/proc/stat", "r")
+                    val firstLine = systemReader.readLine()
+                    val systemStats = firstLine.split(" ").filter { it.isNotEmpty() }
+                    val totalSystemTime1 =
+                        systemStats.subList(1, systemStats.size).sumOf { it.toLong() }
+                    systemReader.close()
+
+                    Thread.sleep(100) // Pause before taking the second measurement
+
+                    // Second measurement for app
+                    val reader2 = RandomAccessFile(statsFile, "r")
+                    val stats2 = reader2.readLine().split(" ").filter { it.isNotEmpty() }
+                    reader2.close()
+
+                    val utime2 = stats2[13].toLong()
+                    val stime2 = stats2[14].toLong()
+                    val cutime2 = stats2[15].toLong()
+                    val cstime2 = stats2[16].toLong()
+                    val processTime2 = utime2 + stime2 + cutime2 + cstime2
+
+                    // Second measurement for total system CPU
+                    val systemReader2 = RandomAccessFile("/proc/stat", "r")
+                    val secondLine = systemReader2.readLine()
+                    val systemStats2 = secondLine.split(" ").filter { it.isNotEmpty() }
+                    val totalSystemTime2 =
+                        systemStats2.subList(1, systemStats2.size).sumOf { it.toLong() }
+                    systemReader2.close()
+
+                    // Calculate deltas
+                    val processDelta = processTime2 - processTime1
+                    val systemDelta = totalSystemTime2 - totalSystemTime1
+
+                    // Calculate CPU usage percentage for the app
+                    return if (systemDelta > 0) {
+                        100.0f * processDelta / systemDelta
+                    } else {
+                        0.0f
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+        return 0.0f
+    }
+
+
+    fun clearMemory() {
         System.gc()
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
-    fun capture(){
+    fun capture() {
         try {
             val surfaceView = (vlcVideoLayout.getChildAt(
-                0) as FrameLayout).children.filter { it is SurfaceView }
+                0
+            ) as FrameLayout).children.filter { it is SurfaceView }
                 .first() as SurfaceView
 
             val bitmap = Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888)
 
-            PixelCopy.request(surfaceView, bitmap, { saveBitmap(bitmap)
+            PixelCopy.request(surfaceView, bitmap, {
+                saveBitmap(bitmap)
             }, Handler(Looper.getMainLooper()))
         } catch (e: Exception) {
             e.printStackTrace()
@@ -252,17 +392,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Base64Image = bitmapToBase64(bitmap)
         )
         try {
-            lifecycleScope.launch{
-                val res =  retrofit.postScreenCapture(
+            lifecycleScope.launch {
+                val res = retrofit.postScreenCapture(
                     captureModel,
                     "https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/capture"
                 )
                 Log.d("captureError", "saveBitmap S: ${res}")
-               // Log.d("captureError", "saveBitmap S: ${captureModel.Base64Image}")
+                // Log.d("captureError", "saveBitmap S: ${captureModel.Base64Image}")
             }
 
-        }catch (e : Exception)
-        {
+        } catch (e: Exception) {
             Log.d("captureError", "saveBitmap ERR: ${e.message}")
         }
     }
@@ -304,34 +443,41 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 delay(10000)
             }
         }
-        val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-        var resInfo = ""
-        val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-        val memInfo = ActivityManager.MemoryInfo()
-        val decimalFormat = DecimalFormat("#.##")
+        //val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+//        var resInfo = ""
+//        val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
+//        val memInfo = ActivityManager.MemoryInfo()
+//        val decimalFormat = DecimalFormat("#.##")
         lifecycleScope.launch {
+//            while (true) {
+//                actManager.getMemoryInfo(memInfo)
+//                // Fetching the available and total memory and converting into Giga Bytes
+//                val availMemory = memInfo.availMem.toDouble()/(1024*1024*1024)
+//                val totalMemory= memInfo.totalMem.toDouble()/(1024*1024*1024)
+//                val usedMemory = totalMemory - availMemory
+//                resInfo = "$info - ${decimalFormat.format(usedMemory)}/${decimalFormat.format(totalMemory)}"
+//                Log.d("usedMemory", "checkInternetAndTime: $resInfo")
+            //                 tvMacAddress.text = resInfo
+//                delay(5000)
+//            }
+//             tvMacAddress.text = info
+//             delay(10000)
+//             tvMacAddress.visibility = View.GONE
             while (true) {
-                actManager.getMemoryInfo(memInfo)
-                // Fetching the available and total memory and converting into Giga Bytes
-                val availMemory = memInfo.availMem.toDouble()/(1024*1024*1024)
-                val totalMemory= memInfo.totalMem.toDouble()/(1024*1024*1024)
-                val usedMemory = totalMemory - availMemory
-                resInfo = "$info - ${decimalFormat.format(usedMemory)}/${decimalFormat.format(totalMemory)}"
-                Log.d("usedMemory", "checkInternetAndTime: $resInfo")
-                tvMacAddress.text = resInfo
-                delay(5000)
+                val systemCpuUsage = getSystemCpuUsage()
+                val appCpuUsage = getAppCpuUsage(applicationContext)
+
+                val a = "System CPU: ${String.format("%.2f", systemCpuUsage)}%\n" +
+                        "App CPU: ${String.format("%.2f", appCpuUsage)}%"
+
+                tvMacAddress.text = a
+                delay(1000)
             }
-//            tvMacAddress.visibility = View.GONE
-        }
 
-        tvCheckInternet.setOnClickListener{
-            Log.d("capturecapture", "checkInternetAndTime: click capture")
-            Log.d("capturecapturecapturecapture", "checkInternetAndTime: click capture ok")
-//          clearMemory()
+
         }
+       
     }
-
-    private var listLeftMedia: MutableList<MediaItemModel> = mutableListOf()
 
 
     private fun initDefaultTopAndLeftArea() {
@@ -357,6 +503,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         playerManager.onActivityDestroy()
 //        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
+        handler.removeCallbacksAndMessages(null)
         super.onDestroy()
 
     }
@@ -397,6 +544,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 mediaScheduler.cancelAllScheduledListAlarm()
                 viewModel.rescheduleMonthlyPlaylist()
             }
+
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 val isConnect = ConfigUtil.getString(this, "checkhub", "0")
                 if (isConnect == "0") {
@@ -444,7 +592,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
-            listLeftMedia.clear()
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -459,22 +606,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //default
             mediaScheduler.scheduleAllAlarms()
 
-            listLeftMedia = playerManager.currentTextPlaylist.toMutableList()
-
-            if (typeScreen == MULTIPLE_AREA) {
-                Picasso.get()
-                    .load("https://storage-devkhanhhoa.tek4tv.vn//2024/12/17/9/562351598_z6137866333659_6f3153b2fb9439f012d874d247725c92.jpg")
-
-                    .into(ivBackgroundMultiLayout)
-//                if (listLeftMedia.isEmpty() && playerManager.isInTimeFrame) {
-//                    Picasso.get()
-//                        .load("https://brand-pcms.ggg.systems/media/catalog/product/cache/fccf9bc1c56510f6f2e84ded9c30a375/c/o/combo-khong-gioi-han_1_1.jpg")
-//                        .fit()
-//                        .into(ivBackgroundMultiLayout)
-//                } else {
-//                    Log.i("monthlyinfo", "Mess: left not show")
-//                }
-            }
             playerManager.startFirstTimeFrame()
 
             sendLogDataHub()
@@ -519,10 +650,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }
                 }
+
                 HubCommand.UPDATE_MONTHLY_WSS -> {
 
                     clearDatastore()
-                    listLeftMedia.clear()
 
                     playerManager.stopAllPlayer()
 
@@ -565,6 +696,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                     }, 1000)
                 }
+
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
 
@@ -585,12 +717,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     Handler().postDelayed({
                         onPlayForce(responseHub)
-                        if(typeScreen != FULL_SCREEN) {
+                        if (typeScreen != FULL_SCREEN) {
                             recreate()
                         }
                     }, 1000)
 //                    onPlayForce(responseHub)
                 }
+
                 HubCommand.TURN_ON_PA -> {
                     if (responseHub.message == "1") {
                         serialPortController.turnOffPA()
@@ -604,8 +737,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
-                    when(mess)
-                    {
+                    when (mess) {
                         //dung phat
                         0 -> {
                             playerManager.stopAllPlayer()
@@ -613,16 +745,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if(playerManager.isInTimeFrame)
-                            {
+                            if (playerManager.isInTimeFrame) {
                                 playerManager.playNextMedia()
                             }
                         }
                         //Tạm dừng nội dung đang phát
-                        2 ->{
+                        2 -> {
 //                            playerManager.pauseMedia()
                         }
-                        3 ->{
+
+                        3 -> {
                             playerManager.resumeMedia()
                         }
                     }
@@ -686,6 +818,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                     }
                 }
+
                 HubCommand.UPDATE_VERSION -> {
                     if (responseHub.message != null) {
                         Log.d("update", responseHub.message!!)
@@ -782,8 +915,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             e.printStackTrace()
         }
     }
-    private fun changeVolume(volumeValue: Int)
-    {
+
+    private fun changeVolume(volumeValue: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
@@ -804,21 +937,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
 //        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
-    private fun clearDatastore()
-    {
+
+    private fun clearDatastore() {
         //limit free data 1 gb
 //        val limit = 1000000000
         //limit free data 500 mb
         val limit = 524288000
-        val totalStorage  = appStorageManager.getTotalRomStorage()
+        val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
-        if(totalStorage - usedStorage <= limit)
-        {
+        if (totalStorage - usedStorage <= limit) {
             Log.d("clearDatastore", "clearDatastore: Must Clear")
             appStorageManager.deleteAllMedia()
-        }
-        else
-        {
+        } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
     }

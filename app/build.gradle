@@ -23,17 +23,15 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D90MQTT.4.1.8"
+        versionName "DGGMQ.4.1.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-
 
         externalNativeBuild {
             cmake {
                 cppFlags ""
             }
         }
-
     }
 
     buildTypes {
@@ -43,6 +41,7 @@ android {
         }
         release {
             minifyEnabled true
+            shrinkResources true
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             signingConfig signingConfigs.release
         }

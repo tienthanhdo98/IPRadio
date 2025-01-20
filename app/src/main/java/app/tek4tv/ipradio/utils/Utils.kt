@@ -27,6 +27,7 @@ class Utils {
         const val deviceInfoPA = "PA"
         const val deviceInfoVolume = "Volume"
         const val deviceInfoTemperature = "Temperature"
+        const val deviceCPU = "Other"
 
 
         @SuppressLint("HardwareIds")

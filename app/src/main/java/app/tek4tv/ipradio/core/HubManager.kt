@@ -40,6 +40,7 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     val deviceImei = Utils.getDeviceId(appContext)
+    //val deviceImei = "72:BE:B5:09:17:98"
 
     var pingCounter = -1
 
