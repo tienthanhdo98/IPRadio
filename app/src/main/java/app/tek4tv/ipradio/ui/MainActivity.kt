@@ -1172,7 +1172,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        var isEncoder = true
+        var isEncoder = false
         var streamingModel : StreamingModel? = null
     }
 }
