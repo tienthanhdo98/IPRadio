@@ -223,7 +223,7 @@ class Utils {
         }
         fun getDeviceInfo(valueName : String,deviceInfo  : String) : String
         {
-            if(deviceInfo != "") {
+            if(deviceInfo != "" && deviceInfo.contains("\$\$,1,8")) {
                 var result = ""
                 val listInfo = deviceInfo.split(",")
                 when (valueName) {

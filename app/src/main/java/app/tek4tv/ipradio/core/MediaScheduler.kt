@@ -112,7 +112,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
     }
 
-
     private fun setAlarmForList(
         listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
     ) {

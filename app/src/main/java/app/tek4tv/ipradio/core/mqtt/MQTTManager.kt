@@ -10,8 +10,8 @@ import org.eclipse.paho.client.mqttv3.*
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val destinationId: String,
-    private val listMQTTInfo : List<NoiDungMQTT>
+    private val listMQTTInfo: List<NoiDungMQTT>,
+    val destinationId : String
 ) {
     val TAG = "MQTTLOG"
     var clientID = ""
@@ -37,11 +37,9 @@ class MQTTManager(
             subscribe("thon/$destinationId".toLowerCase())
         }
     }
-
     fun connectToMQTT(context: Context) {
         listMQTTInfo.forEach {
-            if(it.topic.contains("thietbi"))
-            {
+            if (it.topic?.contains("thietbi") == true) {
                 clientID = it.topic.substringAfter("/")
             }
         }
@@ -65,27 +63,30 @@ class MQTTManager(
             }
         })
         val options = MqttConnectOptions()
-        if(hubToken != null) {
+        if (hubToken != null) {
             options.userName = clientID
             options.password = hubToken?.toCharArray()
         }
 
         try {
+            if (mqttClient != null) {
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
+//                    listMQTTInfo.forEach {
+//                        subscribe(it.topic!!)
+//                    }
                     getSubscribeTopic(destinationId)
                     connectEventListener.onConnectSuccess()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                     Log.d(TAG, "Connection failure ${exception!!.message}")
-
                     connectEventListener.onConnectFailure(exception.message)
                 }
-            })
-        } catch (e: MqttException) {
-            e.printStackTrace()
+            })}
+        } catch (e: Exception) {
+            Log.d(TAG, "connectToMQTT: ${e.message}")
         }
     }
 
@@ -95,45 +96,48 @@ class MQTTManager(
             message.payload = strMessage.toByteArray()
             message.qos = qos
             message.isRetained = retained
-            mqttClient?.publish(publishTopicTinh, message, null, object : IMqttActionListener {
-                override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "$strMessage = published to $clientID")
-                    connectEventListener.onSendMessageSuccess("onSuccess: $strMessage to $clientID")
-                }
+            if (mqttClient != null) {
+                mqttClient?.publish(publishTopicTinh, message, null, object : IMqttActionListener {
+                    override fun onSuccess(asyncActionToken: IMqttToken?) {
+                        Log.d(TAG, "$strMessage = published to $clientID")
+                        connectEventListener.onSendMessageSuccess("onSuccess: $strMessage to $clientID")
+                    }
 
-                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.d(TAG, "Failed to publish to $publishTopicTinh")
-                    connectEventListener.onSendMessageFailure("onFailure: ${exception?.message}")
-                }
-            })
-        } catch (e: MqttException) {
-            e.printStackTrace()
+                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                        Log.d(TAG, "Failed to publish to $publishTopicTinh - ${exception?.message}")
+                        connectEventListener.onSendMessageFailure("onFailure: ${exception?.message}")
+                    }
+                })
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "publishToMQTT: ${e.message}")
         }
     }
 
     private fun subscribe(subscribeTopic: String, qos: Int = 1) {
         try {
-            mqttClient?. subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
-                override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "Subscribed to $subscribeTopic")
-//                    connectEventListener.onConnectSuccess()
-                }
+            if (mqttClient != null) {
+                mqttClient?.subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
+                    override fun onSuccess(asyncActionToken: IMqttToken?) {
+                        Log.d(TAG, "Subscribed to $subscribeTopic")
+                    }
 
-                override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                    Log.d(TAG, "Failed to subscribe $subscribeTopic")
-//                    if (exception != null) {
-//                        connectEventListener.onConnectFailure(exception.message)
-//                    }
-                }
-            })
-        } catch (e: MqttException) {
-            e.printStackTrace()
+                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
+                        Log.d(TAG, "Failed to subscribe $subscribeTopic - ${exception?.message}")
+
+                        connectEventListener.onConnectFailure(exception?.message)
+
+                    }
+                })
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "subscribe: ${e.message}")
         }
     }
 
     fun disconnectMqtt() {
         try {
-            if(mqttClient != null) {
+            if (mqttClient != null) {
                 mqttClient?.disconnect(null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "Disconnected")
@@ -148,8 +152,8 @@ class MQTTManager(
                     }
                 })
             }
-        } catch (e: MqttException) {
-            e.printStackTrace()
+        } catch (e: Exception) {
+            Log.d(TAG, "disconnectMqtt: ${e.message}")
         }
     }
 }

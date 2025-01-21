@@ -168,14 +168,7 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        if(currentPlayer == vlcPlayer) {
-            vlcPlayer.stop()
-        }
-        else {
-            exoPlayer.stop()
-        }
         playlistIndex++
-
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
@@ -403,9 +396,8 @@ class PlayersManager(
                         add(Calendar.MINUTE, m)
                         add(Calendar.SECOND, s)
                     }
-
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
-                    fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+
                 }
             playForceMedia(context, forceMedia, mediaScheduler)
         } catch (e: Exception) {

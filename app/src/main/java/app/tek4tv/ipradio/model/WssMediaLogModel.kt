@@ -22,7 +22,7 @@ data class WssMediaLogModel(
     val thoiDiemBatDau: Long? = 0,
     val tiepAm: Long? = 0,
     val nguonTiepAm: String? = "",
-    val noiDung: List<String>? = listOf(),
+    val noiDung: String? = "",
     val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>? = listOf(),
     val nguonTin: String? = "",
     val amLuong: String? = "",
