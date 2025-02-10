@@ -210,7 +210,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -723,7 +723,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    Log.d("livelive", "LIVE: ${Thread.currentThread()}")
+
                     onPlayForce(responseHub)
 
                 }

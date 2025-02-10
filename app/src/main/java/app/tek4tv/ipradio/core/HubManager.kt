@@ -20,7 +20,6 @@ import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import kotlinx.coroutines.*
-import kotlinx.coroutines.sync.Mutex
 import java.lang.reflect.ParameterizedType
 import java.util.*
 import java.util.concurrent.atomic.AtomicBoolean
@@ -139,11 +138,13 @@ class HubManager(
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
                 pingCounter++
+                checkApiCall()
             }
         } catch (e: Exception) {
             Log.i(TAG, "getHubToken error: ${e.message}")
             hubToken = null
             pingCounter++
+            checkApiCall()
         }
         Log.i(TAG, "getHubToken ping: $pingCounter")
     }
@@ -157,12 +158,16 @@ class HubManager(
             val call = authService.getMQTTInfo(body, "Bearer $hubToken", url)
             val response = call.execute()
             if (response.isSuccessful) {
+                pingCounter = 0
                 listMQTTInfo = response.body()!!.noiDung!!
                 Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
                 getDestinationInfo(response.body()!!.noiDung!!)
             }
         } catch (e: Exception) {
             listMQTTInfo = mutableListOf()
+            pingCounter++
+            checkApiCall()
+            Log.i(TAG, "MqttInfo fail: ${pingCounter}")
             Log.i(TAG, "MqttInfo fail: ${e.message}")
         }
     }
@@ -207,6 +212,7 @@ class HubManager(
             Log.d(TAG, "getSourceMQTT: ${e.message}")
         }
     }
+
     fun connectToServer() {
         //reset sau 5 phút khi không lấy được token
         if (pingCounter >= 60) {
@@ -215,18 +221,16 @@ class HubManager(
         }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive && hubToken == null) {
+            while (hubToken == null) {
                 getHubToken()
                 if (hubToken == null) {
                     delay(5000)
-
+                    continue
                 }
-                if (hubToken == null) return@launch
-
                 // Cancel and start a new MQTT info retrieval job
                 getMQTTInfoJob?.cancel()
                 getMQTTInfoJob = launch {
-                    while (isActive && listMQTTInfo.isEmpty()) {
+                    while (listMQTTInfo.isEmpty()) {
                         getMqttInfo()
                         if (listMQTTInfo.isEmpty()) {
                             delay(5000)
@@ -339,7 +343,7 @@ class HubManager(
     }
 
 
-    fun convertToHubCommand(jsonMessage: String) {
+    private fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
@@ -800,12 +804,16 @@ class HubManager(
         }
     }
 
-    private fun checkConnection() {
-        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+    private fun checkApiCall() {
+        //sau 5s se reset lai app neu api call that bai 60*5000
+        if (pingCounter >= 60) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
 
             hubComm.forceRestartApp(countForHardRestart)
         }
+    }
+
+    private fun checkConnection() {
         if (pingCounter >= 3) {
             Log.e(TAG, "Losed hub connection")
             if (notifyDisconnected.compareAndSet(false, true)) {
