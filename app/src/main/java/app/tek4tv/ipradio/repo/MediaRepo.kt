@@ -150,7 +150,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
+    private suspend fun updateScenario2(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
 
         try {
@@ -184,6 +184,140 @@ class MediaRepo @Inject constructor(
 
         return result
     }
+
+
+    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
+        var result = listOf<MediaItem>()
+        try {
+            val res = playlistService.getPlaylist(listUrl)
+            if (res.isSuccessful) {
+                val resBody = res.body()
+                if (resBody != null) {
+                    val listOnlyMedia = resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
+
+                    result = convertToTimeFrame(listOnlyMedia)
+
+                    saveItemsToFile(result)
+                }
+            } else {
+                Log.e("yee", "Lịch rỗng rồi")
+            }
+        } catch (e: Exception) {
+            Log.e("yee", e.toString())
+        }
+
+        return result
+    }
+    private fun convertToTimeFrame(listItem: List<MediaItem>): List<MediaItem> {
+        val newList = listItem.toMutableList()
+        val res = mutableListOf<MediaItem>()
+        val listTimeFrame: MutableList<Map<Int, Int>> = mutableListOf()
+        val starts: MutableList<String> = mutableListOf()
+        var startTime = 0
+        var endTime: Int
+        for (i in 0..listItem.size - 2) {
+            Log.d("wssTImeFrame", "convertToTimeFrame: end ${listItem[i].end}")
+            Log.d("wssTImeFrame", "convertToTimeFrame: start ${listItem[i + 1].start}")
+            if (i == 0) {
+                startTime = 0
+            }
+            if (listItem[i].end != listItem[i + 1].start) {
+                endTime = i
+                starts.add(listItem[i].end!!)
+                val map = mapOf(startTime to endTime)
+                listTimeFrame.add(map)
+                startTime = i + 1
+            }
+            if (i == listItem.size - 2) {
+                endTime = i + 1
+                val map = mapOf(startTime to endTime)
+                listTimeFrame.add(map)
+
+            }
+        }
+        //Chỉ có 1 khung
+        if (starts.size == 0) {
+            val firstId: Int = listItem.first().id?.minus(1) ?: 0
+            Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
+            val tObjStart = MediaItem(
+                id = firstId,
+                mediaID = firstId,
+                projectID = firstId.toString(),
+                title = "Khung ${listItem.first().start}",
+                body = "start",
+                startTime = listItem.first().startTime,
+                start = listItem.first().startTime,
+                fixTime = listItem.first().startTime,
+                end = listItem.first().end,
+            )
+            newList.add(0, tObjStart)
+            val lastId: Int = listItem.last().id?.plus(1) ?: 0
+            val tObEnd = MediaItem(
+                id = lastId,
+                mediaID = lastId,
+                projectID = lastId.toString(),
+                title = "End Khung ${listItem.first().start}",
+                body = "end",
+                startTime = listItem.last().startTime,
+                fixTime = listItem.last().end,
+                end = listItem.last().end,
+                start = listItem.last().start
+            )
+            newList.add(tObEnd)
+
+            return newList
+        }
+        //Có nhiều khung
+        else {
+            Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
+            listTimeFrame.forEach {
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung ${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
+                )
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung ${it.keys.first()} - ${it.values.first()}"
+                )
+                val list : MutableList<MediaItem> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
+                Log.d(
+                    "wssTImeFrame",
+                    "convertToTimeFrame: Nhiều khung $list"
+                )
+                val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
+                val tObjStart = MediaItem(
+                    id = firstId,
+                    mediaID = firstId,
+                    projectID = firstId.toString(),
+                    title = "Khung ${listItem[it.keys.first()].start}",
+                    body = "start",
+                    startTime = listItem[it.keys.first()].startTime,
+                    start = listItem[it.keys.first()].startTime,
+                    fixTime = listItem[it.keys.first()].startTime,
+                    end = listItem[it.keys.first()].end,
+                )
+                list.add(0, tObjStart)
+                val lastId: Int = listItem[it.values.first()].id?.plus(1) ?: 0
+                val tObEnd = MediaItem(
+                    id = lastId,
+                    mediaID = lastId,
+                    projectID = lastId.toString(),
+                    title = "End Khung ${listItem[it.values.first()].start}",
+                    body = "end",
+                    startTime = listItem[it.values.first()].startTime,
+                    fixTime = listItem[it.values.first()].end,
+                    end = listItem[it.values.first()].end,
+                    start = listItem[it.values.first()].start
+                )
+                list.add(list.size, tObEnd)
+                res.addAll(list)
+            }
+            return res
+
+        }
+
+    }
+
 
     fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return

@@ -10,9 +10,9 @@ class Video(
         name = "Time"
     ) var time: String?,
 
-    @Json(name = "MediaName") var mediaName: String? = "",
+    @Json(name = "MediaName") var mediaName: String? = null,
 
-    @Json(name = "AudioName") var audioName: String? = " ",
+    @Json(name = "AudioName") var audioName: String? = null,
 
     @Json(name = "Path") var path: String? = null,
 

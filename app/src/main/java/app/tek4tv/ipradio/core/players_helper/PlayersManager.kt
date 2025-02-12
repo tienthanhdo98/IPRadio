@@ -136,13 +136,18 @@ class PlayersManager(
             Log.d(TAG, "Play media next")
             playMediaByIndex(playlistIndex)
         } else {
-              Log.d(TAG, "Play media stop")
-              stopAllPlayer()
-              playMode = ""
-              isTimeOver = true
+            Log.d(TAG, "Play media phat tiep cham dich")
+            stopAllPlayer()
+            stopTimeFrame()
         }
-
-
+    }
+    fun stopPlaylist(cancelListKey: String) {
+        if (cancelListKey != playMode) return
+        playMode = ""
+        stopAllPlayer()
+        //check time over
+        isTimeOver = true
+        checkTimeOver()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {

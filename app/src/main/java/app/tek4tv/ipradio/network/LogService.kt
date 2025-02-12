@@ -36,7 +36,9 @@ interface LogService {
 //    suspend fun postReport(@Body report: Report)
 
     //dung cho thai nguyen, can tho,hanam
-    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")
+
+    //quang ngai api
+    @POST("https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     @POST("https://v2-provider-data-warehouse.tek4tv.vn/IpRadioDataLog/device/log")

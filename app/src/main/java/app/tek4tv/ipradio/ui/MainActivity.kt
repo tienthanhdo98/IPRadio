@@ -142,7 +142,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-            playerManager.stopAllPlayer()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
@@ -633,7 +632,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
-                    playerManager.stopAllPlayer()
+//                  playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     hideTopLeftArea(false)
                     cancelAllAlarm()
@@ -643,9 +642,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopForceMedia()
                     //delete pref list left
                     ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-//                    Handler().postDelayed({
-//                        recreate()
-//                    }, 1000)
+                    Handler().postDelayed({
+                        recreate()
+                    }, 1000)
 
                 }
                 //Phát khẩn cấp luồng live
@@ -654,11 +653,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
                     ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-//                    Handler().postDelayed({
-//                        onPlayForce(responseHub)
-//                        recreate()
-//                    }, 1000)
-                    onPlayForce(responseHub)
+                    Handler().postDelayed({
+                        onPlayForce(responseHub)
+                        recreate()
+                    }, 1000)
+//                    onPlayForce(responseHub)
 
                 }
 
@@ -700,12 +699,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("config_config", "updateconfig ${resposnHub.lat}")
                     Log.i("config_config", "updateconfig ${resposnHub.lng}")
                     Log.i("config_config", "updateconfig success")
-                }
-
-
-                HubCommand.LiveRemoteControl -> {
-                    val mess = responseHub.message!!
-                    Log.i("LiveRemoteControl", "Mess: $mess ")
                 }
 
                 HubCommand.UPDATE_CONFIG -> {
@@ -936,7 +929,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         val info = appStorageManager.run {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
-
                         hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
                     }
                 }
@@ -972,7 +964,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         connectionId, Utils.GET_RECORD,
                         recordedAudioList
                     )
-
                 }
 
                 HubCommand.UPLOAD_RECORDED -> {
@@ -1061,7 +1052,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         serialPortController.writeForceSetVolume(globalProperties.volume)
         playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
     }
-
 
     private fun cancelAllAlarm() {
         mediaScheduler.cancelAllScheduledListAlarm()

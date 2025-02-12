@@ -295,8 +295,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         scheduleListAlarms()
 
         if (typeScreen != FULL_SCREEN) {
-//        scheduleShowListLeft()
-//        scheduleEndLeftArea()
+        scheduleShowListLeft()
+        scheduleEndLeftArea()
         }
     }
 

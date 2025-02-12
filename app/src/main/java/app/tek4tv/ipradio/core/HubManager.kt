@@ -98,7 +98,7 @@ class HubManager(
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-longan.tek4tv.vn/hubServer"
+            "https://hubdi-quangngai.tek4tv.vn/hubServer"
         ).toString()
 //        hubUrl = ConfigUtil.getStringEncrypt(
 //            appContext,
@@ -410,13 +410,11 @@ class HubManager(
             }
 
             //neu chay da man hinh path se gui la "path1,path2" path vùng 1,2,3
-
-            val video = Video("" + playlistIndex, mode).apply {
+            val mediaPlay = Video("" + playlistIndex, mode).apply {
                 if (currentMediaItem != null) {
                     val listPath = listOf(currentMediaItem!!.pathBackup)
                     val jsonString = adapterListString.toJson(listPath)
                     mediaName = curMediaName
-
                     path = if (jsonString == "") {
                         null
                     } else {
@@ -434,7 +432,7 @@ class HubManager(
                 imei = deviceImei
                 status = "START"
                 connectionId = (hubConnection.connectionId)
-                this.video = videoAdapter.toJson(video)
+                video = videoAdapter.toJson(mediaPlay)
                 startTime = dateFormat.format(Date())
                 networkInfo = NetworkUtils.getNetworkInfo(appContext)
                 version = versionName
@@ -453,8 +451,8 @@ class HubManager(
                 deviceInfo = SerialPortController.deviceInfo
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request}")
             Log.i("loghub", "log hub device info: ${request.volume}")
+            Log.i("loghub", "log hub device info: ${request.video}")
             Log.i("loghub", "log hub device info: ${GlobalProperties.getInst().androidVolume}")
 
         } catch (e: java.lang.Exception) {
