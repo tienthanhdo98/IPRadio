@@ -18,63 +18,42 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.MyApp.Companion.hubManager
+import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.model.DataValueModel
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
-import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
-import app.tek4tv.ipradio.utils.CrashHandler
-import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
-import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.LOG_FOLDER_NAME
-import app.tek4tv.ipradio.utils.LogUtils
-import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.RECORDED_AUDIO_FOLDER_NAME
-import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.deleteAFileInFolder
-import app.tek4tv.ipradio.utils.downloadUpdateApk
-import app.tek4tv.ipradio.utils.getCurrentTime
-import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.readFile
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.microsoft.signalr.HubConnectionBuilder
-import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
-import io.reactivex.Single
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
-import java.io.IOException
 import java.lang.reflect.Type
-import java.util.Timer
-import java.util.TimerTask
+import java.util.*
 import javax.inject.Inject
 
 
@@ -107,11 +86,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @Inject
     lateinit var logService: LogService
 
-    private lateinit var hubManager: HubManager
-
     private lateinit var playerManager: PlayersManager
 
-    private lateinit var serialPortController: SerialPortController
+
 
     private lateinit var appStorageManager: AppStorageManager
 
@@ -119,15 +96,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private var volume = "80"
 
-//    private var locationTracker = LocationTracker()
-
     private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
     private val globalProperties = GlobalProperties.getInst()
-    private val UART_S1_NAME = "/dev/ttyS1"
-    private val UART_S4_NAME = "/dev/ttyS4"
 
     private var typeScreen: Int = FULL_SCREEN
     private lateinit var vlcVideoLayout: VLCVideoLayout
@@ -135,6 +108,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var tvTitleRight: TextView
     private lateinit var scrollLeftArea: ScrollView
     private lateinit var layoutTvLeft: LinearLayout
+
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -172,7 +146,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 hideTopLeftArea(true)
             }
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
-
         }
 
         //Phát FM
@@ -299,7 +272,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
             }
-
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
@@ -310,20 +282,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService, mediaCapture) { command, message ->
-            handleFromCommandServer(command, message)
-        }
-        hubManager.logService = logService
+        hubManager.hubComm = hubComm
+        hubManager.mediaCapture = mediaCapture
 
-        serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
-            delay(10000)
-            if (!serialPortController.isUart1) {
-                serialPortController.connectToSerialPort(UART_S4_NAME)
-                Log.i("PA", "onCreate: s4")
+            hubManager.messageStateFlow.collectLatest { messagePair ->
+                messagePair?.let { (command, message) ->
+                    Log.d("MainActivityMess", "Received Message: Command=$command, Message=$message")
+                    handleFromCommandServer(command, message)
+                }
             }
         }
+
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         playerManager = PlayersManager(
             applicationContext,
@@ -333,10 +303,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         playerManager.playerManagerListener = playerCallback
 
-
         NetworkUtils.instance.startNetworkListener(this)
 
-        initHubConnect()
         registerObservers()
 
         appStorageManager = AppStorageManager(applicationContext)
@@ -350,6 +318,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         viewModel.hideSystemUI(this)
         initDataByScreen()
+        sendLogDataHub()
 
     }
 
@@ -453,10 +422,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     override fun onStop() {
-        Log.e("monthlyinfo", "onStop")
-        playerManager.stopAllPlayer()
-        cancelAllAlarm()
-        Log.i("ChangeLayout", "Mess: recreate stop")
+//        Log.e("monthlyinfo", "onStop")
+//        playerManager.stopAllPlayer()
+//        cancelAllAlarm()
+//        Log.i("ChangeLayout", "Mess: recreate stop")
         super.onStop()
 
     }
@@ -606,12 +575,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         viewModel.getPlayerContent("", false)
     }
 
-    private fun initHubConnect() {
-        hubManager.connectToHub()
-//        locationTracker.getLocation(this@MainActivity)
-
-    }
-
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
             if (command.isNullOrEmpty()) {
@@ -650,7 +613,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     Log.d("tesstlive", "handleFromCommandServer: live")
-                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, (responseHub.mode ?: "0").toInt())
+                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
                     ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
                     Handler().postDelayed({
@@ -693,7 +656,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             ConfigUtil.PROVIDER,
                             listInfoConfig[6]
                         )
-                        hubManager.providerValue = listInfoConfig[6]
+//                        hubManager?.providerValue = listInfoConfig[6]
                     }
                     globalProperties.saveProperties(resposnHub)
                     Log.i("config_config", "updateconfig ${resposnHub.lat}")
@@ -702,56 +665,56 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_CONFIG -> {
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
-                    val mess = responseHub.message!!
-                    val listValue = mess.split(",")
-                    val urlHub = listValue[0]
-                    val urlToken = listValue[1]
-                    if (listValue.size >= 3) {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listValue[2]
-                        )
-                    }
-                    val hubConnection = HubConnectionBuilder.create(urlHub)
-                        .withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else
-                                Single.error(Exception())
-                        })
-                        .withTransport(TransportEnum.WEBSOCKETS)
-                        .build()
-                    lifecycleScope.launch {
-                        val id = hubManager.openConnection2(hubConnection)
-                        if (id != null) {
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_HUB,
-                                urlHub
-                            )
-                            ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_TOKEN,
-                                urlToken
-                            )
-                            Log.i("config_config", "updateconfig success: reseting")
-                            delay(60000)
-                            serialPortController.hardRestart()
-                            delay(10000)
-                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-
-                        } else {
-                            Log.i("config_config", "updateconfig fail: reseting")
-                            delay(2000)
-                            serialPortController.hardRestart()
-                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                        }
-
-                    }
+//                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
+//                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
+//                    val mess = responseHub.message!!
+//                    val listValue = mess.split(",")
+//                    val urlHub = listValue[0]
+//                    val urlToken = listValue[1]
+//                    if (listValue.size >= 3) {
+//                        ConfigUtil.putStringEncrypt(
+//                            applicationContext,
+//                            ConfigUtil.PROVIDER,
+//                            listValue[2]
+//                        )
+//                    }
+//                    val hubConnection = HubConnectionBuilder.create(urlHub)
+//                        .withAccessTokenProvider(Single.defer {
+//                            val token = hubManager.getHubToken(urlToken)
+//                            if (token != null) {
+//                                Single.just(token)
+//                            } else
+//                                Single.error(Exception())
+//                        })
+//                        .withTransport(TransportEnum.WEBSOCKETS)
+//                        .build()
+//                    lifecycleScope.launch {
+//                        val id = hubManager.openConnection(hubConnection)
+//                        if (id != null) {
+//                            ConfigUtil.putStringEncrypt(
+//                                applicationContext,
+//                                ConfigUtil.URL_HUB,
+//                                urlHub
+//                            )
+//                            ConfigUtil.putStringEncrypt(
+//                                applicationContext,
+//                                ConfigUtil.URL_TOKEN,
+//                                urlToken
+//                            )
+//                            Log.i("config_config", "updateconfig success: reseting")
+//                            delay(60000)
+//                            serialPortController.hardRestart()
+//                            delay(10000)
+//                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//
+//                        } else {
+//                            Log.i("config_config", "updateconfig fail: reseting")
+//                            delay(2000)
+//                            serialPortController.hardRestart()
+//                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                        }
+//
+//                    }
 
                 }
 
@@ -767,8 +730,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //0,1,2,3
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
-                    val mess = responseHub.message!!.toInt()
-                    when (mess) {
+                    when (responseHub.message!!.toInt()) {
                         //dung phat
                         0 -> {
                             playerManager.stopAllPlayer()
@@ -792,24 +754,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.PLAYLIST_INFO -> {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
-                            val dataFromPlaylist: String = readFile(path)
-                            Log.d("readplaylist", "value2 $dataFromPlaylist ")
-                            val connectionId = responseHub.message
-                            Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
-                            if (connectionId != null) {
-                                hubManager.sendHubDirectMessage(
-                                    connectionId,
-                                    HubCommand.PLAYLIST_INFO,
-                                    dataFromPlaylist
-                                )
-                            }
-                        } catch (e: IOException) {
-                            Log.e("readplaylist", "error reading playlist!!!")
-                        }
-                    }
+//                    lifecycleScope.launch(Dispatchers.IO) {
+//                        try {
+//                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
+//                            val dataFromPlaylist: String = readFile(path)
+//                            Log.d("readplaylist", "value2 $dataFromPlaylist ")
+//                            val connectionId = responseHub.message
+//                            Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
+//                            if (connectionId != null) {
+//                                hubManager.sendHubDirectMessage(
+//                                    connectionId,
+//                                    HubCommand.PLAYLIST_INFO,
+//                                    dataFromPlaylist
+//                                )
+//                            }
+//                        } catch (e: IOException) {
+//                            Log.e("readplaylist", "error reading playlist!!!")
+//                        }
+//                    }
                 }
 
                 HubCommand.FM -> {
@@ -957,13 +919,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.GET_RECORD -> {
-                    val connectionId = responseHub.message!!
-                    val recordedAudioList =
-                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
-                    hubManager.sendHubDirectMessage(
-                        connectionId, Utils.GET_RECORD,
-                        recordedAudioList
-                    )
+//                    val connectionId = responseHub.message!!
+//                    val recordedAudioList =
+//                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
+//                    hubManager.sendHubDirectMessage(
+//                        connectionId, Utils.GET_RECORD,
+//                        recordedAudioList
+//                    )
                 }
 
                 HubCommand.UPLOAD_RECORDED -> {
@@ -1009,9 +971,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             "${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
 
-                        hubManager.sendEncryptedMessage(
-                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
-                        )
+//                        hubManager.sendEncryptedMessage(
+//                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
+//                        )
                     }
                 }
 
@@ -1124,4 +1086,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     companion object {
         var alarmListener: AlarmListener? = null
     }
+
+
+
 }

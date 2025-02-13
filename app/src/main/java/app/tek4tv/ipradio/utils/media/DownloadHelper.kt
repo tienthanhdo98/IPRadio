@@ -31,7 +31,7 @@ class DownloadHelper2 private constructor() {
 
     //act like a places-holder for downloading item
     //we can only download 3 file at a time
-    private val counterChanel = Channel<Int>(3)
+    private val counterChanel = Channel<Int>(2)
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 

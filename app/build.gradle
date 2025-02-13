@@ -104,6 +104,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0"
     implementation "androidx.fragment:fragment-ktx:1.2.5"
 
+    //stateflow
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0'
     //prdownloader
     implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.1'
 

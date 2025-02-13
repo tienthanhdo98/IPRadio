@@ -337,10 +337,10 @@ class PlayersManager(
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-//            if(isPlayAtStart) {
-//                playMedia(forceMedia.toMediaItem())
-//            }
-            playMedia(forceMedia.toMediaItem())
+            if(isPlayAtStart) {
+                playMedia(forceMedia.toMediaItem())
+            }
+//            playMedia(forceMedia.toMediaItem())
             mediaScheduler.scheduleForceMediaAlarm(forceMedia)
 
         } catch (e: Exception) {

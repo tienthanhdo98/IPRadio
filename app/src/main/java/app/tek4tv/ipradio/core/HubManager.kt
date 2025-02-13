@@ -9,8 +9,10 @@ import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
@@ -20,40 +22,41 @@ import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
+import com.squareup.moshi.JsonAdapter
 import io.reactivex.Single
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.StateFlow
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Manager hub connection: Connect to hub, ping,
  * receive command, ping
  * **/
 class HubManager(
-    private val hubComm: HubComm,
-    private val authService: AuthService,
-    var mediaCapture: MediaCapture,
-    var onMessageListener: (command: String?, message: String?) -> Unit,
+    private val appContext : Context,
+    private val authService: AuthService
 ) {
     private val LOG_TAG = "HubManager"
+    var mediaCapture: MediaCapture? = null
+    lateinit var hubComm: HubComm
     private val CONNECT_COUNTER_LIMIT = 5
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null
-
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
-    val appContext: Context = MyApp.instance!!.applicationContext
 
     private val videoAdapter = moshi.adapter(Video::class.java)
-    val adapterListString = moshi.adapter<List<String>>(List::class.java)
+    private val adapterListString: JsonAdapter<List<String>> = moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
 
-    //    private val deviceImei = "72:BE:B5:09:30:45"
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     var pingCounter = 69
@@ -76,13 +79,21 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    var providerValue = ""
+    private var providerValue = ""
 
     private var firstConnect = true
 
-    var privateKeyStr: String
-    var logService: LogService? = null
+    private var privateKeyStr: String
+
     private var hubUrl = ""
+
+
+    private val _messageStateFlow = MutableSharedFlow<Pair<String?, String?>?>(0)
+    val messageStateFlow: SharedFlow<Pair<String?, String?>?> = _messageStateFlow
+
+    private suspend fun receiveMessage(command: String?, message: String?) {
+        _messageStateFlow.emit(Pair(command, message)) // Update StateFlow
+    }
 
 
     init {
@@ -100,11 +111,7 @@ class HubManager(
             ConfigUtil.URL_HUB,
             "https://hubdi-quangngai.tek4tv.vn/hubServer"
         ).toString()
-//        hubUrl = ConfigUtil.getStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_HUB,
-//            "https://hubdi-hanam.tek4tv.vn/hubServer"
-//        ).toString()
+
         hubConnection = HubConnectionBuilder.create(hubUrl)
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
@@ -127,17 +134,6 @@ class HubManager(
     //lấy token từ hub
     private fun getHubToken(): String? {
         return try {
-//            //Encrypted json variable name
-//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-//
-//            //Thông tin xác thực lưu trong thư viện
-//            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
-//
-//            val body = mapOf(
-//                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-//                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
-//            )
             val body = mapOf("Username" to "device", "Password" to "Device@123")
             //Auth Url encrypted in c++ lib
 
@@ -199,49 +195,6 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-//                val currentTime = Calendar.getInstance().time
-//                logUtils.logHubConnectState(
-//                    HubStateRecord(
-//                        imei = deviceImei,
-//                        provider = providerValue,
-//                        state = "CONNECTED",
-//                        networkType = NetworkUtils.getNetworkClass(appContext),
-//                        destinationID = logUtils.destinationId,
-//                        destinationName = logUtils.destinationName,
-//                        start = currentTime.time.toString()
-//                    )
-//                )
-//                Log.i(LOG_TAG, "Log connect to hub success ${currentTime.time}")
-//                //send disconn log when connect
-//                if (ConfigUtil.checkSharef(
-//                        appContext,
-//                        ConfigUtil.DISCONNECT_START_TIME
-//                    ) && ConfigUtil.checkSharef(appContext, ConfigUtil.DISCONNECT_STATE)
-//                ) {
-//                    val keyStartDis = ConfigUtil.DISCONNECT_START_TIME
-//                    val keyState = ConfigUtil.DISCONNECT_STATE
-//                    val disconnectTime =
-//                        ConfigUtil.getString(appContext, keyStartDis, "0")
-//                            ?: "0"
-//                    val disconnectState =
-//                        ConfigUtil.getString(appContext, keyState, "0")
-//                            ?: "DISCONNECT"
-//                    logUtils.logHubConnectState(
-//                        HubStateRecord(
-//                            imei = deviceImei,
-//                            provider = providerValue,
-//                            state = disconnectState,
-//                            networkType = NetworkUtils.getNetworkClass(appContext),
-//                            destinationID = logUtils.destinationId,
-//                            destinationName = logUtils.destinationName,
-//                            start = disconnectTime
-//                        )
-//                    )
-//                    Log.i(LOG_TAG, "Log disconnect to hub success $disconnectTime")
-//                    ConfigUtil.removeSharef(appContext, keyStartDis)
-//                    ConfigUtil.removeSharef(appContext, keyState)
-//                }
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -290,8 +243,6 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -311,7 +262,7 @@ class HubManager(
                 mainHandler.post {
                     Log.d("command", command ?: "")
                     Log.d("message", message ?: "")
-                    var meessDe = ""
+                    var messDe = ""
                     var needDecrypt = false
 
                     if (command != null && message != null) {
@@ -329,7 +280,7 @@ class HubManager(
                             }
 
                             HubCommand.UPDATE_CONFIG, HubCommand.UPDATE_DESTINATION -> {
-                                meessDe = b64Decode(message)
+                                messDe = b64Decode(message)
                             }
 
                             HubCommand.UPDATE_STATUS -> {
@@ -342,14 +293,15 @@ class HubManager(
                             }
                         }
                     }
-                    if (meessDe != "") {
-                        parseHubResponse(meessDe, needDecrypt)
+                    if (messDe != "") {
+                        parseHubResponse(messDe, needDecrypt)
                     } else {
                         parseHubResponse(message, needDecrypt)
                     }
                     //Handle command from server in MainActivity
-
-                    onMessageListener.invoke(command, message)
+                    coroutineScope.launch {
+                        receiveMessage(command, message)
+                    }
 
                 }
             } catch (e: Exception) {
@@ -360,8 +312,10 @@ class HubManager(
 
     private fun sendMessage(mess: String, command: String) {
         try {
-            hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
-            Log.i("datadevice", "volume: $mess")
+            if (hubConnection.connectionId != null) {
+                hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
+                Log.i("datadevice", "volume: $mess")
+            }
         } catch (e: Exception) {
             Log.e(LOG_TAG, e.message!!)
             e.printStackTrace()
@@ -370,7 +324,9 @@ class HubManager(
 
     private fun sendDirectMessage(connectionId: String, command: String, message: String) {
         try {
-            hubConnection.invoke(Utils.DIRECT_MESSAGE, connectionId, command, message)
+            if (hubConnection.connectionId != null) {
+                hubConnection.invoke(Utils.DIRECT_MESSAGE, connectionId, command, message)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -426,7 +382,7 @@ class HubManager(
 
             val currentTime = Calendar.getInstance().time
 
-            val isRecording = if (mediaCapture.isRecordingAudio) "1" else "0"
+            val isRecording = if (mediaCapture?.isRecordingAudio == true) "1" else "0"
 
             val request = PingHubRequest().apply {
                 imei = deviceImei
@@ -452,7 +408,7 @@ class HubManager(
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub device info: ${request.volume}")
-            Log.i("loghub", "log hub device info: ${request.video}")
+            Log.i("loghub", "log hub device info: ${request.video} ${hubConnection.connectionId}")
             Log.i("loghub", "log hub device info: ${GlobalProperties.getInst().androidVolume}")
 
         } catch (e: java.lang.Exception) {

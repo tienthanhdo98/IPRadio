@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.media.MediaMetadataRetriever
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -12,7 +11,7 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.util.Calendar
+import java.util.*
 
 class VlcMediaPlayer(
     appContext: Context,
@@ -59,35 +58,22 @@ class VlcMediaPlayer(
         }
     }
 
-    fun isVideoResolutionSupported(videoPath: String, maxWidth: Int, maxHeight: Int): Boolean {
-        val retriever = MediaMetadataRetriever()
-        return try {
-            retriever.setDataSource(videoPath)
-            val width = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_WIDTH)
-                ?.toIntOrNull() ?: 0
-            val height = retriever.extractMetadata(MediaMetadataRetriever.METADATA_KEY_VIDEO_HEIGHT)
-                ?.toIntOrNull() ?: 0
-
-            width <= maxWidth && height <= maxHeight
-        } catch (e: Exception) {
-            false
-        } finally {
-            retriever.release()
-        }
-    }
-
-
     init {
         val args = ArrayList<String>()
         //bật log vlc
 //        args.add("-vvv")
-        args.add("--no-drop-late-frames")
+//        args.add("--no-drop-late-frames")
+        args.add("--drop-late-frames")
 //        args.add("--no-skip-frames")
         args.add("--skip-frames")
-//        args.add("--file-caching=5000")
-//        args.add("--network-caching=5000")
-//        args.add("--vout=android-display")
+        args.add("--file-caching=500")
+        args.add("--network-caching=500")
+//      args.add("--vout=android-display")
+        args.add("--vout=gles2")
+        args.add("--avcodec-hw=any")
 //        RotateScreen("270",args)
+
+
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = MediaPlayer(mLibVLC)
