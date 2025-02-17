@@ -1,8 +1,6 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
@@ -23,7 +21,6 @@ import com.squareup.moshi.Types
 import kotlinx.coroutines.*
 import java.lang.reflect.ParameterizedType
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 
 /**
@@ -88,7 +85,7 @@ class HubManager(
     var dichId = ""
     var tenDich = ""
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = true
+    val isMQTT = false
     private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
@@ -133,13 +130,13 @@ class HubManager(
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
                 pingCounter++
-                checkApiCall()
+                checkPingToReset()
             }
         } catch (e: Exception) {
             Log.i(TAG, "getHubToken error: ${e.message}")
             hubToken = null
             pingCounter++
-            checkApiCall()
+            checkPingToReset()
         }
         Log.i(TAG, "getHubToken ping: $pingCounter")
     }
@@ -161,7 +158,7 @@ class HubManager(
         } catch (e: Exception) {
             listMQTTInfo = mutableListOf()
             pingCounter++
-            checkApiCall()
+            checkPingToReset()
             Log.i(TAG, "MqttInfo fail: ${pingCounter}")
             Log.i(TAG, "MqttInfo fail: ${e.message}")
         }
@@ -238,12 +235,19 @@ class HubManager(
                             listMQTTInfo,
                             nguonId
                         )
-                        mqttClient?.connectToMQTT(appContext)
+                        while (!isConnectSuccess) {
+                            mqttClient?.connectToMQTT(appContext)
+                            delay(5000)
+                        }
+
                     }
                 }else
                 {
-                    wssManager = WssManager(hubToken,this@HubManager)
-                    wssManager!!.connectToWss()
+                    wssManager = WssManager(hubToken, this@HubManager)
+                    while (!isConnectSuccess) {
+                        wssManager!!.connectToWss()
+                        delay(5000)
+                    }
 
                 }
 
@@ -251,13 +255,17 @@ class HubManager(
 
         }
     }
+    private var isConnectSuccess = false
 
     override fun onConnectSuccess() {
+        isConnectSuccess = true
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
+        isConnectSuccess = false
         pingCounter++
+        checkPingToReset()
     }
 
     override fun onReceiveMessageSuccess(message: String) {
@@ -820,7 +828,8 @@ class HubManager(
         }
     }
 
-    private fun checkApiCall() {
+    private fun checkPingToReset() {
+        Log.d(TAG, "checkPingToReset: $pingCounter")
         //sau 5s se reset lai app neu api call that bai 60*5000
         if (pingCounter >= 60) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)

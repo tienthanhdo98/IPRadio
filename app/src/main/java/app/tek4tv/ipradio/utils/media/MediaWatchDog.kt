@@ -28,7 +28,7 @@ class MediaWatchDog(
 
                 checkBrokenPath()
 
-                checkDownload()
+//                checkDownload()
                 Log.d(LOG_TAG, "end check media")
 
                 delay(delayDuration)
@@ -69,7 +69,7 @@ class MediaWatchDog(
 
             if (needDownload.isNotEmpty()) {
                 needDownload.forEach {
-                    mediaRepo.downloadAMediaItem(it)
+                    mediaRepo.downloadMediaItem(it,needDownload.size)
                 }
             }
         }

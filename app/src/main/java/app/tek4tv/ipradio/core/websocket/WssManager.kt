@@ -16,11 +16,10 @@ class WssManager(private var hubToken : String?, private val connectEventListene
     val TAG = "WssManager"
     private var webSocket: WebSocket? = null
     private var client: OkHttpClient? = null
-    private var isConnectSuccess = false
+
     inner class EchoWebSocketListener : WebSocketListener() {
         override fun onOpen(webSocket: WebSocket, response: okhttp3.Response) {
             Log.d("WSS2", "onOpen: connnected")
-            isConnectSuccess = true
             connectEventListener.onConnectSuccess()
         }
 
@@ -42,7 +41,6 @@ class WssManager(private var hubToken : String?, private val connectEventListene
 
         override fun onFailure(webSocket: WebSocket, t: Throwable, response: okhttp3.Response?) {
             Log.d("WSS2", "onFailure: ${t.message} - ${t.cause}")
-            isConnectSuccess = false
             connectEventListener.onConnectFailure(t.message)
         }
     }
@@ -61,16 +59,13 @@ class WssManager(private var hubToken : String?, private val connectEventListene
 //                Request.Builder().url("wss://websocket-staging.thongtinnguon.vn/ws/ipradio")
 //                    .addHeader("Authorization", "Bearer $hubToken").build()
         val request =
-                Request.Builder().url("wss://gateway-thongtinnguon2.tek4tv.vn/ws/ipradio1")
+                Request.Builder().url("wss://gateway-thongtinnguon.tek4tv.vn/ws/ipradio")
                     .addHeader("Authorization", "Bearer $hubToken").build()
             val listener = EchoWebSocketListener()
 
             webSocket = client?.newWebSocket(request, listener)
     }
-    fun checkConnection(): Boolean
-    {
-        return isConnectSuccess
-    }
+
     fun closeWebsocket() {
         webSocket?.close(1000, "Activity destroyed")
         client?.dispatcher?.executorService?.shutdown()

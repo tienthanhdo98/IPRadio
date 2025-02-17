@@ -216,6 +216,7 @@ class MediaRepo @Inject constructor(
 
     }
 
+
     fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return
 
@@ -232,55 +233,57 @@ class MediaRepo @Inject constructor(
         val totalDownloads = validItems.size
 
         validItems.forEach { item ->
-            val fileName = getFileNameFromUrl(item.body ?: return@forEach)
-
-            // Check if file already exists
-            if (isFileExisted(mediaStoragePath, fileName)) {
-                val updatedPath = "$mediaStoragePath/$fileName"
-                if (item.body != updatedPath) {
-                    item.body = updatedPath
-                }
-                return@forEach
-            }
-
-            Log.d("download item", item.body ?: "Invalid URL")
-
-            // Queue download
-            downloadHelper.addToQueue(DownloadItem().apply {
-                itDownloadUrl = item.body!!
-                itStoragePath = mediaStoragePath
-                itFileName = fileName
-                priority = 0
-                downloadListener = object : OnDownloadListener {
-                    override fun onDownloadComplete() {
-                        item.pathBackup = item.body!!
-                        item.body = "$mediaStoragePath/$fileName"
-
-                        synchronized(lock) {  // Use lock object for thread safety
-                            completedDownloads++
-                            if (completedDownloads == totalDownloads) {
-                                coroutineScope.launch {
-                                    saveItemsToFile(broadcastList)  // Save only once after all downloads
-                                }
-                            }
-                        }
-                        Log.d("downloadcomplete", item.body!!)
-                    }
-
-                    override fun onError(error: com.downloader.Error?) {
-                        Log.d("downloaderror", item.body!!)
-                    }
-                }
-            })
+            downloadMediaItem(item, totalDownloads)
         }
     }
-}
-//    fun startDownloadMedia() {
-//        if (broadcastList.isEmpty()) return
-//        broadcastList.forEach {
-//            downloadAMediaItem(it)
-//        }
-//    }
+
+    // Separate function for downloading a media item
+    fun downloadMediaItem(item: MediaItem, totalDownloads: Int) {
+        val fileName = getFileNameFromUrl(item.body ?: return)
+
+        // Check if file already exists
+        if (isFileExisted(mediaStoragePath, fileName)) {
+            val updatedPath = "$mediaStoragePath/$fileName"
+            if (item.body != updatedPath) {
+                item.body = updatedPath
+            }
+            return
+        }
+
+        Log.d("download item", item.body ?: "Invalid URL")
+
+        // Queue download
+        downloadHelper.addToQueue(DownloadItem().apply {
+            itDownloadUrl = item.body!!
+            itStoragePath = mediaStoragePath
+            itFileName = fileName
+            priority = 0
+            downloadListener = object : OnDownloadListener {
+                override fun onDownloadComplete() {
+                    item.pathBackup = item.body!!
+                    item.body = "$mediaStoragePath/$fileName"
+
+                    synchronized(lock) {  // Thread-safe update
+                        completedDownloads++
+                        if (completedDownloads == totalDownloads) {
+                            coroutineScope.launch {
+                                saveItemsToFile(broadcastList)  // Save only once after all downloads
+                                Log.d("writrr","$completedDownloads - $totalDownloads")
+                            }
+                        }
+                    }
+                    Log.d("downloadcomplete", item.body!!)
+                }
+
+                override fun onError(error: com.downloader.Error?) {
+                    Log.d("downloaderror", item.body!!)
+                }
+            }
+        })
+    }
+
+
+
 //    fun downloadAMediaItem(it: MediaItem) {
 //        //1 - bản tin ký tự
 //        //2 - bản tin hình ảnh
@@ -344,3 +347,11 @@ class MediaRepo @Inject constructor(
 //            }
 //        })
 //    }
+}
+//    fun startDownloadMedia() {
+//        if (broadcastList.isEmpty()) return
+//        broadcastList.forEach {
+//            downloadAMediaItem(it)
+//        }
+//    }
+
