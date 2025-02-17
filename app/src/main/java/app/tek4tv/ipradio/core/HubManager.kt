@@ -17,6 +17,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import kotlinx.coroutines.*
@@ -31,6 +32,7 @@ import java.util.concurrent.atomic.AtomicBoolean
  * **/
 class HubManager(
     private val hubComm: HubComm,
+    private val appStorageManager : AppStorageManager,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
@@ -49,8 +51,6 @@ class HubManager(
 
      private val deviceImei = Utils.getDeviceId(appContext)
      // private val deviceImei = "1A:4E:2F:D3:15:12"
-
-    val hubEventObserver = mutableListOf<HubEventObserver>()
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -71,11 +71,6 @@ class HubManager(
 
     var versionName = ""
 
-    private val mainHandler = Handler(Looper.getMainLooper())
-
-    private val notifyDisconnected = AtomicBoolean(false)
-
-
     private var hubToken: String? = null
 
     private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
@@ -88,10 +83,10 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    var nguonId = "h48.52.01"
-    var tenNguon = "Thị trấn Ba Tơ"
-    var dichId = "h48"
-    var tenDich = "Quảng Ngãi"
+    var nguonId = ""
+    var tenNguon = ""
+    var dichId = ""
+    var tenDich = ""
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
     val isMQTT = true
     private var getMQTTInfoJob: Job? = null
@@ -228,24 +223,30 @@ class HubManager(
                     continue
                 }
                 // Cancel and start a new MQTT info retrieval job
-                getMQTTInfoJob?.cancel()
-                getMQTTInfoJob = launch {
-                    while (listMQTTInfo.isEmpty()) {
-                        getMqttInfo()
-                        if (listMQTTInfo.isEmpty()) {
-                            delay(5000)
+                if(isMQTT) {
+                    getMQTTInfoJob?.cancel()
+                    getMQTTInfoJob = launch {
+                        while (listMQTTInfo.isEmpty()) {
+                            getMqttInfo()
+                            if (listMQTTInfo.isEmpty()) {
+                                delay(5000)
+                            }
                         }
+                        mqttClient = MQTTManager(
+                            hubToken,
+                            this@HubManager,
+                            listMQTTInfo,
+                            nguonId
+                        )
+                        mqttClient?.connectToMQTT(appContext)
                     }
-                    if (listMQTTInfo.isEmpty()) return@launch
+                }else
+                {
+                    wssManager = WssManager(hubToken,this@HubManager)
+                    wssManager!!.connectToWss()
 
-                    mqttClient = MQTTManager(
-                        hubToken,
-                        this@HubManager,
-                        listMQTTInfo,
-                        nguonId
-                    )
-                    mqttClient?.connectToMQTT(appContext)
                 }
+
             }
 
         }
@@ -256,7 +257,7 @@ class HubManager(
     }
 
     override fun onConnectFailure(message: String?) {
-
+        pingCounter++
     }
 
     override fun onReceiveMessageSuccess(message: String) {
@@ -330,7 +331,7 @@ class HubManager(
                         StringValue.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
-                    dungLuongSuDung = "1024000"
+                    dungLuongSuDung = appStorageManager.getUsedRomStorage().toString()
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 noiDungPhat = noiDungPhat,
@@ -458,7 +459,22 @@ class HubManager(
                         2 - Dừng phát
                         3 - Phát tiếp nội dụng đã dừng*/
                         "2" -> {
-
+                            hubCommand = HubCommand.CONTROL_MEDIA
+                            if (giaTri == "0" || giaTri == "2" ) {
+                                responseHub = ResponseHub().apply {
+                                    message = "0"
+                                }
+                            }
+                            if (giaTri == "1" ) {
+                                responseHub = ResponseHub().apply {
+                                    message = "1"
+                                }
+                            }
+                            if (giaTri == "3" ) {
+                                responseHub = ResponseHub().apply {
+                                    message = "3"
+                                }
+                            }
                         }
                         //Reset - Tham số (số giây khởi động lại)
                         "3" -> {
@@ -808,32 +824,21 @@ class HubManager(
         //sau 5s se reset lai app neu api call that bai 60*5000
         if (pingCounter >= 60) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-
             hubComm.forceRestartApp(countForHardRestart)
         }
     }
 
     private fun checkConnection() {
         if (pingCounter >= 3) {
-            Log.e(TAG, "Losed hub connection")
-            if (notifyDisconnected.compareAndSet(false, true)) {
-                hubToken = null
-                notifyHubDisconnected()
-                Log.e(TAG, "Hub Disconnected")
-            }
             //Try to reconnect to hub
-            Log.e(TAG, "Try to reconnect Websocket")
+            hubToken = null
+            Log.e(TAG, "Losed hub connection. Try to reconnect Websocket")
             connectToServer()
         }
     }
 
 
-    @Synchronized
-    private fun notifyHubDisconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onLostHubConnection() }
-        }
-    }
+
 
 
 }
@@ -842,10 +847,5 @@ class HubManager(
 interface HubComm {
     fun forceRestartApp(countHardRestart: Int)
     fun forceRestartDevice()
-}
-
-interface HubEventObserver {
-    fun onLostHubConnection()
-    fun onReconnectedToHub()
 }
 

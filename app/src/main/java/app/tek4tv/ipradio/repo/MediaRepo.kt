@@ -47,14 +47,15 @@ class MediaRepo @Inject constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
-
+    private var completedDownloads = 0
+    private val lock = Any()
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
         try {
             Log.e(TAG, "updateMonthlyScenario")
 
             val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-            listMonthSchedule?.forEach{
+            listMonthSchedule?.forEach {
                 Log.e(TAG, "updateMonthlyScenarioWss ${it.key}")
                 val list = jsonListMediaItemAdapter.fromJson(it.value)
                 list?.forEach {
@@ -206,79 +207,140 @@ class MediaRepo @Inject constructor(
     }
 
 
+    private fun getConfigExtension(): String? {
+        return ConfigUtil.getStringEncrypt(
+            appContext,
+            ConfigUtil.KEY_EXTEND_FILE,
+            "mp3#aac#wav#wma#ac3"
+        )
+
+    }
+
     fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return
-        broadcastList.forEach {
-            downloadAMediaItem(it)
+
+        val validItems = broadcastList.filter {
+            it.body != "start" && it.body != "end" &&
+                    (it.contentType?.value == "3" || it.contentType?.value == "4") &&
+                    File(it.body).extension.isNotEmpty() &&
+                    getConfigExtension()?.contains(File(it.body).extension) == true
         }
-    }
-    private fun getConfigExtension() : String?
-    {
-        return ConfigUtil.getStringEncrypt(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp3#aac#wav#wma#ac3")
 
-    }
+        if (validItems.isEmpty()) return  // No valid items to download
 
-    fun downloadAMediaItem(it: MediaItem) {
-        //1 - bản tin ký tự
-        //2 - bản tin hình ảnh
-        //3 - bản tin âm thanh
-        //4 - Bản tin video
-        //5 - Bản tin trực tiếp
-        //6 - Bản tin FM
-        //7 - Bản tin ghi âm trực tiếp
-        //không phải files thì không tải, chỉ tải type 3 , type 4
-        Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
-        if (it.body == "start" || it.body == "end") return
-        if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
+        completedDownloads = 0  // Reset counter
+        val totalDownloads = validItems.size
 
-        //xác định có là file hay không, lấy đuôi file
-        val extMedia = File(it.body).extension
+        validItems.forEach { item ->
+            val fileName = getFileNameFromUrl(item.body ?: return@forEach)
 
-        if(extMedia.isEmpty()) return
-        val isFile = getConfigExtension()!!.contains(extMedia)
-
-        if (!isFile) return
-
-        val url = it.body
-        //if (url.isEmpty() || !url.startsWith("http")) return
-
-        val fileName = getFileNameFromUrl(url!!)
-        if (isFileExisted(mediaStoragePath, fileName)) {
-            //handle broken path
-            if (it.body != "$mediaStoragePath/$fileName") {
-                it.body = "$mediaStoragePath/$fileName"
-                coroutineScope.launch {
-                    saveItemsToFile(broadcastList)
+            // Check if file already exists
+            if (isFileExisted(mediaStoragePath, fileName)) {
+                val updatedPath = "$mediaStoragePath/$fileName"
+                if (item.body != updatedPath) {
+                    item.body = updatedPath
                 }
+                return@forEach
             }
 
-            return
-        }
+            Log.d("download item", item.body ?: "Invalid URL")
 
-        Log.d("download item", url)
+            // Queue download
+            downloadHelper.addToQueue(DownloadItem().apply {
+                itDownloadUrl = item.body!!
+                itStoragePath = mediaStoragePath
+                itFileName = fileName
+                priority = 0
+                downloadListener = object : OnDownloadListener {
+                    override fun onDownloadComplete() {
+                        item.pathBackup = item.body!!
+                        item.body = "$mediaStoragePath/$fileName"
 
-        downloadHelper.addToQueue(DownloadItem().apply {
-            itDownloadUrl = url
-            itStoragePath = mediaStoragePath
-            itFileName = fileName
-            priority = 0
-            downloadListener = object : OnDownloadListener {
-                override fun onDownloadComplete() {
-                    it.pathBackup = it.body!!
-                    it.body = "$mediaStoragePath/$fileName"
-
-                    coroutineScope.launch {
-                        saveItemsToFile(broadcastList)
+                        synchronized(lock) {  // Use lock object for thread safety
+                            completedDownloads++
+                            if (completedDownloads == totalDownloads) {
+                                coroutineScope.launch {
+                                    saveItemsToFile(broadcastList)  // Save only once after all downloads
+                                }
+                            }
+                        }
+                        Log.d("downloadcomplete", item.body!!)
                     }
 
-                    Log.d("downloadcomplete", it.body!!)
+                    override fun onError(error: com.downloader.Error?) {
+                        Log.d("downloaderror", item.body!!)
+                    }
                 }
-
-                override fun onError(error: com.downloader.Error?) {
-                    Log.d("downloaderror", it.body!!)
-                }
-
-            }
-        })
+            })
+        }
     }
 }
+//    fun startDownloadMedia() {
+//        if (broadcastList.isEmpty()) return
+//        broadcastList.forEach {
+//            downloadAMediaItem(it)
+//        }
+//    }
+//    fun downloadAMediaItem(it: MediaItem) {
+//        //1 - bản tin ký tự
+//        //2 - bản tin hình ảnh
+//        //3 - bản tin âm thanh
+//        //4 - Bản tin video
+//        //5 - Bản tin trực tiếp
+//        //6 - Bản tin FM
+//        //7 - Bản tin ghi âm trực tiếp
+//        //không phải files thì không tải, chỉ tải type 3 , type 4
+//        Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
+//        if (it.body == "start" || it.body == "end") return
+//        if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
+//
+//        //xác định có là file hay không, lấy đuôi file
+//        val extMedia = File(it.body).extension
+//
+//        if(extMedia.isEmpty()) return
+//        val isFile = getConfigExtension()!!.contains(extMedia)
+//
+//        if (!isFile) return
+//
+//        val url = it.body
+//        //if (url.isEmpty() || !url.startsWith("http")) return
+//
+//        val fileName = getFileNameFromUrl(url!!)
+//        if (isFileExisted(mediaStoragePath, fileName)) {
+//            //handle broken path
+//            if (it.body != "$mediaStoragePath/$fileName") {
+//                it.body = "$mediaStoragePath/$fileName"
+//                coroutineScope.launch {
+//                    saveItemsToFile(broadcastList)
+//                }
+//            }
+//
+//            return
+//        }
+//
+//        Log.d("download item", url)
+//
+//        downloadHelper.addToQueue(DownloadItem().apply {
+//            itDownloadUrl = url
+//            itStoragePath = mediaStoragePath
+//            itFileName = fileName
+//            priority = 0
+//            downloadListener = object : OnDownloadListener {
+//                override fun onDownloadComplete() {
+//                    it.pathBackup = it.body!!
+//                    it.body = "$mediaStoragePath/$fileName"
+//
+//                    coroutineScope.launch {
+//                        saveItemsToFile(broadcastList)
+//                    }
+//
+//                    Log.d("downloadcomplete", it.body!!)
+//                }
+//
+//                override fun onError(error: com.downloader.Error?) {
+//                    Log.d("downloaderror", it.body!!)
+//                }
+//
+//            }
+//        })
+//    }

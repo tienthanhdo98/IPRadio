@@ -24,7 +24,7 @@ abstract class BaseRepo<T>(
                 Log.d("writefile", "$fileStoragePath")
                 try {
                     writeFile(fileStoragePath, json)
-                } catch (e: IOException) {
+                } catch (e: Exception) {
                     Log.e("BaseRepo", "error writing playlist!!!")
                     e.printStackTrace()
                 }
@@ -42,7 +42,7 @@ abstract class BaseRepo<T>(
             try {
                 val contentFromFile = readFile(fileStoragePath)
                 result = jsonAdapter.fromJson(contentFromFile) ?: listOf()
-            } catch (e: IOException) {
+            } catch (e: Exception) {
                 Log.e("BaseRepo", "error reading playlist!!!")
             }
 

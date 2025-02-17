@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -30,7 +29,7 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     private val mediaRepo: MediaRepo
-) : IPlayerEventListener, HubEventObserver {
+) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
@@ -63,7 +62,7 @@ class PlayersManager(
     /**
      * Determine if we will not play any media in >= 15s to go
      * **/
-    private var isTimeOver = false
+    var isTimeOver = false
 
     var played = false
 
@@ -92,18 +91,6 @@ class PlayersManager(
         stopForceMedia()
     }
 
-    override fun onLostHubConnection() {
-        vlcPlayer.disconnectedHub = true
-        exoPlayer.disconnectedHub = true
-        currentPlayer?.onLostHubConnection()
-    }
-
-    override fun onReconnectedToHub() {
-        vlcPlayer.disconnectedHub = false
-        exoPlayer.disconnectedHub = false
-        currentPlayer?.onHubReconnected()
-    }
-
     private fun onMediaStopPlaying() {
         if (played) {
             Log.e("AAA", "Đừng vào đây lần 2")
@@ -117,7 +104,6 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
-    var isInTimeFrame = false
     fun startFirstTimeFrame() {
         var found = false
         val scheduledList = mediaRepo.scheduledList
@@ -134,12 +120,10 @@ class PlayersManager(
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 found = true
-                isInTimeFrame = true
                 break
             }
         }
         if (!found) {
-            isInTimeFrame = false
             playerManagerListener?.onTimeOver()
             Log.d(LOGTAG, "onTimeOver: not time frame found")
         }
@@ -383,8 +367,6 @@ class PlayersManager(
                 }
 
             }
-
-
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
                     val listDur = duration.split(":")

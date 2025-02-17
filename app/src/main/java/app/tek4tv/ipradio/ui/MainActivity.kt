@@ -7,8 +7,6 @@ import android.content.pm.PackageManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -33,7 +31,6 @@ import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
-import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
@@ -124,6 +121,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+            //dung cho ban nam dinh(encoder)
 //            Handler(Looper.getMainLooper()).postDelayed({
 //                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
 //                serialPortController.turnOffPA()
@@ -163,7 +161,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
-//            logUtils.logMediaEnd(mediaItem!!)
             startPlayingMedia()
         }
 
@@ -250,12 +247,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
-
+        appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService) { command, message ->
+        hubManager = HubManager(hubComm,appStorageManager, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
+        hubManager.onMessageListener =
+            { command, message ->
+                handleFromCommandServer(command, message)
+            }
+
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -266,10 +268,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 Log.i("PA", "onCreate: s4")
             }
         }
-        hubManager.onMessageListener =
-            { command, message ->
-                handleFromCommandServer(command, message)
-            }
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
@@ -278,15 +276,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
 
-        hubManager.hubEventObserver.add(playerManager)
-
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
         registerObservers()
-
-        appStorageManager = AppStorageManager(applicationContext)
-
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
@@ -298,6 +291,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         showMac()
 
+        initEncoder()
+
+    }
+
+    private fun initEncoder()
+    {
         if (isEncoder) {
             micStreamRtsp = RtspOnlyAudioTek(this)
             getSteamInfo()
@@ -326,9 +325,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 delay(5000)
             }
         }
-
     }
-
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getString(
@@ -402,7 +399,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             Log.d("RTMP", "startStream: micStream not prepare success")
         }
     }
-
 
     override fun stopStream() {
         if (isEncoder) {
@@ -512,7 +508,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
-
                 playerManager.stopPlaylist(listKey!!)
             }
 
@@ -696,31 +691,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
                 }
 
-                HubCommand.UPDATE_MONTHLY_LIST -> {
-//                    clearDatastore()
-//                    val mess = responseHub.message!!
-//                    //  //add at 4.1.3d
-////                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
-//                    playerManager.stopAllPlayer() //dừng trạng thái tất cả player hiện tại
-//                    playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
-//                    cancelAllAlarm() //xóa tất hẹn giờ
-//                    ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
-//                    viewModel.updateMonthlyScenario(mess) //cập nhật lịch mới
-//                    ConfigUtil.putString(
-//                        applicationContext,
-//                        ConfigUtil.MONTHLY_SCENARIO_URL,
-//                        mess
-//                    ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
-//                    // lưu thời gian cập nhật lịch để gửi log
-//                    val currentTime = Calendar.getInstance().time.time / 1000
-//                    ConfigUtil.putString(
-//                        applicationContext,
-//                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-//                        currentTime.toString()
-//                    )
-//                    //add at 4.1.3b
-//                    playerManager.stopForceMedia() //stop force media
-                }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
 
@@ -886,7 +856,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.TURN_ON_PA -> {
-                    Log.i("CONTROL_MEDIA", responseHub.message!!)
+                    Log.i("TURN_ON_PA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
                     if (mess == 0) {
                         serialPortController.turnOnPAVod()
@@ -912,19 +882,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                             1 -> {
                                 Log.d(
                                     "CONTROL_MEDIA",
-                                    "isInTimeFrame: ${playerManager.isInTimeFrame}"
+                                    "isInTimeFrame: ${playerManager.isTimeOver}"
                                 )
-                                if (playerManager.isInTimeFrame) {
+                                if (!playerManager.isTimeOver) {
                                     playerManager.playNextMedia()
                                 }
                             }
 
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
-                                if (playerManager.played) {
-                                    playerManager.resumeMedia()
-                                } else {
-                                    playerManager.startFirstTimeFrame()
+                                if(!playerManager.isTimeOver) {
+                                    if (playerManager.played) {
+                                        playerManager.resumeMedia()
+                                    } else {
+                                        playerManager.startFirstTimeFrame()
+                                    }
                                 }
                             }
                         }
@@ -1036,14 +1008,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
 
                 HubCommand.STORAGE_INFO -> {
-//                    val connectionId = responseHub.message
-//                    if (connectionId != null) {
-//                        val info = appStorageManager.run {
-//                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
-//                        }
-//
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val info = appStorageManager.run {
+                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
+                        }
+
 //                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
-//                    }
+                    }
                 }
 
                 HubCommand.GET_MEDIA_PATH -> {
