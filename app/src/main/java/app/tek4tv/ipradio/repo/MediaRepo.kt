@@ -3,7 +3,6 @@ package app.tek4tv.ipradio.repo
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
@@ -43,11 +42,11 @@ class MediaRepo @Inject constructor(
 
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
 
-    var leftScheduledList = mutableListOf<MediaItem>()
+    var scheduledListLeft = LinkedHashMap<String, List<MediaItem>>()
+
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
-    private var unscheduledList = mutableListOf<MediaItem>()
-    var scheduledMediaItems = mutableListOf<MediaItem>()
-    private var layoutType : Int = FULL_SCREEN
+
+    var layoutType: Int = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -96,8 +95,6 @@ class MediaRepo @Inject constructor(
 
     suspend fun getScenario(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
-        unscheduledList.clear()
-        scheduledMediaItems.clear()
 
         val res = if (needUpdate) {
             updateScenario(listUrl)
@@ -124,8 +121,6 @@ class MediaRepo @Inject constructor(
             mediaList[it].body == "start" || mediaList[it].body == "end"
         }.chunked(2)
 
-        val scheduledIndex = mutableListOf<Int>()
-
         dividerIndices.forEach {
             if (it.size == 2) {
                 val startIndex = it[0]
@@ -133,58 +128,16 @@ class MediaRepo @Inject constructor(
 
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA || mediaItem.broadcastRegion?.value == FULL_SCREEN }
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
-                //adding the index of scheduled media
-                scheduledIndex.addAll((startIndex..endIndex))
+                scheduledListLeft[key] = mediaList.subList(startIndex + 1, endIndex)
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == LEFT_AREA }
             }
         }
 
-        mediaList.indices.filter { !scheduledIndex.contains(it) }.forEach {
-            unscheduledList.add(mediaList[it])
-        }
-
-        scheduledMediaItems.addAll(mediaList.filter {
-            it.body != "start" && it.body != "end" && it.fixTime!!.isNotEmpty() && it.fixTime != "00:00:00"
-        })
     }
-
-    private suspend fun updateScenario2(listUrl: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
-
-        try {
-            val res = playlistService.getPlaylist(listUrl)
-            if (res.isSuccessful) {
-                val resBody = res.body()
-                if (resBody != null) {
-
-                    if(layoutType == FULL_SCREEN)
-                    {
-                        result =  resBody
-                    }
-                    else {
-                        result =
-                            resBody.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
-
-                        leftScheduledList =
-                            resBody.filter { it.broadcastRegion?.value == LEFT_AREA && it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
-                    }
-                    val srt = mediaJsonAdapter.toJson(leftScheduledList)
-                    ConfigUtil.putString(appContext,ConfigUtil.KEY_LIST_LEFT_PREF,srt)
-
-                    saveItemsToFile(result)
-                }
-            } else {
-                Log.e("yee", "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e("yee", e.toString())
-        }
-
-        return result
-    }
-
 
     private suspend fun updateScenario(listUrl: String): List<MediaItem> {
         var result = listOf<MediaItem>()
@@ -208,6 +161,8 @@ class MediaRepo @Inject constructor(
 
         return result
     }
+
+    ///model v1 to v2
     private fun convertToTimeFrame(listItem: List<MediaItem>): List<MediaItem> {
         val newList = listItem.toMutableList()
         val res = mutableListOf<MediaItem>()
@@ -317,7 +272,6 @@ class MediaRepo @Inject constructor(
         }
 
     }
-
 
     fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return

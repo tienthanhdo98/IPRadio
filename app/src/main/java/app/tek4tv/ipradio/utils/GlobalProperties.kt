@@ -41,6 +41,19 @@ class GlobalProperties {
 
 
     init {
+        ////Longan
+//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
+//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
+//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.21.12") ?: "H39.21.12"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Cần Đước") ?: "Thị trấn Cần Đước"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Cần Đước") ?: "TB DI Thị trấn Cần Đước"
+//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
+//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
+//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
         ////Quang ngai
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"

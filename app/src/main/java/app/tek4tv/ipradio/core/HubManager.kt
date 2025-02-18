@@ -236,7 +236,7 @@ class HubManager(
         }
     }
 
-    private suspend fun openConnection(): String? {
+    suspend fun openConnection(): String? {
         //open connection on another thread
         Log.i(LOG_TAG, "open connection")
         return withContext(Dispatchers.IO) {

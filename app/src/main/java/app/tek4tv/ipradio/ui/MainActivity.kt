@@ -26,7 +26,10 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
@@ -36,17 +39,18 @@ import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.squareup.moshi.JsonAdapter
+import com.microsoft.signalr.HubConnectionBuilder
+import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
+import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
@@ -119,70 +123,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
-        //Bắt đầu khung thời gian
-        override fun onStartTimeFrame(frame: String) {
-            Log.d("onPlayMediaLog", "startFirstTimeFrame: onStartTimeFrame")
-            if (typeScreen == MULTIPLE_AREA) {
-                showLeftArea()
-                if (listLeftMedia.isEmpty()) return
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
-                listLeftMedia.forEach {
-                    logUtils.logMediaStart(
-                        it,
-                        0,
-                        globalProperties.volume,
-                        paState,
-                        typeScreen
-                    )
-                }
-            }
-        }
-
-        //Kết thúc khung gian
-        override fun onEndTimeFrame(frame: String) {
-            if (typeScreen == MULTIPLE_AREA) {
-                hideTopLeftArea(true)
-            }
-            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
-        }
-
-        //Phát FM
-        override fun onPlayTuner(mediaItem: MediaItem) {
-            try {
-                val tunerType = if (mediaItem.getMediaType() == MediaType.AM) "0" else "1"
-                val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
-                hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
-
-                logUtils.logMediaStart(
-                    mediaItem,
-                    0,
-                    globalProperties.volume,
-                    paState,
-                    typeScreen
-                )
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
@@ -221,16 +161,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
-                if (mediaItem.getMediaType() != MediaType.FM) {
-                    if (!serialPortController.isUart1) {
-                        lifecycleScope.launch {
-                            delay(11000)
-                            serialPortController.turnOnPAVod()
-                        }
-                    } else {
+
+                if (!serialPortController.isUart1) {
+                    lifecycleScope.launch {
+                        delay(11000)
                         serialPortController.turnOnPAVod()
                     }
+                } else {
+                    serialPortController.turnOnPAVod()
                 }
+
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
@@ -241,12 +181,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     paState,
                     typeScreen
                 )
-
-
                 viewModel.currentMedia = mediaItem
-
-
             }
+        }
+
+        override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
+            showLeftArea(listMediaItem)
+        }
+
+        override fun onEndLeftMediaPlaying() {
+            hideTopLeftArea()
         }
     }
 
@@ -260,7 +204,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -304,6 +248,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         playerManager.playerManagerListener = playerCallback
 
         NetworkUtils.instance.startNetworkListener(this)
+        alarmListener = this
 
         registerObservers()
 
@@ -312,7 +257,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
-        alarmListener = this
+
 
         setMaxVolume()
 
@@ -333,7 +278,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    private fun startAutoScroll() {
+    private fun startAutoScroll(listMedia: List<MediaItem>) {
         val runnable: Runnable = object : Runnable {
             override fun run() {
                 // Scroll the ScrollView vertically
@@ -344,7 +289,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         .height - scrollLeftArea.height
                 ) {
                     // val typeface = resources.getFont(R.font.verdanabold)
-                    listLeftMedia.forEach {
+                    listMedia.forEach {
                         val textView = TextView(baseContext)
                         textView.text = it.body
                         textView.setTextColor(Color.parseColor("#F2FB0A"))
@@ -357,7 +302,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (layoutTvLeft.size >= 30) {
                         layoutTvLeft.removeAllViews()
                         handler.removeCallbacksAndMessages(null)
-                        showLeftArea()
+                        showLeftArea(listMedia)
                     }
                 }
 
@@ -367,13 +312,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
     }
 
-    private fun showLeftArea() {
-        if (listLeftMedia.isEmpty()) return
+    private fun showLeftArea(listMedia: List<MediaItem>) {
+        if (listMedia.isEmpty()) return
         Log.d("monthlyinfo", "show left")
         //   val typeface = resources.getFont(R.font.verdanabold)
-        listLeftMedia.forEach {
+        listMedia.forEach {
             val textView = TextView(baseContext)
             textView.text = it.body
+//            val layoutParams = LinearLayout.LayoutParams(
+//                LinearLayout.LayoutParams.WRAP_CONTENT,
+//                LinearLayout.LayoutParams.WRAP_CONTENT
+//            )
+//            layoutParams.setMargins(0, 0, 0, 20) // Khoảng cách dưới cùng (20px)
+//            textView.layoutParams = layoutParams
             textView.setTextColor(Color.parseColor("#F2FB0A"))
             textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
             //   textView.typeface = typeface
@@ -383,7 +334,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-                startAutoScroll()
+                startAutoScroll(listMedia)
                 scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
             }
         })
@@ -397,21 +348,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         layoutTvLeft = findViewById(R.id.layoutTvLeft)
     }
 
-    private fun hideTopLeftArea(isStillTimeFrame: Boolean) {
+    private fun hideTopLeftArea() {
         if (typeScreen != FULL_SCREEN) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
-            if (!isStillTimeFrame) {
-                listLeftMedia.clear()
-                ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-                Log.e("monthlyinfo", "Hub hide left")
-            }
         }
     }
 
     private val scrollSpeed = 1
     private val handler: Handler = Handler()
-    private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
 
     override fun onStart() {
@@ -449,15 +394,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
                 }
-               // playerManager.startFirstTimeFrame()
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
-//                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-//                Log.d("alarmx", "end: $listKey")
-//                playerManager.stopPlaylist(listKey!!)
-//                mediaScheduler.scheduleShowListLeft()
-//                mediaScheduler.scheduleEndLeftArea()
+                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+                Log.d("alarmx", "end: $listKey")
+                playerManager.stopPlaylist(listKey!!)
+            }
+            MediaScheduleReceiver.ACTION_PLAY_LEFT_PLAYLIST -> {
+                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_LEFT_KEY)
+                Log.d("alarmx", "start left: $listKey")
+                if (listKey != null) {
+                    playerManager.startLeftTimeFrame(listKey)
+                }
+            }
+
+            MediaScheduleReceiver.ACTION_END_LEFT_PLAYLIST -> {
+                Log.d("alarmx", "end left")
+                playerManager.stopLeftPlaylist()
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -544,23 +498,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             playerManager.startFirstTimeFrame()
 
-            if (typeScreen == MULTIPLE_AREA) {
-                listLeftMedia = viewModel.mediaRepo.leftScheduledList
-                if (listLeftMedia.isEmpty()) {
-                    val mediaJsonAdapter: JsonAdapter<List<MediaItem>> =
-                        moshi.adapter(type)
-                    val strList = ConfigUtil.getString(baseContext, KEY_LIST_LEFT_PREF, "") ?: ""
-                    if (strList != "") {
-                        listLeftMedia = mediaJsonAdapter.fromJson(strList)
-                            ?.filter { it.body != null && it.body != "start" && it.body != "end" } as MutableList<MediaItem>
-                        Log.i("monthlyinfo", "Mess: local ")
-                    }
-                } else {
-                    Log.i("monthlyinfo", "Mess: online ")
-                }
-
-            }
-
             //all load done, check
             viewModel.checkPlaylist()
         }
@@ -597,7 +534,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     playerManager.stopTimeFrame()
 //                  playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
-                    hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess, true)
@@ -665,56 +601,56 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_CONFIG -> {
-//                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-//                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
-//                    val mess = responseHub.message!!
-//                    val listValue = mess.split(",")
-//                    val urlHub = listValue[0]
-//                    val urlToken = listValue[1]
-//                    if (listValue.size >= 3) {
-//                        ConfigUtil.putStringEncrypt(
-//                            applicationContext,
-//                            ConfigUtil.PROVIDER,
-//                            listValue[2]
-//                        )
-//                    }
-//                    val hubConnection = HubConnectionBuilder.create(urlHub)
-//                        .withAccessTokenProvider(Single.defer {
-//                            val token = hubManager.getHubToken(urlToken)
-//                            if (token != null) {
-//                                Single.just(token)
-//                            } else
-//                                Single.error(Exception())
-//                        })
-//                        .withTransport(TransportEnum.WEBSOCKETS)
-//                        .build()
-//                    lifecycleScope.launch {
-//                        val id = hubManager.openConnection(hubConnection)
-//                        if (id != null) {
-//                            ConfigUtil.putStringEncrypt(
-//                                applicationContext,
-//                                ConfigUtil.URL_HUB,
-//                                urlHub
-//                            )
-//                            ConfigUtil.putStringEncrypt(
-//                                applicationContext,
-//                                ConfigUtil.URL_TOKEN,
-//                                urlToken
-//                            )
-//                            Log.i("config_config", "updateconfig success: reseting")
-//                            delay(60000)
-//                            serialPortController.hardRestart()
-//                            delay(10000)
-//                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//
-//                        } else {
-//                            Log.i("config_config", "updateconfig fail: reseting")
-//                            delay(2000)
-//                            serialPortController.hardRestart()
-//                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//                        }
-//
-//                    }
+                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
+                    Log.i("UPDATE_CONFIG be", responseHub.message!!)
+                    val mess = responseHub.message!!
+                    val listValue = mess.split(",")
+                    val urlHub = listValue[0]
+                    val urlToken = listValue[1]
+                    if (listValue.size >= 3) {
+                        ConfigUtil.putStringEncrypt(
+                            applicationContext,
+                            ConfigUtil.PROVIDER,
+                            listValue[2]
+                        )
+                    }
+                    val hubConnection = HubConnectionBuilder.create(urlHub)
+                        .withAccessTokenProvider(Single.defer {
+                            val token = hubManager.getHubToken(urlToken)
+                            if (token != null) {
+                                Single.just(token)
+                            } else
+                                Single.error(Exception())
+                        })
+                        .withTransport(TransportEnum.WEBSOCKETS)
+                        .build()
+                    lifecycleScope.launch {
+                        val id = hubManager.openConnection2(hubConnection)
+                        if (id != null) {
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_HUB,
+                                urlHub
+                            )
+                            ConfigUtil.putStringEncrypt(
+                                applicationContext,
+                                ConfigUtil.URL_TOKEN,
+                                urlToken
+                            )
+                            Log.i("config_config", "updateconfig success: reseting")
+                            delay(60000)
+                            serialPortController.hardRestart()
+                            delay(10000)
+                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+
+                        } else {
+                            Log.i("config_config", "updateconfig fail: reseting")
+                            delay(2000)
+                            serialPortController.hardRestart()
+                            CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+                        }
+
+                    }
 
                 }
 

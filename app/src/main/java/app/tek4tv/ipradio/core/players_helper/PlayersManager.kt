@@ -83,7 +83,14 @@ class PlayersManager(
         playNextMedia()
     }
 
-
+    fun startLeftTimeFrame(timeFrame: String) {
+        val listMediaLeft = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
+    }
+    fun stopLeftPlaylist()
+    {
+        playerManagerListener?.onEndLeftMediaPlaying()
+    }
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -113,7 +120,6 @@ class PlayersManager(
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
-        playerManagerListener?.onStartTimeFrame(timeFrame)
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
@@ -181,11 +187,6 @@ class PlayersManager(
 
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem)
-                }
-
-                MediaType.FM -> {
-                    mediaStartTime = Calendar.getInstance().timeInMillis
-                    playerManagerListener?.onPlayTuner(mediaItem)
                 }
 
                 else -> {
