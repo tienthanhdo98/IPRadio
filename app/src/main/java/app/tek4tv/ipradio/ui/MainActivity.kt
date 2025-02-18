@@ -135,11 +135,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-            Handler(Looper.getMainLooper()).postDelayed({
-                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
-                serialPortController.turnOffPA()
-                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
-            }, 10000)
+            //chi dung cho ban nam dinh
+//            Handler(Looper.getMainLooper()).postDelayed({
+//                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
+//                serialPortController.turnOffPA()
+//                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
+//            }, 10000)
         }
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
@@ -953,6 +954,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
                         serialPortController.writeForceSetVolume(responseHub.message!!)
+                        globalProperties.saveVolume(responseHub.message!!)
                         globalProperties.setTempVolume(responseHub.message!!)
                     }
                 }

@@ -295,7 +295,7 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
-        currentPlayingMedia = null
+//        currentPlayingMedia = null
         vlcPlayer.stop()
         exoPlayer.stop()
         played = false

@@ -33,11 +33,11 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "TEK4TV"
+    var providerValue: String = "VATC"
 
 
     init {
-//        //Quang Ngai
+        //Quang Ngai
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
@@ -252,7 +252,7 @@ class GlobalProperties {
     }
 
 
-    private fun saveVolume(vol: String) {
+    fun saveVolume(vol: String) {
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
         volume = vol
     }

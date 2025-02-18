@@ -144,18 +144,18 @@ class HubManager(
     //lấy token từ hub
     private fun getHubToken(): String? {
         return try {
-            //Encrypted json variable name
-//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+            // Encrypted json variable name
+            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
-            //Thông tin xác thực lưu trong thư viện
-            // val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            // Thông tin xác thực lưu trong thư viện
+            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
 
-//            val body = mapOf(
-//                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-//                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
-//            )
-            val body = mapOf("Username" to "device", "Password" to "Device@123")
+            val body = mapOf(
+                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+            )
+
             //Auth Url encrypted in c++ lib
             val url = ConfigUtil.getString(
                 context = appContext,
@@ -182,9 +182,16 @@ class HubManager(
     //check
     fun getHubToken(urlToken : String): String? {
         return try {
+            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
-            val body = mapOf("Username" to "device", "Password" to "Device@123")
-            //Auth Url encrypted in c++ lib
+            // Thông tin xác thực lưu trong thư viện
+            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+
+            val body = mapOf(
+                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
+                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+            )
             val url = ConfigUtil.getString(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
@@ -478,6 +485,7 @@ class HubManager(
 //            Log.i("loghub", "log hub: ${request.video}")
 //            Log.i("loghub", "log hub: ${request.deviceInfo}")
             Log.i("loghub", "log hub: ${request.networkInfo}")
+            Log.i("loghub", "log hub: ${request.volume}")
             Log.i("loghub", "log hub: ${request.metadata}")
 
         } catch (e: java.lang.Exception) {

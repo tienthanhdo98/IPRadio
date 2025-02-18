@@ -170,27 +170,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
 
-    override fun stop() {
-//        if (vlcPlayer.isPlaying)
-        try {
-            handlerLivePlayer?.removeCallbacksAndMessages(null)
-            vlcPlayer.stop()
-            isPlaying = false
-            currentMedia = null
-            currentVlcMedia = null
-        } catch (e: Exception) {
-            Log.d(TAG, "stop error :$e ")
-            isPlaying = false
-            currentMedia = null
-            currentVlcMedia = null
-        }
 
-    }
-
-    override fun release() {
-        vlcPlayer.release()
-        mLibVLC.release()
-    }
 
     override var disconnectedHub = false
 
@@ -298,24 +278,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         return check
     }
 
-    private fun checkOldMediaPlaying(mediaItem: MediaItem): Boolean {
-//        if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
-        Log.d(TAG, "old media:${mediaItem.body} ")
-        val now = Calendar.getInstance()
-
-        val liveEndTime = toCalendar(mediaItem.start!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!) - 2)
-        }
-
-        val check = (now >= liveEndTime)
-
-        Log.e(TAG, "${getDurationInSecond(mediaItem.duration!!)}")
-        Log.e(TAG, "${now <= liveEndTime}")
-
-        Log.d(LOGTAG, "check old: $check")
-
-        return check
-    }
 
     private fun checkStreamError() {
         if (currentMedia == null || currentVlcMedia == null) return
@@ -384,6 +346,28 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    override fun stop() {
+//        if (vlcPlayer.isPlaying)
+        try {
+            handlerLivePlayer?.removeCallbacksAndMessages(null)
+            vlcPlayer.stop()
+            isPlaying = false
+            currentMedia = null
+            currentVlcMedia = null
+        } catch (e: Exception) {
+            Log.d(TAG, "stop error :$e ")
+            isPlaying = false
+            currentMedia = null
+            currentVlcMedia = null
+        }
+
+    }
+
+    override fun release() {
+        vlcPlayer.release()
+        mLibVLC.release()
     }
 }
 
