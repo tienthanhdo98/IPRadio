@@ -46,7 +46,7 @@ class MediaRepo @Inject constructor(
 
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
 
-    var layoutType: Int = FULL_SCREEN
+    var layoutType: String = FULL_SCREEN
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
@@ -79,9 +79,9 @@ class MediaRepo @Inject constructor(
             else monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
-                layoutType = dayScenario.broadcastRegionDigital.toInt()
-                Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital.toInt()}")
+                ConfigUtil.putString(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital)
+                layoutType = dayScenario.broadcastRegionDigital
+                Log.i("ChangeLayout", "Mess: get type ${dayScenario.broadcastRegionDigital}")
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
@@ -101,7 +101,7 @@ class MediaRepo @Inject constructor(
         } else {
             val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
                 Log.d("readplaylist", "local ")
-                layoutType = ConfigUtil.getInt(appContext, TYPE_SCREEN_KEY,1)
+                layoutType = ConfigUtil.getString(appContext, TYPE_SCREEN_KEY,"1") ?: "0"
                 readItemsFromFile()
             } else listOf()
             result
@@ -128,12 +128,12 @@ class MediaRepo @Inject constructor(
 
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
-                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA || mediaItem.broadcastRegion?.value == FULL_SCREEN }
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN.toInt() }
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
                 scheduledListLeft[key] = mediaList.subList(startIndex + 1, endIndex)
-                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == LEFT_AREA }
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == LEFT_AREA.toInt() }
             }
         }
 

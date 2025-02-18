@@ -68,8 +68,9 @@ class VlcMediaPlayer(
         args.add("--skip-frames")
         args.add("--file-caching=500")
         args.add("--network-caching=500")
-//      args.add("--vout=android-display")
-        args.add("--vout=gles2")
+//       args.add("--vout=android-display")
+//        args.add("--vout=gles2")
+ //       args.add("--android-display-chroma=YV12")
         args.add("--avcodec-hw=any")
 //        RotateScreen("270",args)
 

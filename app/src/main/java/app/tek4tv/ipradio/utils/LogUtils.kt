@@ -112,7 +112,7 @@ class LogUtils private constructor() {
 //        }
 //    }
 
-    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String,typeScreen : Int) {
+    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String,typeScreen : String) {
         val filePath = getLogFilePath(playerLogFolderPath)
 
         val externalSource: String

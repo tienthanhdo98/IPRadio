@@ -84,9 +84,10 @@ class PlayersManager(
     }
 
     fun startLeftTimeFrame(timeFrame: String) {
-        val listMediaLeft = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: listOf()
         playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
     }
+
     fun stopLeftPlaylist()
     {
         playerManagerListener?.onEndLeftMediaPlaying()
@@ -107,6 +108,7 @@ class PlayersManager(
             if (now >= start.timeInMillis && now <= end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
+                startLeftTimeFrame(timeFrame = period)
                 found = true
                 Log.d(TAG, "startFirstTimeFrame: found, start")
                 break

@@ -198,15 +198,13 @@ class GlobalProperties {
     }
 
 
-    private fun saveVolume(vol: String) {
+    fun saveVolume(vol: String) {
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
         volume = vol
     }
 
-    fun setTempVolume(vol: String) {
-        volume = vol
-    }
     fun setAndroidPreVolume(vol: String) {
+        ConfigUtil.putString(appContext, DEFAULT_ANDROID_VOLUME, vol)
         androidVolume = vol
     }
 

@@ -3,20 +3,19 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Color
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
+import android.os.Looper
 import android.util.Log
-import android.view.ViewTreeObserver.OnGlobalLayoutListener
+import android.view.View
 import android.view.WindowManager
-import android.widget.LinearLayout
-import android.widget.ScrollView
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
@@ -39,6 +38,7 @@ import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
+import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
@@ -98,20 +98,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var logUtils: LogUtils
 
-    private var volume = "80"
-
     private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
     private val globalProperties = GlobalProperties.getInst()
 
-    private var typeScreen: Int = FULL_SCREEN
+    private var typeScreen: String = FULL_SCREEN
     private lateinit var vlcVideoLayout: VLCVideoLayout
     private lateinit var tvTopArea: TextView
-    private lateinit var tvTitleRight: TextView
-    private lateinit var scrollLeftArea: ScrollView
-    private lateinit var layoutTvLeft: LinearLayout
+    private lateinit var recyclerView: RecyclerView
+    private lateinit var adapter: AutoScrollAdapter
+    private val handler = Handler(Looper.getMainLooper())
+    private var scrollRunnable: Runnable? = null
 
 
     // event media
@@ -126,12 +125,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
-            val oldTypeScreen = ConfigUtil.getInt(
+            val oldTypeScreen = ConfigUtil.getString(
                 context = baseContext,
                 TYPE_PRE_SCREEN_KEY,
                 FULL_SCREEN
             )
-            ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
+            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 
             startPlayingMedia()
             if (oldTypeScreen != typeScreen) {
@@ -149,6 +148,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onMediaEndReach(mediaItem: MediaItem) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaEndReach ")
+            hubManager.curMediaName = ""
+            hubManager.currentMediaItem = null
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -157,10 +158,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (mediaItem != null) {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
-
+                hubManager.curMediaName = mediaItem.title ?: ""
 
                 if (!serialPortController.isUart1) {
                     lifecycleScope.launch {
@@ -186,20 +184,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
-            showLeftArea(listMediaItem)
+            if (typeScreen == MULTIPLE_AREA) {
+                showLeftArea(listMediaItem)
+            }
         }
 
         override fun onEndLeftMediaPlaying() {
-            hideTopLeftArea()
+            if (typeScreen == MULTIPLE_AREA) {
+                hideTopLeftArea()
+            }
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+        typeScreen =
+            ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
-        } else {
+        } else if (typeScreen == MULTIPLE_AREA) {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
@@ -207,6 +210,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
+
+        initDataByScreen()
 
         val hubComm = object : HubComm {
             override fun forceRestartApp() {
@@ -216,6 +221,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
             }
+
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
@@ -250,121 +256,75 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         NetworkUtils.instance.startNetworkListener(this)
         alarmListener = this
 
-        registerObservers()
 
         appStorageManager = AppStorageManager(applicationContext)
 
-
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
-
-
 
         setMaxVolume()
 
         viewModel.hideSystemUI(this)
-        initDataByScreen()
+
         sendLogDataHub()
+
+
+        registerObservers()
 
     }
 
 
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
-            val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-            val imei = Utils.getDeviceId(this)
-            tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        } else {
+            val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+            tvMacAddress.text = info
+        } else if (typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
         }
     }
 
-    private fun startAutoScroll(listMedia: List<MediaItem>) {
-        val runnable: Runnable = object : Runnable {
+    private fun startAutoScroll() {
+
+        val speed = 3 // Tốc độ cuộn (số pixel mỗi lần chạy)
+        val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
+
+        scrollRunnable = object : Runnable {
             override fun run() {
-                // Scroll the ScrollView vertically
-                scrollLeftArea.scrollBy(0, scrollSpeed)
-
-                // Check if reached the bottom
-                if (scrollLeftArea.scrollY >= scrollLeftArea.getChildAt(0)
-                        .height - scrollLeftArea.height
-                ) {
-                    // val typeface = resources.getFont(R.font.verdanabold)
-                    listMedia.forEach {
-                        val textView = TextView(baseContext)
-                        textView.text = it.body
-                        textView.setTextColor(Color.parseColor("#F2FB0A"))
-                        textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
-//                        textView.typeface = typeface
-                        listLeftTextView.add(textView)
-                        layoutTvLeft.addView(textView)
-                    }
-                    //if(layoutTvLeft.size >= listLeftMedia.size*3)
-                    if (layoutTvLeft.size >= 30) {
-                        layoutTvLeft.removeAllViews()
-                        handler.removeCallbacksAndMessages(null)
-                        showLeftArea(listMedia)
-                    }
-                }
-
-                handler.postDelayed(this, 50) // Adjust the delay as needed
+                recyclerView.scrollBy(0, speed) // Cuộn theo trục Y (dọc)
+                handler.postDelayed(this, interval)
             }
         }
-        handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
+        handler.postDelayed(scrollRunnable!!, interval)
+
+
     }
 
     private fun showLeftArea(listMedia: List<MediaItem>) {
-        if (listMedia.isEmpty()) return
-        Log.d("monthlyinfo", "show left")
-        //   val typeface = resources.getFont(R.font.verdanabold)
-        listMedia.forEach {
-            val textView = TextView(baseContext)
-            textView.text = it.body
-//            val layoutParams = LinearLayout.LayoutParams(
-//                LinearLayout.LayoutParams.WRAP_CONTENT,
-//                LinearLayout.LayoutParams.WRAP_CONTENT
-//            )
-//            layoutParams.setMargins(0, 0, 0, 20) // Khoảng cách dưới cùng (20px)
-//            textView.layoutParams = layoutParams
-            textView.setTextColor(Color.parseColor("#F2FB0A"))
-            textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
-            //   textView.typeface = typeface
-            listLeftTextView.add(textView)
-            layoutTvLeft.addView(textView)
-        }
-
-        scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
-            override fun onGlobalLayout() {
-                startAutoScroll(listMedia)
-                scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
-            }
-        })
+        adapter = AutoScrollAdapter(listMedia, resources)
+        recyclerView.adapter = adapter
+        recyclerView.visibility = View.VISIBLE
+        startAutoScroll()
     }
 
+
     private fun initDefaultTopAndLeftArea() {
-        scrollLeftArea = findViewById(R.id.scrollView)
-        tvTopArea = findViewById(R.id.tvTopArea)
-        tvTitleRight = findViewById(R.id.tvTitleRight)
-        tvTopArea.isSelected = true
-        layoutTvLeft = findViewById(R.id.layoutTvLeft)
+        recyclerView = findViewById(R.id.recyclerView)
+        recyclerView.layoutManager = LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false)
     }
 
     private fun hideTopLeftArea() {
-        if (typeScreen != FULL_SCREEN) {
-            layoutTvLeft.removeAllViews()
+        if (typeScreen == MULTIPLE_AREA) {
+            recyclerView.visibility = View.GONE
             handler.removeCallbacksAndMessages(null)
         }
     }
 
-    private val scrollSpeed = 1
-    private val handler: Handler = Handler()
-    private var listLeftTextView = mutableListOf<TextView>()
 
     override fun onStart() {
         Log.i("ChangeLayout", "Mess: recreate onStart")
         super.onStart()
         startPlayingMedia()
     }
-
 
     override fun onStop() {
 //        Log.e("monthlyinfo", "onStop")
@@ -393,6 +353,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
+                    if (typeScreen == MULTIPLE_AREA) {
+                        Log.d("alarmx", "start left: $listKey")
+                        playerManager.startLeftTimeFrame(listKey)
+                    }
                 }
             }
 
@@ -400,18 +364,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
-            }
-            MediaScheduleReceiver.ACTION_PLAY_LEFT_PLAYLIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_LEFT_KEY)
-                Log.d("alarmx", "start left: $listKey")
-                if (listKey != null) {
-                    playerManager.startLeftTimeFrame(listKey)
+                if (typeScreen == MULTIPLE_AREA) {
+                    Log.d("alarmx", "end left")
+                    playerManager.stopLeftPlaylist()
                 }
-            }
-
-            MediaScheduleReceiver.ACTION_END_LEFT_PLAYLIST -> {
-                Log.d("alarmx", "end left")
-                playerManager.stopLeftPlaylist()
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -494,7 +450,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 return@observe
             }
             //default
-            mediaScheduler.scheduleAllAlarms(typeScreen)
+            mediaScheduler.scheduleAllAlarms()
 
             playerManager.startFirstTimeFrame()
 
@@ -549,14 +505,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     Log.d("tesstlive", "handleFromCommandServer: live")
-                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
                     Handler().postDelayed({
                         onPlayForce(responseHub)
                         recreate()
                     }, 1000)
-//                    onPlayForce(responseHub)
 
                 }
 
@@ -733,7 +688,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         if (responseHub.message == "1")//tat loa mute
                         {
                             changeVolume(0)
-                            globalProperties.setTempVolume("0")
+                            globalProperties.saveVolume("0")
                             globalProperties.setAndroidPreVolume("0")
                         } else {
                             changeVolume(
@@ -744,7 +699,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 ) ?: "10").toInt()
                             )
                             globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
-                            globalProperties.setTempVolume(
+                            globalProperties.saveVolume(
                                 (ConfigUtil.getString(
                                     baseContext,
                                     DEFAULT_VOLUME,
@@ -767,18 +722,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (responseHub.message != null) {
                         changeVolume(roundToNearestNumber(responseHub.message!!.toInt()))
                         globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
-                        globalProperties.setTempVolume(responseHub.message!!.toString())
-                        ConfigUtil.putString(
-                            applicationContext,
-                            DEFAULT_ANDROID_VOLUME,
-                            roundToNearestNumber(responseHub.message!!.toInt()).toString()
-                        )
-                        ConfigUtil.putString(
-                            applicationContext,
-                            DEFAULT_VOLUME,
-                            responseHub.message!!
-                        )
-
+                        globalProperties.saveVolume(responseHub.message!!.toString())
                     }
                 }
 
@@ -791,10 +735,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.SET_TIME_OVER -> {
                     serialPortController.setTimeOver()
-                }
-
-                HubCommand.SET_TIME_ON -> {
-                    serialPortController.setTimeOn(volume)
                 }
 
                 HubCommand.SETUP_PI_PS_NAME -> {
@@ -956,8 +896,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun setMaxVolume() {
-//        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
-//        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
+        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
+        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
 
     private fun clearDatastore() {
