@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
@@ -40,6 +41,8 @@ class MediaRepo @Inject constructor(
     var broadcastList = mutableListOf<MediaItem>()
 
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
+
+    var scheduledListLeft = LinkedHashMap<String, List<MediaItem>>()
 
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
 
@@ -89,6 +92,11 @@ class MediaRepo @Inject constructor(
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
         }
     }
+
+    val type: Type = Types.newParameterizedType(
+        List::class.java,
+        MediaItem::class.java
+    )
 
     private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
         var result = listOf<MediaItem>()
@@ -173,7 +181,6 @@ class MediaRepo @Inject constructor(
             mediaList[it].body == "start" || mediaList[it].body == "end"
         }.chunked(2)
 
-        val scheduledIndex = mutableListOf<Int>()
 
         dividerIndices.forEach {
             if (it.size == 2) {
@@ -185,24 +192,15 @@ class MediaRepo @Inject constructor(
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
-                //adding the index of scheduled media
-                scheduledIndex.addAll((startIndex..endIndex))
+                scheduledListLeft[key] = mediaList.subList(startIndex + 1, endIndex)
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == LEFT_AREA }
             }
         }
-        Log.d(TAG, "filterMedia: $scheduledList")
-        Log.d(TAG, "filterMedia: $timeDividers")
-
-
     }
-
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
 
 
     fun startDownloadMedia() {
-        if (broadcastList.isNullOrEmpty()) return
+        if (broadcastList.isEmpty()) return
 
         broadcastList.forEach {
             downloadAMediaItem(it)

@@ -110,8 +110,14 @@ class PlayersManager(
         }
         played = false
     }
-
-
+    fun stopLeftPlaylist()
+    {
+        playerManagerListener?.onEndLeftMediaPlaying()
+    }
+    fun startLeftTimeFrame(timeFrame: String) {
+        val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: listOf()
+        playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
+    }
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -292,7 +298,13 @@ class PlayersManager(
         exoPlayer.stop()
         played = false
     }
-
+    fun stopAndEndTimeFrame()
+    {
+        vlcPlayer.stop()
+        exoPlayer.stop()
+        played = false
+        playerManagerListener?.onTimeOver()
+    }
 
     /**
      * If there are no timeframe to play in the next 15s,

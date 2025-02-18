@@ -33,8 +33,14 @@ class MediaScheduleReceiver : BroadcastReceiver() {
         const val ACTION_RESCHEDULE = "ACTION_RESCHEDULE"
         //check khi 00:30 co hub không, không có thì reset thiết bị
         const val ACTION_CHECKHUB_RESET= "ACTION_CHECKHUB_RESET"
+        //left media
         const val SCHEDULED_END_LEFT_AREA = "SCHEDULED_END_LEFT_AREA"
         const val SCHEDULED_SHOW_LEFT_AREA = "SCHEDULED_SHOW_LEFT_AREA"
+        const val ACTION_PLAY_LEFT_PLAYLIST = "xaction_play_left_media_list"
+        const val ACTION_END_LEFT_PLAYLIST = "xaction_end_left_playlist"
+        const val SCHEDULED_LIST_LEFT_KEY = "scheduled_list_left_key"
+
+
     }
 }
 

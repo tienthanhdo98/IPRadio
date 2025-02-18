@@ -94,7 +94,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = true
+    val isMQTT = false
     var mqttClient: MQTTManager? = null
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
 
@@ -302,7 +302,7 @@ class HubManager(
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
                 trangThai = "1",
-                amLuong = ((GlobalProperties.getInst().androidVolume).toInt() * 10).toString(),
+                amLuong = GlobalProperties.getInst().volume,
                 viDo = GlobalProperties.getInst().lat,
                 kinhDo = GlobalProperties.getInst().lng,
                 thongTinThietBI = ThongTinThietBI(
@@ -471,8 +471,9 @@ class HubManager(
                             }
                         }
                         /*  Dừng phát nội dung
+                        0 - Dung phat tat ca
                         1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
-                        2 - Dừng phát
+                        2 - Tam dung
                         3 - Phát tiếp nội dụng đã dừng*/
                         "2" -> {
 //                            hubCommand =  HubCommand.DELETE_MONTHLY_LIST_WSS
@@ -485,6 +486,11 @@ class HubManager(
                             if (giaTri == "1") {
                                 responseHub = ResponseHub().apply {
                                     message = "1"
+                                }
+                            }
+                            if (giaTri == "2") {
+                                responseHub = ResponseHub().apply {
+                                    message = "2"
                                 }
                             }
                             if (giaTri == "3") {

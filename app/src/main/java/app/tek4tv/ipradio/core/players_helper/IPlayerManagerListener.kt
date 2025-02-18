@@ -11,5 +11,7 @@ interface IPlayerManagerListener {
     fun onEndForceMedia()
     fun onPlayMediaSuccess(mediaItem: MediaItem?)
     fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long)
+    fun onLeftMediaPlaying(listMediaItem: List<MediaItem>)
+    fun onEndLeftMediaPlaying()
 
 }

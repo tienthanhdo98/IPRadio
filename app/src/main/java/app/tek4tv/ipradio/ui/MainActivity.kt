@@ -26,9 +26,7 @@ import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.MoshiInst.moshi
@@ -38,12 +36,10 @@ import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
-import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.POTRAIT_SPLIT
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
@@ -100,8 +96,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var logUtils: LogUtils
 
-    private var volume = "80"
-
     var locationTracker = LocationTracker()
 
     private lateinit var mediaCapture: MediaCapture
@@ -155,7 +149,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
 //            logUtils.logMediaEnd(mediaItem)
-
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
@@ -169,18 +162,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val displayName = mediaItem.title ?: ""
                 hubManager.curMediaName = displayName
 
-
                 serialPortController.turnOnPAVod()
-//                val paState =
-//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-//                    else "0"
+
                 hubManager.sendLogMediaSuccess(mediaItem)
 
-
                 viewModel.currentMedia = mediaItem
-
-
             }
+
+        }
+
+        override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
+            showLeftArea(listMediaItem)
+        }
+
+        override fun onEndLeftMediaPlaying() {
+            hideTopLeftArea()
         }
     }
 
@@ -317,7 +313,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
@@ -332,7 +327,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private fun startAutoScroll() {
+    private fun startAutoScroll(listMedia: List<MediaItem>) {
         val runnable: Runnable = object : Runnable {
             override fun run() {
                 // Scroll the ScrollView vertically
@@ -343,7 +338,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         .height - scrollLeftArea.height
                 ) {
                     // val typeface = resources.getFont(R.font.verdanabold)
-                    listLeftMedia.forEach {
+                    listMedia.forEach {
                         val textView = TextView(baseContext)
                         textView.text = it.body
                         textView.setTextColor(Color.parseColor("#F2FB0A"))
@@ -356,7 +351,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (layoutTvLeft.size >= 30) {
                         layoutTvLeft.removeAllViews()
                         handler.removeCallbacksAndMessages(null)
-                        showLeftArea()
+                        showLeftArea(listMedia)
                     }
                 }
 
@@ -366,15 +361,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         handler.postDelayed(runnable, 2000) // Delay before starting the auto-scroll
     }
 
-    private fun showLeftArea() {
-        listLeftMedia = playerManager.currentTextPlaylist.toMutableList()
-        Log.d("monthlyinfo", "showLeftArea ${listLeftMedia.size}")
-        if (listLeftMedia.isEmpty()) return
+    private fun showLeftArea(listMedia: List<MediaItem>) {
+        if (listMedia.isEmpty()) return
         Log.d("monthlyinfo", "show left")
         //   val typeface = resources.getFont(R.font.verdanabold)
-        listLeftMedia.forEach {
+        listMedia.forEach {
             val textView = TextView(baseContext)
             textView.text = it.body
+//            val layoutParams = LinearLayout.LayoutParams(
+//                LinearLayout.LayoutParams.WRAP_CONTENT,
+//                LinearLayout.LayoutParams.WRAP_CONTENT
+//            )
+//            layoutParams.setMargins(0, 0, 0, 20) // Khoảng cách dưới cùng (20px)
+//            textView.layoutParams = layoutParams
             textView.setTextColor(Color.parseColor("#F2FB0A"))
             textView.textSize = tvTitleRight.textSize / resources.displayMetrics.density
             //   textView.typeface = typeface
@@ -384,28 +383,22 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         scrollLeftArea.viewTreeObserver.addOnGlobalLayoutListener(object : OnGlobalLayoutListener {
             override fun onGlobalLayout() {
-                startAutoScroll()
+                startAutoScroll(listMedia)
                 scrollLeftArea.viewTreeObserver.removeOnGlobalLayoutListener(this)
             }
         })
     }
 
 
-    private fun hideTopLeftArea(isStillTimeFrame: Boolean) {
-        if (typeScreen == MULTIPLE_AREA) {
+    private fun hideTopLeftArea() {
+        if (typeScreen != FULL_SCREEN) {
             layoutTvLeft.removeAllViews()
             handler.removeCallbacksAndMessages(null)
-            if (!isStillTimeFrame) {
-                listLeftMedia.clear()
-                ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
-                Log.e("monthlyinfo", "Hub hide left")
-            }
         }
     }
 
     private val scrollSpeed = 1
     private val handler: Handler = Handler()
-    private var listLeftMedia: MutableList<MediaItem> = mutableListOf()
     private var listLeftTextView = mutableListOf<TextView>()
 
 
@@ -443,7 +436,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
         super.onDestroy()
-
     }
 
     override fun onAlarm(intent: Intent) {
@@ -456,10 +448,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
-                    if (typeScreen == MULTIPLE_AREA) {
-                        Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
-                        showLeftArea()
-                    }
                 }
             }
 
@@ -468,11 +456,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
-                if (typeScreen == MULTIPLE_AREA) {
-                    Log.d("onPlayMediaLog", "show left ACTION_END_PLAYLIST ${typeScreen}")
-                    Log.d("onPlayMediaLog", "hideTopLeftArea")
-                    hideTopLeftArea(true)
-                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -497,6 +480,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         serialPortController.hardRestart()
                     }
                 }
+            }
+            MediaScheduleReceiver.ACTION_PLAY_LEFT_PLAYLIST -> {
+                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_LEFT_KEY)
+                Log.d("alarmx", "start left: $listKey")
+                if (listKey != null) {
+                    playerManager.startLeftTimeFrame(listKey)
+                }
+            }
+
+            MediaScheduleReceiver.ACTION_END_LEFT_PLAYLIST -> {
+                Log.d("alarmx", "end left")
+                playerManager.stopLeftPlaylist()
             }
         }
     }
@@ -534,7 +529,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
          * **/
         viewModel.content.observe(this)
         {
-            listLeftMedia.clear()
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -547,21 +541,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 return@observe
             }
             //default
-            mediaScheduler.scheduleAllAlarms()
+            mediaScheduler.scheduleAllAlarms(typeScreen)
 
             playerManager.startFirstTimeFrame()
 
 
             sendLogDataHub()
-
-            if (typeScreen == MULTIPLE_AREA) {
-                if (listLeftMedia.isEmpty() && playerManager.isInTimeFrame) {
-                    showLeftArea()
-                } else {
-                    Log.i("monthlyinfo", "Mess: left not show")
-                }
-
-            }
 
             //all load done, check
             viewModel.checkPlaylist()
@@ -611,14 +596,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_MONTHLY_WSS -> {
-
                     clearDatastore()
-                    listLeftMedia.clear()
-
                     playerManager.stopAllPlayer()
-
                     playerManager.resetPlayMode()
-                    hideTopLeftArea(false)
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
@@ -701,8 +681,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
                     when (mess) {
-                        //dung phat
-                        0, 2 -> {
+                        //dung phat tat ca
+                        0 -> {
+                            playerManager.stopAndEndTimeFrame()
+                            playerManager.resetPlayMode()
+                        }
+                        //tam dung
+                        2 -> {
                             playerManager.stopAllPlayer()
                             playerManager.resetPlayMode()
                         }
@@ -829,9 +814,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.setTimeOver()
                 }
 
-                HubCommand.SET_TIME_ON -> {
-                    serialPortController.setTimeOn(volume)
-                }
 
                 HubCommand.SETUP_PI_PS_NAME -> {
                     serialPortController.setUpPiPsName(responseHub.message ?: "")
@@ -1089,6 +1071,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val typeMap =
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
         val jsonMapAdapter: JsonAdapter<Map<String, String>> =
-            moshi.adapter<Map<String, String>>(typeMap)
+            moshi.adapter(typeMap)
     }
 }
