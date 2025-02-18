@@ -8,12 +8,14 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
+import app.tek4tv.ipradio.utils.media.DownloadHelper2
+import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
-import app.tek4tv.ipradio.utils.media.DownloadHelper2
-import app.tek4tv.ipradio.utils.media.DownloadItem
 import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
@@ -189,6 +191,7 @@ class MediaRepo @Inject constructor(
 
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA || mediaItem.broadcastRegion?.value == FULL_SCREEN }
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 

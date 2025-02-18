@@ -219,127 +219,11 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         alarmIntent.cancel()
     }
 
-    private fun scheduleListLeftAlarms() {
-        val scheduledList = mediaRepo.scheduledListLeft
-        try {
-            scheduledList.forEach { it ->
-                val key = it.key
-                val list = it.value
-                var isNewDayStarted = false
-                val requestCode = list.first().id
-                val endRequestCode = list.last().id
 
-                val t = key.split("-")
-                val start = toCalendar(t[0])
-                val end = toCalendar(t[1])
-                if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
-                ) isNewDayStarted = true
-
-                if (isNewDayStarted) {
-                    if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)) end.add(
-                        Calendar.DAY_OF_MONTH, 1
-                    )
-                    else {
-                        start.add(Calendar.DAY_OF_MONTH, 1)
-                        end.add(Calendar.DAY_OF_MONTH, 1)
-                    }
-                }
-
-                 val now = Calendar.getInstance().timeInMillis
-//
-//                if (now in start.timeInMillis..end.timeInMillis) {
-//                    setAlarmForListLeft(key, endRequestCode!!, end, true)
-//                } else if (now < start.timeInMillis) {
-//                    setAlarmForListLeft(key, requestCode!!, start)
-//                    setAlarmForListLeft(key, endRequestCode!!, end, true)
-//                }
-                if (now in start.timeInMillis..end.timeInMillis || now < start.timeInMillis) {
-                    setAlarmForListLeft(key, requestCode!!, start)
-                    setAlarmForListLeft(key, endRequestCode!!, end, true)
-                }
-            }
-        } catch (e: Exception) {
-            Log.d("alarmx", "scheduleListLeftAlarms: ${e.message}")
-        }
-    }
-    private fun setAlarmForListLeft(
-        listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
-    ) {
-//        val isAlarmWorking = getScheduleListLeftIntent(
-//            listKey, requestCode,
-//            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-//        )
-//        Log.d("alarmx", "Set left $isAlarmWorking")
-//        if (isAlarmWorking != null) return
-//        Log.d("alarmx", "Set left $shouldEndPlaying $listKey - $requestCode")
-//        val alarmIntent = getScheduleListLeftIntent(listKey, requestCode, 0, shouldEndPlaying)
-        val alarmAction = if (shouldEndPlaying) MediaScheduleReceiver.ACTION_END_LEFT_PLAYLIST
-        else MediaScheduleReceiver.ACTION_PLAY_LEFT_PLAYLIST
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = alarmAction
-            putExtra(MediaScheduleReceiver.SCHEDULED_LIST_LEFT_KEY, listKey)
-        }
-        val alarmIntent = PendingIntent.getBroadcast(appContext, requestCode, intent, FLAG_CANCEL_CURRENT)
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP, time.timeInMillis,
-            alarmIntent
-        )
-        Log.d("alarmx", "Set left $shouldEndPlaying $listKey - $requestCode")
-    }
-    private fun getScheduleListLeftIntent(
-        listKey: String, requestCode: Int, flag: Int, shouldEndPlaying: Boolean = false
-    ): PendingIntent? {
-
-        val alarmAction = if (shouldEndPlaying) MediaScheduleReceiver.ACTION_END_LEFT_PLAYLIST
-        else MediaScheduleReceiver.ACTION_PLAY_LEFT_PLAYLIST
-
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = alarmAction
-            putExtra(MediaScheduleReceiver.SCHEDULED_LIST_LEFT_KEY, listKey)
-        }
-
-        return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
-    }
-
-    private fun cancelAllListLeftAlarm() {
-        val scheduledList = mediaRepo.scheduledListLeft
-        scheduledList.forEach { it ->
-            val period = it.key
-            val list = it.value
-            if(list.isNotEmpty()) {
-
-                val requestCode = list.firstOrNull()?.id
-                val endRequestCode = list.lastOrNull()?.id
-
-                cancelListLeftAlarm(period, requestCode!!)
-                cancelListLeftAlarm(period, endRequestCode!!, true)
-            }
-        }
-    }
-    private fun cancelListLeftAlarm(
-        listKey: String, requestCode: Int, shouldEndPlaying: Boolean = false
-    ) {
-        val isAlarmWorking = getScheduleListLeftIntent(
-            listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-        ) != null
-
-        if (!isAlarmWorking) return
-
-        Log.d("alarmx", "Cancel $listKey - $requestCode")
-        val alarmIntent = getScheduleListLeftIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.cancel(alarmIntent)
-        alarmIntent?.cancel()
-    }
-
-    fun scheduleAllAlarms(typeScreen: String) {
+    fun scheduleAllAlarms() {
         setRescheduleAllAlarms()
         setCheckHubAndResetAlarms()
         scheduleListAlarms()
-        if (typeScreen != FULL_SCREEN) {
-            Log.d("alarmx", "Set left")
-            scheduleListLeftAlarms()
-        }
     }
 
     fun cancelAllScheduledListAlarm() {
@@ -355,6 +239,5 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             Log.d("alarmx", "Cancel cancelAllScheduledListAlarm")
             cancelAllScheduledListAlarm()
         }
-        cancelAllListLeftAlarm()
     }
 }
