@@ -47,7 +47,6 @@ class WssManager(private var hubToken : String?, private val connectEventListene
     fun sendMessage(message : String)
     {
         webSocket?.send(message)
-        connectEventListener.onSendMessageSuccess(message)
     }
 
     fun connectToWss() {

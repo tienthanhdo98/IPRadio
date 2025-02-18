@@ -100,12 +100,10 @@ class MQTTManager(
                 mqttClient?.publish(publishTopicTinh, message, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "$strMessage = published to $clientID")
-                        connectEventListener.onSendMessageSuccess("onSuccess: $strMessage to $clientID")
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                         Log.d(TAG, "Failed to publish to $publishTopicTinh - ${exception?.message}")
-                        connectEventListener.onSendMessageFailure("onFailure: ${exception?.message}")
                     }
                 })
             }
@@ -141,14 +139,10 @@ class MQTTManager(
                 mqttClient?.disconnect(null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "Disconnected")
-                        connectEventListener.onDisconnectFailure("")
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                         Log.d(TAG, "Failed to disconnect")
-                        if (exception != null) {
-                            connectEventListener.onDisconnectFailure(exception.message)
-                        }
                     }
                 })
             }

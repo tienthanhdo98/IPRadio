@@ -35,8 +35,9 @@ class HubManager(
 ) : IConnectionServer {
     private val TAG = "HubManager"
 
-    private val CONNECT_COUNTER_LIMIT = 5
+    private val CONNECT_COUNTER_LIMIT = 60
     private val PING_HUB_INTERVAL = 10000L
+    private val API_CALL_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
@@ -46,7 +47,7 @@ class HubManager(
 
     val appContext: Context = MyApp.instance!!.applicationContext
 
-     private val deviceImei = Utils.getDeviceId(appContext)
+    private val deviceImei = Utils.getDeviceId(appContext)
      // private val deviceImei = "1A:4E:2F:D3:15:12"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
@@ -76,16 +77,18 @@ class HubManager(
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
+    private var isConnectSuccess = false
+
     //wss
     private var wssManager: WssManager? = null
 
     //mqtt
-    var nguonId = ""
-    var tenNguon = ""
-    var dichId = ""
-    var tenDich = ""
+    var nguonId = "H48.52.01"
+    var tenNguon = "Thị trấn Ba Tơ"
+    var dichId = "H48"
+    var tenDich = "Quảng Ngãi"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = false
+    val isMQTT = true
     private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
@@ -100,7 +103,7 @@ class HubManager(
     private fun getHubToken() {
         try {
 
-            val authInfo = Secrets().getgetToken(MyApp.instance!!.packageName).split('-')
+           // val authInfo = Secrets().getgetToken(MyApp.instance!!.packageName).split('-')
 //            val body = mapOf(
 //                "Username" to authInfo[0],
 //                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
@@ -122,23 +125,19 @@ class HubManager(
             val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
+                pingCounter = 0
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
                 }
-                Log.i(TAG, "getHubToken ok: ${hubToken}")
+                Log.i(TAG, "getHubToken ok: $hubToken")
             } else {
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
-                pingCounter++
-                checkPingToReset()
             }
         } catch (e: Exception) {
             Log.i(TAG, "getHubToken error: ${e.message}")
             hubToken = null
-            pingCounter++
-            checkPingToReset()
         }
-        Log.i(TAG, "getHubToken ping: $pingCounter")
     }
 
     private fun getMqttInfo() {
@@ -157,8 +156,6 @@ class HubManager(
             }
         } catch (e: Exception) {
             listMQTTInfo = mutableListOf()
-            pingCounter++
-            checkPingToReset()
             Log.i(TAG, "MqttInfo fail: ${pingCounter}")
             Log.i(TAG, "MqttInfo fail: ${e.message}")
         }
@@ -216,7 +213,9 @@ class HubManager(
             while (hubToken == null) {
                 getHubToken()
                 if (hubToken == null) {
-                    delay(5000)
+                    pingCounter++
+                    checkPingToAppReset()
+                    delay(API_CALL_INTERVAL)
                     continue
                 }
                 // Cancel and start a new MQTT info retrieval job
@@ -226,7 +225,9 @@ class HubManager(
                         while (listMQTTInfo.isEmpty()) {
                             getMqttInfo()
                             if (listMQTTInfo.isEmpty()) {
-                                delay(5000)
+                                pingCounter++
+                                checkPingToAppReset()
+                                delay(API_CALL_INTERVAL)
                             }
                         }
                         mqttClient = MQTTManager(
@@ -250,12 +251,10 @@ class HubManager(
                     }
 
                 }
-
             }
-
         }
     }
-    private var isConnectSuccess = false
+
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
@@ -265,33 +264,22 @@ class HubManager(
     override fun onConnectFailure(message: String?) {
         isConnectSuccess = false
         pingCounter++
-        checkPingToReset()
+        checkPingToAppReset()
     }
 
     override fun onReceiveMessageSuccess(message: String) {
         pingCounter = 0
         convertToHubCommand(message)
-
     }
 
-    override fun onSendMessageSuccess(responseMessage: String) {
-
-    }
-
-    override fun onSendMessageFailure(responseMessage: String) {
-
-    }
-
-    override fun onDisconnectFailure(message: String?) {
-    }
 
 
     fun closeConnect() {
-        if (isMQTT) {
-            mqttClient?.disconnectMqtt()
-        } else {
-            wssManager?.closeWebsocket()
-        }
+//        if (isMQTT) {
+//            mqttClient?.disconnectMqtt()
+//        } else {
+//            wssManager?.closeWebsocket()
+//        }
     }
 
 
@@ -347,7 +335,6 @@ class HubManager(
             )
         )
         Log.d(TAG, "sendPing: ${request.payload}")
-        Log.d("livelive", "handleFromCommandServer: ${Thread.currentThread()}")
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
@@ -361,7 +348,7 @@ class HubManager(
                 if (body != null) {
                     Log.d("TestLog", "convertToHubCommand: body not null")
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
-                    Log.d("TestLog", "convertToHubCommand: body ${mapMonthSchedule}")
+                    Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                     coroutineScope.launch(Dispatchers.Main) {
@@ -767,20 +754,8 @@ class HubManager(
         else {
             Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
             listTimeFrame.forEach {
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
-                )
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${it.keys.first()} - ${it.values.first()}"
-                )
                 val list: MutableList<MediaItem> =
                     listItem.subList(it.keys.first(), it.values.first() + 1).toMutableList()
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung $list"
-                )
                 val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
                 val tObjStart = MediaItem(
                     id = firstId,
@@ -828,10 +803,10 @@ class HubManager(
         }
     }
 
-    private fun checkPingToReset() {
+    private fun checkPingToAppReset() {
         Log.d(TAG, "checkPingToReset: $pingCounter")
         //sau 5s se reset lai app neu api call that bai 60*5000
-        if (pingCounter >= 60) {
+        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
             val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
             hubComm.forceRestartApp(countForHardRestart)
         }

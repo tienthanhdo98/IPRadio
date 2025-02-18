@@ -88,8 +88,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private lateinit var logUtils: LogUtils
 
-    private var volume = "80"
-
 //    var locationTracker = LocationTracker()
 
     private lateinit var mediaCapture: MediaCapture
@@ -128,7 +126,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 //                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
 //            }, 10000)
         }
-
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
@@ -693,166 +690,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-
                     onPlayForce(responseHub)
 
                 }
 
                 HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message!!
-                    Log.i("config_config", "updateconfig $mess")
-                    val listInfoConfig = mess.split(",")
-
-                    val newResponseHub = ResponseHub().apply {
-                        if (listInfoConfig.isNotEmpty() && listInfoConfig[0] != "null") {
-                            volume = listInfoConfig[0]
-                            serialPortController.writeForceSetVolume(responseHub.message!!)
-                        }
-                        if (listInfoConfig.size >= 2 && listInfoConfig[1] != "null") {
-                            lat = listInfoConfig[1].toFloat()
-                        }
-                        if (listInfoConfig.size >= 3 && listInfoConfig[2] != "null") {
-                            lng = listInfoConfig[2].toFloat()
-                        }
-                        if (listInfoConfig.size >= 4 && listInfoConfig[3] != "null") {
-                            destinationId = listInfoConfig[3]
-                        }
-                        if (listInfoConfig.size >= 5 && listInfoConfig[4] != "null") {
-                            destinationName = listInfoConfig[4]
-                        }
-                        if (listInfoConfig.size >= 6 && listInfoConfig[5] != "null") {
-                            deviceName = listInfoConfig[5]
-                        }
-                    }
-                    if (listInfoConfig.size >= 7 && listInfoConfig[6] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listInfoConfig[6]
-                        )
-                        globalProperties.providerValue = listInfoConfig[6]
-                    }
-                    if (listInfoConfig.size >= 8 && listInfoConfig[7] != "null") {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.Minute_TURN_ON_PA,
-                            listInfoConfig[7].toInt()
-                        )
-                    }
-                    if (listInfoConfig.size >= 9 && listInfoConfig[8] != "null") {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.ServerTimeout,
-                            listInfoConfig[8].toInt()
-                        )
-
-                    }
-                    if (listInfoConfig.size >= 10 && listInfoConfig[9] != "null") {
-                        ConfigUtil.putInt(
-                            applicationContext,
-                            ConfigUtil.KeepAliveInterval,
-                            listInfoConfig[9].toInt()
-                        )
-                    }
-                    globalProperties.saveProperties(newResponseHub)
                 }
 
                 HubCommand.UPDATE_CONFIG -> {
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
-                    val mess = responseHub.message!!
-                    val listValue = mess.split(",")
-                    val urlHub = listValue[0]
-                    val urlToken = listValue[1]
-                    if (listValue.size >= 3 && listValue[2] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listValue[2]
-                        )
-                    }
-                    if (listValue.size >= 4 && listValue[3] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.URL_STREAM,
-                            listValue[3]
-                        )
-                    }
-                    if (listValue.size >= 5 && listValue[4] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.USER_NAME_STREAM,
-                            listValue[4]
-                        )
-                    }
-                    if (listValue.size >= 6 && listValue[5] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PASSWORD_STREAM,
-                            listValue[5]
-                        )
-                    }
-                    if (listValue.size >= 7 && listValue[6] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROTOCOL_STREAM,
-                            listValue[6]
-                        )
-                    }
-                    if (listValue.size >= 8 && listValue[7] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.BITRATE_STREAM,
-                            listValue[7]
-                        )
-                    }
-                    if (listValue.size >= 9 && listValue[8] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.SAMPLERATE_STREAM,
-                            listValue[8]
-                        )
-                    }
-                    if (listValue.size >= 10 && listValue[9] != "null") {
-                        ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.KEY_EXTEND_FILE,
-                            listValue[9]
-                        )
-                    }
-
-//                    val hubConnection = HubConnectionBuilder.create(urlHub)
-//                        .withAccessTokenProvider(Single.defer {
-//                            val token = hubManager.getHubToken(urlToken)
-//                            if (token != null) {
-//                                Single.just(token)
-//                            } else
-//                                Single.error(Exception())
-//                        })
-//                        .withTransport(TransportEnum.WEBSOCKETS)
-//                        .build()
-//                    lifecycleScope.launch {
-//                        val id = hubManager.openConnection2(hubConnection)
-//                        if (id != null) {
-//                            ConfigUtil.putStringEncrypt(
-//                                applicationContext,
-//                                ConfigUtil.URL_HUB,
-//                                urlHub
-//                            )
-//                            ConfigUtil.putStringEncrypt(
-//                                applicationContext,
-//                                ConfigUtil.URL_TOKEN,
-//                                urlToken
-//                            )
-//                            delay(60000)
-//                            serialPortController.hardRestart()
-//
-//                        } else {
-//                            delay(2000)
-//                            serialPortController.hardRestart()
-//                        }
-//
-//                    }
-
                 }
 
                 HubCommand.TURN_ON_PA -> {
@@ -965,7 +810,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     if (responseHub.message != null) {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
                         serialPortController.writeForceSetVolume(responseHub.message!!)
-                        globalProperties.setTempVolume(responseHub.message!!)
+                        globalProperties.saveVolume(responseHub.message!!)
                     }
                 }
 
@@ -978,9 +823,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     serialPortController.setTimeOver()
                 }
 
-                HubCommand.SET_TIME_ON -> {
-                    serialPortController.setTimeOn(volume)
-                }
 
                 HubCommand.SETUP_PI_PS_NAME -> {
                     serialPortController.setUpPiPsName(responseHub.message ?: "")
