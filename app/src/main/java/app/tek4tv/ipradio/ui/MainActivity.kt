@@ -295,8 +295,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
         handler.postDelayed(scrollRunnable!!, interval)
-
-
     }
 
     private fun showLeftArea(listMedia: List<MediaItem>) {
@@ -314,25 +312,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun hideTopLeftArea() {
         if (typeScreen == MULTIPLE_AREA) {
-            recyclerView.visibility = View.GONE
+            recyclerView.visibility = View.INVISIBLE
             handler.removeCallbacksAndMessages(null)
         }
     }
 
 
     override fun onStart() {
-        Log.i("ChangeLayout", "Mess: recreate onStart")
         super.onStart()
         startPlayingMedia()
-    }
-
-    override fun onStop() {
-//        Log.e("monthlyinfo", "onStop")
-//        playerManager.stopAllPlayer()
-//        cancelAllAlarm()
-//        Log.i("ChangeLayout", "Mess: recreate stop")
-        super.onStop()
-
     }
 
     override fun onDestroy() {
