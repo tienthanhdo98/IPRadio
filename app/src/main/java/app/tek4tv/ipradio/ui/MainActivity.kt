@@ -169,11 +169,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
-            showLeftArea(listMediaItem)
+
+            if (typeScreen == MULTIPLE_AREA) {
+                showLeftArea(listMediaItem)
+            }
         }
 
         override fun onEndLeftMediaPlaying() {
-            hideTopLeftArea()
+
+            if (typeScreen == MULTIPLE_AREA) {
+                hideTopLeftArea()
+            }
         }
     }
 
@@ -349,7 +355,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun hideTopLeftArea() {
         if (typeScreen != FULL_SCREEN) {
-            recyclerView.visibility = View.GONE
+            recyclerView.visibility = View.INVISIBLE
             handler.removeCallbacksAndMessages(null)
         }
     }
