@@ -22,6 +22,8 @@ import androidx.core.view.size
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.digitalsignage.utils.MediaCapture
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.MyApp.Companion.hubManager
+import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
@@ -54,6 +56,7 @@ import com.squareup.moshi.Types
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
@@ -91,11 +94,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @Inject
     lateinit var logService: LogService
 
-    private lateinit var hubManager: HubManager
-
     private lateinit var playerManager: PlayersManager
-
-    private lateinit var serialPortController: SerialPortController
 
     private lateinit var appStorageManager: AppStorageManager
 
@@ -112,8 +111,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var vlcVideoLayout: VLCVideoLayout
 
     private val globalProperties = GlobalProperties.getInst()
-    private val UART_S1_NAME = "/dev/ttyS1"
-    private val UART_S4_NAME = "/dev/ttyS4"
     private var typeScreen: String = FULL_SCREEN
     private lateinit var tvTopArea: TextView
     private lateinit var tvTitleRight: TextView
@@ -126,30 +123,25 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
-
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
-//            ForceMedia.deleteForeMediaPref(applicationContext)
-//            val oldTypeScreen = ConfigUtil.getString(
-//                            context = baseContext,
-//                            TYPE_PRE_SCREEN_KEY,
-//                            FULL_SCREEN
-//                        )
-//            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
-//
-//            startPlayingMedia()
-//            if(oldTypeScreen != typeScreen)
-//            {
-//                recreate()
-//            }
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
-            startPlayingMedia()
+            val oldTypeScreen = ConfigUtil.getString(
+                context = baseContext,
+                TYPE_PRE_SCREEN_KEY,
+                FULL_SCREEN
+            )
+            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 
+            startPlayingMedia()
+            if (oldTypeScreen != typeScreen) {
+                recreate()
+            }
         }
 
         //Lỗi luồng live
@@ -203,10 +195,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
-
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart: Int) {
@@ -220,8 +211,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
-
         }
+        appStorageManager = AppStorageManager(applicationContext)
 
 
 
@@ -230,17 +221,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService) { command, message ->
-            handleFromCommandServer(command, message)
-        }
+        hubManager.hubComm = hubComm
+        hubManager.appStorageManager = appStorageManager
 
-        serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
-        serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
-            delay(10000)
-            if (!serialPortController.isUart1) {
-                serialPortController.connectToSerialPort(UART_S4_NAME)
-                Log.i("PA", "onCreate: s4")
+            hubManager.messageStateFlow.collectLatest { messagePair ->
+                messagePair?.let { (command, message) ->
+                    Log.d("MainActivityMess", "Received Message: Command=$command, Message=$message")
+                    handleFromCommandServer(command, message)
+                }
             }
         }
 
@@ -253,21 +242,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         playerManager.playerManagerListener = playerCallback
 
-        hubManager.hubEventObserver.add(playerManager)
 
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
         registerObservers()
 
-        appStorageManager = AppStorageManager(applicationContext)
-
-
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         alarmListener = this
 
-        setMaxVolume()
+        setAndroidVolume()
 
         viewModel.hideSystemUI(this)
 
@@ -686,50 +671,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     hubManager.currentMediaItem = null
                 }
 
+                //Phát khẩn cấp luồng live
+                HubCommand.LIVE -> {
+                    Log.d("tesstlive", "handleFromCommandServer: live")
+                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-                HubCommand.UPDATE_MONTHLY_LIST -> {
-                    clearDatastore()
-                    val mess = responseHub.message!!
-//                    playerManager.stopAllPlayer()
-                    playerManager.resetPlayMode()
-                    hideTopLeftArea(false)
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-//                    viewModel.updateMonthlyScenario(mess, true)
-                    ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-                    // lưu thời gian cập nhật lịch để gửi log
-                    val currentTime = Calendar.getInstance().time.time / 1000
-                    ConfigUtil.putString(
-                        applicationContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        currentTime.toString()
-                    )
-                    playerManager.stopForceMedia()
-                    //delete pref list left
-                    ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
                     Handler().postDelayed({
+                        onPlayForce(responseHub)
                         recreate()
                     }, 1000)
                 }
-                //Phát khẩn cấp luồng live
-                HubCommand.LIVE -> {
 
-//                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-//                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-//
-//                    Handler().postDelayed({
-//                        onPlayForce(responseHub)
-//                        if (typeScreen != FULL_SCREEN) {
-//                            recreate()
-//                        }
-//                    }, 1000)
-                    onPlayForce(responseHub)
-                }
-
-
-                HubCommand.LiveRemoteControl -> {
-                    val mess = responseHub.message!!
-                    Log.i("LiveRemoteControl", "Mess: $mess ")
+                HubCommand.UPDATE_MONTHLY_LIST -> {
                 }
 
 
@@ -748,23 +702,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!.toInt()
                     when (mess) {
                         //dung phat
-                        0 -> {
+                        0, 2 -> {
                             playerManager.stopAllPlayer()
                             playerManager.resetPlayMode()
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if (playerManager.isInTimeFrame) {
+                            Log.d(
+                                "CONTROL_MEDIA",
+                                "isInTimeFrame: ${playerManager.isTimeOver}"
+                            )
+                            if (!playerManager.isTimeOver) {
                                 playerManager.playNextMedia()
                             }
                         }
-                        //Tạm dừng nội dung đang phát
-                        2 -> {
-//                            playerManager.pauseMedia()
-                        }
 
+                        //Phát tiếp nội dung dừng trước đó
                         3 -> {
-                            playerManager.resumeMedia()
+                            if(!playerManager.isTimeOver) {
+                                if (playerManager.played) {
+                                    playerManager.resumeMedia()
+                                } else {
+                                    playerManager.startFirstTimeFrame()
+                                }
+                            }
                         }
                     }
                 }
@@ -823,7 +784,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         if (responseHub.message == "1")//tat loa mute
                         {
                             changeVolume(0)
-                            globalProperties.setTempVolume("0")
+                            globalProperties.saveVolume("0")
                             globalProperties.setAndroidPreVolume("0")
                         } else {
                             changeVolume(
@@ -834,16 +795,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 ) ?: "10").toInt()
                             )
                             globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
-                            globalProperties.setTempVolume(
+                            globalProperties.saveVolume(
                                 (ConfigUtil.getString(
                                     baseContext,
                                     DEFAULT_VOLUME,
                                     "100"
                                 ) ?: "100")
-                            )
-                            Log.d(
-                                "UpdateVolume",
-                                "handleFromCommandServer: ${globalProperties.androidVolume.toInt()}"
                             )
                         }
                     }
@@ -857,18 +814,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (responseHub.message != null) {
                         changeVolume(roundToNearestNumber(responseHub.message!!.toInt()))
                         globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
-                        globalProperties.setTempVolume(responseHub.message!!.toString())
-                        ConfigUtil.putString(
-                            applicationContext,
-                            DEFAULT_ANDROID_VOLUME,
-                            roundToNearestNumber(responseHub.message!!.toInt()).toString()
-                        )
-                        ConfigUtil.putString(
-                            applicationContext,
-                            DEFAULT_VOLUME,
-                            responseHub.message!!
-                        )
-
+                        globalProperties.saveVolume(responseHub.message!!.toString())
                     }
                 }
 
@@ -1072,8 +1018,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         mediaScheduler.cancelAllAlarm()
     }
 
-    private fun setMaxVolume() {
-        Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
+    private fun setAndroidVolume() {
         changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
 

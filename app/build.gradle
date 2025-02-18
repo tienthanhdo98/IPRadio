@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D90MQTT.4.1.9"
+        versionName "D76MQTT.4.1.9"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -109,6 +109,8 @@ dependencies {
     implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0"
     implementation "androidx.fragment:fragment-ktx:1.2.5"
 
+    //stateflow
+    implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0'
     //prdownloader
 //    implementation 'com.mindorks.android:prdownloader:0.6.0'
     implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.1'

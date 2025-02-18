@@ -2,9 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -38,7 +36,7 @@ class PlayersManager(
     private val appContext: Context,
     private val vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
-) : IPlayerEventListener, HubEventObserver {
+) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
@@ -72,7 +70,7 @@ class PlayersManager(
     /**
      * Determine if we will not play any media in >= 15s to go
      * **/
-    private var isTimeOver = false
+    var isTimeOver = false
 
     var played = false
 
@@ -103,17 +101,6 @@ class PlayersManager(
         stopForceMedia()
     }
 
-    override fun onLostHubConnection() {
-        vlcPlayer.disconnectedHub = true
-        exoPlayer.disconnectedHub = true
-        currentPlayer?.onLostHubConnection()
-    }
-
-    override fun onReconnectedToHub() {
-        vlcPlayer.disconnectedHub = false
-        exoPlayer.disconnectedHub = false
-        currentPlayer?.onHubReconnected()
-    }
 
     private fun onMediaStopPlaying() {
         if (played) {

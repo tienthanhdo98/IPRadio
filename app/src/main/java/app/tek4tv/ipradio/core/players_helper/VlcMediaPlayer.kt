@@ -5,7 +5,6 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItem
@@ -37,7 +36,6 @@ class VlcMediaPlayer(
 
     private var lastError = -1
     private var countReplayLive = 0
-
 
 
     override fun isPlaying(): Boolean = isPlaying
@@ -100,11 +98,14 @@ class VlcMediaPlayer(
         //bật log vlc
 //        args.add("-vvv")
 //        args.add("--no-drop-late-frames")
-        args.add("--file-caching=1000")
-        args.add("--network-caching=2000")
+//        args.add("--file-caching=1000")
+//        args.add("--network-caching=2000")
         //se ko bi dung o frame video cuoi nhung co bug o 1 vai truong hop
-        args.add("--vout=android-display")
-//        args.add("--skip-frames")
+//        args.add("--vout=android-display")
+        args.add("--skip-frames")
+        args.add("--drop-late-frames")
+        args.add("--file-caching=1000")
+        args.add("--network-caching=1000")
 
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
@@ -113,11 +114,9 @@ class VlcMediaPlayer(
         vlcPlayer.eventListener = vlcEventListener
     }
 
-
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
 
         if (isPlaying) stop()
-
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {

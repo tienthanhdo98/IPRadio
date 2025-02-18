@@ -44,7 +44,6 @@ class WssManager(private var hubToken : String?, private val connectEventListene
     fun sendMessage(message : String)
     {
         webSocket?.send(message)
-        connectEventListener.onSendMessageSuccess(message)
     }
 
     fun connectToWss()
@@ -55,7 +54,7 @@ class WssManager(private var hubToken : String?, private val connectEventListene
             .build()
         //wss://gateway-qltt.tek4tv.vn/ws/ipradio
         val request =
-            Request.Builder().url("wss://gateway-thongtinnguon.tek4tv.vn/ws/ipradio")
+            Request.Builder().url("wss://gateway-thongtinnguon.tek4tv.vn/ws/digital")
                 .addHeader("Authorization", "Bearer $hubToken").build()
         val listener = EchoWebSocketListener()
 
