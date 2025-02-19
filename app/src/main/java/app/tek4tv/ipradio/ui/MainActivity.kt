@@ -903,7 +903,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             }
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
-                                playerManager.resume()
+                                if (!playerManager.isTimeOver) {
+                                    playerManager.resume()
+                                }
                             }
                         }
                     }
