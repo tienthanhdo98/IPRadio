@@ -123,8 +123,8 @@ class MediaRepo @Inject constructor(
             if (it.size == 2) {
                 val startIndex = it[0]
                 val endIndex = it[1]
-
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
+                Log.d("alarmx", "Set $key")
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
                     .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN.toInt() }
 

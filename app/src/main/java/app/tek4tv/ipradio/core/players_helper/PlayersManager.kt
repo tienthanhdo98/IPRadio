@@ -19,7 +19,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
-import java.util.Calendar
+import java.util.*
 
 
 /**
@@ -179,13 +179,17 @@ class PlayersManager(
         val now = Calendar.getInstance().timeInMillis
         val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
         val timeEnd = currentPauseTimePlayer + mediaDuration
-        if(now < timeEnd)
-        {
+        Log.d("CONTROL_MEDIA", "resume: now $now")
+        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
+        if (now < timeEnd) {
+            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
             vlcPlayer.resume()
-        }
-        else
-        {
-            startFirstTimeFrame()
+
+        } else {
+            if (currentPauseTimePlayer != 0L) {
+                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
+                startFirstTimeFrame()
+            }
         }
     }
 

@@ -256,17 +256,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         NetworkUtils.instance.startNetworkListener(this)
         alarmListener = this
 
-
         appStorageManager = AppStorageManager(applicationContext)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
-//        setMaxVolume()
+        setMaxVolume()
 
         viewModel.hideSystemUI(this)
 
         sendLogDataHub()
-
 
         registerObservers()
 
@@ -371,7 +369,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     ConfigUtil.MONTHLY_SCENARIO_URL, ""
                 ) ?: return
 
-                viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+                viewModel.updateMonthlyScenarioAndGetContent(monthlyScenarioUrl)
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -467,9 +465,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             val responseHub = hubManager.responseHub
 
-            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
-
-            if (!isImei) return
+//            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
+//
+//            if (!isImei) return
             when (command) {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
