@@ -36,14 +36,13 @@ class ExoMediaPlayer(
     private var isPlaying = false
     private var isForceValue = false
 
-    override var disconnectedHub = false
-
     private var dataSourceFactory: DefaultDataSourceFactory
     override fun isPlaying(): Boolean = isPlaying
 
     var handler: Handler? = null
 
     var countReplayLive = 0
+
     private val exoEventListener = object : Player.Listener {
 
         override fun onIsPlayingChanged(isPlaying: Boolean) {
@@ -71,13 +70,11 @@ class ExoMediaPlayer(
             {
                 Log.i(TAG, "onPlaybackStateChanged: play")
             }
-
         }
 
         override fun onPlayerError(error: PlaybackException) {
             super.onPlayerError(error)
             Log.d(TAG, "exoerror: ${error.message ?: ""}")
-            if (disconnectedHub) return
             isPlaying = false
             try {
                 val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
@@ -127,10 +124,9 @@ class ExoMediaPlayer(
 
     override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
         if(isPlaying) stop()
-
         try {
             if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-                if (isInRangeTimePlay()) {
+                if (!isInRangeTimePlay()) {
                     currentPlayingMedia = mediaItem
                     isForceValue = isForce
                     Log.e(TAG, "Exoplayer is force $isForceValue")
@@ -148,11 +144,12 @@ class ExoMediaPlayer(
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
-
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()
+
         Log.e(TAG, "Player exo start")
+        Log.e(TAG, "Player exo start is seek ${exoPlayer.isCurrentMediaItemSeekable}")
         if (!isForceValue) {
             handler?.removeCallbacksAndMessages(null)
             handler = Handler(Looper.getMainLooper())
@@ -165,12 +162,13 @@ class ExoMediaPlayer(
                 (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
             )
         }
-
-
     }
 
     override fun reset() {
-
+//        lifecycleScope.launch(Dispatchers.Main)
+//                    {
+//                        onPlayForce(responseHub)
+//                    }
     }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
@@ -203,20 +201,6 @@ class ExoMediaPlayer(
     override fun release() {
         exoPlayer.release()
     }
-
-    override fun onLostHubConnection() {
-        disconnectedHub = true
-    }
-
-    override fun onHubReconnected() {
-        disconnectedHub = false
-
-        if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
-            playMedia(currentPlayingMedia!!,isForceValue)
-        }
-    }
-
-
 
     /**
      * Check if a stream is still in time to play

@@ -58,11 +58,8 @@ class HubManager(
     private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
     private val deviceImei = Utils.getDeviceId(appContext)
 
-
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
     private val listAdapter = moshi.adapter(List::class.java)
-
-    val hubEventObserver = mutableListOf<HubEventObserver>()
 
     var pingCounter = 0
 
@@ -81,11 +78,7 @@ class HubManager(
 
     private var registerOnMessageListener = false
 
-
     private val mainHandler = Handler(Looper.getMainLooper())
-
-    private val notifyDisconnected = AtomicBoolean(false)
-
 
     private var hubToken: String? = null
 
@@ -305,13 +298,6 @@ class HubManager(
                         when (command) {
                             HubCommand.PONG -> {
 
-                                //Vừa kết nối được lại hub
-                                if (pingCounter >= 3 && !firstConnect) {
-                                    Log.e(LOG_TAG, "Hub Reconnected")
-                                    notifyHubReconnected()
-                                    notifyDisconnected.compareAndSet(true, false)
-                                }
-
                                 if (firstConnect) firstConnect = false
 
                                 pingCounter = 0
@@ -501,29 +487,13 @@ class HubManager(
         }
         if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
-            if (notifyDisconnected.compareAndSet(false, true)) {
-                hubToken = null
-                notifyHubDisconnected()
-                Log.e(LOG_TAG, "Hub Disconnected")
-            }
+            hubToken = null
             //Try to reconnect to hub
             openConnection()
         }
     }
 
-    @Synchronized
-    private fun notifyHubReconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onReconnectedToHub() }
-        }
-    }
 
-    @Synchronized
-    private fun notifyHubDisconnected() {
-        mainHandler.post {
-            hubEventObserver.forEach { it.onLostHubConnection() }
-        }
-    }
 
     //parse hub command content
     private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
@@ -549,10 +519,6 @@ interface HubComm {
     fun forceRestartDevice()
 }
 
-interface HubEventObserver {
-    fun onLostHubConnection()
-    fun onReconnectedToHub()
-}
 
 val publicKey =
     "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="

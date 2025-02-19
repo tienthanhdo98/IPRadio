@@ -285,8 +285,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
 
-        hubManager.hubEventObserver.add(playerManager)
-
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
@@ -754,7 +752,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
+//                    lifecycleScope.launch(Dispatchers.Main)
+//                    {
+//                        onPlayForce(responseHub)
+//                    }
                     onPlayForce(responseHub)
+
                 }
                 HubCommand.UPDATE_CONFIG -> {
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"https://hub.gateway.httt.tek4tv.vn/hubServer,https://api.gateway.httt.tek4tv.vn/api/auth/login"}
@@ -871,7 +874,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                     //0,1,2,3
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     val mess = responseHub.message!!.toInt()
-                    if(playerManager.playMode != PLAY_MODE_FORCE ) {
+                    if (playerManager.playMode != PLAY_MODE_FORCE) {
                         when (mess) {
                             //dung phat tat ca
                             0 -> {
@@ -886,27 +889,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             }
                             //Tam dung
                             2 -> {
-                                  playerManager.pausePlayer()
-//                                playerManager.stopAllPlayer()
-//                                playerManager.resetPlayMode()
+                                playerManager.pausePlayer()
                             }
                             //chuyen sang ban tin tiep
                             1 -> {
-                                Log.d("CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isTimeOver}")
+                                Log.d(
+                                    "CONTROL_MEDIA",
+                                    "isInTimeFrame: ${playerManager.isTimeOver}"
+                                )
                                 if (!playerManager.isTimeOver) {
                                     playerManager.playNextMedia()
                                 }
                             }
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
-                                  playerManager.resume()
-//                                if (!playerManager.isTimeOver) {
-//                                    if (playerManager.played) {
-//                                        playerManager.resumeMedia()
-//                                    } else {
-//                                        playerManager.startFirstTimeFrame()
-//                                    }
-//                                }
+                                playerManager.resume()
                             }
                         }
                     }

@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -64,8 +63,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     isPlaying = false
                 } else {
                     Log.e(TAG, "EncounteredError Live")
-                    if (!disconnectedHub)
-                        onLiveErrorVlc()
+                    onLiveErrorVlc()
                 }
                 lastError = event
             }
@@ -121,7 +119,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             if (isForce) {
                 playLiveStream(mediaItem, timeStamp)
             } else {
-                if (isInRangeTimePlay()) {
+                if (!isInRangeTimePlay()) {
                     playFile(mediaItem, timeStamp)
                 }
             }
@@ -167,24 +165,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //        currentVlcMedia = stream
 //
 //        vlcPlayer.play(stream)
-    }
-
-
-
-
-    override var disconnectedHub = false
-
-    override fun onLostHubConnection() {
-        disconnectedHub = true
-    }
-
-    override fun onHubReconnected() {
-        disconnectedHub = false
-
-        if (currentMedia == null || currentMedia?.getMediaType() != MediaType.LIVE) return
-
-        if (checkLiveStream(currentMedia!!, currentVlcMedia!!))
-            playLiveStream(currentMedia!!,-1)
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {

@@ -4,7 +4,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.core.HubEventObserver
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.ForceMedia
@@ -33,7 +32,7 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     private val mediaRepo: MediaRepo
-) : IPlayerEventListener, HubEventObserver {
+) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
@@ -56,8 +55,6 @@ class PlayersManager(
     /**
      * List of media for a timeframe
      * **/
-
-
     var playlistIndex = 0
         private set
 
@@ -68,7 +65,6 @@ class PlayersManager(
      * **/
     var isTimeOver = false
 
-    var played = false
 
     var handlerFMPlayer: Handler? = null
 
@@ -83,7 +79,6 @@ class PlayersManager(
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
         mediaStartTime = Calendar.getInstance().timeInMillis
-        played = true
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
@@ -95,25 +90,9 @@ class PlayersManager(
         stopForceMedia()
     }
 
-    override fun onLostHubConnection() {
-        vlcPlayer.disconnectedHub = true
-        exoPlayer.disconnectedHub = true
-        currentPlayer?.onLostHubConnection()
-    }
-
-    override fun onReconnectedToHub() {
-        vlcPlayer.disconnectedHub = false
-        exoPlayer.disconnectedHub = false
-        currentPlayer?.onHubReconnected()
-    }
 
     private fun onMediaStopPlaying() {
-        if (played) {
-            Log.e("AAA", "Đừng vào đây lần 2")
-            val duration = Calendar.getInstance().timeInMillis - mediaStartTime
-            playerManagerListener?.onMediaStopPlaying(currentPlayingMedia!!, duration)
-        }
-        played = false
+
     }
 
 
@@ -166,12 +145,12 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-//        if(currentPlayer == vlcPlayer) {
-//            vlcPlayer.stop()
-//        }
-//        else {
-//            exoPlayer.stop()
-//        }
+        if(currentPlayer == vlcPlayer) {
+            vlcPlayer.stop()
+        }
+        else {
+            exoPlayer.stop()
+        }
         playlistIndex++
 
         if (playlistIndex < currentPlaylist.size) {
@@ -183,10 +162,9 @@ class PlayersManager(
             stopTimeFrame()
         }
     }
-    var currentPauseTimePlayer : Long = 0
+    var currentPauseTimePlayer : Long = 0L
     fun pausePlayer() {
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
-
         if (currentPlayer == vlcPlayer) {
             vlcPlayer.pause()
         } else {
@@ -197,9 +175,11 @@ class PlayersManager(
         val now = Calendar.getInstance().timeInMillis
         val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
         val timeEnd = currentPauseTimePlayer + mediaDuration
+        Log.d("CONTROL_MEDIA", "resume: now $now")
+        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
         if(now < timeEnd)
         {
-
+            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
             if (currentPlayer == vlcPlayer) {
                 vlcPlayer.resume()
             } else {
@@ -208,7 +188,10 @@ class PlayersManager(
         }
         else
         {
-            startFirstTimeFrame()
+            if(currentPauseTimePlayer != 0L) {
+                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
+                startFirstTimeFrame()
+            }
         }
     }
 
@@ -220,8 +203,6 @@ class PlayersManager(
             val mediaItem = currentPlaylist[index]
             Log.d(LOGTAG, "play ${mediaItem.title}")
             playMedia(mediaItem, timeStamp)
-
-
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -241,15 +222,6 @@ class PlayersManager(
                             vlcPlayer.playMedia(mediaItem, true, timeStamp)
                         }
                         else {
-//                            if (mediaItem.body!!.contains("rtsp://") || mediaItem.body!!.contains("rtmp://")) {
-//                                vlcPlayer.playMedia(mediaItem, true, timeStamp)
-//                            }
-//                            if (mediaItem.pathBackup.contains("http://") || mediaItem.pathBackup.contains(
-//                                    "https://"
-//                                )
-//                            ) {
-//                                vlcPlayer.playMedia(mediaItem, false, timeStamp)
-//                            }
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
                         currentPlayer = vlcPlayer
@@ -300,7 +272,6 @@ class PlayersManager(
 //        currentPlayingMedia = null
         vlcPlayer.stop()
         exoPlayer.stop()
-        played = false
     }
 
 
@@ -467,7 +438,7 @@ class PlayersManager(
     {
         vlcPlayer.stop()
         exoPlayer.stop()
-        played = false
+        isTimeOver = true
         playerManagerListener?.onTimeOver()
     }
 
