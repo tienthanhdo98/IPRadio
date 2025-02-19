@@ -171,11 +171,22 @@ class PlayersManager(
     }
 
     fun pauseMedia() {
+        currentPauseTimePlayer = Calendar.getInstance().timeInMillis
         vlcPlayer.pause()
     }
-
+    var currentPauseTimePlayer : Long = 0
     fun resumeMedia() {
-        vlcPlayer.resume()
+        val now = Calendar.getInstance().timeInMillis
+        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
+        val timeEnd = currentPauseTimePlayer + mediaDuration
+        if(now < timeEnd)
+        {
+            vlcPlayer.resume()
+        }
+        else
+        {
+            startFirstTimeFrame()
+        }
     }
 
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = 0) {
@@ -349,6 +360,12 @@ class PlayersManager(
         } catch (e: Exception) {
             e.printStackTrace()
         }
+    }
+
+    fun stopAndEndTimeFrame()
+    {
+        vlcPlayer.stop()
+        playerManagerListener?.onTimeOver()
     }
 
 

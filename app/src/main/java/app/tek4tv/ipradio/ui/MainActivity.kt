@@ -261,7 +261,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
-        setMaxVolume()
+//        setMaxVolume()
 
         viewModel.hideSystemUI(this)
 
@@ -612,8 +612,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     when (responseHub.message!!.toInt()) {
                         //dung phat
                         0 -> {
-                            playerManager.stopAllPlayer()
+//                            playerManager.stopAllPlayer()
+//                            playerManager.resetPlayMode()
+                            cancelAllAlarm()
+                            playerManager.stopAndEndTimeFrame()
                             playerManager.resetPlayMode()
+                            lifecycleScope.launch {
+                                viewModel.mediaRepo.clearPlaylist()
+                            }
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
@@ -627,7 +633,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
 
                         3 -> {
-                            playerManager.resumeMedia()
+                            if (!playerManager.isTimeOver) {
+                                playerManager.resumeMedia()
+                            }
                         }
                     }
                 }

@@ -18,9 +18,9 @@ import java.util.*
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private val requestCodeRescheduleAllAlarm = 101
-    private val requestCodeCheckHubAndResetAlarms = 102
-    private val requestEndForce= 108
+    private val requestCodeRescheduleAllAlarm = 1010
+    private val requestCodeCheckHubAndResetAlarms = 1020
+    private val requestEndForce= 1080
     private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
@@ -53,16 +53,16 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         scheduledList.forEach{ it ->
             val key = it.key
             val list = it.value
+            if (list.isNotEmpty()) {
+                var isNewDayStarted = false
+                val requestCode = list.first().id
+                val endRequestCode = list.last().id
 
-            var isNewDayStarted = false
-            val requestCode = list.first().id
-            val endRequestCode = list.last().id
-
-            val t = key.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
-            ) isNewDayStarted = true
+                val t = key.split("-")
+                val start = toCalendar(t[0])
+                val end = toCalendar(t[1])
+                if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
+                ) isNewDayStarted = true
 
             if (isNewDayStarted) {
                 if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)) end.add(
@@ -82,6 +82,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 setAlarmForList(key, requestCode!!, start)
                 setAlarmForList(key, endRequestCode!!, end, true)
             }
+        }
         }
 
     }

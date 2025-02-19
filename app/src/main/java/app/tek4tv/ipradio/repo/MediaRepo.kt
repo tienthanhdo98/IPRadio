@@ -56,7 +56,6 @@ class MediaRepo @Inject constructor(
         List::class.java,
         MediaItem::class.java
     )
-    private val mediaJsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(type)
 
     suspend fun updateMonthlyScenario(url: String, forceNewScenario: Boolean) {
         try {
@@ -95,7 +94,7 @@ class MediaRepo @Inject constructor(
 
     suspend fun getScenario(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
-
+        scheduledListLeft.clear()
         val res = if (needUpdate) {
             updateScenario(listUrl)
         } else {
@@ -105,7 +104,6 @@ class MediaRepo @Inject constructor(
                 readItemsFromFile()
             } else listOf()
             result
-
         }
         broadcastList.clear()
 
@@ -171,11 +169,13 @@ class MediaRepo @Inject constructor(
         var startTime = 0
         var endTime: Int
         for (i in 0..listItem.size - 2) {
-            Log.d("wssTImeFrame", "convertToTimeFrame: end ${listItem[i].end}")
-            Log.d("wssTImeFrame", "convertToTimeFrame: start ${listItem[i + 1].start}")
             if (i == 0) {
                 startTime = 0
             }
+            if(listItem[i].duration == "00:00:00"){
+                continue
+            }
+
             if (listItem[i].end != listItem[i + 1].start) {
                 endTime = i
                 starts.add(listItem[i].end!!)
@@ -187,7 +187,6 @@ class MediaRepo @Inject constructor(
                 endTime = i + 1
                 val map = mapOf(startTime to endTime)
                 listTimeFrame.add(map)
-
             }
         }
         //Chỉ có 1 khung
@@ -226,19 +225,7 @@ class MediaRepo @Inject constructor(
         else {
             Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
             listTimeFrame.forEach {
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${listItem[it.keys.first()].start} - ${listItem[it.values.first()].end}"
-                )
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung ${it.keys.first()} - ${it.values.first()}"
-                )
                 val list : MutableList<MediaItem> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
-                Log.d(
-                    "wssTImeFrame",
-                    "convertToTimeFrame: Nhiều khung $list"
-                )
                 val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
                 val tObjStart = MediaItem(
                     id = firstId,
@@ -271,6 +258,10 @@ class MediaRepo @Inject constructor(
 
         }
 
+    }
+    suspend fun clearPlaylist()
+    {
+        saveItemsToFile(listOf())
     }
 
     fun startDownloadMedia() {
