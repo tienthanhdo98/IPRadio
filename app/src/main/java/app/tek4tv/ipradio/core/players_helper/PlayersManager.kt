@@ -181,20 +181,35 @@ class PlayersManager(
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
-        }
-        else
-        {
+        } else {
             Log.d(LOGTAG, "Play media phat tiep cham dich")
             stopAllPlayer()
             stopTimeFrame()
         }
     }
 
+    var currentPauseTimePlayer: Long = 0
+    fun pauseMedia() {
+        currentPauseTimePlayer = Calendar.getInstance().timeInMillis
+        vlcPlayer.pause()
+    }
 
-    fun resumeMedia()
-    {
-        vlcPlayer.resume()
-//        exoPlayer.resume()
+    fun resumeMedia() {
+        val now = Calendar.getInstance().timeInMillis
+        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
+        val timeEnd = currentPauseTimePlayer + mediaDuration
+        Log.d("CONTROL_MEDIA", "resume: now $now")
+        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
+        if (now < timeEnd) {
+            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
+            vlcPlayer.resume()
+
+        } else {
+            if (currentPauseTimePlayer != 0L) {
+                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
+                startFirstTimeFrame()
+            }
+        }
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
@@ -360,7 +375,7 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub, chuyen json "name" sang media va convert sang force media, tính thời điểm bắt đầu và kết thúc của force media
      * **/
 
-    fun  onPlayForceCommand(
+    fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
@@ -371,23 +386,18 @@ class PlayersManager(
             val type = responseHub.type
             val level = responseHub.level
             val mediaItemObject = responseAdapter.fromJson(responseHub.name)
+
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-            Log.d("alarmx", "Duration $duration")
             if (playMode == PLAY_MODE_FORCE) {
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
 
-                    if (currentForceMedia != null && currentForceMedia.level < level) {
-                        Log.d("alarmx", " ko đủ level ${currentForceMedia.level} - $level")
-                        return}
-                    Log.d("alarmx", " đủ level ${currentForceMedia!!.level} - $level")
+                    if (currentForceMedia != null && currentForceMedia.level < level) return
                 }
-
             }
-
             val forceMedia =
                 ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
                     val listDur = duration.split(":")
@@ -399,30 +409,34 @@ class PlayersManager(
                         add(Calendar.MINUTE, m)
                         add(Calendar.SECOND, s)
                     }
-
-                    endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
-                    fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
+                    //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
-            playForceMedia(context, forceMedia, mediaScheduler)
+            forceMedia.saveItemToPref(context)
+            playForceMedia(forceMedia, mediaScheduler, false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-
-    fun playForceMedia(context: Context, forceMedia: ForceMedia, mediaScheduler: MediaScheduler) {
+    fun playForceMedia(
+        forceMedia: ForceMedia,
+        mediaScheduler: MediaScheduler,
+        isPlayAtStart: Boolean
+    ) {
         try {
-            Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát
-            mediaScheduler.cancelAllAlarm()
+            mediaScheduler.cancelAllScheduledListAlarm()
 
-            forceMedia.saveItemToPref(context)
+//           forceMedia.saveItemToPref()
             //hẹn giờ dừng media khẩn cấp
-            mediaScheduler.scheduleForceMediaAlarm()
-
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-            playMedia(forceMedia.toMediaItem())
+            if (isPlayAtStart) {
+                playMedia(forceMedia.toMediaItem())
+            }
+//            playMedia(forceMedia.toMediaItem())
+            mediaScheduler.scheduleForceMediaAlarm(forceMedia)
 
         } catch (e: Exception) {
             e.printStackTrace()

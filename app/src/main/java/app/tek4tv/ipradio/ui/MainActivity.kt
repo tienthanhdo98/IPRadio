@@ -332,7 +332,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun startAutoScroll(listMedia: List<MediaItem>) {
 
-        val speed = 3 // Tốc độ cuộn (số pixel mỗi lần chạy)
+        val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
         val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
 
         scrollRunnable = object : Runnable {
@@ -485,10 +485,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                mediaScheduler.scheduleForceMediaAlarm()
+//                mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
+                Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
                 if (forceMedia != null)
-                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
+                    playerManager.playForceMedia(
+                        forceMedia,
+                        mediaScheduler,
+                        true
+                    )
                 return@observe
             }
             //default
@@ -632,14 +637,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
                     when (mess) {
-                        //dung phat tat ca
                         0 -> {
+                            cancelAllAlarm()
                             playerManager.stopAndEndTimeFrame(typeScreen)
-                            playerManager.resetPlayMode()
-                        }
-                        //tam dung
-                        2 -> {
-                            playerManager.stopAllPlayer()
                             playerManager.resetPlayMode()
                         }
                         //dung phat va chuyen sang ban tin tiep
@@ -648,15 +648,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 playerManager.playNextMedia()
                             }
                         }
+                        //Tạm dừng nội dung đang phát
+                        2 -> {
+                            playerManager.pauseMedia()
+                        }
 
-                        //Phát tiếp nội dung dừng trước đó
                         3 -> {
-                            if(!playerManager.isTimeOver) {
-                                if (playerManager.played) {
-                                    playerManager.resumeMedia()
-                                } else {
-                                    playerManager.startFirstTimeFrame()
-                                }
+                            if (!playerManager.isTimeOver) {
+                                playerManager.resumeMedia()
                             }
                         }
                     }
@@ -944,7 +943,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun cancelAllAlarm() {
         /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
          else mediaScheduler.cancelAllScheduledListAlarm()*/
-        mediaScheduler.cancelAllAlarm()
+        mediaScheduler.cancelAllScheduledListAlarm()
     }
 
     private fun setAndroidVolume() {

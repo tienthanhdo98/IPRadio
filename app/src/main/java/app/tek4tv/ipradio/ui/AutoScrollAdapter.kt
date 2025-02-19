@@ -23,9 +23,15 @@ class AutoScrollAdapter(private val items: List<MediaItem>,private val resources
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item = items[position % items.size]  // Lặp lại danh sách
-        holder.textView.text = item.body
-        holder.textView.textSize =  holder.textView.textSize / resources.displayMetrics.density
+        try {
+            val item = items[position % items.size]  // Lặp lại danh sách
+            holder.textView.text = item.body
+            holder.textView.textSize =  holder.textView.textSize / resources.displayMetrics.density
+        }catch (_: Exception)
+        {
+
+        }
+
     }
 
     override fun getItemCount(): Int = Int.MAX_VALUE  // Tạo danh sách vô tận

@@ -83,17 +83,23 @@ data class ForceMedia(
         }
 
         fun hasValidForceMedia(appContext: Context): Boolean {
-            val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
-            if (!hasForceMedia) return false
+            try {
+                val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
+                if (!hasForceMedia) return false
 
-            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
-            if (value == null || value == "") return false
+                val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+                if (value == null || value == "") return false
 
-            val fm = jsonAdapter.fromJson(value) ?: return false
+                val fm = jsonAdapter.fromJson(value) ?: return false
 
-            if (SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime) <= Date()) return false
+                if (SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(fm.endTime) <= Date()) return false
 
-            return true
+                return true
+            }catch (_ : Exception)
+            {
+                return false
+            }
+
         }
 
         fun deleteForeMediaPref(appContext: Context) {

@@ -39,6 +39,7 @@ class HubManager(
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val deviceImei = Utils.getDeviceId(appContext)
+//    private val deviceImei = "AE:E7:D4:00:FE:10"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
