@@ -9,10 +9,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.toCalendar
+import app.tek4tv.ipradio.utils.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -366,10 +363,14 @@ class PlayersManager(
         }
     }
 
-    fun stopAndEndTimeFrame()
+    fun stopAndEndTimeFrame(type : String)
     {
         vlcPlayer.stop()
         playerManagerListener?.onTimeOver()
+        if(type != Utils.FULL_SCREEN)
+        {
+            stopLeftPlaylist()
+        }
     }
 
 

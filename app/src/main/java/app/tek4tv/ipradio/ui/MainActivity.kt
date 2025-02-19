@@ -613,7 +613,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                            playerManager.stopAllPlayer()
 //                            playerManager.resetPlayMode()
                             cancelAllAlarm()
-                            playerManager.stopAndEndTimeFrame()
+                            playerManager.stopAndEndTimeFrame(typeScreen)
                             playerManager.resetPlayMode()
                             lifecycleScope.launch {
                                 viewModel.mediaRepo.clearPlaylist()
