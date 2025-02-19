@@ -8,8 +8,6 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
@@ -877,12 +875,20 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                         when (mess) {
                             //dung phat tat ca
                             0 -> {
-                                playerManager.stopAllPlayer()
+//                                playerManager.stopAllPlayer()
+//                                playerManager.resetPlayMode()
+                                cancelAllAlarm()
+                                playerManager.stopAndEndTimeFrame()
                                 playerManager.resetPlayMode()
+                                lifecycleScope.launch {
+                                    viewModel.mediaRepo.clearPlaylist()
+                                }
                             }
                             //Tam dung
                             2 -> {
-                                playerManager.pausePlayer()
+                                  playerManager.pausePlayer()
+//                                playerManager.stopAllPlayer()
+//                                playerManager.resetPlayMode()
                             }
                             //chuyen sang ban tin tiep
                             1 -> {
@@ -893,7 +899,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                             }
                             //Phát tiếp nội dung dừng trước đó
                             3 -> {
-                                playerManager.resume()
+                                  playerManager.resume()
+//                                if (!playerManager.isTimeOver) {
+//                                    if (playerManager.played) {
+//                                        playerManager.resumeMedia()
+//                                    } else {
+//                                        playerManager.startFirstTimeFrame()
+//                                    }
+//                                }
                             }
                         }
                     }

@@ -103,84 +103,16 @@ class MediaRepo @Inject constructor(
             Log.e(LOG_TAG, "Cannot update daily scenario ${e.message}")
         }
     }
+    suspend fun clearPlaylist()
+    {
+        saveItemsToFile(listOf())
+    }
 
     suspend fun getScenario(needUpdate: Boolean, listUrl: String): List<MediaItem> {
         scheduledList.clear()
         unscheduledList.clear()
         scheduledMediaItems.clear()
         timeDividers.clear()
-
-//        val res = if (needUpdate) {
-//            updateScenario(listUrl)
-//        } else {
-//            val jsonMonthlyListData = ConfigUtil.getString(
-//                appContext,
-//                MONTHLY_SCENARIO_DATA
-//            ,"")
-//            if(jsonMonthlyListData == "")
-//            val monthlyScenarioDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData)
-//            if(monthlyScenarioDataList.i)
-//            val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-//                Log.d("readplaylist", "local")
-//                readItemsFromFile()
-//            } else{
-//                Log.d("readplaylist", "local not file in local")
-//                listOf()}
-//            result
-//        }
-        ///
-//        val res = if (needUpdate) {
-//            updateScenario(listUrl)
-//        } else {
-//            val jsonMonthlyListData = ConfigUtil.getString(
-//                appContext,
-//                MONTHLY_SCENARIO_DATA, ""
-//            ) ?: ""
-//            if(jsonMonthlyListData != "") {
-//                val monthlyScenarioDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData)
-//
-//                val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-//
-//                if (monthlyScenarioDataList?.isNotEmpty() == true) {
-//
-//                    val dayScenario =
-//                        monthlyScenarioDataList.firstOrNull { it.date == currentDate }
-//
-//                    val result = if (dayScenario != null) {
-//                        if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-//                            Log.d("readplaylist", "local")
-//                            val list = readItemsFromFile()
-//                            if(list.isNotEmpty())
-//                            {
-//                                Log.d(LOG_TAG, "local not null")
-//                                list
-//                            }
-//                            else
-//                            {
-//                                Log.d(LOG_TAG, "local null: recall monthly url")
-//                                updateScenario(dayScenario.sourceUrl)
-//                            }
-//                        } else {
-//                            Log.d(LOG_TAG, "local not file in local")
-//                            listOf()
-//                        }
-//                    } else {
-//                        Log.d(LOG_TAG, "Today is not have playing schedule")
-//                        listOf()
-//                    }
-//
-//                    result
-//                } else {
-//                    Log.d(LOG_TAG, "List Nothing to play")
-//                    listOf()
-//                }
-//            }
-//            else
-//            {
-//                Log.d(LOG_TAG, "Nothing str list to play")
-//                listOf()
-//            }
-//        }
 
         val res = when {
             needUpdate -> updateScenario(listUrl)

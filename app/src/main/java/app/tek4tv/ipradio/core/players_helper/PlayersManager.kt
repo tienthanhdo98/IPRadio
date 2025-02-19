@@ -166,12 +166,12 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        if(currentPlayer == vlcPlayer) {
-            vlcPlayer.stop()
-        }
-        else {
-            exoPlayer.stop()
-        }
+//        if(currentPlayer == vlcPlayer) {
+//            vlcPlayer.stop()
+//        }
+//        else {
+//            exoPlayer.stop()
+//        }
         playlistIndex++
 
         if (playlistIndex < currentPlaylist.size) {
@@ -186,7 +186,12 @@ class PlayersManager(
     var currentPauseTimePlayer : Long = 0
     fun pausePlayer() {
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
-        vlcPlayer.pause()
+
+        if (currentPlayer == vlcPlayer) {
+            vlcPlayer.pause()
+        } else {
+            exoPlayer.pause()
+        }
     }
     fun resume() {
         val now = Calendar.getInstance().timeInMillis
@@ -194,7 +199,12 @@ class PlayersManager(
         val timeEnd = currentPauseTimePlayer + mediaDuration
         if(now < timeEnd)
         {
-            vlcPlayer.resume()
+
+            if (currentPlayer == vlcPlayer) {
+                vlcPlayer.resume()
+            } else {
+                exoPlayer.resume()
+            }
         }
         else
         {
@@ -202,14 +212,6 @@ class PlayersManager(
         }
     }
 
-    fun resumeMedia() {
-        if (currentPlayer == vlcPlayer) {
-            vlcPlayer.resume()
-        }
-        if (currentPlayer == exoPlayer) {
-            exoPlayer.resume()
-        }
-    }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
@@ -460,6 +462,13 @@ class PlayersManager(
     fun onActivityDestroy() {
         vlcPlayer.release()
         exoPlayer.release()
+    }
+    fun stopAndEndTimeFrame()
+    {
+        vlcPlayer.stop()
+        exoPlayer.stop()
+        played = false
+        playerManagerListener?.onTimeOver()
     }
 
     fun resetPlayMode() {
