@@ -215,6 +215,10 @@ class MediaRepo @Inject constructor(
         )
 
     }
+    suspend fun clearPlaylist()
+    {
+        saveItemsToFile(listOf())
+    }
 
 
     fun startDownloadMedia() {
@@ -236,6 +240,7 @@ class MediaRepo @Inject constructor(
             downloadMediaItem(item, totalDownloads)
         }
     }
+
 
     // Separate function for downloading a media item
     fun downloadMediaItem(item: MediaItem, totalDownloads: Int) {

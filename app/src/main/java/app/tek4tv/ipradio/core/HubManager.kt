@@ -3,7 +3,6 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
-import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.core.websocket.WssManager
 import app.tek4tv.ipradio.di.MoshiInst
@@ -47,8 +46,8 @@ class HubManager(
 
     val appContext: Context = MyApp.instance!!.applicationContext
 
-    private val deviceImei = Utils.getDeviceId(appContext)
-     // private val deviceImei = "1A:4E:2F:D3:15:12"
+    //private val deviceImei = Utils.getDeviceId(appContext)
+    private val deviceImei = "1A:4E:2F:D3:17:97"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -84,11 +83,13 @@ class HubManager(
 
     //mqtt
     var nguonId = "H48.52.01"
+
+    //    var tenNguon = "Xã Ba Cung"
     var tenNguon = "Thị trấn Ba Tơ"
     var dichId = "H48"
     var tenDich = "Quảng Ngãi"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = true
+    val isMQTT = false
     private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
@@ -455,17 +456,22 @@ class HubManager(
                         3 - Phát tiếp nội dụng đã dừng*/
                         "2" -> {
                             hubCommand = HubCommand.CONTROL_MEDIA
-                            if (giaTri == "0" || giaTri == "2" ) {
+                            if (giaTri == "0") {
                                 responseHub = ResponseHub().apply {
                                     message = "0"
                                 }
                             }
-                            if (giaTri == "1" ) {
+                            if (giaTri == "1") {
                                 responseHub = ResponseHub().apply {
                                     message = "1"
                                 }
                             }
-                            if (giaTri == "3" ) {
+                            if (giaTri == "2") {
+                                responseHub = ResponseHub().apply {
+                                    message = "2"
+                                }
+                            }
+                            if (giaTri == "3") {
                                 responseHub = ResponseHub().apply {
                                     message = "3"
                                 }

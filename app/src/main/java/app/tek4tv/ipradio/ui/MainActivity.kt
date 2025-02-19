@@ -204,7 +204,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -250,10 +250,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         hubManager = HubManager(hubComm,appStorageManager, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
-        hubManager.onMessageListener =
-            { command, message ->
-                handleFromCommandServer(command, message)
-            }
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
@@ -636,7 +632,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-//        locationTracker.getLocation(this@MainActivity)
 
     }
 
@@ -670,7 +665,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                         ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
                         currentTime.toString()
                     )
-
                     playerManager.stopForceMedia()
                 }
 
@@ -685,19 +679,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
-
                 }
 
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    onPlayForce(responseHub)
-
-                }
-
-                HubCommand.UPDATE_DESTINATION -> {
-                }
-
-                HubCommand.UPDATE_CONFIG -> {
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        onPlayForce(responseHub)
+                    }
                 }
 
                 HubCommand.TURN_ON_PA -> {
@@ -713,39 +701,51 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.CONTROL_MEDIA -> {
+                    //Vi thread se an theo websocket nen phai quay lai main de dieu khien player
                     //0,1,2,3
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     val mess = responseHub.message!!.toInt()
                     if (playerManager.playMode != PLAY_MODE_FORCE) {
-                        when (mess) {
-                            //dung phat
-                            0, 2 -> {
-                                playerManager.stopAllPlayer()
-                                playerManager.resetPlayMode()
-                            }
-                            //dung phat va chuyen sang ban tin tiep
-                            1 -> {
-                                Log.d(
-                                    "CONTROL_MEDIA",
-                                    "isInTimeFrame: ${playerManager.isTimeOver}"
-                                )
-                                if (!playerManager.isTimeOver) {
-                                    playerManager.playNextMedia()
-                                }
-                            }
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            when (mess) {
+                                //dung phat
+                                0 -> {
+                                    cancelAllAlarm()
+                                    playerManager.stopAndEndTimeFrame()
 
-                            //Phát tiếp nội dung dừng trước đó
-                            3 -> {
-                                if(!playerManager.isTimeOver) {
-                                    if (playerManager.played) {
-                                        playerManager.resumeMedia()
-                                    } else {
-                                        playerManager.startFirstTimeFrame()
+                                    playerManager.resetPlayMode()
+                                    lifecycleScope.launch {
+                                        viewModel.mediaRepo.clearPlaylist()
+                                    }
+
+                                }
+                                2 -> {
+
+                                    playerManager.pausePlayer()
+
+
+                                }
+                                //dung phat va chuyen sang ban tin tiep
+                                1 -> {
+                                    Log.d(
+                                        "CONTROL_MEDIA",
+                                        "isInTimeFrame: ${playerManager.isTimeOver}"
+                                    )
+                                    if (!playerManager.isTimeOver) {
+                                        playerManager.playNextMedia()
+                                    }
+                                }
+
+                                //Phát tiếp nội dung dừng trước đó
+                                3 -> {
+                                    if (!playerManager.isTimeOver) {
+                                        playerManager.resume()
                                     }
                                 }
                             }
                         }
                     }
+
                 }
 
                 HubCommand.PLAYLIST_INFO -> {
@@ -772,24 +772,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
-                }
-
-                HubCommand.UPDATE_STATUS -> {
-                    // serialPortController.updateStatus()
-                }
-
-                HubCommand.GET_LOCATION -> {
-//                    val connectionId = responseHub.message
-//                    if (locationTracker.mlocation != null && connectionId != null) {
-//
-//                        val result =
-//                            "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
-//
-////                        hubManager.sendHubDirectMessage(
-////                            connectionId, Utils.DEVICE_LOCATION,
-////                            result
-////                        )
-//                    } else Log.d("location", "location not found")
                 }
 
                 HubCommand.RESTART -> {
