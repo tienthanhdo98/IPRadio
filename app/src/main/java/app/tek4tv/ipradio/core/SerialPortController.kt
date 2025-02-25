@@ -127,7 +127,6 @@ class SerialPortController(
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
-                            Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
@@ -202,7 +201,6 @@ class SerialPortController(
     }
 
     fun hardRestart() {
-        hubManager.closeConnect()
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
     }
 

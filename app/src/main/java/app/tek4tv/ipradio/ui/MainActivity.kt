@@ -2,8 +2,10 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -247,7 +249,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm,appStorageManager, authService) { command, message ->
+        hubManager = HubManager(hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -465,7 +467,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-
+        tvMacAdress.setOnClickListener {
+            hubManager.reconnectToServer()
+        }
     }
 
 
@@ -474,7 +478,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         playerManager.onActivityStop()
         stopStream()
         cancelAllAlarm()
-        hubManager.closeConnect()
+
     }
 
     override fun onDestroy() {
@@ -482,7 +486,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         playerManager.onActivityDestroy()
         stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-        hubManager.closeConnect()
+
     }
 
     override fun onStart() {
@@ -515,8 +519,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-
                 viewModel.rescheduleMonthlyPlaylist()
+                hubManager.reconnectToServer()
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -632,7 +636,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -822,15 +825,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     serialPortController.readDeviceInfo()
                 }
 
-                HubCommand.NETWORK_INFO -> {
-//                    val connectionId = responseHub.message
-//                    if (connectionId != null) {
-//                        val result = NetworkUtils.getNetworkInfo(applicationContext)
-//                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
-//                    }
-                }
-
-
                 HubCommand.STORAGE_INFO -> {
                     val connectionId = responseHub.message
                     if (connectionId != null) {
@@ -843,7 +837,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.GET_MEDIA_PATH -> {
-                    val connectionId = responseHub.message
+              //      val connectionId = responseHub.message
 //                    if (connectionId != null) {
 //                        Log.d("connectionId", connectionId)
 //                        val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
@@ -999,19 +993,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     }
 
     private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
-         else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
 
     private fun clearDatastore() {

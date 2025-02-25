@@ -75,5 +75,8 @@ data class ThongTinThietBI (
     var nhietDo: String,
 
     @Json(name = "DungLuongSuDung")
-    var dungLuongSuDung: String
+    var dungLuongSuDung: String,
+    
+    @Json(name = "DuLieuKhac")
+    var duLieuKhac: String
 )

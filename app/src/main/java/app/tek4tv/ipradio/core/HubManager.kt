@@ -29,7 +29,6 @@ import java.util.*
  * **/
 class HubManager(
     private val hubComm: HubComm,
-    private val appStorageManager : AppStorageManager,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
@@ -89,7 +88,7 @@ class HubManager(
     var dichId = "H48"
     var tenDich = "Quảng Ngãi"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = false
+    val isMQTT = true
     private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
@@ -103,21 +102,10 @@ class HubManager(
 
     private fun getHubToken() {
         try {
-
-           // val authInfo = Secrets().getgetToken(MyApp.instance!!.packageName).split('-')
-//            val body = mapOf(
-//                "Username" to authInfo[0],
-//                "Password" to "33e0650c-7bc9-4c45-87b4-3b36ea15a6a5",
-//            )
             val body = mapOf(
                 "Username" to "tek4tv_quangngai",
                 "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",
             )
-//            val url = ConfigUtil.getStringEncrypt(
-//                context = appContext,
-//                ConfigUtil.URL_TOKEN,
-//                "https://gateway-staging.thongtinnguon.vn/api/v2/oauth/token"
-//            )
             val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
@@ -203,6 +191,12 @@ class HubManager(
         }
     }
 
+    fun reconnectToServer()
+    {
+        closeConnect()
+        connectToServer()
+    }
+
     fun connectToServer() {
         //reset sau 5 phút khi không lấy được token
         if (pingCounter >= 60) {
@@ -276,11 +270,14 @@ class HubManager(
 
 
     fun closeConnect() {
-//        if (isMQTT) {
-//            mqttClient?.disconnectMqtt()
-//        } else {
-//            wssManager?.closeWebsocket()
-//        }
+        isConnectSuccess = false
+        hubToken = null
+        listMQTTInfo = listOf()
+        if (isMQTT) {
+            mqttClient?.disconnectMqtt()
+        } else {
+            wssManager?.closeWebsocket()
+        }
     }
 
 
@@ -328,7 +325,8 @@ class HubManager(
                         StringValue.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
-                    dungLuongSuDung = getTotalDataNetworkUsed(appContext)
+                    dungLuongSuDung = getTotalDataNetworkUsed(appContext),
+                    duLieuKhac = SerialPortController.deviceInfo
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 noiDungPhat = noiDungPhat,
