@@ -14,6 +14,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
@@ -46,8 +47,8 @@ class HubManager(
 
     val appContext: Context = MyApp.instance!!.applicationContext
 
-    //private val deviceImei = Utils.getDeviceId(appContext)
-    private val deviceImei = "1A:4E:2F:D3:17:97"
+    private val deviceImei = Utils.getDeviceId(appContext)
+    //private val deviceImei = "1A:4E:2F:D3:17:97"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -83,7 +84,6 @@ class HubManager(
 
     //mqtt
     var nguonId = "H48.52.01"
-
     //    var tenNguon = "Xã Ba Cung"
     var tenNguon = "Thị trấn Ba Tơ"
     var dichId = "H48"
@@ -328,7 +328,7 @@ class HubManager(
                         StringValue.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
-                    dungLuongSuDung = appStorageManager.getUsedRomStorage().toString()
+                    dungLuongSuDung = getTotalDataNetworkUsed(appContext)
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 noiDungPhat = noiDungPhat,

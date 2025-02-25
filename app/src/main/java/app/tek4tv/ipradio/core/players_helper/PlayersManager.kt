@@ -248,7 +248,9 @@ class PlayersManager(
                     Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
                 }
+
             }
+            Log.e(LOGTAG, "Player ${Looper.getMainLooper().isCurrentThread}")
         } catch (e: Exception) {
             e.printStackTrace()
         }

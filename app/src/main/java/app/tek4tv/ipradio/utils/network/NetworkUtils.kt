@@ -4,11 +4,8 @@ import android.annotation.SuppressLint
 import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.net.ConnectivityManager
+import android.net.*
 import android.net.ConnectivityManager.NetworkCallback
-import android.net.Network
-import android.net.NetworkCapabilities
-import android.net.NetworkRequest
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Process
@@ -199,7 +196,25 @@ class NetworkUtils private constructor() {
             )
             return mode == AppOpsManager.MODE_ALLOWED
         }
+        fun getTotalDataNetworkUsed(appContext: Context) : String{
+            val netStatManager =
+                appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+            val helper = NetworkStatsHelper(netStatManager)
+            val startTime = Calendar.getInstance().apply {
+                set(Calendar.DAY_OF_MONTH, 1)
+            }
+            val endTime = Calendar.getInstance().apply {
+                set(Calendar.DAY_OF_MONTH, 1)
+                add(Calendar.MONTH, 1)
+                add(Calendar.DAY_OF_MONTH, -1)
+            }
+            val allRxByte =
+                helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+            val allTxByte =
+                helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
 
+            return  ((allRxByte + allTxByte) / 1024).toString()
+        }
         fun getNetworkUsage(appContext: Context): String {
             return try {
                 val netStatManager =
@@ -214,9 +229,9 @@ class NetworkUtils private constructor() {
                     add(Calendar.DAY_OF_MONTH, -1)
                 }
                 val allRxByte =
-                    helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+                    helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)/1024
                 val allTxByte =
-                    helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+                    helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)/1024
                 //data nhận, data gửi
                 "$allRxByte,$allTxByte"
             } catch (e: Exception) {
@@ -228,7 +243,7 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-                val dataUsage = getNetworkUsage(appContext)
+//                val dataUsage = getNetworkUsage(appContext)
 
                 val level = when (networkClass) {
                     "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
@@ -243,7 +258,9 @@ class NetworkUtils private constructor() {
                     }
                 }
 
-                return "$networkClass,$dataUsage,$level"
+//                return "$networkClass,$dataUsage,$level"
+                //theo 2455 khong gui datausage o day
+                return "$networkClass,$level"
             } catch (e: Exception) {
                 e.printStackTrace()
                 "error"

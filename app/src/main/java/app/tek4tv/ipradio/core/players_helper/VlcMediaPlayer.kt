@@ -119,7 +119,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             if (isForce) {
                 playLiveStream(mediaItem, timeStamp)
             } else {
-                if (!isInRangeTimePlay()) {
+                if (isInRangeTimePlay()) {
                     playFile(mediaItem, timeStamp)
                 }
             }
@@ -185,7 +185,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
 //        stream.addOption(":rtsp-tcp")
-        stream.addOption(":network-caching=20")
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)

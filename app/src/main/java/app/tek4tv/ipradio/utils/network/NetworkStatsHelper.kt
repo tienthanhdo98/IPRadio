@@ -6,9 +6,11 @@ import android.app.usage.NetworkStats
 import android.app.usage.NetworkStatsManager
 import android.content.Context
 import android.net.ConnectivityManager
+import android.net.TrafficStats
 import android.os.Build
 import android.os.RemoteException
 import android.telephony.TelephonyManager
+
 
 /**
  * Created by Robert Zagórski on 2016-09-09.
