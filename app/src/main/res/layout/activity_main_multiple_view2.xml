@@ -2,19 +2,19 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/bg_main"
     android:paddingEnd="@dimen/_10sdp"
-    android:paddingBottom="@dimen/_10sdp"
-    android:background="@drawable/bg_main">
+    android:paddingBottom="@dimen/_10sdp">
 
 
     <androidx.constraintlayout.widget.ConstraintLayout
-        android:layout_width="0dp"
         android:id="@+id/topArea"
+        android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintHeight_percent="0.3"
-        app:layout_constraintWidth_percent="0.7"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintWidth_percent="0.7">
 
         <TextView
             android:id="@+id/tvTopArea"
@@ -22,7 +22,6 @@
             android:layout_height="match_parent"
             android:ellipsize="marquee"
             android:focusable="true"
-            android:textSize="@dimen/_14sdp"
             android:focusableInTouchMode="true"
             android:fontFamily="@font/verdanabold"
             android:gravity="center"
@@ -31,6 +30,7 @@
             android:scrollHorizontally="true"
             android:text="Cộng hòa xã hội chủ nghĩa Việt Nam\nĐộc lập - Tự do - Hạnh phúc"
             android:textColor="#F2FB0A"
+            android:textSize="@dimen/_14sdp"
             android:textStyle="bold"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintEnd_toEndOf="parent"
@@ -46,28 +46,31 @@
         app:layout_constraintEnd_toStartOf="@id/topArea"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent">
+
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/glLogo10"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.1"/>
+            app:layout_constraintGuide_percent="0.1" />
+
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/glLogo90"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:orientation="horizontal"
-            app:layout_constraintGuide_percent="0.9"/>
+            app:layout_constraintGuide_percent="0.9" />
+
         <ImageView
             android:id="@+id/ivTop"
             android:layout_width="0dp"
-            android:visibility="gone"
             android:layout_height="0dp"
             android:src="@drawable/logo_bacgiang"
+            android:visibility="gone"
+            app:layout_constraintBottom_toBottomOf="@+id/glLogo90"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/glLogo10"
-            app:layout_constraintBottom_toBottomOf="@+id/glLogo90"
 
             />
 
@@ -76,45 +79,79 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:fontFamily="@font/verdanabold"
-            android:visibility="invisible"
             android:gravity="center"
             android:maxLines="1"
-            android:textSize="@dimen/_10sdp"
             android:text="Thông báo"
             android:textColor="#F2FB0A"
-            app:layout_constraintTop_toBottomOf="@id/ivTop"
+            android:textSize="@dimen/_10sdp"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toTopOf="@+id/glLogo90"
             app:layout_constraintEnd_toEndOf="@id/ivTop"
             app:layout_constraintStart_toStartOf="@id/ivTop"
-            app:layout_constraintBottom_toTopOf="@+id/glLogo90" />
+            app:layout_constraintTop_toBottomOf="@id/ivTop" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 
 
-    <androidx.recyclerview.widget.RecyclerView
-        android:id="@+id/recyclerView"
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/rightArea"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:scrollbars="none"
         app:layout_constraintBottom_toBottomOf="@id/root_layout"
         app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/root_layout"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="@id/root_layout"
-        app:layout_constraintEnd_toStartOf="@id/root_layout" />
+        app:layout_constraintTop_toTopOf="@id/root_layout">
 
+        <androidx.recyclerview.widget.RecyclerView
+            android:id="@+id/recyclerView"
+            android:layout_width="0dp"
+            android:layout_height="0dp"
+            android:scrollbars="none"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent" />
+    </androidx.constraintlayout.widget.ConstraintLayout>
 
-    <FrameLayout
+    <!--    <ImageView-->
+    <!--        android:id="@+id/img_holder"-->
+    <!--        android:layout_width="0dp"-->
+    <!--        android:layout_height="0dp"-->
+    <!--        android:src="@drawable/tuyen_giao"-->
+    <!--        android:visibility="visible"-->
+    <!--        app:layout_constraintStart_toEndOf="@+id/rightArea"-->
+    <!--        app:layout_constraintEnd_toEndOf="parent"-->
+    <!--        app:layout_constraintDimensionRatio="H,16:9"-->
+    <!--        app:layout_constraintBottom_toBottomOf="parent"-->
+    <!--        app:layout_constraintTop_toBottomOf="@+id/topArea"-->
+    <!--        app:layout_constraintWidth_percent="0.7"-->
+    <!--        android:elevation="@dimen/_15sdp"-->
+    <!--       />-->
+
+    <androidx.cardview.widget.CardView
         android:id="@+id/root_layout"
         android:layout_width="0dp"
         android:layout_height="0dp"
-        android:background="@drawable/video_rounded_bg"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintDimensionRatio="H,16:9"
+        android:background="@color/black"
+        android:clipChildren="true"
+        android:clipToPadding="true"
+        app:cardCornerRadius="@dimen/_10sdp"
         app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintDimensionRatio="H,16:9"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@+id/rightArea"
         app:layout_constraintTop_toBottomOf="@+id/topArea"
-        app:layout_constraintWidth_percent="0.7"
-        android:keepScreenOn="true"
-        android:outlineProvider="background"
-        app:layout_constraintStart_toEndOf="@+id/recyclerView">
+        app:layout_constraintWidth_percent="0.7">
+
+        <ImageView
+            android:id="@+id/img_holder"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@color/black"
+            android:elevation="@dimen/_15sdp"
+            android:src="@drawable/tuyen_giao"
+            android:visibility="gone" />
 
         <org.videolan.libvlc.util.VLCVideoLayout
             android:id="@+id/vlc_video_layout"
@@ -123,7 +160,7 @@
             android:layout_gravity="center" />
 
 
-    </FrameLayout>
+    </androidx.cardview.widget.CardView>
 
 
 </androidx.constraintlayout.widget.ConstraintLayout>

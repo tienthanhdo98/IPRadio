@@ -407,7 +407,7 @@ class HubManager(
                 deviceInfo = SerialPortController.deviceInfo
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub device info: ${request.volume}")
+            Log.i("loghub", "log hub device info: ${pingRequestAdapter.toJson(request)}")
             Log.i("loghub", "log hub device info: ${request.video} ${hubConnection.connectionId}")
             Log.i("loghub", "log hub device info: ${GlobalProperties.getInst().androidVolume}")
 

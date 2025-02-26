@@ -35,7 +35,7 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "VATC"
+    var providerValue: String = "TEK4TV"
 
 
 
@@ -66,7 +66,7 @@ class GlobalProperties {
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
+        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
         ////ha nam
 //        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
 //        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"

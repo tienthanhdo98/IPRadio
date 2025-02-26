@@ -218,7 +218,9 @@ class NetworkUtils private constructor() {
                 val allTxByte =
                     helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
                 //data nhận, data gửi
-                "$allRxByte,$allTxByte"
+//                "$allRxByte,$allTxByte"
+                val total = (allRxByte + allTxByte)/1024
+                "$total"
             } catch (e: Exception) {
                 e.printStackTrace()
                 "-1,-1"
@@ -228,8 +230,7 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-//                val dataUsage = getNetworkUsage(appContext)
-                 val dataUsage = ""
+                 val dataUsage = getNetworkUsage(appContext)
 
                 val level = when (networkClass) {
                     "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
