@@ -124,9 +124,7 @@ class MQTTManager(
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
                         Log.d(TAG, "Failed to disconnect")
-                        if (exception != null) {
-                        }
-                    }
+                                            }
                 })
             }
         } catch (e: MqttException) {

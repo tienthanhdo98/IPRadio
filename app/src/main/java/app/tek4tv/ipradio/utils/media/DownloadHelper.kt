@@ -1,9 +1,7 @@
 package app.tek4tv.ipradio.utils.media
 
 import android.util.Log
-import com.downloader.Error
-import com.downloader.OnDownloadListener
-import com.downloader.PRDownloader
+import com.downloader.*
 import kotlinx.coroutines.*
 import kotlinx.coroutines.channels.Channel
 import java.util.concurrent.ConcurrentHashMap
@@ -15,6 +13,8 @@ class DownloadItem : Comparable<DownloadItem> {
     var itFileName = ""
     var downloadListener: OnDownloadListener? = null
     var priority = 5
+    var processListener : OnProgressListener? = null
+    var onStartOrResumeListener : OnStartOrResumeListener? = null
 
     override fun compareTo(other: DownloadItem): Int {
         return priority - other.priority
@@ -31,13 +31,19 @@ class DownloadHelper2 private constructor() {
 
     //act like a places-holder for downloading item
     //we can only download 3 file at a time
-    private val counterChanel = Channel<Int>(3)
+    private val counterChanel = Channel<Int>(2)
 
     private val scope = CoroutineScope(Dispatchers.Default + SupervisorJob())
 
     private suspend fun downloadSingleItem(it: DownloadItem): Boolean =
         suspendCancellableCoroutine { cont ->
             PRDownloader.download(it.itDownloadUrl, it.itStoragePath, it.itFileName).build()
+                .setOnProgressListener {progress ->
+                    it.processListener?.onProgress(progress)
+                }
+                .setOnStartOrResumeListener {
+                    it.onStartOrResumeListener
+                }
                 .start(object : OnDownloadListener {
                     override fun onDownloadComplete() {
                         cont.resume(true)

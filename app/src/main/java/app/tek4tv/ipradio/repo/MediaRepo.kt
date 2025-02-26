@@ -18,6 +18,9 @@ import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
 import com.downloader.Error
 import com.downloader.OnDownloadListener
+import com.downloader.OnProgressListener
+import com.downloader.OnStartOrResumeListener
+import com.downloader.Progress
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -58,7 +61,7 @@ class MediaRepo @Inject constructor(
             Log.e(TAG, "updateMonthlyScenario")
 
             val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-            
+
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_WSS_DATA,
@@ -214,6 +217,7 @@ class MediaRepo @Inject constructor(
     {
         return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png")
     }
+    var currentMapDownload = mutableMapOf<String,String>()
 
     fun downloadAMediaItem(it: MediaItem) {
         //1 - bản tin ký tự
@@ -267,6 +271,7 @@ class MediaRepo @Inject constructor(
                     }
 
                     Log.d("downloadcomplete", it.body!!)
+                    currentMapDownload.remove(it.body)
                 }
 
                 override fun onError(error: Error?) {
@@ -274,6 +279,16 @@ class MediaRepo @Inject constructor(
                 }
 
             }
+            processListener = OnProgressListener {progress ->
+                val percentage = if (progress.totalBytes > 0) (progress.currentBytes * 100) / progress.totalBytes else 0
+                currentMapDownload[it.body!!] = "${percentage}/100}"
+                //Log.d("downloaditem", "downloadAMediaItem: ${it.title} - ${percentage}/100}")
+            }
+            onStartOrResumeListener = OnStartOrResumeListener {
+                currentMapDownload[it.body!!] = "0/0"
+            }
         })
     }
+
+
 }

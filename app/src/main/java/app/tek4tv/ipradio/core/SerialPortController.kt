@@ -1,8 +1,11 @@
 package app.tek4tv.ipradio.core
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.telephony.CellSignalStrength
 import android.util.Log
+import android.widget.Toast
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils
@@ -96,6 +99,7 @@ class SerialPortController(
                             "${cellStrength}dbm"
                         else "undefine"
                     }
+
                     "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
                     else -> "---"
                 }
@@ -139,10 +143,8 @@ class SerialPortController(
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
-                            val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if (s.contains("\$\$,1,8") && list.size >= 4) {
+                            if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
-//                                volume = list[5]
                             }
                             dataFinal = StringBuffer()
                         }
@@ -215,7 +217,6 @@ class SerialPortController(
     }
 
     fun hardRestart() {
-
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
     }
 

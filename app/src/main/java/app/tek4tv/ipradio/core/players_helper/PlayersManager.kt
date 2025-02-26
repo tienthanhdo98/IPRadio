@@ -76,7 +76,7 @@ class PlayersManager(
 
 //    private var handlerFMPlayer: Handler? = null
 
-    var currentTextPlaylist = listOf<MediaItem>()
+    private var currentTextPlaylist = listOf<MediaItem>()
 
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
         if (isLiveError) {
@@ -394,7 +394,6 @@ class PlayersManager(
                 val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
                 if (value != null && value != "") {
                     val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
-
                     if (currentForceMedia != null && currentForceMedia.level < level) return
                 }
             }

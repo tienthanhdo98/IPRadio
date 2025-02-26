@@ -200,6 +200,27 @@ class NetworkUtils private constructor() {
             return mode == AppOpsManager.MODE_ALLOWED
         }
 
+        fun getTotalNetworkDataUsage(appContext: Context): String {
+//            val netStatManager =
+//                appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
+//            val helper = NetworkStatsHelper(netStatManager)
+//            val startTime = Calendar.getInstance().apply {
+//                set(Calendar.DAY_OF_MONTH, 1)
+//            }
+//            val endTime = Calendar.getInstance().apply {
+//                set(Calendar.DAY_OF_MONTH, 1)
+//                add(Calendar.MONTH, 1)
+//                add(Calendar.DAY_OF_MONTH, -1)
+//            }
+//            val allRxByte =
+//                helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+//            val allTxByte =
+//                helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
+//            //data nhận, data gửi
+//            return ((allRxByte + allTxByte) / 1024).toString()
+            return ""
+        }
+
         fun getNetworkUsage(appContext: Context): String {
             return try {
                 val netStatManager =

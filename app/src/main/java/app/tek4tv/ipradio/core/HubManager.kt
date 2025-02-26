@@ -84,7 +84,6 @@ class HubManager(
         _messageStateFlow.emit(Pair(command, message)) // Update StateFlow
     }
 
-
     var nguonId = "H48.52.04"
     var tenNguon = "Xã Ba Cung"
     var dichId = "H48"
@@ -96,8 +95,8 @@ class HubManager(
 
     //mqtt
     val isMQTT = false
-    var mqttClient: MQTTManager? = null
-    var listMQTTInfo: List<NoiDungMQTT> = listOf()
+    private var mqttClient: MQTTManager? = null
+    private var listMQTTInfo: List<NoiDungMQTT> = listOf()
 
     init {
         versionName = try {
@@ -201,6 +200,21 @@ class HubManager(
         {
             Log.d(TAG, "getSourceMQTT: ${e.message}")
         }
+    }
+    fun closeConnect() {
+        isConnectSuccess = false
+        hubToken = null
+        listMQTTInfo = listOf()
+        if (isMQTT) {
+            mqttClient?.disconnectMqtt()
+        } else {
+            wssManager?.closeWebsocket()
+        }
+    }
+    fun reconnectToServer()
+    {
+        closeConnect()
+        connectToServer()
     }
 
     fun connectToServer() {
@@ -315,8 +329,8 @@ class HubManager(
                         StringValue.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
-                    dungLuongSuDung = appStorageManager.getUsedRomStorage().toString(),
-                    duLieuKhac = ""
+                    dungLuongSuDung = NetworkUtils.getTotalNetworkDataUsage(appContext),
+                    duLieuKhac = SerialPortController.deviceInfo
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 //conver sttring to list String
@@ -346,7 +360,6 @@ class HubManager(
                         GlobalProperties.TYPE_SCREEN_KEY,
                         typeScreen
                     )
-//                    onMessageListener.invoke(hubCommand, jsonMess)
                     coroutineScope.launch {
                         receiveMessage(hubCommand, jsonMess)
                     }
@@ -642,18 +655,12 @@ class HubManager(
             }
         }
         listDate.toSet().forEach {
-
             val jsonSchedule = findScheduleByDate(
                 payload,
                 it
             )
             mapData[it] =
                 jsonSchedule
-        }
-
-        mapData.forEach{
-            Log.d("wssplaylist", "Convert Map: ${it.key}")
-            Log.d("wssplaylist", "Convert Map: ${it.value}")
         }
 
         return mapData
@@ -740,8 +747,6 @@ class HubManager(
         var startTime = 0
         var endTime: Int
         for (i in 0..listItem.size - 2) {
-            Log.d("wssTImeFrame", "convertToTimeFrame: end ${listItem[i].end}")
-            Log.d("wssTImeFrame", "convertToTimeFrame: start ${listItem[i + 1].start}")
             if (i == 0) {
                 startTime = 0
             }

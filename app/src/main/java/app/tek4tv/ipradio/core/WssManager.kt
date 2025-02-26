@@ -61,11 +61,10 @@ class WssManager(private var hubToken : String?, private val connectEventListene
         webSocket = client?.newWebSocket(request, listener)
 
     }
+
     fun closeWebsocket() {
-        if(client != null) {
-            webSocket?.close(1000, "Activity destroyed")
-            client!!.dispatcher.executorService.shutdown()
-            Log.d(TAG, "closeWebsocket: ")
-        }
+        webSocket?.close(1000, "Client disconnected")
+//        client?.dispatcher?.executorService?.shutdown()
+        Log.d(TAG, "closeWebsocket")
     }
 }

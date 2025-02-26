@@ -22,7 +22,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val requestCodeRescheduleAllAlarm = 1010
     private val requestCodeCheckHubAndResetAlarms = 1020
-    private val requestEndForce= 1080
+    private val requestEndForce = 1080
     private fun setRescheduleAllAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
@@ -53,6 +53,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
+            val listMediaInPeriod = scheduledList.values.elementAt(i)
             //setAlarmsForFrame(period)
             var isNewDayStarted = false
             val requestCode = mediaRepo.timeDividers[period]!![0].id
@@ -78,15 +79,26 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val now = Calendar.getInstance().timeInMillis
 
             if (now in start.timeInMillis..end.timeInMillis) {
-                setAlarmForList(period, endRequestCode!!, end, true)
+                setAlarmForList(
+                    period,
+                    endRequestCode!!,
+                    end.timeInMillis + (listMediaInPeriod.size + 1) * 1000,
+                    true
+                )
             } else if (now < start.timeInMillis) {
-                setAlarmForList(period, requestCode!!, start)
-                setAlarmForList(period, endRequestCode!!, end, true)
+                setAlarmForList(period, requestCode!!, start.timeInMillis)
+                setAlarmForList(
+                    period,
+                    endRequestCode!!,
+                    end.timeInMillis + (listMediaInPeriod.size + 1) * 1000,
+                    true
+                )
             }
         }
     }
+
     private fun setAlarmForList(
-        listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
+        listKey: String, requestCode: Int, time: Long, shouldEndPlaying: Boolean = false
     ) {
         val isAlarmWorking = getScheduleListIntent(
             listKey, requestCode,
@@ -102,7 +114,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 //            alarmIntent
 //        )
 
-        val alarmClockInfo = AlarmClockInfo(time.timeInMillis, alarmIntent)
+        val alarmClockInfo = AlarmClockInfo(time, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
@@ -164,7 +176,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
-        val alarmIntent = PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
         Log.d("alarmx", "force end time ${forceMedia.endTime}")
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
             time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(forceMedia.endTime)
@@ -172,11 +185,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         mediaEndTimeInMillis.add(Calendar.SECOND, 2)
         if (mediaEndTimeInMillis.timeInMillis <= Calendar.getInstance().timeInMillis) return
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            mediaEndTimeInMillis.timeInMillis, alarmIntent
+        val alarmClockInfo = AlarmClockInfo(mediaEndTimeInMillis.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+        Log.d(
+            "alarmx",
+            "set end force ${convertTimeInMillisToHHmmss(mediaEndTimeInMillis.timeInMillis)}"
         )
-        Log.d("alarmx", "set end force ${convertTimeInMillisToHHmmss(mediaEndTimeInMillis.timeInMillis)}")
     }
 
     private fun setCheckHubAndResetAlarms() {

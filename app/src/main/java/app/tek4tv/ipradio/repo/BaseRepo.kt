@@ -14,7 +14,7 @@ abstract class BaseRepo<T>(
 
     var saveFileJob: Job? = null
 
-    protected val coroutineScope = CoroutineScope(Dispatchers.IO)
+    val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     suspend fun saveItemsToFile(playlist: List<T>) {
         try {

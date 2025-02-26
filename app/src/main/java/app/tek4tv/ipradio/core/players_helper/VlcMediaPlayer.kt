@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.graphics.Color
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -43,6 +44,7 @@ class VlcMediaPlayer(
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
+                vlcVideoLayout.setBackgroundColor(Color.RED)
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
                     val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
                     if (!isStreamFailed) {
@@ -57,6 +59,7 @@ class VlcMediaPlayer(
                     playerEventListener.onMediaForceEndReached(currentMedia)
                 }
             }
+
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
@@ -72,6 +75,7 @@ class VlcMediaPlayer(
             }
 
             MediaPlayer.Event.Playing -> {
+                vlcVideoLayout.setBackgroundColor(Color.TRANSPARENT)
                 if (!isPlaying) {
                     Log.e(TAG, "Playing ${currentMedia?.title}")
                     isPlaying = true
@@ -132,13 +136,12 @@ class VlcMediaPlayer(
     }
 
 
-
     override fun pause() {
         vlcPlayer.pause()
     }
 
     override fun resume() {
-          vlcPlayer.play()
+        vlcPlayer.play()
 //        val mediaStoragePath = appContext.filesDir.path
 //        Log.d("mediaStoragePath", "resume: $mediaStoragePath")
 //        val stream = Media(
@@ -187,7 +190,7 @@ class VlcMediaPlayer(
         if (currentMedia == null || currentMedia?.getMediaType() != MediaType.LIVE) return
 
         if (checkLiveStream(currentMedia!!, currentVlcMedia!!))
-            playLiveStream(currentMedia!!,-1)
+            playLiveStream(currentMedia!!, -1)
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
@@ -196,14 +199,11 @@ class VlcMediaPlayer(
         Log.e(TAG, "vlc play timeStamp $timeStamp")
         if (timeStamp != -1 && mediaItem.contentType?.value != "2")
             media.addOption(":start-time=$timeStamp")
-
         currentVlcMedia = media
-
         vlcPlayer.play(media)
-
     }
 
-    private fun playLiveStream(mediaItem: MediaItem,timeStamp: Int) {
+    private fun playLiveStream(mediaItem: MediaItem, timeStamp: Int) {
         Log.e(TAG, "vlc play live : time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
@@ -265,7 +265,7 @@ class VlcMediaPlayer(
         val now = Calendar.getInstance()
 
         val liveEndTime = toCalendar(mediaItem.start!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!)-2)
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!) - 2)
         }
 
         val check = (now <= liveEndTime)
@@ -341,7 +341,7 @@ class VlcMediaPlayer(
                 Handler(Looper.getMainLooper()).postDelayed({
                     countReplayLive++
                     Log.d(TAG, "onLiveErrorVlc: Chay lai live")
-                    if(currentMedia != null) {
+                    if (currentMedia != null) {
                         playMedia(currentMedia!!, true)
                     }
                 }, 5000)

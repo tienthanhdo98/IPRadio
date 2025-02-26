@@ -6,6 +6,7 @@ import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.AudioManager
 import android.os.*
+import android.provider.Settings
 import android.util.Log
 import android.view.PixelCopy
 import android.view.SurfaceView
@@ -101,6 +102,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private lateinit var vlcVideoLayout: VLCVideoLayout
+    private lateinit var imgHolder: ImageView
 
     private val globalProperties = GlobalProperties.getInst()
     private var typeScreen: String = FULL_SCREEN
@@ -116,6 +118,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+            vlcVideoLayout.visibility = View.INVISIBLE
+            imgHolder.visibility = View.VISIBLE
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
@@ -151,7 +155,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-
+            imgHolder.visibility = View.GONE
+            vlcVideoLayout.visibility = View.VISIBLE
             if (mediaItem != null) {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
@@ -208,7 +213,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             override fun forceRestartDevice() {
-                serialPortController.hardRestart()
+                Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch {
+                    delay(5000)
+                    serialPortController.hardRestart()
+                }
+
             }
         }
         appStorageManager = AppStorageManager(applicationContext)
@@ -226,13 +236,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         lifecycleScope.launch {
             hubManager.messageStateFlow.collectLatest { messagePair ->
                 messagePair?.let { (command, message) ->
-                    Log.d("MainActivityMess", "Received Message: Command=$command, Message=$message")
+                    Log.d(
+                        "MainActivityMess",
+                        "Received Message: Command=$command, Message=$message"
+                    )
                     handleFromCommandServer(command, message)
                 }
             }
         }
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
+        imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
             applicationContext,
             vlcVideoLayout,
@@ -319,10 +333,44 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun initDataByScreen() {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+            val tvDownload = findViewById<TextView>(R.id.tvDownload)
+            val tvPlaying = findViewById<TextView>(R.id.tvPlaying)
+            val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
             val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+            //val info = "${Utils.getDeviceId(this).takeLast(5)} - ${hubManager.versionName}"
             tvMacAddress.text = info
-            tvMacAddress.setOnClickListener {
-//                capture()
+            lifecycleScope.launch {
+                while (true) {
+                    if (hubManager.pingCounter <= 1) {
+                        tvCheckInternet.setTextColor(getColor(R.color.white))
+                        tvCheckInternet.setBackgroundColor(getColor(R.color.green_online))
+                        tvCheckInternet.text = resources.getString(R.string.online)
+                    } else {
+                        tvCheckInternet.setTextColor(getColor(R.color.white))
+                        tvCheckInternet.setBackgroundColor(getColor(R.color.red_offline))
+                        tvCheckInternet.text = resources.getString(R.string.offine)
+                    }
+                    delay(10000)
+                }
+            }
+//            lifecycleScope.launch {
+//                tvMacAddress.text = info
+//                delay(15000)
+//                tvMacAddress.visibility = View.GONE
+//            }
+            lifecycleScope.launch {
+                while (true) {
+                    tvPlaying.text = "Now playing: ${hubManager.currentMediaItem?.body}"
+                    delay(2000)
+                }
+            }
+            lifecycleScope.launch {
+                while (true) {
+                    val value = viewModel.mediaRepo.currentMapDownload
+                    val str = value.entries.joinToString("\n") { "${it.key} - ${it.value}" }
+                    tvDownload.text = str
+                    delay(2000)
+                }
             }
         } else if (typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
@@ -330,7 +378,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-    private fun startAutoScroll(listMedia: List<MediaItem>) {
+    private fun startAutoScroll() {
 
         val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
         val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
@@ -347,10 +395,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun showLeftArea(listMedia: List<MediaItem>) {
-        adapter = AutoScrollAdapter(listMedia,resources)
+        adapter = AutoScrollAdapter(listMedia, resources)
         recyclerView.adapter = adapter
         recyclerView.visibility = View.VISIBLE
-        startAutoScroll(listMedia)
+        startAutoScroll()
     }
 
     private fun hideTopLeftArea() {
@@ -401,8 +449,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey, null)
-                    if(typeScreen == MULTIPLE_AREA)
-                    {
+                    if (typeScreen == MULTIPLE_AREA) {
                         Log.d("alarmx", "start left: $listKey")
                         playerManager.startLeftTimeFrame(listKey)
                     }
@@ -414,8 +461,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
-                if(typeScreen == MULTIPLE_AREA)
-                {
+                if (typeScreen == MULTIPLE_AREA) {
                     Log.d("alarmx", "end left")
                     playerManager.stopLeftPlaylist()
                 }
@@ -429,8 +475,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-
                 viewModel.rescheduleMonthlyPlaylist()
+                hubManager.reconnectToServer()
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -466,10 +512,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-//        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-//            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-//            startActivity(intent)
-//        }
+        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
+            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
+            startActivity(intent)
+        }
 
         return needGrantPermission
     }
@@ -706,7 +752,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.RESTART -> {
-                    serialPortController.hardRestart()
+                    Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
+                    lifecycleScope.launch {
+                        delay(5000)
+                        serialPortController.hardRestart()
+                    }
                 }
 
                 HubCommand.SET_MUTE_DEVICE -> {
@@ -879,11 +929,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
                         FtpUtils.uploadLogFile(applicationContext, logPath)
                     }
-                }
-
-                HubCommand.CONTROL_WIFI_STATE -> {
-                    val wifiEnable = responseHub.message!! == "1"
-                    NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                 }
 
                 HubCommand.GET_ENCRYPTED_STORAGE_INFO -> {
