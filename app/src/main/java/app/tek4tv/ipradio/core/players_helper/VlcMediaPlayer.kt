@@ -63,17 +63,16 @@ class VlcMediaPlayer(
         //bật log vlc
 //        args.add("-vvv")
 //        args.add("--no-drop-late-frames")
-        args.add("--drop-late-frames")
 //        args.add("--no-skip-frames")
-        args.add("--skip-frames")
-        args.add("--file-caching=500")
-        args.add("--network-caching=500")
 //       args.add("--vout=android-display")
 //        args.add("--vout=gles2")
- //       args.add("--android-display-chroma=YV12")
-        args.add("--avcodec-hw=any")
+        //       args.add("--android-display-chroma=YV12")
+//        args.add("--avcodec-hw=any")
 //        RotateScreen("270",args)
-
+        args.add("--skip-frames")
+        args.add("--drop-late-frames")
+        args.add("--file-caching=1000")
+        args.add("--network-caching=1000")
 
 
         mLibVLC = LibVLC(appContext, args)
