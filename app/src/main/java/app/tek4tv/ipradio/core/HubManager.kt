@@ -39,7 +39,7 @@ class HubManager(
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val deviceImei = Utils.getDeviceId(appContext)
-//    private val deviceImei = "AE:E7:D4:00:FE:10"
+//   private val deviceImei = "72:BE:B5:09:17:98"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -94,7 +94,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = false
+    val isMQTT = true
     private var mqttClient: MQTTManager? = null
     private var listMQTTInfo: List<NoiDungMQTT> = listOf()
 
