@@ -3,6 +3,8 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.drawable.Drawable
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
@@ -15,6 +17,7 @@ import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -43,21 +46,26 @@ import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
+import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.downloader.Error
+import com.downloader.OnDownloadListener
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
+import retrofit2.http.Url
 import java.io.File
 import java.lang.reflect.Type
 import java.util.*
@@ -217,8 +225,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
-        initDataByScreen()
-
         val hubComm = object : HubComm {
             override fun forceRestartApp() {
                 lifecycleScope.launch {
@@ -281,12 +287,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         sendLogDataHub()
 
-        registerObservers()
 
+        initDataByScreen()
+
+        registerObservers()
     }
 
 
     private fun initDataByScreen() {
+        val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
+        initPhotoHolder(url)
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
@@ -308,6 +318,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         } else if (typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
+        }
+    }
+    fun initPhotoHolder(url: String?)
+    {
+        if(url != "") {
+            val fileName = getFileNameFromUrl(url!!)
+            if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
+                val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
+                Picasso.get().load(urlLocal).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Local")
+            } else {
+                Picasso.get().load(url).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Online")
+            }
         }
     }
 
@@ -530,7 +554,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }, 1000)
 
                 }
-
+                HubCommand.UPDATE_PHOTO_HOLDER -> {
+                    val mess = responseHub.message!!
+                    ConfigUtil.putString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, mess)
+                    viewModel.mediaRepo.downloadImage(mess)
+                    initPhotoHolder(mess)
+                }
 
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!

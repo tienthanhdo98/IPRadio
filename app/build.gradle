@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D76.4.2.1b"
+        versionName "D76.4.2.1c"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -116,6 +116,7 @@ dependencies {
 //    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
 
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
+    implementation 'com.squareup.picasso:picasso:2.71828'
 
     //
 //    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'

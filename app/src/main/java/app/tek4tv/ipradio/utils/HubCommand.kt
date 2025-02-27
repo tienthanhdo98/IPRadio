@@ -63,4 +63,6 @@ object HubCommand {
     const val JOIN_GROUP = "JoinGroup"
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
+
+    const val UPDATE_PHOTO_HOLDER = "UPDATE_PHOTO_HOLDER"
 }

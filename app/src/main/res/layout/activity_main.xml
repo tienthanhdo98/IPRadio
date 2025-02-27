@@ -8,7 +8,6 @@
     <ImageView
         android:id="@+id/img_holder"
         android:layout_width="match_parent"
-        android:src="@drawable/tuyen_giao"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"

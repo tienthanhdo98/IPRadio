@@ -48,9 +48,9 @@ class MediaRepo @Inject constructor(
 
     var layoutType: String = FULL_SCREEN
 
-    private val downloadHelper = DownloadHelper2.getInstance()
+    val downloadHelper = DownloadHelper2.getInstance()
 
-    private val mediaStoragePath = appContext.filesDir.path
+    val mediaStoragePath = appContext.filesDir.path
 
     val type: Type = Types.newParameterizedType(
         List::class.java,
@@ -335,6 +335,28 @@ class MediaRepo @Inject constructor(
 
                 override fun onError(error: Error?) {
                     Log.d("downloaderror", it.body!!)
+                }
+
+            }
+        })
+    }
+
+    fun downloadImage(url : String)
+    {
+        val fileName = getFileNameFromUrl(url)
+        downloadHelper.addToQueue(DownloadItem().apply {
+            itDownloadUrl = url
+            itStoragePath = mediaStoragePath
+            itFileName = fileName
+            priority = 0
+            downloadListener = object : OnDownloadListener {
+                override fun onDownloadComplete() {
+
+                    Log.d("downloadcomplete", url)
+                }
+
+                override fun onError(error: Error?) {
+                    Log.d("downloaderror", url)
                 }
 
             }
