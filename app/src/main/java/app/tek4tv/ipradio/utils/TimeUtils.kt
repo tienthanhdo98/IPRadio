@@ -6,6 +6,10 @@ import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.math.abs
 
+fun convertTimeInMillisToHHmmss(timeInMillis: Long): String {
+    val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+    return dateFormat.format(Date(timeInMillis))
+}
 
 fun toCalendar(time: String): Calendar {
     return try {

@@ -55,8 +55,8 @@ class HubManager(
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val adapterListString: JsonAdapter<List<String>> = moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-    //private val deviceImei = Utils.getDeviceId(appContext)
-    private val deviceImei = "72:BE:B5:09:17:98"
+    private val deviceImei = Utils.getDeviceId(appContext)
+   // private val deviceImei = "72:BE:B5:09:17:98"
 
     val responseAdapter = moshi.adapter(ResponseHub::class.java)
 

@@ -63,12 +63,16 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.02") ?: "H48.52.02"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Ba Bích") ?: "Xã Ba Bích"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Ba Bích") ?: "TB DI Xã Ba Bích"
-//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
-//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Ba Tơ") ?: "TB Thị trấn Ba Tơ"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.02") ?: "H48.52.02"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Ba Bích") ?: "Xã Ba Bích"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Ba Bích") ?: "TB DI Xã Ba Bích"
+        destinationId =
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
+        destinationName =
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ")
+                ?: "Thị trấn Ba Tơ"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Ba Tơ")
+            ?: "TB Thị trấn Ba Tơ"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)

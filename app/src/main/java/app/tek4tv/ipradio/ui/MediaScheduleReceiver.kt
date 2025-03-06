@@ -35,9 +35,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
 
         //dừng phát media khẩn cấp
         const val ACTION_END_FORCE_MEDIA = "ACTION_END_FORCE_MEDIA"
-        //đặt lawij alarm
-        const val ACTION_RESCHEDULE = "ACTION_RESCHEDULE"
-        //check khi 00:30 co hub không, không có thì reset thiết bị
+        //Cap nhat lai lich va reset lai thiet bi
         const val ACTION_CHECKHUB_RESET= "ACTION_CHECKHUB_RESET"
     }
 }

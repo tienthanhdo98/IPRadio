@@ -16,22 +16,14 @@ class MediaWatchDog(
 
     fun checkPlaylist() {
         checkPlaylistJob?.cancel()
-        val delayDuration = 180000L
-
         checkPlaylistJob = scope.launch(Dispatchers.Default) {
             while (true) {
-                if (mediaRepo.broadcastList.isEmpty()) {
-                    delay(delayDuration)
-                    continue
+                if (mediaRepo.broadcastList.isNotEmpty()) {
+                    Log.d(LOG_TAG, "Checking media...")
+                    checkBrokenPath()
+                    checkDownload()
                 }
-                Log.d(LOG_TAG, "begin check media")
-
-                checkBrokenPath()
-
-                checkDownload()
-                Log.d(LOG_TAG, "end check media")
-
-                delay(delayDuration)
+                delay(180000L) // 3 phút mới kiểm tra lại
             }
         }
     }
@@ -39,20 +31,17 @@ class MediaWatchDog(
     private suspend fun checkBrokenPath()
     {
         try {
-            var foundBrokenPath = false
-            mediaRepo.broadcastList.forEach {
-                if (it.body == "start" || it.body == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
-
-                val mediaPath = it.body
-                if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
-                    if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
-                    foundBrokenPath = true
-                    Log.d("foundBrokenPath",it.title)
-                }
+            val brokenItems = mediaRepo.broadcastList.filter {
+                it.body != null && it.getMediaType() == MediaType.FILE && !File(it.body!!).exists()
             }
 
-            if (foundBrokenPath)
+            if (brokenItems.isNotEmpty()) {
+                brokenItems.forEach {
+                    if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
+                    Log.d("foundBrokenPath", it.title)
+                }
                 mediaRepo.saveItemsToFile(mediaRepo.broadcastList,"checkBrokenPath")
+            }
         }
         catch (e: Exception)
         {
@@ -64,14 +53,12 @@ class MediaWatchDog(
     private fun checkDownload()
     {
         try {
-            val needDownload = mediaRepo.broadcastList.filter {
-                it.getMediaType() == MediaType.FILE && it.body!!.startsWith("http")
-            }
+            val needDownload = mediaRepo.broadcastList
+                .filter { it.getMediaType() == MediaType.FILE && it.body!!.startsWith("http") }
+                .toList()
 
             if (needDownload.isNotEmpty()) {
-                needDownload.forEach {
-                    mediaRepo.downloadMediaItem(it)
-                }
+                needDownload.forEach { mediaRepo.downloadMediaItem(it) }
             }
         }
         catch (e : Exception)

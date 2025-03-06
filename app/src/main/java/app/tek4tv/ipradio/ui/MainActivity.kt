@@ -9,8 +9,6 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
@@ -407,44 +405,42 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "stop force")
             }
 
-            MediaScheduleReceiver.ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllScheduledListAlarm()
-                ConfigUtil.getString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")
-                    ?.takeIf { it.isNotBlank() }?.let { url ->
-                    lifecycleScope.launch {
-                        repeat(10) { // Try 10 times before giving up
-                            if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
-                            viewModel.updateMonthlyScenarioAndGetContent(url)
-                            delay(15000)
-                        }
-                        Log.e("alarmx", "Failed to reschedule after 10 attempts")
-                    }
-                } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
-
-            }
-
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                val isConnect = ConfigUtil.getString(this, "checkhub", "0")
-                if (isConnect == "0") {
                     lifecycleScope.launch {
+                        Log.d("alarmx", "reschedule all alarms")
+                        mediaScheduler.cancelAllScheduledListAlarm()
+                        ConfigUtil.getString(
+                            applicationContext,
+                            ConfigUtil.MONTHLY_SCENARIO_URL,
+                            ""
+                        )
+                            ?.takeIf { it.isNotBlank() }?.let { url ->
+                                lifecycleScope.launch {
+                                    repeat(10) { // Try 10 times before giving up
+                                        if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
+                                        viewModel.updateMonthlyScenarioAndGetContent(url)
+                                        delay(15000)
+                                    }
+                                    Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                                }
+                            } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
                         serialPortController.turnOffPA()
-                        delay(3000)
+                        delay(120000)
                         Log.e("alarmx", "Hub restart")
                         serialPortController.hardRestart()
                     }
-                }
+
             }
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
 
     private fun needGrantPermission(): Boolean {

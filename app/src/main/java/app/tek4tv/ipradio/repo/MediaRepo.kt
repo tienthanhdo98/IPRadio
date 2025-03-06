@@ -264,10 +264,11 @@ class MediaRepo @Inject constructor(
     }
 
     fun startDownloadMedia() {
-        if (broadcastList.isEmpty()) return
+        val needDownloadList = broadcastList.filter { it.shouldDownload() }.toList()
 
-        broadcastList.forEach{item ->
-            downloadMediaItem(item)
+
+        if (needDownloadList.isNotEmpty()) {
+            needDownloadList.forEach { downloadMediaItem(it) }
         }
     }
 
@@ -275,17 +276,8 @@ class MediaRepo @Inject constructor(
     private fun getConfigExtension(): String? {
         return ConfigUtil.getString(appContext, "KEY_EXTEND_FILE", "mp4,jpg,png")
     }
+
     fun downloadMediaItem(it: MediaItem) {
-        //1 - bản tin ký tự
-        //2 - bản tin hình ảnh
-        //3 - bản tin âm thanh
-        //4 - Bản tin video
-        //5 - Bản tin trực tiếp
-        //6 - Bản tin FM
-        //7 - Bản tin ghi âm trực tiếp
-        //không phải files thì không tải, chỉ tải type 3 , type 4
-        if (it.body == "start" || it.body == "end") return
-        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
 
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body ?: "").extension

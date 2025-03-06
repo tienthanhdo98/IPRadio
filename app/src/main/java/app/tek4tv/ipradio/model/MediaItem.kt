@@ -104,6 +104,19 @@ data class MediaItem(
     fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
     else File("file://$body").name
 
+    fun shouldDownload(): Boolean {
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4
+        return !(body == "start" || body == "end") &&
+                (contentType?.value == "3" || contentType?.value == "4" || contentType?.value == "2")
+    }
+
     fun getMediaType(): MediaType {
         return when (type) {
             "VOD" -> MediaType.FILE
