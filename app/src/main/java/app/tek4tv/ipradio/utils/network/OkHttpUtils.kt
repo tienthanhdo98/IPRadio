@@ -1,5 +1,7 @@
 package app.tek4tv.ipradio.utils.network
 
+import android.util.Log
+import kotlinx.coroutines.delay
 import okhttp3.OkHttpClient
 import java.security.SecureRandom
 import java.security.cert.X509Certificate
@@ -23,4 +25,23 @@ fun OkHttpClient.Builder.ignoreAllSSLErrors(): OkHttpClient.Builder {
     sslSocketFactory(insecureSocketFactory, naiveTrustManager)
     hostnameVerifier(HostnameVerifier { _, _ -> true })
     return this
+}
+suspend fun <T> retryWithBackoff(
+    maxRetries: Int = 3,  // Max retry attempts
+    initialDelay: Long = 1000L, // Initial delay (1s)
+    maxDelay: Long = 8000L, // Maximum delay (8s)
+    factor: Double = 2.0, // Exponential backoff factor
+    block: suspend () -> T
+): T? {
+    var currentDelay = initialDelay
+    repeat(maxRetries) { attempt ->
+        try {
+            return block() // Try executing the block
+        } catch (e: Exception) {
+            Log.e("Retry", "Attempt ${attempt + 1} failed: ${e.message}")
+        }
+        delay(currentDelay) // Wait before retrying
+        currentDelay = (currentDelay * factor).toLong().coerceAtMost(maxDelay)
+    }
+    return null // Return null if all retries fail
 }

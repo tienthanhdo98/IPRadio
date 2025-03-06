@@ -52,7 +52,7 @@ class DownloadHelper2 private constructor() {
     private fun downloadItem(downloadItem : DownloadItem)
     {
         scope.launch {
-            //try to take a download slot
+            //try to take a downloa+d slot
             //if the channel is full, the coroutine will be suspend until there are more slots
             counterChanel.send(0)
             Log.d(LOG_TAG,"Downloading : ${downloadItem.itDownloadUrl}")

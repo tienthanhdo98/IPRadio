@@ -4,8 +4,10 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.model.MediaItem
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import java.lang.reflect.Type
 import java.net.NetworkInterface
 import java.util.*
 
@@ -84,6 +86,7 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+
         fun roundToNearestNumber(number: Int): Int {
             // Calculate remainder when dividing by 10
             val remainder = number % 10

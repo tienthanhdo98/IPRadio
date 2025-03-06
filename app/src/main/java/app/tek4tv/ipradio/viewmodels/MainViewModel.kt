@@ -9,8 +9,10 @@ import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
+import com.squareup.moshi.Types
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import java.lang.reflect.Type
 
 
 class MainViewModel @ViewModelInject constructor(
@@ -24,7 +26,8 @@ class MainViewModel @ViewModelInject constructor(
 
     var currentMedia: MediaItem? = null
 
-    fun getPlayerContent(listUrl: String, needUpdate: Boolean) {
+
+    fun getPlayerContent() {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -32,7 +35,7 @@ class MainViewModel @ViewModelInject constructor(
             mediaWatchdog.cancelCheck()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
+                val mediaList = mediaRepo.getDataDayScenario()
 
                 content.value = Pair(mediaList, listOf())
 
@@ -50,15 +53,15 @@ class MainViewModel @ViewModelInject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenarioAndGetContent(url: String, forceNewScenario: Boolean = false) {
+    fun updateMonthlyScenarioAndGetContent(url: String) {
         viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url, forceNewScenario)
-            getPlayerContent("", false)
+            mediaRepo.getMonthlyScenario(url)
+            getPlayerContent()
         }
     }
-    fun updateMonthlyScenario(url: String, forceNewScenario: Boolean = false) {
+    fun updateMonthlyScenario(url: String) {
         viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url, forceNewScenario)
+            mediaRepo.getMonthlyScenario(url)
         }
     }
 

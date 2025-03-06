@@ -71,8 +71,8 @@ class VlcMediaPlayer(
 //        RotateScreen("270",args)
         args.add("--skip-frames")
         args.add("--drop-late-frames")
-        args.add("--file-caching=1000")
-        args.add("--network-caching=1000")
+        args.add("--file-caching=1500")
+        args.add("--network-caching=1500")
 
 
         mLibVLC = LibVLC(appContext, args)

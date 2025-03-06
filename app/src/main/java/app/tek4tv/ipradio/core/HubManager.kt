@@ -44,7 +44,7 @@ class HubManager(
     private val LOG_TAG = "HubManager"
     var mediaCapture: MediaCapture? = null
     lateinit var hubComm: HubComm
-    private val CONNECT_COUNTER_LIMIT = 5
+    private val CONNECT_COUNTER_LIMIT = 15
     private val PING_INTERVAL = 15000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
@@ -55,9 +55,10 @@ class HubManager(
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val adapterListString: JsonAdapter<List<String>> = moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-    private val deviceImei = Utils.getDeviceId(appContext)
+    //private val deviceImei = Utils.getDeviceId(appContext)
+    private val deviceImei = "72:BE:B5:09:17:98"
 
-    private val responseAdapter = moshi.adapter(ResponseHub::class.java)
+    val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     var pingCounter = 69
 
@@ -104,7 +105,7 @@ class HubManager(
         }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER, "VATC"
+            ConfigUtil.PROVIDER, "TEK4TV"
         )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
@@ -293,13 +294,13 @@ class HubManager(
                             }
                         }
                     }
-                    if (messDe != "") {
-                        parseHubResponse(messDe, needDecrypt)
-                    } else {
-                        parseHubResponse(message, needDecrypt)
-                    }
                     //Handle command from server in MainActivity
                     coroutineScope.launch {
+                        if (messDe != "") {
+                            parseHubResponse(messDe, needDecrypt)
+                        } else {
+                            parseHubResponse(message, needDecrypt)
+                        }
                         receiveMessage(command, message)
                     }
 

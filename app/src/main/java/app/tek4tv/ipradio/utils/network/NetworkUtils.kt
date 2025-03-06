@@ -37,7 +37,7 @@ class NetworkUtils private constructor() {
             mNetworkLive.postValue(true)
             isNetworkConnected = true
             for (callback in mCallbacks) {
-                callback?.onChange(true)
+                callback.onChange(true)
             }
         }
 
@@ -47,33 +47,25 @@ class NetworkUtils private constructor() {
             mNetworkLive.postValue(false)
             isNetworkConnected = false
             for (callback in mCallbacks) {
-                callback?.onChange(false)
+                callback.onChange(false)
             }
         }
     }
 
     fun startNetworkListener(context: Context) {
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (manager != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                manager.registerDefaultNetworkCallback(mNetCallback)
-            } else {
-                manager.registerNetworkCallback(mNetRequest, mNetCallback)
-            }
-            Log.d(TAG, "#startNetworkListener() success")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            manager.registerDefaultNetworkCallback(mNetCallback)
         } else {
-            Log.d(TAG, "#startNetworkListener() failed")
+            manager.registerNetworkCallback(mNetRequest, mNetCallback)
         }
+        Log.d(TAG, "#startNetworkListener() success")
     }
 
     fun stopNetworkListener(context: Context) {
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (manager != null) {
-            manager.unregisterNetworkCallback(mNetCallback)
-            Log.d(TAG, "#stopNetworkListener() success")
-        } else {
-            Log.d(TAG, "#stopNetworkListener() failed")
-        }
+        manager.unregisterNetworkCallback(mNetCallback)
+        Log.d(TAG, "#stopNetworkListener() success")
     }
 
     fun addObserver(owner: LifecycleOwner?, observer: Observer<Boolean>?) {
@@ -118,11 +110,8 @@ class NetworkUtils private constructor() {
 
         fun isNetworkConnected(context: Context): Boolean {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            if (cm != null) {
-                val activeNetwork = cm.activeNetworkInfo
-                return activeNetwork != null && activeNetwork.isConnectedOrConnecting
-            }
-            return false
+            val activeNetwork = cm.activeNetworkInfo
+            return activeNetwork != null && activeNetwork.isConnectedOrConnecting
         }
 
         fun getNetworkClass(context: Context): String {
@@ -140,25 +129,6 @@ class NetworkUtils private constructor() {
                 }
             }
             return "---"
-        }
-
-        @SuppressLint("MissingPermission")
-        fun getCellSignalStrength(context: Context): Int {
-            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
-
-            val cellInfo = tm.allCellInfo[0]
-
-            if (cellInfo != null) {
-                return when (cellInfo) {
-                    is CellInfoLte -> cellInfo.cellSignalStrength.level
-                    is CellInfoCdma -> cellInfo.cellSignalStrength.level
-                    is CellInfoGsm -> cellInfo.cellSignalStrength.level
-                    is CellInfoWcdma -> cellInfo.cellSignalStrength.level
-                    else -> CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
-                }
-            }
-
-            return CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN
         }
 
         @SuppressLint("MissingPermission")

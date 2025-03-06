@@ -47,12 +47,12 @@ class MediaWatchDog(
                 if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
                     if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
                     foundBrokenPath = true
-                    //Log.d("aaa",it.name)
+                    Log.d("foundBrokenPath",it.title)
                 }
             }
 
             if (foundBrokenPath)
-                mediaRepo.saveItemsToFile(mediaRepo.broadcastList)
+                mediaRepo.saveItemsToFile(mediaRepo.broadcastList,"checkBrokenPath")
         }
         catch (e: Exception)
         {
@@ -70,7 +70,7 @@ class MediaWatchDog(
 
             if (needDownload.isNotEmpty()) {
                 needDownload.forEach {
-                    mediaRepo.downloadAMediaItem(it)
+                    mediaRepo.downloadMediaItem(it)
                 }
             }
         }

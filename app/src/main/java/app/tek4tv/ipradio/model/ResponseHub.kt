@@ -13,19 +13,13 @@ class ResponseHub : Serializable {
     var message: String? = null
 
     @Json(name = "Volume")
-    var volume: String = ""
+    var volume: String? = ""
 
-    @Json(name = "Start")
-    var start: String? = null
+    @Json(name = "Lat")
+    var lat: Float? ?= null
 
-    @Json(name = "Duration")
-    var duration: String = ""
-
-    @Json(name = "PI")
-    var piCode = ""
-
-    @Json(name = "PS")
-    var psName = ""
+    @Json(name = "Lng")
+    var lng: Float?= null
 
     @Json(name = "DestinationID")
     var destinationId: String? = ""
@@ -33,32 +27,41 @@ class ResponseHub : Serializable {
     @Json(name = "DestinationName")
     var destinationName: String? = ""
 
+    @Json(name = "UserNameControl")
+    var userNameControl: String?= null
+
+    @Json(name = "Start")
+    var start: String? = null
+
+    @Json(name = "Duration")
+    var duration: String? = ""
+
+    @Json(name = "PI")
+    var piCode : String? = ""
+
+    @Json(name = "PS")
+    var psName : String? = ""
+
     @Json(name = "Log")
     var logEnabled: Boolean? = null
 
     @Json(name = "Type")
-    var type: String = ""
+    var type: String? = ""
 
     @Json(name = "Level")
-    var level: Int = 0
+    var level: Int? = 0
 
     @Json(name = "Resume")
     var resumeFromStart: Boolean? = null
 
     @Json(name = "Name")
-    var name: String = ""
+    var name: String? = ""
 
     @Json(name = "DeviceName")
     var deviceName: String? = ""
 
-    @Json(name = "Lat")
-    var lat: Float ?= null
 
-    @Json(name = "Lng")
-    var lng: Float?= null
 
-    @Json(name = "UserNameControl")
-    var userNameControl: String?= null
 
     @Json(name = "Mode")
     var mode: String?= null

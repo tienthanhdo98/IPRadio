@@ -153,10 +153,10 @@ class LogUtils private constructor() {
             provider = providerValue,
             mode = typeScreen.toString()
         )
-        val str = getRecordStr(reportObj)
-
-        if (str != null)
-            writeLogToFile(filePath, str)
+//        val str = getRecordStr(reportObj)
+//
+//        if (str != null)
+//            writeLogToFile(filePath, str)
 
         coroutineScope.launch {
             try {

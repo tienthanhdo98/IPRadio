@@ -14,7 +14,6 @@ object ConfigUtil {
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val URL_HUB = "URL_HUB"
     const val URL_TOKEN = "URL_TOKEN"
-    const val KEY_LIST_LEFT_PREF = "KEY_LIST_LEFT_PREF"
     const val PROVIDER = "PROVIDER"
     const val DEFAULT_ANDROID_VOLUME = "DEFAULT_ANDROID_VOLUME"
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"

@@ -293,9 +293,9 @@ class PlayersManager(
     ) {
         try {
             val responseAdapter = moshi.adapter(MediaItem::class.java)
-            val duration = responseHub.duration
-            val type = responseHub.type
-            val level = responseHub.level
+            val duration = responseHub.duration!!
+            val type = responseHub.type!!
+            val level = responseHub.level!!
             val mediaItemObject = responseAdapter.fromJson(responseHub.name)
 
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không

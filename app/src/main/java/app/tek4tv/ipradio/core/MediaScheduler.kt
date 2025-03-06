@@ -28,8 +28,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_RESCHEDULE
         }
         val time = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
+//            add(Calendar.DAY_OF_MONTH, 1)
+            set(Calendar.HOUR_OF_DAY, 3)
             set(Calendar.MINUTE, 5)
             set(Calendar.SECOND, 0)
         }
@@ -41,12 +41,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 intent,
                 PendingIntent.FLAG_CANCEL_CURRENT or FLAG_IMMUTABLE
             )
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            time.timeInMillis,
-            alarmIntent
-        )
+        val alarmClockInfo = AlarmClockInfo( time.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
     }
 
     private fun scheduleListAlarms() {
@@ -109,10 +105,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-//        alarmManager.setExact(
-//            AlarmManager.RTC_WAKEUP, time.timeInMillis,
-//            alarmIntent
-//        )
 
         val alarmClockInfo = AlarmClockInfo(time, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
@@ -203,7 +195,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val cal_alarm = Calendar.getInstance()
 
         cal_alarm[Calendar.HOUR_OF_DAY] = 0
-        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.MINUTE] = 15
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
@@ -213,11 +205,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
         cal_alarm.time
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            cal_alarm.timeInMillis,
-            alarmIntent
-        )
+        val alarmClockInfo = AlarmClockInfo( cal_alarm.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
 

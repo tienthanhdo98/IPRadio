@@ -46,22 +46,29 @@ class GlobalProperties {
 //        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
 //        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
 //        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.21.12") ?: "H39.21.12"
-//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Cần Đước") ?: "Thị trấn Cần Đước"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Cần Đước") ?: "TB DI Thị trấn Cần Đước"
+//        destinationId =
+//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.21.12") ?: "H39.21.12"
+//        destinationName =
+//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Cần Đước")
+//                ?: "Thị trấn Cần Đước"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Cần Đước")
+//            ?: "TB DI Thị trấn Cần Đước"
 //        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
 //        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
 //        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
 //        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
+//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
         ////Quang ngai
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Ba Tơ") ?: "TB DI Thị trấn Ba Tơ"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.02") ?: "H48.52.02"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Ba Bích") ?: "Xã Ba Bích"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Ba Bích") ?: "TB DI Xã Ba Bích"
+//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
+//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
+//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Ba Tơ") ?: "TB Thị trấn Ba Tơ"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
@@ -153,12 +160,12 @@ class GlobalProperties {
 
     fun saveProperties(responseHub: ResponseHub) {
         if (responseHub.volume != "") {
-            saveVolume(responseHub.volume)
+            responseHub.volume?.let { saveVolume(it) }
         }
 
         if (responseHub.piCode != "") {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
-            piCode = responseHub.piCode
+            piCode = responseHub.piCode.toString()
         }
         if (responseHub.userNameControl != "" && responseHub.userNameControl != null) {
             ConfigUtil.putString(appContext, USER_NAME_CONTROLLER, responseHub.userNameControl)
@@ -171,7 +178,7 @@ class GlobalProperties {
 
         if (responseHub.psName != "") {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
-            psName = responseHub.psName
+            psName = responseHub.psName.toString()
         }
         if (responseHub.destinationId != "" && responseHub.destinationId != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_ID, responseHub.destinationId)

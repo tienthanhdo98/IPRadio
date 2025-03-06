@@ -3,21 +3,20 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.graphics.Bitmap
-import android.graphics.drawable.Drawable
 import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
-import androidx.annotation.Nullable
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -40,24 +39,19 @@ import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
-import app.tek4tv.ipradio.utils.ConfigUtil.KEY_LIST_LEFT_PREF
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.downloader.Error
-import com.downloader.OnDownloadListener
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
@@ -65,9 +59,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
-import retrofit2.http.Url
 import java.io.File
-import java.lang.reflect.Type
 import java.util.*
 import javax.inject.Inject
 
@@ -113,6 +105,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaScheduler: MediaScheduler
 
     private val globalProperties = GlobalProperties.getInst()
+
 
     private var typeScreen: String = FULL_SCREEN
     private lateinit var vlcVideoLayout: VLCVideoLayout
@@ -221,7 +214,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportActionBar?.hide()
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -287,7 +280,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         sendLogDataHub()
 
-
         initDataByScreen()
 
         registerObservers()
@@ -300,7 +292,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
-            val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
+            val info = Utils.getDeviceId(this).takeLast(5)
             tvMacAddress.text = info
             lifecycleScope.launch {
                 while (true) {
@@ -320,9 +312,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             initDefaultTopAndLeftArea()
         }
     }
-    fun initPhotoHolder(url: String?)
-    {
-        if(url != "") {
+
+    private fun initPhotoHolder(url: String?) {
+        if (url != "") {
             val fileName = getFileNameFromUrl(url!!)
             if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
                 val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
@@ -418,12 +410,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_RESCHEDULE -> {
                 Log.d("alarmx", "reschedule all alarms")
                 mediaScheduler.cancelAllScheduledListAlarm()
-                val monthlyScenarioUrl = ConfigUtil.getString(
-                    applicationContext,
-                    ConfigUtil.MONTHLY_SCENARIO_URL, ""
-                ) ?: return
+                ConfigUtil.getString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")
+                    ?.takeIf { it.isNotBlank() }?.let { url ->
+                    lifecycleScope.launch {
+                        repeat(10) { // Try 10 times before giving up
+                            if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
+                            viewModel.updateMonthlyScenarioAndGetContent(url)
+                            delay(15000)
+                        }
+                        Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                    }
+                } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
 
-                viewModel.updateMonthlyScenarioAndGetContent(monthlyScenarioUrl)
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -440,13 +438,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
 
     private fun needGrantPermission(): Boolean {
@@ -499,13 +497,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
+
 
     fun startPlayingMedia() {
-        viewModel.getPlayerContent("", false)
+        viewModel.getPlayerContent()
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
@@ -517,8 +512,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 return
             }
 
-            val responseHub = hubManager.responseHub
-
+            val responseHub =  hubManager.responseHub
 //            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
 //
 //            if (!isImei) return
@@ -528,15 +522,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     clearDatastore()
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
-//                  playerManager.stopAllPlayer()
+                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.updateMonthlyScenario(mess, true)
+                    viewModel.updateMonthlyScenario(mess)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                     playerManager.stopForceMedia()
-                    //delete pref list left
-                    ConfigUtil.removeSharef(baseContext, KEY_LIST_LEFT_PREF)
                     Handler().postDelayed({
                         recreate()
                     }, 1000)
@@ -929,10 +921,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.STOP_FORCE -> {
-                    playerManager.stopAllPlayer()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContent("", false)
+//                    playerManager.stopAllPlayer()
+//                    cancelAllAlarm()
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
+//                    viewModel.getPlayerContent()
                 }
 
                 HubCommand.GET_LOG_FILE -> {
