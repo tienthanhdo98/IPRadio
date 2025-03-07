@@ -126,7 +126,7 @@ class ExoMediaPlayer(
         if(isPlaying) stop()
         try {
             if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-                if (!isInRangeTimePlay()) {
+                if (isInRangeTimePlay()) {
                     currentPlayingMedia = mediaItem
                     isForceValue = isForce
                     Log.e(TAG, "Exoplayer is force $isForceValue")

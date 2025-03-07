@@ -10,8 +10,10 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import okhttp3.OkHttpClient
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 
@@ -22,12 +24,20 @@ object NetworkModule {
     @Singleton
     fun provideMoshi(): Moshi = MoshiInst.moshi
 
+    // Configure OkHttpClient with timeout
+    var okHttpClient: OkHttpClient = OkHttpClient.Builder()
+        .connectTimeout(30, TimeUnit.SECONDS) // Increase connection timeout
+        .readTimeout(30, TimeUnit.SECONDS) // Increase read timeout
+        .writeTimeout(30, TimeUnit.SECONDS) // Increase write timeout
+        .retryOnConnectionFailure(true) // Retry failed requests
+        .build()
 
     @Provides
     @Singleton
     fun provideRetrofit(moshi: Moshi): Retrofit =
         Retrofit.Builder()
             .baseUrl(NetworkUtils.BASE_URL)
+            .client(okHttpClient)
             .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
             .addCallAdapterFactory(CoroutineCallAdapterFactory())
             .build()

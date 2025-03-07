@@ -267,8 +267,6 @@ class HubManager(
             try {
                 hubConnection.start().blockingAwait()
 
-//                hubConnection.invoke(HubCommand.JOIN_GROUP, "Tek4tv", Utils.getDeviceId(appContext))
-
                 hubConnection.connectionId
             } catch (e: Exception) {
                 hubToken = null
@@ -468,8 +466,6 @@ class HubManager(
                 metadata =  getMetadata()
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-//            Log.i("loghub", "log hub: ${request.video}")
-//            Log.i("loghub", "log hub: ${request.deviceInfo}")
             Log.i("loghub", "log hub: ${request.networkInfo}")
             Log.i("loghub", "log hub: ${request.volume}")
             Log.i("loghub", "log hub: ${request.metadata}")
