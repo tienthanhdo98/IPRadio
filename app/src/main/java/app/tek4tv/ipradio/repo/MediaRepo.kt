@@ -91,7 +91,7 @@ class MediaRepo @Inject constructor(
     }
 
     private suspend fun getDayScenario(urlDatSchedule: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
+        val result = listOf<MediaItem>()
         try {
             val res = retryWithBackoff { playlistService.getPlaylist(urlDatSchedule) }
             if (res == null || !res.isSuccessful) {
@@ -101,12 +101,12 @@ class MediaRepo @Inject constructor(
             }
             val resBody = res.body()
             if (resBody != null) {
-                val listOnlyMedia =
-                    resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
+                //dung khi moi ban tin 1 lich
+//                val listOnlyMedia =
+//                    resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
+//                result = convertToTimeFrame(listOnlyMedia)
 
-                result = convertToTimeFrame(listOnlyMedia)
-
-                saveItemsToFile(result,"getDayScenario")
+                saveItemsToFile(resBody,"getDayScenario")
                 isRescheduleSuccess = true
             } else {
                 isRescheduleSuccess = false
