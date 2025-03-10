@@ -215,27 +215,29 @@ class Utils {
 
         }
 
-        fun getDeviceInfo(valueName : String,deviceInfo  : String) : String
-        {
-            if(deviceInfo != "") {
-                var result = ""
+        fun getDeviceInfo(deviceInfo: String?, valueName: String): String {
+            // Check if deviceInfo is null or empty
+            if (deviceInfo.isNullOrEmpty()) {
+                return ""
+            }
+            // Check if deviceInfo contains expected pattern
+            if (deviceInfo.contains("\$\$,1,8")) {
                 val listInfo = deviceInfo.split(",")
-                when (valueName) {
-                    StringValue.deviceInfoVolume -> {
-                        result = listInfo[6]
-                    }
-                    StringValue.deviceInfoPA -> {
-                        result = listInfo[8]
-                    }
-                    StringValue.deviceInfoTemperature -> {
-                        result = listInfo[11]
-                    }
+
+                // Ensure the list has enough elements before accessing indexes
+                if (listInfo.size < 12) {  // max value device is 12
+                    return ""
+                }
+
+                val result = when (valueName) {
+                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: ""
+                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: ""
+                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: ""
+                    else -> ""
                 }
                 return result
-            }
-            else
-            {
-                return  ""
+            } else {
+                return ""
             }
         }
     }

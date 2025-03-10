@@ -48,6 +48,7 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
+import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -329,11 +330,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
     }
-
+    lateinit var tvDownload: TextView
     private fun initDataByScreen() {
+        val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
+        initPhotoHolder(url)
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
-            val tvDownload = findViewById<TextView>(R.id.tvDownload)
+            tvDownload = findViewById<TextView>(R.id.tvDownload)
             val tvPlaying = findViewById<TextView>(R.id.tvPlaying)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
             val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
@@ -377,6 +380,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+    private fun initPhotoHolder(url: String?) {
+        if (url != "") {
+            val fileName = getFileNameFromUrl(url!!)
+            if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
+                val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
+                Picasso.get().load(urlLocal).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Local")
+            } else {
+                Picasso.get().load(url).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Online")
+            }
+        }
+    }
 
     private fun startAutoScroll() {
 
@@ -428,7 +444,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         cancelAllAlarm()
         Log.i("ChangeLayout", "Mess: recreate stop")
         super.onStop()
-
     }
 
     override fun onDestroy() {
@@ -472,23 +487,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "stop force")
             }
 
-            MediaScheduleReceiver.ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllScheduledListAlarm()
-                viewModel.rescheduleMonthlyPlaylist()
-                hubManager.reconnectToServer()
-            }
-
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                val isConnect = ConfigUtil.getString(this, "checkhub", "0")
-                if (isConnect == "0") {
-                    lifecycleScope.launch {
-                        serialPortController.turnOffPA()
-                        delay(3000)
-                        Log.e("alarmx", "Hub restart")
-                        serialPortController.hardRestart()
-                    }
+                lifecycleScope.launch {
+                    Log.d("alarmx", "reschedule all alarms")
+                    mediaScheduler.cancelAllScheduledListAlarm()
+                    viewModel.rescheduleMonthlyPlaylist()
+                    hubManager.reconnectToServer()
+                    serialPortController.turnOffPA()
+                    delay(120000)
+                    Log.e("alarmx", "Hub restart")
+                    serialPortController.hardRestart()
                 }
+
             }
         }
     }
@@ -599,6 +609,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     clearDatastore()
+                    viewModel.mediaRepo.currentMapDownload.clear()
+//                    tvDownload.text = ""
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
@@ -615,30 +627,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         currentTime.toString()
                     )
                     playerManager.stopForceMedia()
-                    val preTypeScreen = ConfigUtil.getString(
-                        context = baseContext,
-                        TYPE_PRE_SCREEN_KEY,
-                        "0"
-                    )
-                    val typeScreen = ConfigUtil.getString(
-                        context = baseContext,
-                        TYPE_SCREEN_KEY,
-                        "0"
-                    )
-                    Log.d("spssds", "handleFromCommandServer: $preTypeScreen - $typeScreen ")
+
                     Handler().postDelayed({
-                        if (typeScreen != preTypeScreen) {
-                            Log.d("spssds", "handleFromCommandServer: diff")
-                            ConfigUtil.putString(
-                                context = baseContext,
-                                TYPE_PRE_SCREEN_KEY,
-                                typeScreen
-                            )
-                            recreate()
-                        }
+                        recreate()
+
                     }, 1000)
-
-
                 }
 
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
@@ -652,6 +645,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     hubManager.curMediaName = ""
                     hubManager.currentMediaItem = null
                 }
+                HubCommand.UPDATE_PHOTO_HOLDER -> {
+                    val mess = responseHub.message!!
+                    ConfigUtil.putString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, mess)
+                    viewModel.mediaRepo.downloadImage(mess)
+                    initPhotoHolder(mess)
+                }
 
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
@@ -663,9 +662,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         onPlayForce(responseHub)
                         recreate()
                     }, 1000)
-                }
-
-                HubCommand.UPDATE_MONTHLY_LIST -> {
                 }
 
 
@@ -729,9 +725,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     sendLogDataHub(true)
                 }
 
-                HubCommand.FM -> {
-                    onPlayForce(responseHub)
-                }
 
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
@@ -949,6 +942,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         serialPortController.writeForceSetVolume(responseHub.message!!)
                     }
                 }
+
 
                 HubCommand.STOP_FORCE -> {
                     playerManager.stopAllPlayer()

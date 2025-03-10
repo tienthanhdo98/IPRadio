@@ -24,6 +24,7 @@ object ConfigUtil {
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
+    const val PHOTO_HOLDER_URL = "PHOTO_HOLDER_URL"
 
 
     fun putString(context: Context, key: String?, value: String?) {

@@ -68,6 +68,7 @@ object HubCommand {
     const val UPDATE_MONTHLY_WSS = "UPDATE_MONTHLY_WSS"
     const val ROTATION = "ROTATION"
     const val DELETE_MONTHLY_LIST_WSS = "DELETE_MONTHLY_LIST_WSS"
+    const val UPDATE_PHOTO_HOLDER = "UPDATE_PHOTO_HOLDER"
 
     //wss cap nhật lịch
     const val DV010 = "dv010"

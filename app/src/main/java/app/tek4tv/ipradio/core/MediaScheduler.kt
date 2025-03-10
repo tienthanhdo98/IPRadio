@@ -20,34 +20,8 @@ import java.util.*
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private val requestCodeRescheduleAllAlarm = 1010
-    private val requestCodeCheckHubAndResetAlarms = 1020
-    private val requestEndForce = 1080
-    private fun setRescheduleAllAlarms() {
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.ACTION_RESCHEDULE
-        }
-        val time = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 5)
-            set(Calendar.SECOND, 0)
-        }
-        Log.d("alarmx", "Set reschedule day ${time.get(Calendar.DAY_OF_MONTH)}")
-        val alarmIntent =
-            PendingIntent.getBroadcast(
-                appContext,
-                requestCodeRescheduleAllAlarm,
-                intent,
-                PendingIntent.FLAG_CANCEL_CURRENT or FLAG_IMMUTABLE
-            )
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            time.timeInMillis,
-            alarmIntent
-        )
-    }
+    private val requestResetAndRescheduleAlarms = 1929
+    private val requestEndForce = 1989
 
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
@@ -109,20 +83,13 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-//        alarmManager.setExact(
-//            AlarmManager.RTC_WAKEUP, time.timeInMillis,
-//            alarmIntent
-//        )
 
         val alarmClockInfo = AlarmClockInfo(time, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
 
-    private fun convertTimeInMillisToHHmmss(timeInMillis: Long): String {
-        val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-        return dateFormat.format(Date(timeInMillis))
-    }
+
 
     private fun cancelAllListAlarm() {
         val scheduledList = mediaRepo.scheduledList
@@ -187,23 +154,19 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val alarmClockInfo = AlarmClockInfo(mediaEndTimeInMillis.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
-        Log.d(
-            "alarmx",
-            "set end force ${convertTimeInMillisToHHmmss(mediaEndTimeInMillis.timeInMillis)}"
-        )
     }
 
-    private fun setCheckHubAndResetAlarms() {
+    private fun scheduleHardResetAlarmsAndReschedule() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestCodeCheckHubAndResetAlarms, intent, 0)
+            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
 
         val cal_alarm = Calendar.getInstance()
 
         cal_alarm[Calendar.HOUR_OF_DAY] = 0
-        cal_alarm[Calendar.MINUTE] = 3
+        cal_alarm[Calendar.MINUTE] = 12
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
@@ -212,12 +175,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             cal_alarm.add(Calendar.DATE, 1)
         }
         cal_alarm.time
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            cal_alarm.timeInMillis,
-            alarmIntent
-        )
+        Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
+        val alarmClockInfo = AlarmClockInfo( cal_alarm.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
 
@@ -240,8 +200,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleAllAlarms() {
-        setRescheduleAllAlarms()
-        setCheckHubAndResetAlarms()
+        scheduleHardResetAlarmsAndReschedule()
         scheduleListAlarms()
 
     }

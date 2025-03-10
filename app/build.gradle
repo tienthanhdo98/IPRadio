@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D76MQTT.4.2.1b"
+        versionName "D76MQTT.4.2.1d"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -129,6 +129,6 @@ dependencies {
 
     implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
 
-
+    implementation 'com.squareup.picasso:picasso:2.71828'
 
 }

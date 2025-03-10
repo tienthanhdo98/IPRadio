@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
@@ -54,7 +55,8 @@ class MediaRepo @Inject constructor(
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
-    private val mediaStoragePath = appContext.filesDir.path
+    val mediaStoragePath = appContext.filesDir.path
+
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
         try {
@@ -70,7 +72,6 @@ class MediaRepo @Inject constructor(
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-//            val dayScenario = listMonthSchedule?.firstOrNull { it.date == currentDate }
             var dayScenario : String? = null
 
             if (listMonthSchedule != null) {
@@ -89,7 +90,7 @@ class MediaRepo @Inject constructor(
                 updateScenarioWss(dayScenario)
             } else {
                 //In case there are no scenario for today, don't play anythings
-                saveItemsToFile(listOf())
+                saveItemsToFile(emptyList())
                 Log.e(TAG, "Không có lịch trong ngày")
             }
 
@@ -131,7 +132,7 @@ class MediaRepo @Inject constructor(
         var res = listOf<MediaItem>()
 
         val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
-        Log.e(TAG, "get scenario ${jsonMonthlyListData}")
+        Log.e(TAG, "get scenario $jsonMonthlyListData")
         if (jsonMonthlyListData.isNotEmpty()) {
             val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
 
@@ -286,6 +287,27 @@ class MediaRepo @Inject constructor(
             }
             onStartOrResumeListener = OnStartOrResumeListener {
                 currentMapDownload[it.body!!] = "0/0"
+            }
+        })
+    }
+    fun downloadImage(url : String)
+    {
+        val fileName = getFileNameFromUrl(url)
+        downloadHelper.addToQueue(DownloadItem().apply {
+            itDownloadUrl = url
+            itStoragePath = mediaStoragePath
+            itFileName = fileName
+            priority = 0
+            downloadListener = object : OnDownloadListener {
+                override fun onDownloadComplete() {
+
+                    Log.d("downloadcomplete", url)
+                }
+
+                override fun onError(error: Error?) {
+                    Log.d("downloaderror", url)
+                }
+
             }
         })
     }

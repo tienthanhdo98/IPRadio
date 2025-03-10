@@ -354,11 +354,10 @@ class HubManager(
                     val mapMonthSchedule = convertWssMessToPlaylist(body.payload!!)
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    val typeScreen = body.payload.phanVungManHinh
                     ConfigUtil.putString(
                         context = appContext,
                         GlobalProperties.TYPE_SCREEN_KEY,
-                        typeScreen
+                        body.payload.phanVungManHinh
                     )
                     coroutineScope.launch {
                         receiveMessage(hubCommand, jsonMess)
