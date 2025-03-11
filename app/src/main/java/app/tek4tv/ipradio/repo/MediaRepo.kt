@@ -55,14 +55,7 @@ class MediaRepo @Inject constructor(
             Log.e(TAG, "updateMonthlyScenario")
 
             val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-            listMonthSchedule?.forEach {
-                Log.e(TAG, "updateMonthlyScenarioWss ${it.key}")
-                val list = jsonListMediaItemAdapter.fromJson(it.value)
-                list?.forEach {
-                    Log.e(TAG, "updateMonthlyScenarioWss ${it.title}")
-                }
 
-            }
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_WSS_DATA,
@@ -71,7 +64,6 @@ class MediaRepo @Inject constructor(
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-//            val dayScenario = listMonthSchedule?.firstOrNull { it.date == currentDate }
             var dayScenario : String? = null
 
             if (listMonthSchedule != null) {

@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.core.websocket.WssManager
 import app.tek4tv.ipradio.di.MoshiInst
@@ -15,7 +16,6 @@ import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
 import kotlinx.coroutines.*
@@ -44,10 +44,7 @@ class HubManager(
 
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    val appContext: Context = MyApp.instance!!.applicationContext
-
     private val deviceImei = Utils.getDeviceId(appContext)
-    //private val deviceImei = "1A:4E:2F:D3:17:97"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -55,16 +52,13 @@ class HubManager(
     )
     private var jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
 
-
     var pingCounter = 0
-
 
     var responseHub = ResponseHub()
 
     //player info
     var playlistIndex = 0
     var currentMediaItem: MediaItem? = null
-    var curMediaName = ""
 
     var versionName = ""
 
@@ -88,7 +82,7 @@ class HubManager(
     var dichId = "H48"
     var tenDich = "Quảng Ngãi"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = true
+    val isMQTT = false
     private var getMQTTInfoJob: Job? = null
     var mqttClient: MQTTManager? = null
 
@@ -140,7 +134,11 @@ class HubManager(
             if (response.isSuccessful) {
                 pingCounter = 0
                 listMQTTInfo = response.body()!!.noiDung!!
-                Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
+//                var str = ""
+//                str += "\n1. URL: $url\n"
+//                str += "2. Body: $body\n"
+//                str += "3. Response: $listMQTTInfo\n"
+//                Log.i(TAG, "dangkythietbi: ${str}")
                 getDestinationInfo(response.body()!!.noiDung!!)
             }
         } catch (e: Exception) {
@@ -263,8 +261,23 @@ class HubManager(
     }
 
     override fun onReceiveMessageSuccess(message: String) {
+
         pingCounter = 0
         convertToHubCommand(message)
+//        val wssData = wssLiveAdapter.fromJson(message)
+//        if(wssData?.topic == null) return
+//        Log.d("TestLogrun", "${wssData?.topic}---")
+//        if (listTopic.contains(wssData?.topic)) {
+//            Log.d("TestLogrun", "Dup not run---")
+//            return
+//        }
+//        listTopic.add(wssData?.topic)
+//        convertToHubCommand(message)
+//        coroutineScope.launch {
+//            delay(6000)
+//            listTopic.remove(wssData?.topic)
+//            Log.d("TestLogrun", "Clear---")
+//        }
     }
 
 
@@ -337,15 +350,15 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-
+    var listTopic = mutableSetOf<String?>()
     private fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
         when (wssData!!.topic) {
             HubCommand.DV002 -> {
                 val body = wssData.payload
+                Log.d("TestLogrun", "run---")
                 if (body != null) {
-                    Log.d("TestLog", "convertToHubCommand: body not null")
                     val mapMonthSchedule = convertWssMessToPlaylist(body)
                     Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
                     val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
@@ -496,6 +509,9 @@ class HubManager(
             }
 
         }
+
+
+
     }
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
@@ -614,11 +630,6 @@ class HubManager(
                 jsonSchedule
         }
 
-        mapData.forEach {
-            Log.d("wssplaylist", "Convert Map: ${it.key}")
-            Log.d("wssplaylist", "Convert Map: ${it.value}")
-        }
-
         return mapData
     }
 
@@ -700,8 +711,6 @@ class HubManager(
         var startTime = 0
         var endTime: Int
         for (i in 0..listItem.size - 2) {
-            Log.d("wssTImeFrame", "convertToTimeFrame: end ${listItem[i].end}")
-            Log.d("wssTImeFrame", "convertToTimeFrame: start ${listItem[i + 1].start}")
             if (i == 0) {
                 startTime = 0
             }

@@ -45,7 +45,7 @@ data class MediaItem(
     val fieldType: Category? = null,
 
     @Json(name = "Title")
-    val title: String? = null,
+    var title: String? = null,
 
     @Json(name = "Description")
     val description: String? = null,
@@ -113,6 +113,7 @@ data class MediaItem(
             else -> MediaType.UNKNOWN
         }
     }
+
 //    fun getMediaType(): MediaType {
 //        if(contentType?.value == "4" || contentType?.value == "3" && type == "VOD") return  MediaType.FILE
 //        if(contentType?.value == "5" || type == "LIVE") return  MediaType.LIVE

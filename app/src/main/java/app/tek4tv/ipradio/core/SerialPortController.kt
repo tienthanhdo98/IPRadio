@@ -30,7 +30,11 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
     var isUart1 = false
-
+    fun disConnect()
+    {
+        serialPort?.close()
+        Log.d(LOG_TAG, "disconnect to serialport")
+    }
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)
@@ -146,7 +150,7 @@ class SerialPortController(
     private fun onDataReceived(data: String?) {
         // read data
         if (data == null) return
-        //Log.d(LOG_TAG, "dataFinal: $data")
+        Log.d(LOG_TAG, "dataFinal: $data")
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {

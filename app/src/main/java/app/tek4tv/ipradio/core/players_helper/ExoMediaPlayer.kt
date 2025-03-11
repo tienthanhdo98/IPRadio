@@ -80,7 +80,7 @@ class ExoMediaPlayer(
                 Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
                 if (isForceValue) {
                     if (isStreamInTimeFrame) {
-                        eventListener.onPlayerError(error, true, currentPlayingMedia!!)
+                        eventListener.onPlayerError(error,  currentPlayingMedia!!)
                         Handler(Looper.getMainLooper()).postDelayed({
                             countReplayLive++;
                             Log.d(TAG, "onLiveErrorVlc: Chay lai live")
@@ -209,9 +209,8 @@ class ExoMediaPlayer(
     private fun checkHls(mediaItem: MediaItem): Boolean {
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
-        }
+        val liveEndTime = toCalendar(mediaItem.end!!)
+
         val check = (now <= liveEndTime)
 
         Log.d(TAG, "check hls: $check")

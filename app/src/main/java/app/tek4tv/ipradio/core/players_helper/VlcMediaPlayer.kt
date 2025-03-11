@@ -15,9 +15,7 @@ import app.tek4tv.ipradio.utils.isInRangeTimePlay
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import org.videolan.libvlc.interfaces.IMedia
 import java.util.*
 
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
@@ -26,14 +24,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private var mLibVLC: LibVLC
     private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaItem? = null
-    private var currentVlcMedia: Media? = null
-
     private var isPlaying = false
-
-    private var lastError = -1
-    // private var endCount = 0
     var countReplayLive = 0
-
 
 
     override fun isPlaying(): Boolean = isPlaying
@@ -42,7 +34,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         when (event) {
             MediaPlayer.Event.EndReached -> {
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
-                    val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
+                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
                     if (!isStreamFailed) {
                         Log.e(TAG, "EndReached ${currentMedia?.title}")
                         playerEventListener.onMediaEndReached(currentMedia)
@@ -65,7 +57,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     Log.e(TAG, "EncounteredError Live")
                     onLiveErrorVlc()
                 }
-                lastError = event
             }
 
             MediaPlayer.Event.Playing -> {
@@ -103,18 +94,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
-//        if (checkOldMediaPlaying(mediaItem) && !isForce ) stop()
-//        when (mediaItem.getMediaType()) {
-//            MediaType.FILE -> {
-//                playFile(mediaItem, timeStamp)
-//            }
-//            MediaType.LIVE -> {
-//                playLiveStream(mediaItem)
-//            }
-//            else -> {
-//                Log.e(TAG, "cant play")
-//            }
-//        }
         if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
             if (isForce) {
                 playLiveStream(mediaItem, timeStamp)
@@ -174,8 +153,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
 
-        currentVlcMedia = media
-
         vlcPlayer.play(media)
 
     }
@@ -190,7 +167,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
         if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()) )
             stream.addOption(":start-time=$timeStamp")
-        currentVlcMedia = stream
         vlcPlayer.play(stream)
         Log.e(LOGTAG, "Player vlc live start")
         handlerLivePlayer?.removeCallbacksAndMessages(null)
@@ -199,7 +175,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
             {
                 vlcPlayer.stop()
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
-                    val isStreamFailed = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
+                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
                     if (!isStreamFailed) {
                         Log.e(TAG, "EndReached ${currentMedia?.title}")
                         Log.d(TAG, "Player vlc live stop file")
@@ -221,37 +197,33 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     //check xem có đang trong giờ phát luồng live
-    private fun checkLiveStream(mediaItem: MediaItem, stream: Media): Boolean {
-        if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
+    private fun checkLiveStream(mediaItem: MediaItem): Boolean {
+        if (currentMedia!!.body != mediaItem.body) return false
 
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.fixTime!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
-        }
+        val liveEndTime = toCalendar(mediaItem.end!!)
+
         val check = (now <= liveEndTime)
-                && (stream.state != IMedia.State.Playing)
 
         Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
-        Log.d(TAG, "checkLiveStream isPlaying${stream.state != IMedia.State.Playing}")
+        Log.d(TAG, "checkLiveStream isPlaying${check}")
 
         return check
     }
 
-    private fun checkTimeFrameStream(mediaItem: MediaItem, stream: Media): Boolean {
+    private fun checkTimeFramePlaying(mediaItem: MediaItem): Boolean {
         if (currentMedia != null && currentMedia!!.body != mediaItem.body) return false
 
         val now = Calendar.getInstance()
 
-        val liveEndTime = toCalendar(mediaItem.start!!).apply {
-            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!)-2)
+        val startTime = toCalendar(mediaItem.startTime!!).apply {
+            add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!) - 2)
         }
 
-        val check = (now <= liveEndTime)
-                && (stream.state != IMedia.State.Playing)
+        val check = (now <= startTime)
 
-        Log.e(TAG, "${now <= liveEndTime}")
-        Log.e(TAG, "${stream.state != IMedia.State.Playing}")
+        Log.e(TAG, "${now <= startTime}")
 
 
         return check
@@ -259,18 +231,17 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 
     private fun checkStreamError() {
-        if (currentMedia == null || currentVlcMedia == null) return
+        if (currentMedia == null) return
 
         try {
-            val isStillInTimeFrame = checkTimeFrameStream(currentMedia!!, currentVlcMedia!!)
-
+            playerEventListener.onPlayerError(
+                VlcException("Stream failed!"),
+                currentMedia!!
+            )
+            val isStillInTimeFrame = checkTimeFramePlaying(currentMedia!!)
             if (isStillInTimeFrame) {
                 isPlaying = false
-                playerEventListener.onPlayerError(
-                    VlcException("Stream failed!"),
-                    true,
-                    currentMedia!!
-                )
+
                 val timeStamp2 = calculateResumePoint(currentMedia!!)
                 Handler(Looper.getMainLooper()).postDelayed({
                     if (currentMedia != null) {
@@ -278,19 +249,19 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                                 "rtmp://"
                             )
                         ) {
-                            playMedia(currentMedia!!, true,timeStamp2)
+                            playMedia(currentMedia!!, true, timeStamp2)
                         }
                         if (currentMedia!!.pathBackup.contains("http://") || currentMedia!!.pathBackup.contains(
                                 "https://"
                             )
                         ) {
-                            playMedia(currentMedia!!, false,timeStamp2)
+                            playMedia(currentMedia!!, false, timeStamp2)
                         }
                     }
-                }, 5000)
+                }, 10000)
 
             } else {
-                Log.d(TAG, "Stopping from reconnect")
+                Log.d(TAG, "Stop.Not try replay")
                 playerEventListener.onMediaEndReached(currentMedia)
             }
         } catch (e: Exception) {
@@ -299,27 +270,25 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     private fun onLiveErrorVlc() {
-        if (currentMedia == null || currentVlcMedia == null) return
+        if (currentMedia == null) return
 
         try {
-            val isStreamFailed = checkLiveStream(currentMedia!!, currentVlcMedia!!)
-
+            playerEventListener.onPlayerError(
+                VlcException("Stream failed!"),
+                currentMedia!!
+            )
+            val isStreamFailed = checkLiveStream(currentMedia!!)
             if (isStreamFailed && countReplayLive < 4) {
                 isPlaying = false
-                playerEventListener.onPlayerError(
-                    VlcException("Stream failed!"),
-                    true,
-                    currentMedia!!
-                )
-                //playMedia(currentMedia!!)
+
                 Handler(Looper.getMainLooper()).postDelayed({
                     countReplayLive++
-                    Log.d(TAG, "onLiveErrorVlc: Chay lai live")
+                    Log.d(TAG, "onLiveErrorVlc: Replay live")
                     playMedia(currentMedia!!, true)
-                }, 5000)
+                }, 10000)
 
             } else {
-                Log.d(TAG, "Stopping from reconnect")
+                Log.d(TAG, "Stop.Not try replay. Send long util live end time frame")
                 stop()
             }
         } catch (e: Exception) {
@@ -328,18 +297,15 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun stop() {
-//        if (vlcPlayer.isPlaying)
         try {
             handlerLivePlayer?.removeCallbacksAndMessages(null)
             vlcPlayer.stop()
             isPlaying = false
             currentMedia = null
-            currentVlcMedia = null
         } catch (e: Exception) {
             Log.d(TAG, "stop error :$e ")
             isPlaying = false
             currentMedia = null
-            currentVlcMedia = null
         }
 
     }

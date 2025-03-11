@@ -31,6 +31,8 @@ import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
+import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
+import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -119,7 +121,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             Log.d("loghub", "onTimeOver: come")
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
-            hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             //dung cho ban nam dinh(encoder)
 //            Handler(Looper.getMainLooper()).postDelayed({
@@ -135,12 +136,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "$tunerType,${mediaItem.body},${globalProperties.volume}"
                 val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
+                    else PAStatusOn
                 hubManager.currentMediaItem = mediaItem
-
-                val displayName = mediaItem.title ?: ""
-                hubManager.curMediaName = displayName
 
                 if (!serialPortController.isUart1) {
                     lifecycleScope.launch {
@@ -165,7 +163,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
-            hubManager.curMediaName = "Live Error"
             hubManager.currentMediaItem = mediaItem
             serialPortController.turnOffPA()
             Log.d("turnPA", "live error")
@@ -176,27 +173,21 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-            hubManager.playlistIndex = playerManager.playlistIndex
-            hubManager.currentMediaItem = mediaItem
-
-            val displayName = mediaItem?.title ?: ""
-            hubManager.curMediaName = displayName
-
-            if (mediaItem?.getMediaType() != MediaType.FM) {
-                serialPortController.turnOnPAVod()
-                Log.i("onPlayMediaSuccess", "log media: success ${mediaItem?.title}")
-            }
-            val paState =
-                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                else "0"
             if (mediaItem != null) {
+                hubManager.playlistIndex = playerManager.playlistIndex
+                hubManager.currentMediaItem = mediaItem
+
+                if (mediaItem.getMediaType() != MediaType.FM) {
+                    serialPortController.turnOnPAVod()
+                }
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
+                    else PAStatusOn
+
                 hubManager.sendLogMediaSuccess(mediaItem, paState)
+
+                viewModel.currentMedia = mediaItem
             }
-
-
-            viewModel.currentMedia = mediaItem
-
-
         }
     }
 
@@ -389,7 +380,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         ) {
             micStreamRtsp.startStream(urlStream)
             isStreaming = true
-//             checkStreamIsAvailableWithVlc()
         } else {
             Log.d("RTMP", "startStream: micStream not prepare success")
         }
@@ -477,6 +467,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onStop()
         playerManager.onActivityStop()
         stopStream()
+        serialPortController.disConnect()
         cancelAllAlarm()
 
     }
@@ -694,7 +685,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 HubCommand.TURN_ON_PA -> {
                     Log.i("TURN_ON_PA", responseHub.message!!)
                     val mess = responseHub.message!!.toInt()
-                    if (mess == 0) {
+                    if (mess == PAStatusOn.toInt()) {
                         serialPortController.turnOnPAVod()
 
                     } else {
@@ -953,28 +944,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     viewModel.getPlayerContentWss()
                 }
 
-                HubCommand.UPDATE_LIST -> {
-//                    val mess = responseHub.message!!
-//                    //add at 4.1.3a
-//                    playerManager.stopForceMedia()
-//                    //add at 3.0.5
-//                    playerManager.stopAllPlayer()
-//                    playerManager.resetPlayMode()
-//                    //lưu thông số vol, pi,...
-//                    globalProperties.saveProperties(responseHub)
-//                    if(responseHub.volume != ""){
-//                        serialPortController.writeForceSetVolume(responseHub.volume)
-//                        globalProperties.setTempVolume(responseHub.volume)
-//                    }
-//                    else
-//                    {
-//                        serialPortController.writeForceSetVolume("100")
-//                    }
-//                    cancelAllAlarm()
-//                    ForceMedia.deleteForeMediaPref(applicationContext)
-//
-//                    viewModel.getPlayerContent(mess, true)
-                }
 
             }
 

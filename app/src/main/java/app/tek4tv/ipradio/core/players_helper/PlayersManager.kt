@@ -68,12 +68,11 @@ class PlayersManager(
 
     var handlerFMPlayer: Handler? = null
 
-    override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
-        if (isLiveError) {
+    override fun onPlayerError(e: Exception?, mediaItem: MediaItem) {
             //To log stream played duration
             onMediaStopPlaying()
             playerManagerListener?.onLiveError(mediaItem)
-        }
+
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -395,9 +394,8 @@ class PlayersManager(
                         add(Calendar.MINUTE, m)
                         add(Calendar.SECOND, s)
                     }
-
                     endTime = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(mediaEndTime.time)
-                    fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+
                 }
             playForceMedia(context, forceMedia, mediaScheduler)
         } catch (e: Exception) {

@@ -45,6 +45,7 @@ data class ForceMedia(
             title = mediaItem!!.title,
             type = type,
             fixTime = fixTime,
+            end = endTime,
             duration = mediaItem!!.duration,
             author = mediaItem!!.author,
             mediaID = mediaItem!!.mediaID,

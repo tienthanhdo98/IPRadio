@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.util.Log
 import androidx.core.content.ContextCompat
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.model.*
@@ -221,29 +222,36 @@ class Utils {
             return type
 
         }
-        fun getDeviceInfo(valueName : String,deviceInfo  : String) : String
-        {
-            if(deviceInfo != "" && deviceInfo.contains("\$\$,1,8")) {
-                var result = ""
-                val listInfo = deviceInfo.split(",")
-                when (valueName) {
-                    StringValue.deviceInfoVolume -> {
-                        result = listInfo[6]
-                    }
-                    StringValue.deviceInfoPA -> {
-                        result = listInfo[8]
-                    }
-                    StringValue.deviceInfoTemperature -> {
-                        result = listInfo[11]
-                    }
-                }
-                return result
+        fun getDeviceInfo(valueName: String,deviceInfo: String?, ): String {
+            // Check if deviceInfo is null or empty
+            if (deviceInfo.isNullOrEmpty()) {
+                Log.d("debugLog", "getDeviceInfo: deviceInfo is null or empty")
+                return ""
             }
-            else
-            {
-                return  ""
+            // Check if deviceInfo contains expected pattern
+            if (deviceInfo.contains("$$,1,8")) {
+                val listInfo = deviceInfo.split(",")
+
+                // Ensure the list has enough elements before accessing indexes
+                if (listInfo.size < 12) {  // 12 because we're accessing index 11 later
+                    Log.d("debugLog", "getDeviceInfo: Insufficient data in deviceInfo")
+                    return ""
+                }
+
+                val result = when (valueName) {
+                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: ""
+                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: ""
+                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: ""
+                    else -> ""
+                }
+                Log.d("debugLog", "getDeviceInfo: Extracted result -> $result")
+                return result
+            } else {
+                Log.d("debugLog", "getDeviceInfo: Pattern not found in deviceInfo $deviceInfo")
+                return ""
             }
         }
+
     }
 
 }
