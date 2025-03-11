@@ -159,17 +159,17 @@ class MediaRepo @Inject constructor(
 
                 } ?: run {
                     Log.d(TAG, "Today does not have a playing schedule")
-                    res = listOf()
+                    res = emptyList()
                 }
 
             } else {
                 Log.d(TAG, "Nothing str list to play")
-                res = listOf()
+                res = emptyList()
             }
         }
         else {
             Log.d(TAG, "Nothing str list to play")
-            res = listOf()
+            res = emptyList()
         }
 
         broadcastList.clear()

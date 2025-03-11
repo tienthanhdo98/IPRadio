@@ -94,7 +94,7 @@ class HubManager(
     private var wssManager: WssManager? = null
 
     //mqtt
-    val isMQTT = true
+    val isMQTT = false
     private var mqttClient: MQTTManager? = null
     private var listMQTTInfo: List<NoiDungMQTT> = listOf()
 
@@ -301,7 +301,7 @@ class HubManager(
         val noiDungPhat: List<String> = if (currentMediaItem != null) {
             listOf(currentMediaItem!!.pathBackup)
         } else {
-            listOf()
+            emptyList()
         }
 
         val request = WssStatusModel(

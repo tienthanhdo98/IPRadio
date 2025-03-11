@@ -46,7 +46,7 @@ abstract class BaseRepo<T>(
         withContext(Dispatchers.IO) {
             try {
                 val contentFromFile = readFile(fileStoragePath)
-                result = jsonAdapter.fromJson(contentFromFile) ?: listOf()
+                result = jsonAdapter.fromJson(contentFromFile) ?: emptyList()
             } catch (e: Exception) {
                 Log.e("BaseRepo", "error reading playlist!!!")
             }

@@ -115,7 +115,7 @@ class PlayersManager(
         playerManagerListener?.onEndLeftMediaPlaying()
     }
     fun startLeftTimeFrame(timeFrame: String) {
-        val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: listOf()
+        val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: emptyList()
         playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
     }
     /**
@@ -155,10 +155,10 @@ class PlayersManager(
 
         currentPlaylist =
             mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
-                ?: listOf()
+                ?: emptyList()
         currentTextPlaylist =
             mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == LEFT_AREA }
-                ?: listOf()
+                ?: emptyList()
         Log.d("monthlyinfo", "show right ${currentPlaylist.size}")
         Log.d("monthlyinfo", "show left ${currentTextPlaylist.size}")
 

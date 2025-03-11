@@ -215,7 +215,7 @@ class Utils {
 
         }
 
-        fun getDeviceInfo(deviceInfo: String?, valueName: String): String {
+        fun getDeviceInfo(valueName: String,deviceInfo: String?): String {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {
                 return ""

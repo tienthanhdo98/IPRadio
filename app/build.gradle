@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D76MQTT.4.2.1d"
+        versionName "D76WS.4.2.1d"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 

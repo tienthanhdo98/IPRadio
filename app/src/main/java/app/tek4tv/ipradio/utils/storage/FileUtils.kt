@@ -77,7 +77,7 @@ fun getAllFileNameInFolder(storagePath: String): List<String> {
             .map { it.name }
     } catch (e: Exception) {
         e.printStackTrace()
-        listOf()
+        emptyList()
     }
 
 }

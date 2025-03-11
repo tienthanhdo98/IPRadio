@@ -576,7 +576,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
-
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
