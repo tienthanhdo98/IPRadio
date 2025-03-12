@@ -2,6 +2,8 @@ package app.tek4tv.ipradio.model
 
 import android.net.Uri
 import android.util.Log
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import org.videolan.libvlc.LibVLC
@@ -11,6 +13,7 @@ import java.io.Serializable
 
 @JsonClass(generateAdapter = true)
 data class MediaItem(
+
     @Json(name = "ID")
     val id: Int? = null,
 
@@ -86,7 +89,7 @@ data class MediaItem(
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
-) : Serializable {
+    ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1

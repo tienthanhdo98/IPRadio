@@ -94,16 +94,24 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
         if (isPlaying) stop()
-        if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-            if (isForce) {
-                playLiveStream(mediaItem, timeStamp)
-            } else {
-                if (isInRangeTimePlay()) {
-                    playFile(mediaItem, timeStamp)
-                }
+//        if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
+//            if (isForce) {
+//                playLiveStream(mediaItem, timeStamp)
+//            } else {
+//                if (isInRangeTimePlay()) {
+//                    playFile(mediaItem, timeStamp)
+//                }
+//            }
+//            currentMedia = mediaItem
+//        }
+        if (isForce) {
+            playLiveStream(mediaItem, timeStamp)
+        } else {
+            if (isInRangeTimePlay()) {
+                playFile(mediaItem, timeStamp)
             }
-            currentMedia = mediaItem
         }
+        currentMedia = mediaItem
     }
 
     override fun reset() {

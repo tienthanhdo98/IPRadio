@@ -2,10 +2,10 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.di.MoshiInst.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.network.PlaylistService
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -27,14 +27,15 @@ import javax.inject.Singleton
 
 @Singleton
 class MediaRepo @Inject constructor(
-    private val playlistService: PlaylistService,
     moshi: Moshi,
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
 
+
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
+
 
     val TAG = "MEDIA_REPO"
 
@@ -211,73 +212,142 @@ class MediaRepo @Inject constructor(
     {
         saveItemsToFile(listOf())
     }
-
-
-    fun startDownloadMedia() {
+        fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return
-
-        val validItems = broadcastList.filter {
-            it.body != "start" && it.body != "end" &&
-                    (it.contentType?.value == "3" || it.contentType?.value == "4") &&
-                    File(it.body).extension.isNotEmpty() &&
-                    getConfigExtension()?.contains(File(it.body).extension) == true
-        }
-
-        if (validItems.isEmpty()) return  // No valid items to download
-
-        completedDownloads = 0  // Reset counter
-        val totalDownloads = validItems.size
-
-        validItems.forEach { item ->
-            downloadMediaItem(item, totalDownloads)
+        broadcastList.forEach {
+            downloadAMediaItem(it)
         }
     }
+        fun downloadAMediaItem(it: MediaItem) {
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4
+        Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
+        if (it.body == "start" || it.body == "end") return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" ) return
 
+        //xác định có là file hay không, lấy đuôi file
+        val extMedia = File(it.body).extension
 
-    // Separate function for downloading a media item
-    fun downloadMediaItem(item: MediaItem, totalDownloads: Int) {
-        val fileName = getFileNameFromUrl(item.body ?: return)
+        if(extMedia.isEmpty()) return
+        val isFile = getConfigExtension()!!.contains(extMedia)
 
-        // Check if file already exists
+        if (!isFile) return
+
+        val url = it.body
+        //if (url.isEmpty() || !url.startsWith("http")) return
+
+        val fileName = getFileNameFromUrl(url!!)
         if (isFileExisted(mediaStoragePath, fileName)) {
-            val updatedPath = "$mediaStoragePath/$fileName"
-            if (item.body != updatedPath) {
-                item.body = updatedPath
+            //handle broken path
+            if (it.body != "$mediaStoragePath/$fileName") {
+                it.body = "$mediaStoragePath/$fileName"
+                coroutineScope.launch {
+                    saveItemsToFile(broadcastList)
+                }
             }
+
             return
         }
 
-        Log.d("download item", item.body ?: "Invalid URL")
+        Log.d("download item", url)
 
-        // Queue download
         downloadHelper.addToQueue(DownloadItem().apply {
-            itDownloadUrl = item.body!!
+            itDownloadUrl = url
             itStoragePath = mediaStoragePath
             itFileName = fileName
             priority = 0
             downloadListener = object : OnDownloadListener {
                 override fun onDownloadComplete() {
-                    item.pathBackup = item.body!!
-                    item.body = "$mediaStoragePath/$fileName"
+                    it.pathBackup = it.body!!
+                    it.body = "$mediaStoragePath/$fileName"
 
-                    synchronized(lock) {  // Thread-safe update
-                        completedDownloads++
-                        if (completedDownloads == totalDownloads) {
-                            coroutineScope.launch {
-                                saveItemsToFile(broadcastList)  // Save only once after all downloads
-                                Log.d("writrr","$completedDownloads - $totalDownloads")
-                            }
-                        }
+                    coroutineScope.launch {
+                        saveItemsToFile(broadcastList)
                     }
-                    Log.d("downloadcomplete", item.body!!)
+
+                    Log.d("downloadcomplete", it.body!!)
                 }
 
                 override fun onError(error: com.downloader.Error?) {
-                    Log.d("downloaderror", item.body!!)
+                    Log.d("downloaderror", it.body!!)
                 }
+
             }
         })
     }
+
+
+//    fun startDownloadMedia() {
+//        if (broadcastList.isEmpty()) return
+//
+//        val validItems = broadcastList.filter {
+//            it.body != "start" && it.body != "end" &&
+//                    (it.contentType?.value == "3" || it.contentType?.value == "4") &&
+//                    File(it.body).extension.isNotEmpty() &&
+//                    getConfigExtension()?.contains(File(it.body).extension) == true
+//        }
+//
+//        if (validItems.isEmpty()) return  // No valid items to download
+//
+//        completedDownloads = 0  // Reset counter
+//        val totalDownloads = validItems.size
+//
+//        validItems.forEach { item ->
+//            downloadMediaItem(item, totalDownloads)
+//        }
+//    }
+//
+//
+//    // Separate function for downloading a media item
+//    fun downloadMediaItem(item: MediaItem, totalDownloads: Int) {
+//        val fileName = getFileNameFromUrl(item.body ?: return)
+//
+//        // Check if file already exists
+//        if (isFileExisted(mediaStoragePath, fileName)) {
+//            val updatedPath = "$mediaStoragePath/$fileName"
+//            if (item.body != updatedPath) {
+//                item.body = updatedPath
+//            }
+//            return
+//        }
+//
+//        Log.d("download item", item.body ?: "Invalid URL")
+//
+//        // Queue download
+//        downloadHelper.addToQueue(DownloadItem().apply {
+//            itDownloadUrl = item.body!!
+//            itStoragePath = mediaStoragePath
+//            itFileName = fileName
+//            priority = 0
+//            downloadListener = object : OnDownloadListener {
+//                override fun onDownloadComplete() {
+//                    item.pathBackup = item.body!!
+//                    item.body = "$mediaStoragePath/$fileName"
+//
+//                    synchronized(lock) {  // Thread-safe update
+//                        completedDownloads++
+//                        if (completedDownloads == totalDownloads) {
+//                            coroutineScope.launch {
+//                                saveItemsToFile(broadcastList)  // Save only once after all downloads
+//                                Log.d("writrr","$completedDownloads - $totalDownloads")
+//                            }
+//                        }
+//                    }
+//                    Log.d("downloadcomplete", item.body!!)
+//                }
+//
+//                override fun onError(error: com.downloader.Error?) {
+//                    Log.d("downloaderror", item.body!!)
+//                }
+//            }
+//        })
+//    }
 
 
 

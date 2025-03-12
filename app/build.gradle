@@ -25,7 +25,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "v76WS.4.2.1b"
+        versionName "v76WS.4.2.1c"
 
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
@@ -123,6 +123,10 @@ dependencies {
     //mqtt
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.4'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+    //
+    implementation "androidx.room:room-runtime:2.5.2"
+    kapt "androidx.room:room-compiler:2.5.2"
+    implementation "androidx.room:room-ktx:2.5.2"
 
 
 }

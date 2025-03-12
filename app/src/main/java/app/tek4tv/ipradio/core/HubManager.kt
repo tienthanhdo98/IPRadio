@@ -1,15 +1,16 @@
 package app.tek4tv.ipradio.core
 
-import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.core.websocket.WssManager
 import app.tek4tv.ipradio.di.MoshiInst
+import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
+import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.local.MediaLogModel
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
+import app.tek4tv.ipradio.network.IHubObserve
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
@@ -34,7 +35,7 @@ class HubManager(
 ) : IConnectionServer {
     private val TAG = "HubManager"
 
-    private val CONNECT_COUNTER_LIMIT = 60
+    private val CONNECT_COUNTER_LIMIT = 120
     private val PING_HUB_INTERVAL = 10000L
     private val API_CALL_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
@@ -44,7 +45,8 @@ class HubManager(
 
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    private val deviceImei = Utils.getDeviceId(appContext)
+    //val deviceImei = Utils.getDeviceId(appContext)
+    val deviceImei = "72:BE:B5:09:17:98"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -70,13 +72,15 @@ class HubManager(
     private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
-    private var isConnectSuccess = false
+    private var connectionListener: IHubObserve? = null
+    var isConnectSuccess = false
 
     //wss
     private var wssManager: WssManager? = null
 
     //mqtt
     var nguonId = "H48.52.01"
+
     //    var tenNguon = "Xã Ba Cung"
     var tenNguon = "Thị trấn Ba Tơ"
     var dichId = "H48"
@@ -92,6 +96,10 @@ class HubManager(
         } catch (e: Exception) {
             ""
         }
+    }
+
+    fun setConnectionListener(listener: IHubObserve) {
+        connectionListener = listener
     }
 
     private fun getHubToken() {
@@ -251,11 +259,13 @@ class HubManager(
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
+        connectionListener?.onHubConnected()
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
         isConnectSuccess = false
+        connectionListener?.onHubDisConnected()
         pingCounter++
         checkPingToAppReset()
     }
@@ -279,8 +289,6 @@ class HubManager(
 //            Log.d("TestLogrun", "Clear---")
 //        }
     }
-
-
 
     fun closeConnect() {
         isConnectSuccess = false
@@ -350,7 +358,7 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    var listTopic = mutableSetOf<String?>()
+
     private fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
@@ -509,9 +517,41 @@ class HubManager(
             }
 
         }
+    }
 
-
-
+    fun sendUnsentLogMediaSuccess(mediaItem: MediaLogModel, paState: String) {
+        val request = WssStatusModel(
+            id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
+                nguonID = nguonId,
+                tenNguon = tenNguon,
+                dichID = dichId,
+                tenDich = tenDich,
+                cumLoaID = deviceImei,
+                maNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                amLuong = getDeviceInfo(
+                    StringValue.deviceInfoVolume,
+                    SerialPortController.deviceInfo
+                ),
+                thoiDiemBatDau = mediaItem.thoiDiemBatDau,
+                congSuat = paState,
+                banTinID = mediaItem.banTinID,
+                loaiBanTin = mediaItem.loaiBanTin,
+                mucDoUuTien = mediaItem.mucDoUuTien,
+                noiDung = mediaItem.noiDung,
+                noiDungTomTat = mediaItem.noiDungTomTat,
+                tacGia = adapterTacGia.fromJson(mediaItem.tacGia),
+                tenThietBi = GlobalProperties.getInst().nameDevice,
+                thoiLuong = mediaItem.thoiLuong,
+                tieuDe = mediaItem.tieuDe,
+                danhSachBanTin = listOf(),
+                danhSachDiaBan = listOf(),
+                danhSachThietBi = listOf(),
+                loaiLinhVuc = mediaItem.loaiLinhVuc,
+            )
+        )
+        Log.d(TAG, "sendLogMediaSuccess: dv005")
+        sendMessage(wssStatusAdapter.toJson(request))
     }
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {

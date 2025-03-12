@@ -69,7 +69,7 @@ class MediaWatchDog(
 
             if (needDownload.isNotEmpty()) {
                 needDownload.forEach {
-                    mediaRepo.downloadMediaItem(it,needDownload.size)
+                    mediaRepo.downloadAMediaItem(it)
                 }
             }
         }
