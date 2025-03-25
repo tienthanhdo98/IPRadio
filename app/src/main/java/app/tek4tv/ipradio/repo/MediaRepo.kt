@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.repo
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.model.MediaItemModel
+import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
@@ -40,6 +41,9 @@ class MediaRepo constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
+
+    //250mb
+    val Limit_Storage : Long = 262144000
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
         try {
@@ -186,9 +190,14 @@ class MediaRepo constructor(
         Log.d(TAG, "filterMedia: $scheduledList")
         Log.d(TAG, "filterMedia: $timeDividers")
     }
+    fun getAvailableStorage() : Long{
+        val totalStorage = appStorageManager.getTotalRomStorage()
+        val usedStorage = appStorageManager.getUsedRomStorage()
+        return totalStorage - usedStorage
+    }
 
     fun startDownloadMedia() {
-        if (broadcastList.isNullOrEmpty()) return
+        if (broadcastList.isEmpty()) return
 
         broadcastList.forEach {
             downloadAMediaItem(it)
@@ -209,6 +218,8 @@ class MediaRepo constructor(
         //6 - Bản tin FM
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
+        //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
+        if(getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
         if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
 

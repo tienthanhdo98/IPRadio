@@ -2,9 +2,7 @@ package app.tek4tv.ipradio.ui
 
 import android.Manifest
 import android.app.ActivityManager
-import android.content.Context
 import android.content.Intent
-import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
 import android.media.AudioManager
@@ -16,18 +14,15 @@ import android.util.Log
 import android.view.PixelCopy
 import android.view.SurfaceView
 import android.widget.FrameLayout
-import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.constraintlayout.widget.ConstraintLayout
 import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
@@ -35,35 +30,14 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
-import app.tek4tv.ipradio.model.CaptureScreenModel
-import app.tek4tv.ipradio.model.DataValueModel
-import app.tek4tv.ipradio.model.ForceMedia
-import app.tek4tv.ipradio.model.MediaItemModel
-import app.tek4tv.ipradio.model.ResponseHub
-import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
-import app.tek4tv.ipradio.utils.CrashHandler
-import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
-import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.LogUtils
-import app.tek4tv.ipradio.utils.Utils
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.bitmapToBase64
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.downloadUpdateApk
-import app.tek4tv.ipradio.utils.getCurrentTime
-import app.tek4tv.ipradio.utils.getDestinationApk
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
-import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.storage.RECORDED_AUDIO_FOLDER_NAME
-import app.tek4tv.ipradio.utils.storage.deleteAFileInFolder
-import app.tek4tv.ipradio.utils.storage.isFileExisted
-import app.tek4tv.ipradio.utils.storage.readFile
+import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
@@ -72,10 +46,9 @@ import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.BufferedReader
 import java.io.File
-import java.io.IOException
 import java.io.InputStreamReader
 import java.io.RandomAccessFile
-import java.util.Calendar
+import java.util.*
 
 
 class MainActivity : AppCompatActivity(), AlarmListener {
@@ -100,8 +73,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var serialPortController: SerialPortController
 
-    private lateinit var appStorageManager: AppStorageManager
-
     private lateinit var logUtils: LogUtils
 
     private lateinit var mediaScheduler: MediaScheduler
@@ -110,9 +81,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-    private var typeScreen: String = FULL_SCREEN
-    private lateinit var rootMultiLayout: ConstraintLayout
-    private lateinit var ivBackgroundMultiLayout: ImageView
+
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -155,39 +124,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @RequiresApi(Build.VERSION_CODES.N)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-//        typeScreen = ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
-//        if (typeScreen == FULL_SCREEN) {
-//            setContentView(R.layout.activity_main)
-//        } else {
-//            setContentView(R.layout.activity_main_multiple_view2)
-//        }
+
         setContentView(R.layout.activity_main)
         supportActionBar?.hide()
         viewModel.hideSystemUI(this)
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
 
-        val hubComm = object : HubComm {
-            override fun forceRestartApp(countHardRestart: Int) {
-//                lifecycleScope.launch {
-//                    serialPortController.turnOffPA()
-//                    delay(3000)
-//                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//                }
-            }
-
-            override fun forceRestartDevice() {
-                serialPortController.hardRestart()
-            }
-
-        }
-
         logUtils = LogUtils.getInst()
 
 
-        hubManager = HubManager(hubComm) { command, message ->
+        hubManager = HubManager { command, message ->
             handleFromCommandServer(command, message)
         }
 
@@ -238,131 +187,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        prefs = getSharedPreferences("AppPrefs", MODE_PRIVATE)
 
-
-//        lifecycleScope.launch{
-//            repeat (Int.MAX_VALUE)
-//            {
-//                delay(10000)
-//                playerManager.resumeMedia()
-//            }
-//        }
-    }
-
-
-    private fun getSystemCpuUsage(): Float {
-        try {
-            // Read CPU usage from /proc/stat
-            val reader = RandomAccessFile("/proc/stat", "r")
-            val firstLine = reader.readLine()
-            val toks = firstLine.split(" ").filter { it.isNotEmpty() }
-
-            // Total and idle times for the first reading
-            val idle1 = toks[4].toLong()
-            val total1 = toks.subList(1, toks.size).sumOf { it.toLong() }
-            reader.close()
-
-            Thread.sleep(100) // Wait for a short interval to take the second reading
-
-            // Read again for the second interval
-            val reader2 = RandomAccessFile("/proc/stat", "r")
-            val secondLine = reader2.readLine()
-            val toks2 = secondLine.split(" ").filter { it.isNotEmpty() }
-
-            // Total and idle times for the second reading
-            val idle2 = toks2[4].toLong()
-            val total2 = toks2.subList(1, toks2.size).sumOf { it.toLong() }
-            reader2.close()
-
-            // Calculate deltas
-            val idleDelta = idle2 - idle1
-            val totalDelta = total2 - total1
-
-            // Calculate CPU usage percentage
-            return if (totalDelta > 0) {
-                100.0f * (totalDelta - idleDelta) / totalDelta
-            } else {
-                0.0f
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            return 0.0f
-        }
-    }
-
-    private fun getAppCpuUsage(context: Context): Float {
-        try {
-            val activityManager =
-                context.getSystemService(Context.ACTIVITY_SERVICE) as ActivityManager
-            val appProcesses = activityManager.runningAppProcesses
-
-            for (appProcess in appProcesses) {
-                if (appProcess.processName == context.packageName) {
-                    val pid = appProcess.pid
-                    val statsFile = "/proc/$pid/stat"
-
-                    // Read the process-specific CPU usage from /proc/<pid>/stat
-                    val reader = RandomAccessFile(statsFile, "r")
-                    val stats = reader.readLine().split(" ").filter { it.isNotEmpty() }
-                    reader.close()
-
-                    val utime = stats[13].toLong() // User mode time
-                    val stime = stats[14].toLong() // System mode time
-                    val cutime = stats[15].toLong() // Child processes' user mode time
-                    val cstime = stats[16].toLong() // Child processes' system mode time
-                    val processTime1 = utime + stime + cutime + cstime
-
-                    // Get total CPU time from /proc/stat
-                    val systemReader = RandomAccessFile("/proc/stat", "r")
-                    val firstLine = systemReader.readLine()
-                    val systemStats = firstLine.split(" ").filter { it.isNotEmpty() }
-                    val totalSystemTime1 =
-                        systemStats.subList(1, systemStats.size).sumOf { it.toLong() }
-                    systemReader.close()
-
-                    Thread.sleep(100) // Pause before taking the second measurement
-
-                    // Second measurement for app
-                    val reader2 = RandomAccessFile(statsFile, "r")
-                    val stats2 = reader2.readLine().split(" ").filter { it.isNotEmpty() }
-                    reader2.close()
-
-                    val utime2 = stats2[13].toLong()
-                    val stime2 = stats2[14].toLong()
-                    val cutime2 = stats2[15].toLong()
-                    val cstime2 = stats2[16].toLong()
-                    val processTime2 = utime2 + stime2 + cutime2 + cstime2
-
-                    // Second measurement for total system CPU
-                    val systemReader2 = RandomAccessFile("/proc/stat", "r")
-                    val secondLine = systemReader2.readLine()
-                    val systemStats2 = secondLine.split(" ").filter { it.isNotEmpty() }
-                    val totalSystemTime2 =
-                        systemStats2.subList(1, systemStats2.size).sumOf { it.toLong() }
-                    systemReader2.close()
-
-                    // Calculate deltas
-                    val processDelta = processTime2 - processTime1
-                    val systemDelta = totalSystemTime2 - totalSystemTime1
-
-                    // Calculate CPU usage percentage for the app
-                    return if (systemDelta > 0) {
-                        100.0f * processDelta / systemDelta
-                    } else {
-                        0.0f
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-        return 0.0f
-    }
-
-
-    fun clearMemory() {
-        System.gc()
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -420,11 +245,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun initDataByScreen() {
-        if (typeScreen == FULL_SCREEN) {
             checkInternetAndTime()
-        } else {
-            initDefaultTopAndLeftArea()
-        }
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -433,59 +254,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val tvMacAddress = findViewById<TextView>(R.id.tvMac)
         lifecycleScope.launch {
             while (true) {
-                if (hubManager.pingCounter == 0) {
-                    tvCheckInternet.setTextColor(getColor(R.color.green_online))
+                if (hubManager.pingCounter <= 1) {
+                    tvCheckInternet.setTextColor(getColor(R.color.white))
+                    tvCheckInternet.setBackgroundColor(getColor(R.color.green_online))
                     tvCheckInternet.text = resources.getString(R.string.online)
                 } else {
-                    tvCheckInternet.setTextColor(getColor(R.color.red_offline))
+                    tvCheckInternet.setTextColor(getColor(R.color.white))
+                    tvCheckInternet.setBackgroundColor(getColor(R.color.red_offline))
                     tvCheckInternet.text = resources.getString(R.string.offine)
                 }
                 delay(10000)
             }
         }
-        //val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
-//        var resInfo = ""
-//        val actManager = getSystemService(ACTIVITY_SERVICE) as ActivityManager
-//        val memInfo = ActivityManager.MemoryInfo()
-//        val decimalFormat = DecimalFormat("#.##")
-        lifecycleScope.launch {
-//            while (true) {
-//                actManager.getMemoryInfo(memInfo)
-//                // Fetching the available and total memory and converting into Giga Bytes
-//                val availMemory = memInfo.availMem.toDouble()/(1024*1024*1024)
-//                val totalMemory= memInfo.totalMem.toDouble()/(1024*1024*1024)
-//                val usedMemory = totalMemory - availMemory
-//                resInfo = "$info - ${decimalFormat.format(usedMemory)}/${decimalFormat.format(totalMemory)}"
-//                Log.d("usedMemory", "checkInternetAndTime: $resInfo")
-            //                 tvMacAddress.text = resInfo
-//                delay(5000)
-//            }
-//             tvMacAddress.text = info
-//             delay(10000)
-//             tvMacAddress.visibility = View.GONE
-            while (true) {
-                val systemCpuUsage = getSystemCpuUsage()
-                val appCpuUsage = getAppCpuUsage(applicationContext)
-
-                val a = "System CPU: ${String.format("%.2f", systemCpuUsage)}%\n" +
-                        "App CPU: ${String.format("%.2f", appCpuUsage)}%"
-
-                tvMacAddress.text = a
-                delay(1000)
-            }
 
 
-        }
-       
+    }
+    override fun onStart() {
+        Log.i("ChangeLayout", "Mess: recreate onStart")
+        super.onStart()
+        startPlayingMedia()
     }
 
-
-    private fun initDefaultTopAndLeftArea() {
-        rootMultiLayout = findViewById(R.id.root_multi_layout)
-        ivBackgroundMultiLayout = findViewById(R.id.iv_bg_multi_layout)
-        val videoViewContainer = findViewById<FrameLayout>(R.id.frame_player_layout)
-        videoViewContainer.clipToOutline = true
-    }
 
     override fun onStop() {
         Log.e("monthlyinfo", "onStop")
@@ -503,7 +292,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         playerManager.onActivityDestroy()
 //        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
-        handler.removeCallbacksAndMessages(null)
         super.onDestroy()
 
     }
@@ -513,13 +301,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 playerManager.isInTimeFrame = true
-                Log.d("onPlayMediaLog", "show typescreen $typeScreen")
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey)
-                    if (typeScreen == MULTIPLE_AREA) {
-                        Log.d("onPlayMediaLog", "startFirstTimeFrame: showLeftArea")
-                    }
                 }
             }
 
@@ -528,10 +312,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
-                if (typeScreen == MULTIPLE_AREA) {
-                    Log.d("onPlayMediaLog", "show left ACTION_END_PLAYLIST ${typeScreen}")
-                    Log.d("onPlayMediaLog", "hideTopLeftArea")
-                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -539,22 +319,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("alarmx", "stop force")
             }
 
-            MediaScheduleReceiver.ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllScheduledListAlarm()
-                viewModel.rescheduleMonthlyPlaylist()
-            }
-
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                val isConnect = ConfigUtil.getString(this, "checkhub", "0")
-                if (isConnect == "0") {
-                    lifecycleScope.launch {
-                        serialPortController.turnOffPA()
-                        delay(3000)
-                        Log.e("alarmx", "Hub restart")
-                        serialPortController.hardRestart()
-                    }
+                lifecycleScope.launch {
+                    Log.d("alarmx", "reschedule all alarms")
+                    mediaScheduler.cancelAllScheduledListAlarm()
+                    viewModel.rescheduleMonthlyPlaylist()
+                    hubManager.reconnectToServer()
+                    serialPortController.turnOffPA()
+                    delay(120000)
+                    Log.e("alarmx", "Hub restart")
+                    serialPortController.hardRestart()
                 }
+
             }
         }
     }
@@ -597,11 +373,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                if (forceMedia != null)
+                if (forceMedia != null) {
+                    mediaScheduler.scheduleForceMediaAlarm(forceMedia)
                     playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
-                return@observe
+                    return@observe
+                }
             }
             //default
             mediaScheduler.scheduleAllAlarms()
@@ -673,28 +450,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         currentTime.toString()
                     )
                     playerManager.stopForceMedia()
-                    val preTypeScreen = ConfigUtil.getString(
-                        context = baseContext,
-                        TYPE_PRE_SCREEN_KEY,
-                        "0"
-                    )
-                    val typeScreen = ConfigUtil.getString(
-                        context = baseContext,
-                        TYPE_SCREEN_KEY,
-                        "0"
-                    )
-                    Log.d("spssds", "handleFromCommandServer: $preTypeScreen - $typeScreen ")
-                    Handler().postDelayed({
-                        if (typeScreen != preTypeScreen) {
-                            Log.d("spssds", "handleFromCommandServer: diff")
-                            ConfigUtil.putString(
-                                context = baseContext,
-                                TYPE_PRE_SCREEN_KEY,
-                                typeScreen
-                            )
-                            recreate()
-                        }
-                    }, 1000)
+
                 }
 
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
@@ -711,17 +467,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-
-                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-
-                    Handler().postDelayed({
-                        onPlayForce(responseHub)
-                        if (typeScreen != FULL_SCREEN) {
-                            recreate()
-                        }
-                    }, 1000)
-//                    onPlayForce(responseHub)
+                    onPlayForce(responseHub)
                 }
 
                 HubCommand.TURN_ON_PA -> {
@@ -834,16 +580,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.readDeviceInfo()
                 }
 
-                HubCommand.STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-
-//                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
-                    }
-                }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
                     appStorageManager.deleteAllMedia()
@@ -930,7 +666,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
     private fun cancelAllAlarm() {
-        mediaScheduler.cancelAllAlarm()
+        mediaScheduler.cancelAllScheduledListAlarm()
     }
 
     private fun setMaxVolume() {
@@ -1001,11 +737,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         var alarmListener: AlarmListener? = null
         val typeListMediaItem =
             Types.newParameterizedType(List::class.java, MediaItemModel::class.java)
-        val jsonListMediaItemAdapter = moshi.adapter<List<MediaItemModel>>(typeListMediaItem)
+        val jsonListMediaItemAdapter: JsonAdapter<List<MediaItemModel>> = moshi.adapter<List<MediaItemModel>>(typeListMediaItem)
         val retrofit = RetrofitInstance.authService
         val typeMap =
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
         val jsonMapAdapter: JsonAdapter<Map<String, String>> =
-            moshi.adapter<Map<String, String>>(typeMap)
+            moshi.adapter(typeMap)
+        lateinit var appStorageManager: AppStorageManager
     }
 }

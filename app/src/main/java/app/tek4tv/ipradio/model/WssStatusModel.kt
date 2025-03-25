@@ -83,3 +83,7 @@ data class ThongTinThietBI (
     @Json(name = "DuLieuKhac")
     var duLieuKhac: String
 )
+data class ThongTinKhac(
+    var key : String? = "",
+    var value : String? = ""
+)

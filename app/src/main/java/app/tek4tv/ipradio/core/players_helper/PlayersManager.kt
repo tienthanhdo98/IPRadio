@@ -308,11 +308,11 @@ class PlayersManager(
         try {
             Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát
-            mediaScheduler.cancelAllAlarm()
+            mediaScheduler.cancelAllScheduledListAlarm()
 
             forceMedia.saveItemToPref(context)
             //hẹn giờ dừng media khẩn cấp
-            mediaScheduler.scheduleForceMediaAlarm()
+            mediaScheduler.scheduleForceMediaAlarm(forceMedia)
 
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()

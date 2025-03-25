@@ -5,6 +5,7 @@ import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.retrofit
@@ -22,13 +23,11 @@ import java.util.*
 
 
 class HubManager(
-    private val hubComm: HubComm,
     private val onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
     private val TAG = "HubManager"
-
-    private val CONNECT_COUNTER_LIMIT = 5
     private val PING_HUB_INTERVAL = 60000L
+    private val API_CALL_INTERVAL = 10000L
     private val moshi = RetrofitInstance.moshi
 
     private var pingHubJob: Job? = null
@@ -40,7 +39,6 @@ class HubManager(
     val appContext: Context = MyApp.instance!!.applicationContext
 
     val deviceImei = Utils.getDeviceId(appContext)
-    //val deviceImei = "72:BE:B5:09:17:98"
 
     var pingCounter = -1
 
@@ -69,6 +67,7 @@ class HubManager(
     //mqtt
     private var listMQTTInfo: List<NoiDungMQTT> = listOf()
     var mqttClient: MQTTManager? = null
+    private var isConnectSuccess = false
 
     init {
         versionName = try {
@@ -92,25 +91,23 @@ class HubManager(
             val call = retrofit.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
+                pingCounter = 0
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
-                    Log.i(TAG, "getHubToken $hubToken")
                 }
+                Log.i(TAG, "getHubToken ok: $hubToken")
             } else {
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
-                pingCounter ++
             }
         } catch (e: Exception) {
             Log.i(TAG, "getHubToken error: ${e.message}")
             hubToken = null
-            pingCounter ++
         }
-        Log.i(TAG, "getHubToken ping: $pingCounter")
     }
+
     private fun getMqttInfo()
     {
-        Log.i(TAG, "get MqttInfo ")
         try {
             val body = MQTTInfoModel(deviceImei)
             val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
@@ -120,88 +117,82 @@ class HubManager(
             if (response.isSuccessful) {
                 listMQTTInfo = response.body()!!.noiDung
                 Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
-            } else {
-                listMQTTInfo = listOf()
-                Log.i(TAG, "MqttInfo null")
             }
         } catch (e: Exception) {
+            listMQTTInfo = emptyList()
             Log.i(TAG, "MqttInfo fail: ${e.message}")
         }
     }
 
+    private fun closeConnect() {
+        isConnectSuccess = false
+        hubToken = null
+        listMQTTInfo = listOf()
+        mqttClient?.disconnectMqtt()
+
+    }
+
+    fun reconnectToServer() {
+        closeConnect()
+        connectToServer()
+    }
+
     fun connectToServer() {
-        //reset sau 5 phút khi không lấy được token
-//        if (pingCounter >= 60) {
-//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-//            hubComm.forceRestartApp(countForHardRestart)
-//        }
         getTokenJob?.cancel()
         getTokenJob = CoroutineScope(Dispatchers.Default).launch {
-            while (isActive && hubToken == null) {
+            while (hubToken == null) {
                 getHubToken()
                 if (hubToken == null) {
-                    delay(5000)
-
+                    pingCounter++
+                    delay(API_CALL_INTERVAL)
+                    continue
                 }
-                if (hubToken == null) return@launch
-
                 // Cancel and start a new MQTT info retrieval job
                 getMQTTInfoJob?.cancel()
                 getMQTTInfoJob = launch {
-                    while (isActive && listMQTTInfo.isEmpty()) {
+                    while (listMQTTInfo.isEmpty()) {
                         getMqttInfo()
                         if (listMQTTInfo.isEmpty()) {
-                            delay(5000)
+                            pingCounter++
+                            delay(API_CALL_INTERVAL)
                         }
                     }
-                    if (listMQTTInfo.isEmpty()) return@launch
-
                     mqttClient = MQTTManager(
                         hubToken,
                         this@HubManager,
                         listMQTTInfo
                     )
-                    mqttClient?.connectToMQTT(appContext)
+                    while (!isConnectSuccess) {
+                        mqttClient?.connectToMQTT(appContext)
+                        delay(5000)
+                    }
 
                 }
-                getMQTTInfoJob?.join()
             }
-
         }
     }
 
     override fun onConnectSuccess() {
+        isConnectSuccess = true
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
+        isConnectSuccess = false
         startPingTimer()
     }
 
     override fun onReceiveMessageSuccess(message: String) {
         pingCounter = 0
-        Log.d(TAG, "onReceiveMessageSuccess: ${pingCounter}")
+        Log.d(TAG, "onReceiveMessageSuccess: $pingCounter")
         convertToHubCommand(message)
     }
 
-    override fun onSendMessageSuccess(responseMessage: String) {
-
-    }
-
-    override fun onSendMessageFailure(responseMessage: String) {
-
-    }
-
-    override fun onDisconnectFailure(message: String?) {
-    }
-
-
-    fun closeConnectMQTT() {
-        mqttClient?.disconnectMqtt()
-    }
 
     private fun sendMessage(message: String) {
-        mqttClient?.publishToMQTT(message)
+        if(isConnectSuccess) {
+            mqttClient?.publishToMQTT(message)
+        }
     }
 
     private fun sendPing() {
@@ -240,8 +231,8 @@ class HubManager(
                         Utils.deviceInfoTemperature,
                         SerialPortController.deviceInfo
                     ),
-                    dungLuongSuDung = "1024000",
-                    duLieuKhac = ""
+                    dungLuongSuDung = "0",
+                    duLieuKhac = Utils.getOtherInfo(SerialPortController.deviceInfo,appStorageManager)
                 ),
                  thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                  //conver sttring to list String
@@ -253,7 +244,7 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    fun parseJson(jsonMessage: String, moshi: Moshi): MQTTReceivedScheduleModel? {
+    private fun parseJson(jsonMessage: String, moshi: Moshi): MQTTReceivedScheduleModel? {
         val mqttReceivedScheduleModelAdapter: JsonAdapter<MQTTReceivedScheduleModel> =
             moshi.adapter(MQTTReceivedScheduleModel::class.java)
         return try {
@@ -498,7 +489,6 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-
     private fun sendLogRemovePlaylist(body: PayloadRemovePlaylist) {
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV015, payload = PayloadSendLogRemovePlaylist(
@@ -515,9 +505,7 @@ class HubManager(
                         maNhaCungCap = GlobalProperties.getInst().providerValue,
                         tenNhaCungCap = GlobalProperties.getInst().providerValue,
                     )
-                ),
-
-
+                )
             )
         )
         Log.d("WebsocketLog", "sendLogRemovePlaylist: $request")
@@ -640,31 +628,20 @@ class HubManager(
     }
 
     private fun checkConnection() {
-//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-//
-//            hubComm.forceRestartApp(countForHardRestart)
-//        }
         if (pingCounter >= 3) {
             Log.e(TAG, "Losed hub connection")
-//            if (notifyDisconnected.compareAndSet(false, true)) {
-//                hubToken = null
-//                Log.e(TAG, "Hub Disconnected")
-//            }
             hubToken = null
             //Try to reconnect to hub
             Log.e(TAG, "Try to reconnect Websocket")
-            connectToServer()
+            reconnectToServer()
         }
     }
-
 
 
 }
 
 
 interface HubComm {
-    fun forceRestartApp(countHardRestart : Int)
     fun forceRestartDevice()
 }
 

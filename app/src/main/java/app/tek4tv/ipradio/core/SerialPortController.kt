@@ -139,10 +139,10 @@ class SerialPortController(
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
-                            val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if (s.contains("\$\$,1,8") && list.size >= 4) {
+
+                            if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
-//                                volume = list[5]
+//
                             }
                             dataFinal = StringBuffer()
                         }

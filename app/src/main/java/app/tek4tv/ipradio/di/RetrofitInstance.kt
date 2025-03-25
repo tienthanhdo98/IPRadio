@@ -1,8 +1,10 @@
 package app.tek4tv.ipradio.di
 
+import app.tek4tv.ipradio.model.ThongTinKhac
 import app.tek4tv.ipradio.network.AuthService
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
+import com.squareup.moshi.Types
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
 import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
@@ -23,5 +25,7 @@ object RetrofitInstance {
     val authService : AuthService =
         retrofit.create(AuthService::class.java)
 
+    val typeThongTinKhac = Types.newParameterizedType(List::class.java, ThongTinKhac::class.java)
+    val adapterThongTinKhac = moshi.adapter<List<ThongTinKhac>>(typeThongTinKhac)
 
 }

@@ -6,6 +6,8 @@ import android.os.Environment
 import android.os.StatFs
 import app.tek4tv.ipradio.utils.*
 import java.io.File
+import kotlin.math.roundToInt
+import kotlin.math.roundToLong
 
 
 class AppStorageManager(appContext: Context) {
@@ -45,12 +47,12 @@ class AppStorageManager(appContext: Context) {
         return statFs.totalBytes - statFs.availableBytes // remember to convert in GB,MB or KB.
     }
 
-    fun getTotalRam() = memoryInfo.totalMem
-    fun getAvailRam() = memoryInfo.availMem
+    fun getTotalRam() = memoryInfo.totalMem.toDouble() / (1024 * 1024 * 1024)
+    fun getAvailRam() = memoryInfo.availMem.toDouble() / (1024 * 1024 * 1024)
     fun getUsedRam() = getTotalRam() - getAvailRam()
 
-    fun getTotalRomStorage() = getTotalStorageInfo(Environment.getDataDirectory().path)
-    fun getUsedRomStorage() = getUsedStorageInfo(Environment.getDataDirectory().path)
+    fun getTotalRomStorage() = (getTotalStorageInfo(Environment.getDataDirectory().path))
+    fun getUsedRomStorage() = (getUsedStorageInfo(Environment.getDataDirectory().path))
 
     fun getStorageCapacity(): Long {
         var r = 0L

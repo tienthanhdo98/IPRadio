@@ -6,12 +6,18 @@ import android.graphics.Bitmap
 import android.os.Environment
 import android.util.Base64
 import android.util.Base64.encodeToString
+import android.util.Log
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.di.RetrofitInstance.adapterThongTinKhac
 import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.ui.MainActivity
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import com.squareup.moshi.Json
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.io.ByteArrayOutputStream
+import java.io.RandomAccessFile
 import java.net.NetworkInterface
 import java.util.*
 
@@ -204,26 +210,91 @@ class Utils {
 
         }
 
-        fun getDeviceInfo(valueName : String,deviceInfo  : String) : String
-        {
-            if(deviceInfo != "") {
-                var result = ""
+        fun getDeviceInfo(valueName: String,deviceInfo: String?): String {
+            // Check if deviceInfo is null or empty
+            if (deviceInfo.isNullOrEmpty()) {
+                return ""
+            }
+            // Check if deviceInfo contains expected pattern
+            if (deviceInfo.contains("\$\$,1,8")) {
                 val listInfo = deviceInfo.split(",")
-                when (valueName) {
-                    deviceInfoVolume -> {
-                        result = listInfo[6]
-                    }
-                    deviceInfoPA -> {
-                        result = listInfo[8]
-                    }
-                    deviceInfoTemperature -> {
-                        result = listInfo[11]
-                    }
+
+                // Ensure the list has enough elements before accessing indexes
+                if (listInfo.size < 12) {  // max value device is 12
+                    return ""
+                }
+
+                val result = when (valueName) {
+                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: ""
+                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: ""
+                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: ""
+                    else -> ""
                 }
                 return result
             } else {
                 return ""
             }
+        }
+
+        fun roundNumber(value : Double ) : Double{
+            return String.format("%.2f", value).toDouble()
+        }
+
+        fun getMemoryUsage() : String
+        {
+            val usedRam = roundNumber(MainActivity.appStorageManager.getUsedRam())
+            val totalRam = roundNumber(MainActivity.appStorageManager.getTotalRam())
+            return "${usedRam}/${totalRam}"
+        }
+
+        fun getCpuUsage(): String {
+            try {
+                val reader = RandomAccessFile("/proc/stat", "r")
+
+                // Đọc lần 1
+                val load1 = reader.readLine()
+                val toks1 = load1.split(" +".toRegex()).drop(1)
+                val idle1 = toks1[3].toLong()
+                val total1 = toks1.take(7).map { it.toLong() }.sum()
+
+                // Chờ 360ms để lấy mẫu tiếp theo
+                Thread.sleep(360)
+
+                // Đọc lại từ đầu file
+                reader.seek(0)
+                val load2 = reader.readLine()
+                val toks2 = load2.split(" +".toRegex()).drop(1)
+                val idle2 = toks2[3].toLong()
+                val total2 = toks2.take(7).map { it.toLong() }.sum()
+
+                reader.close()
+
+                val totalDiff = total2 - total1
+                val idleDiff = idle2 - idle1
+                val usedCpu = (totalDiff - idleDiff).toFloat() / totalDiff.toFloat() * 100f
+                val res = String.format("%.2f%%/100%%", usedCpu)
+                // Format thành chuỗi như yêu cầu
+                Log.d("getSystemInfo", "getCpuInfo: $res")
+                return res
+            } catch (e: Exception) {
+                e.printStackTrace()
+            }
+
+            return "N/A"
+        }
+
+        fun getOtherInfo(deviceInfo: String, appStorageManager: AppStorageManager): String {
+            val usedStorageGb = roundNumber(appStorageManager.getUsedRomStorage().toDouble() / 1_073_741_824) // 1024^3
+            val totalStorageGb = roundNumber(appStorageManager.getTotalRomStorage().toDouble() / 1_073_741_824)
+
+            val infoList = listOf(
+                ThongTinKhac("deviceInfo", deviceInfo),
+                ThongTinKhac("cpu", getCpuUsage()),
+                ThongTinKhac("memory", getMemoryUsage()),
+                ThongTinKhac("storage", "$usedStorageGb/$totalStorageGb")
+            )
+
+            return adapterThongTinKhac.toJson(infoList)
         }
     }
 

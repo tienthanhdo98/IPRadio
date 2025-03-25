@@ -19,8 +19,6 @@ fun getDestinationApk() : String
     destination += fileName
     return  destination
 }
-
-
 fun downloadUpdateApk(
     url: String,
     context: Context,

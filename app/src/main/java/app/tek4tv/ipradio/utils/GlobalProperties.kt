@@ -25,13 +25,13 @@ class GlobalProperties {
     var userNameController = ""
     var piCode = "0"
     var psName = "AAA"
-    var nameDevice = ""
+    var nameDevice = "Digital Signage GGG"
     var destinationName = ""
     var destinationId = ""
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "VATC"
+    var providerValue: String = "TEK4TV"
     var dichId = "H48"
     var tenDich = "Quảng Ngãi"
 
@@ -42,9 +42,9 @@ class GlobalProperties {
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.01") ?: "H48.52.01"
-        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Ba Tơ") ?: "Thị trấn Ba Tơ"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử 24") ?: "Bảng Điện Tử 24"
+        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.51.03") ?: "H48.51.03"
+        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Nghĩa Chánh") ?: "Phường Nghĩa Chánh"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Digital Signage GGG") ?: "Digital Signage GGG"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
