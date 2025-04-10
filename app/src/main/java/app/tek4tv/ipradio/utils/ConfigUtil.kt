@@ -17,7 +17,6 @@ object ConfigUtil {
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
     const val PROVIDER = "PROVIDER"
-    const val URL_TOKEN = "URL_TOKEN"
     const val URL_STREAM = "URL_STREAM"
     const val USER_NAME_STREAM = "USER_NAME_STREAM"
     const val PASSWORD_STREAM = "PASSWORD_STREAM"
@@ -33,6 +32,17 @@ object ConfigUtil {
     const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
     const val MONTHLY_SCENARIO_DATA = "MONTHLY_SCENARIO_DATA"
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
+    //Token
+    const val USERNAME = "USERNAME"
+    const val PASSWORD = "PASSWORD"
+    const val USERNAME_KEY = "USERNAME_KEY"
+    const val PASSWORD_KEY = "PASSWORD_KEY"
+    const val URL_TOKEN = "URL_TOKEN"
+    const val URL_MQTT = "URL_MQTT"
+    const val URL_MQTT_INFO = "URL_MQTT_INFO"
+    const val URL_MQTT_SOURCE = "URL_MQTT_SOURCE"
+    const val URL_WSS = "URL_WSS"
+
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
@@ -47,9 +57,9 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
+    fun getStringEncrypt(context: Context, key: String): String {
 
-        return getEncryptedSharedPreferences(context).getString(key,defaultValue)
+        return getEncryptedSharedPreferences(context).getString(key,"") ?: ""
     }
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(

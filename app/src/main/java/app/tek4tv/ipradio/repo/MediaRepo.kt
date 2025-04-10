@@ -5,7 +5,6 @@ import android.util.Log
 import app.tek4tv.ipradio.di.MoshiInst.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -201,7 +200,7 @@ class MediaRepo @Inject constructor(
 
 
     private fun getConfigExtension(): String? {
-        return ConfigUtil.getStringEncrypt(
+        return ConfigUtil.getString(
             appContext,
             ConfigUtil.KEY_EXTEND_FILE,
             "mp3#aac#wav#wma#ac3"

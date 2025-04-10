@@ -2,10 +2,8 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
-import android.media.AudioManager
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -176,7 +174,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             if (mediaItem != null) {
-                hubManager.playlistIndex = playerManager.playlistIndex
+
                 hubManager.currentMediaItem = mediaItem
 
                 if (mediaItem.getMediaType() != MediaType.FM) {
@@ -270,7 +268,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService) { command, message ->
+        hubManager = HubManager(hubComm, authService,baseContext,
+            CoroutineScope(Dispatchers.Main)
+        ) { command, message ->
             handleFromCommandServer(command, message)
         }
         hubManager.setConnectionListener(this)
@@ -487,15 +487,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.setOnClickListener {
-            lifecycleScope.launch {
-                val list = mediaLogDao.getUnsentMediaLogs()
-                list.forEach{
-                    Log.d("logdbas", "showMac: ${it.tieuDe} -${it.thoiDiemBatDau}")
-                }
-            }
-
-        }
     }
 
 
@@ -536,25 +527,19 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-
                 playerManager.stopForceMedia()
-
                 Log.d("alarmx", "stop force")
                 Log.d("turnPA", "on alarm end force media")
             }
 
-            MediaScheduleReceiver.ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllScheduledListAlarm()
-                viewModel.rescheduleMonthlyPlaylist()
-                hubManager.reconnectToServer()
-            }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 lifecycleScope.launch {
+                    mediaScheduler.cancelAllScheduledListAlarm()
+                    viewModel.rescheduleMonthlyPlaylist()
+                    hubManager.reconnectToServer()
                     serialPortController.turnOffPA()
-                    Log.d("turnPA", "check hub reset")
-                    delay(3000)
+                    delay(120000)
                     Log.e("alarmx", "Hub restart")
                     serialPortController.hardRestart()
                 }
@@ -1048,7 +1033,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                 hubManager.sendUnsentLogMediaSuccess(it, paState)
                 mediaLogDao.deleteMediaItemById(it.id)
             }
-
         }
         Log.d("HubObverse", "onHubConnected")
 

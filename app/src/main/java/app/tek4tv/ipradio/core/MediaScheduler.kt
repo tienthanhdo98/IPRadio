@@ -17,62 +17,31 @@ import java.util.*
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-
-
-    private fun setRescheduleAllAlarms() {
-        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
-            action = MediaScheduleReceiver.ACTION_RESCHEDULE
-        }
-
-        val time = Calendar.getInstance().apply {
-            add(Calendar.DAY_OF_MONTH, 1)
-            set(Calendar.HOUR_OF_DAY, 3)
-            set(Calendar.MINUTE, 2)
-            set(Calendar.SECOND, 0)
-        }
-
-        Log.d("alarmx", "Set reschedule day ${time.get(Calendar.DAY_OF_MONTH)}")
-
-        val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 101, intent, FLAG_IMMUTABLE)
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            time.timeInMillis,
-            alarmIntent
-        )
-    }
+    private val requestResetAndRescheduleAlarms = 1929
+    private val requestEndForce = 1989
 
     private fun setCheckHubAndResetAlarms() {
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, 102, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
 
         val cal_alarm = Calendar.getInstance()
 
-        cal_alarm[Calendar.HOUR_OF_DAY] =0
-        cal_alarm[Calendar.MINUTE] = 4
+        cal_alarm[Calendar.HOUR_OF_DAY] = 0
+        cal_alarm[Calendar.MINUTE] = 12
         cal_alarm[Calendar.SECOND] = 0
 
         val date = Calendar.getInstance().time
-        var alarmDate = cal_alarm.time
-        if(alarmDate.before(date))
-        {
-            Log.d("alarmx", "Set check hub reset once day: tomorrow")
-            cal_alarm.add(Calendar.DATE,1)
+        val alarmDate = cal_alarm.time
+        if (alarmDate.before(date)) {
+            cal_alarm.add(Calendar.DATE, 1)
         }
-        alarmDate = cal_alarm.time
-
-        Log.d("alarmx", "Set check hub reset once day ${alarmDate}")
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            cal_alarm.timeInMillis,
-            alarmIntent
-        )
-
+        cal_alarm.time
+        Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
     }
 
     private fun scheduleListAlarms() {
@@ -124,10 +93,9 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP, time.timeInMillis,
-            alarmIntent
-        )
+
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
     }
 
     private fun cancelAllListAlarm() {
@@ -183,7 +151,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
 
-        return PendingIntent.getBroadcast(appContext, -69, intent, flag)
+        return PendingIntent.getBroadcast(appContext, requestEndForce, intent, flag)
     }
 
     fun scheduleForceMediaAlarm() {
@@ -201,11 +169,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
 
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            mediaEndTimeInMillis+1000, alarmIntent
-        )
-
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(mediaEndTimeInMillis + 1000, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
         Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
     }
     fun turnOnPAAlarms(mediaRepo : MediaRepo,alarmValue : Int) {
@@ -246,7 +211,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
     fun scheduleAllAlarms() {
         scheduleListAlarms()
-        setRescheduleAllAlarms()
         setCheckHubAndResetAlarms()
     }
 

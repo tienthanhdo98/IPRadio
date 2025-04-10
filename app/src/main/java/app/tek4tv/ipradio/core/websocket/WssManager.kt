@@ -1,10 +1,9 @@
 package app.tek4tv.ipradio.core.websocket
 
+import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
+import app.tek4tv.ipradio.utils.ConfigUtil
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.WebSocket
@@ -12,7 +11,11 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import java.util.concurrent.TimeUnit
 
-class WssManager(private var hubToken : String?, private val connectEventListener : IConnectionServer) {
+class WssManager(
+    private var hubToken: String?,
+    private val context: Context,
+    private val connectEventListener: IConnectionServer
+) {
     val TAG = "WssManager"
     private var webSocket: WebSocket? = null
     private var client: OkHttpClient? = null
@@ -54,12 +57,10 @@ class WssManager(private var hubToken : String?, private val connectEventListene
             ).connectTimeout(60, TimeUnit.SECONDS)
                 .pingInterval(10, TimeUnit.SECONDS)
                 .build()
-//            val request =
-//                Request.Builder().url("wss://websocket-staging.thongtinnguon.vn/ws/ipradio")
-//                    .addHeader("Authorization", "Bearer $hubToken").build()
+        val url = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_WSS)
         val request =
-                Request.Builder().url("wss://gateway-thongtinnguon.tek4tv.vn/ws/ipradio")
-                    .addHeader("Authorization", "Bearer $hubToken").build()
+            Request.Builder().url(url)
+                .addHeader("Authorization", "Bearer $hubToken").build()
             val listener = EchoWebSocketListener()
 
             webSocket = client?.newWebSocket(request, listener)
@@ -67,7 +68,6 @@ class WssManager(private var hubToken : String?, private val connectEventListene
 
     fun closeWebsocket() {
         webSocket?.close(1000, "Client disconnected")
-//        client?.dispatcher?.executorService?.shutdown()
         Log.d(TAG, "closeWebsocket")
     }
 }

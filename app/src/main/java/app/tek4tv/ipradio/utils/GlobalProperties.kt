@@ -13,9 +13,6 @@ class GlobalProperties {
     val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     val DEFAULT_PI_CODE = "DEFAULT_PI_CODE"
     val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
-    val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
-    val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
-    val DEFAULT_LOG_ENABLE = "DEFAULT_LOG_ENABLE"
     val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
     val NAME_DEVICE = "NAME_DEVICE"
     val LATITUDE = "LATITUDE"
@@ -43,7 +40,7 @@ class GlobalProperties {
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
     }
 
     fun saveProperties(responseHub: ResponseHub) {

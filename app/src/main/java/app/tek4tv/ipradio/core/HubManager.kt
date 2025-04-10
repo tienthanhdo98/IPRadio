@@ -1,10 +1,13 @@
 package app.tek4tv.ipradio.core
 
+import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.core.websocket.WssManager
-import app.tek4tv.ipradio.di.MoshiInst
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaItemMoshiAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.wssLiveAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.wssStatusAdapter
 import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
 import app.tek4tv.ipradio.model.*
@@ -17,10 +20,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Types
 import kotlinx.coroutines.*
-import java.lang.reflect.ParameterizedType
 import java.util.*
 
 
@@ -31,46 +31,31 @@ import java.util.*
 class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
-    var onMessageListener: (command: String?, message: String?) -> Unit,
+    private val appContext: Context,
+    private val coroutineScope: CoroutineScope,
+    private var onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 120
     private val PING_HUB_INTERVAL = 10000L
     private val API_CALL_INTERVAL = 10000L
-    private val moshi = MoshiInst.moshi
 
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
-    private var coroutineScope = CoroutineScope(Dispatchers.Main)
-
     //val deviceImei = Utils.getDeviceId(appContext)
     val deviceImei = "72:BE:B5:09:17:98"
-
-    private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
-        MutableList::class.java,
-        MediaItem::class.java
-    )
-    private var jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
 
     var pingCounter = 0
 
     var responseHub = ResponseHub()
 
-    //player info
-    var playlistIndex = 0
     var currentMediaItem: MediaItem? = null
 
     var versionName = ""
 
     private var hubToken: String? = null
-
-    private val wssStatusAdapter: JsonAdapter<WssStatusModel> =
-        moshi.adapter(WssStatusModel::class.java)
-    private val wssLiveAdapter: JsonAdapter<WssLiveModel> = moshi.adapter(WssLiveModel::class.java)
-    private val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
-        MoshiInst.moshi.adapter(MediaItem::class.java)
 
     private var connectionListener: IHubObserve? = null
     var isConnectSuccess = false
@@ -104,23 +89,25 @@ class HubManager(
 
     private fun getHubToken() {
         try {
+            val usernameKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME_KEY)
+            val passwordKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY)
+            val username = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME)
+            val password = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD)
             val body = mapOf(
-                "Username" to "tek4tv_quangngai",
-                "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",
+                usernameKey to username,
+                passwordKey to password,
             )
             val url = ConfigUtil.getStringEncrypt(
-                context = appContext,
+                appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
-            val call = authService.getToken(body, url!!)
+            val call = authService.getToken(body, url)
             val response = call.execute()
             if (response.isSuccessful) {
                 pingCounter = 0
                 if ((response.body()?.trangThaiGUI ?: 1) != 1) {
                     hubToken = response.body()!!.noiDung.token
                 }
-                Log.i(TAG, "getHubToken ok: $hubToken")
             } else {
                 Log.i(TAG, "getHubToken fail")
                 hubToken = null
@@ -134,24 +121,18 @@ class HubManager(
     private fun getMqttInfo() {
         try {
             val body = MQTTInfoModel(deviceImei)
-            val url =
-                "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-ipradio/Ipradio/mqtt/dangkythietbi"
+            val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_INFO)
 
             val call = authService.getMQTTInfo(body, "Bearer $hubToken", url)
             val response = call.execute()
             if (response.isSuccessful) {
                 pingCounter = 0
                 listMQTTInfo = response.body()!!.noiDung!!
-//                var str = ""
-//                str += "\n1. URL: $url\n"
-//                str += "2. Body: $body\n"
-//                str += "3. Response: $listMQTTInfo\n"
-//                Log.i(TAG, "dangkythietbi: ${str}")
+
                 getDestinationInfo(response.body()!!.noiDung!!)
             }
         } catch (e: Exception) {
             listMQTTInfo = mutableListOf()
-            Log.i(TAG, "MqttInfo fail: ${pingCounter}")
             Log.i(TAG, "MqttInfo fail: ${e.message}")
         }
     }
@@ -174,9 +155,10 @@ class HubManager(
     }
 
     private fun getSourceMQTT(id: String, timNguon: Boolean) {
-        val url = "https://v2-provider-data-warehouse.tek4tv.vn/Source/$id"
+
+        val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_SOURCE)
         try {
-            val call = authService.getSourceMQTT(url)
+            val call = authService.getSourceMQTT("${url}$id")
             val response = call.execute()
             if (response.isSuccessful) {
                 val mqttSource: SourceMQTT = response.body()!!
@@ -233,6 +215,7 @@ class HubManager(
                         }
                         mqttClient = MQTTManager(
                             hubToken,
+                            appContext,
                             this@HubManager,
                             listMQTTInfo,
                             nguonId
@@ -245,7 +228,7 @@ class HubManager(
                     }
                 }else
                 {
-                    wssManager = WssManager(hubToken, this@HubManager)
+                    wssManager = WssManager(hubToken, appContext, this@HubManager)
                     while (!isConnectSuccess) {
                         wssManager!!.connectToWss()
                         delay(5000)
@@ -274,23 +257,9 @@ class HubManager(
 
         pingCounter = 0
         convertToHubCommand(message)
-//        val wssData = wssLiveAdapter.fromJson(message)
-//        if(wssData?.topic == null) return
-//        Log.d("TestLogrun", "${wssData?.topic}---")
-//        if (listTopic.contains(wssData?.topic)) {
-//            Log.d("TestLogrun", "Dup not run---")
-//            return
-//        }
-//        listTopic.add(wssData?.topic)
-//        convertToHubCommand(message)
-//        coroutineScope.launch {
-//            delay(6000)
-//            listTopic.remove(wssData?.topic)
-//            Log.d("TestLogrun", "Clear---")
-//        }
     }
 
-    fun closeConnect() {
+    private fun closeConnect() {
         isConnectSuccess = false
         hubToken = null
         listMQTTInfo = listOf()
@@ -647,9 +616,7 @@ class HubManager(
             listDate.add(unixTimeStampToDateTime(it.ngayPhat))
         }
         listDate.sort()
-
     }
-
     private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
@@ -797,10 +764,6 @@ class HubManager(
                 start = listItem.last().start
             )
             newList.add(tObEnd)
-            Log.d(
-                "wssTImeFrame",
-                "convertToTimeFrame: startTimes ${jsonMediaItemAdapter.toJson(newList)}"
-            )
             return jsonMediaItemAdapter.toJson(newList)
         }
         //Có nhiều khung
@@ -847,11 +810,17 @@ class HubManager(
     private fun startPingTimer() {
         pingHubJob?.cancel()
         pingHubJob = coroutineScope.launch(Dispatchers.Default) {
-            while (true) {
-                sendPing()
-                Log.d(TAG, "ping: $pingCounter")
-                delay(PING_HUB_INTERVAL)
-                checkConnection()
+            while (isActive) {
+                try {
+                    sendPing()
+                    Log.d(TAG, "ping: $pingCounter")
+                    delay(PING_HUB_INTERVAL)
+                    checkConnection()
+                } catch (e: CancellationException) {
+                    break
+                } catch (e: Exception) {
+                    Log.d(TAG, "startPingTimer: ${e.message}")
+                }
             }
         }
     }

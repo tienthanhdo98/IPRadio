@@ -4,11 +4,13 @@ import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
 import app.tek4tv.ipradio.model.NoiDungMQTT
+import app.tek4tv.ipradio.utils.ConfigUtil
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
 class MQTTManager(
-    private var hubToken: String?,
+    private val hubToken: String?,
+    private val context: Context,
     private val connectEventListener: IConnectionServer,
     private val listMQTTInfo: List<NoiDungMQTT>,
     val destinationId : String
@@ -37,6 +39,7 @@ class MQTTManager(
             subscribe("thon/$destinationId".toLowerCase())
         }
     }
+
     fun connectToMQTT(context: Context) {
         listMQTTInfo.forEach {
             if (it.topic?.contains("thietbi") == true) {
@@ -45,8 +48,8 @@ class MQTTManager(
         }
         publishTopicTinh = "tinh/$clientID"
         Log.d(TAG, "clientID ${clientID}")
-        //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
-        val serverURI = "tcp://ipradio-mqtt-thongtinnguon.tek4tv.vn:1886"
+
+        val serverURI = ConfigUtil.getStringEncrypt(context,ConfigUtil.URL_MQTT)
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
