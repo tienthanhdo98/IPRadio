@@ -20,3 +20,9 @@ data class NoiDungMQTT (
     val topic: String,
     val action: String
 )
+data class SourceMQTT(
+    @Json(name = "Code")
+    var code : String?,
+    @Json(name = "Name")
+    var name : String?
+)

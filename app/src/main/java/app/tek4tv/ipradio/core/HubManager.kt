@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.RetrofitInstance
+import app.tek4tv.ipradio.di.RetrofitInstance.authService
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
@@ -68,6 +69,10 @@ class HubManager(
     private var listMQTTInfo: List<NoiDungMQTT> = listOf()
     var mqttClient: MQTTManager? = null
     private var isConnectSuccess = false
+    var nguonId = ""
+    var tenNguon = ""
+    var dichId = ""
+    var tenDich = ""
 
     init {
         versionName = try {
@@ -117,10 +122,56 @@ class HubManager(
             if (response.isSuccessful) {
                 listMQTTInfo = response.body()!!.noiDung
                 Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
+                getDestinationInfo(response.body()!!.noiDung)
             }
         } catch (e: Exception) {
             listMQTTInfo = emptyList()
             Log.i(TAG, "MqttInfo fail: ${e.message}")
+        }
+    }
+    private fun getDestinationInfo(listMQTTInfo: List<NoiDungMQTT>)
+    {
+        listMQTTInfo.forEach {
+            if (it.topic.contains("tinh") == true) {
+                nguonId = it.topic.substringAfter("/").toUpperCase()
+                dichId = it.topic.substringAfter("/").toUpperCase()
+                getSourceMQTT(nguonId, false)
+            }
+            if (it.topic.contains("huyen") == true) {
+                nguonId = it.topic.substringAfter("/").toUpperCase()
+            }
+            if (it.topic.contains("xa") == true) {
+                nguonId = it.topic.substringAfter("/").toUpperCase()
+            }
+        }
+        getSourceMQTT(nguonId,true)
+
+    }
+    private  fun getSourceMQTT(id : String,timNguon : Boolean)
+    {
+        val url = "https://v2-provider-data-warehouse.tek4tv.vn/Source/$id"
+        try {
+            val call = authService.getSourceMQTT(url)
+            val response = call.execute()
+            if (response.isSuccessful) {
+                val mqttSource : SourceMQTT = response.body()!!
+                if(timNguon) {
+                    tenNguon = mqttSource.name ?: ""
+                    if (tenNguon == "") {
+                        tenNguon = mqttSource.code ?: ""
+                    }
+                }
+                else
+                {
+                    tenDich = mqttSource.name ?: ""
+                    if (tenDich == "") {
+                        tenDich = mqttSource.code ?: ""
+                    }
+                }
+            }
+        }catch (e : Exception)
+        {
+            Log.d(TAG, "getSourceMQTT: ${e.message}")
         }
     }
 
@@ -205,10 +256,10 @@ class HubManager(
 
          val request = WssStatusModel(
              id = "", topic = HubCommand.DV016, payload = PayloadStatus(
-                 dichID = GlobalProperties.getInst().dichId,
-                 tenDich = GlobalProperties.getInst().tenDich,
-                 nguonID = GlobalProperties.getInst().destinationId,
-                 tenNguon = GlobalProperties.getInst().destinationName,
+                 dichID = dichId,
+                 tenDich = tenDich,
+                 nguonID = nguonId,
+                 tenNguon = tenNguon,
                  bangDienTuID = deviceImei,
                  tenThietBI = GlobalProperties.getInst().nameDevice,
                  tenLoaiThietBI = "Bảng điện tử công cộng",
