@@ -6,12 +6,12 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
+import android.telephony.TelephonyManager
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -69,7 +69,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
-        Manifest.permission.RECORD_AUDIO
+        Manifest.permission.RECORD_AUDIO,
+        Manifest.permission.CALL_PHONE,
     )
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -220,7 +221,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-       Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
 //        if (needGrantPermission()) {
 //            grantPermissionThoughAdb()
@@ -325,17 +326,113 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         // lay thong so cua thiet bi
         lifecycleScope.launch(Dispatchers.IO) {
             while (true) {
-               serialPortController.updateStatus()
+                serialPortController.updateStatus()
                 delay(5000)
             }
         }
         checkDeleteFileUpdate()
 
+        //getSubscriberInfo()
         //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
     }
 
-    private  fun checkDeleteFileUpdate()
-    {
+    private fun makePhoneCall() {
+        val intent = Intent(Intent.ACTION_CALL, Uri.parse("tel:+84337322765"))
+        startActivity(intent)
+//        val intent = Intent(Intent.ACTION_CALL)
+//        intent.data = Uri.parse("tel:" + Uri.encode("*101#"))
+//        startActivity(intent)
+    }
+
+//    fun sendUSSD(context: Context, ussdCode: String) {
+//        val telephonyManager =
+//            context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+//        telephonyManager.sendUssdRequest(
+//            ussdCode,
+//            object : TelephonyManager.UssdResponseCallback() {
+//                override fun onReceiveUssdResponse(
+//                    telephonyManager: TelephonyManager?,
+//                    request: String?,
+//                    response: CharSequence
+//                ) {
+//                    Log.d("USSD", "Phản hồi USSD: ${response}")
+//                }
+//
+//                override fun onReceiveUssdResponseFailed(
+//                    telephonyManager: TelephonyManager?,
+//                    request: String?,
+//                    failureCode: Int
+//                ) {
+//                    Log.d("USSD", "Gửi USSD thất bại, mã lỗi: $failureCode")
+//                }
+//            },
+//            Handler(Looper.getMainLooper())
+//        )
+//
+//    }
+
+    private fun getSubscriberInfo() {
+//        val telephonyManager = getSystemService(TELEPHONY_SERVICE) as TelephonyManager
+//        if (isTelephonySupported(this)) {
+//            Log.d("CheckTelephony", "Thiết bị hỗ trợ TelephonyManager")
+//        } else {
+//            Log.d("CheckTelephony", "Thiết bị KHÔNG hỗ trợ TelephonyManager")
+//        }
+//        if (isTelephonCallingSupported(this)) {
+//            Log.d("CheckTelephony", "Thiết bị có TelephonyManagerCalling")
+//        } else {
+//            Log.d("CheckTelephony", "Thiết bị KHÔNG TelephonyManagerCalling")
+//        }
+//        if (canMakePhoneCalls(this)) {
+//            Log.d("CheckTelephony", "Thiết bị có thể gọi điện")
+//        } else {
+//            Log.d("CheckTelephony", "Thiết bị KHÔNG thể gọi điện")
+//        }
+//        if (haveTelephonyManager(this)) {
+//            Log.d("CheckTelephony", "Thiết bị có TelephonyManager")
+//        } else {
+//            Log.d("CheckTelephony", "Thiết bị KHÔNG TelephonyManager")
+//        }
+//
+//        if (telephonyManager != null) {
+//            val phoneNumber = telephonyManager.line1Number // Số điện thoại
+//            val imsi = telephonyManager.subscriberId // IMSI
+//            val imei = telephonyManager.deviceId // IMEI (Dùng getImei() cho Android 8+)
+//            val networkOperator = telephonyManager.networkOperator // MCC+MNC
+//            val networkOperatorName = telephonyManager.networkOperatorName // Nhà mạng
+//            val info = """
+//            Số điện thoại: $phoneNumber
+//            IMSI: $imsi
+//            IMEI: $imei
+//            MCC+MNC: $networkOperator
+//            Nhà mạng: $networkOperatorName
+//            """.trimIndent()
+//            Log.d("getSubscriberInfo", "getSubscriberInfo: $info")
+//        }
+    }
+
+    fun isTelephonySupported(context: Context): Boolean {
+        return context.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY)
+    }
+
+    fun isTelephonCallingSupported(context: Context): Boolean {
+        return context.packageManager.hasSystemFeature(PackageManager.FEATURE_TELEPHONY_CALLING)
+    }
+
+    fun haveTelephonyManager(context: Context): Boolean {
+        val telephonyManager =
+            context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        return telephonyManager != null
+    }
+
+
+    fun canMakePhoneCalls(context: Context): Boolean {
+        val telephonyManager =
+            context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
+        return telephonyManager != null && telephonyManager.phoneType != TelephonyManager.PHONE_TYPE_NONE
+    }
+
+    private fun checkDeleteFileUpdate() {
         try {
             val destination = getDestinationApk()
             val file = File(destination)
@@ -345,7 +442,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             } else {
                 Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
             }
-        }catch (e : Exception){
+        } catch (e: Exception) {
             Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
         }
     }
@@ -485,7 +582,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-
+        tvMacAdress.setOnClickListener {
+            makePhoneCall()
+            // sendUSSD(this, "*098#")
+            Log.d("tesst", "showMac: Call")
+        }
     }
 
 
@@ -531,25 +632,19 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
                 Log.d("turnPA", "on alarm end force media")
             }
 
-            MediaScheduleReceiver.ACTION_RESCHEDULE -> {
-                Log.d("alarmx", "reschedule all alarms")
-                mediaScheduler.cancelAllScheduledListAlarm()
-
-                val monthlyScenarioUrl = ConfigUtil.getString(
-                    applicationContext,
-                    ConfigUtil.MONTHLY_SCENARIO_URL, ""
-                ) ?: return
-
-                viewModel.updateMonthlyScenario(monthlyScenarioUrl)
-            }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                    lifecycleScope.launch {
-                        serialPortController.turnOffPA()
-                        Log.d("turnPA", "check hub reset")
-                        delay(3000)
-                        Log.e("alarmx", "Hub restart")
-                        serialPortController.hardRestart()
+                lifecycleScope.launch {
+                    mediaScheduler.cancelAllScheduledListAlarm()
+                    val monthlyScenarioUrl = ConfigUtil.getString(
+                        applicationContext,
+                        ConfigUtil.MONTHLY_SCENARIO_URL, ""
+                    ) ?: ""
+                    viewModel.updateMonthlyScenario(monthlyScenarioUrl)
+                    serialPortController.turnOffPA()
+                    delay(120000)
+                    Log.e("alarmx", "Hub restart")
+                    serialPortController.hardRestart()
                 }
             }
             MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
@@ -578,13 +673,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -1169,6 +1264,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener  {
             Log.e("Main", "Error setting max volume")
         }
     }
+
     private fun clearDatastore() {
         //limit free data 1 gb
 //        val limit = 1000000000

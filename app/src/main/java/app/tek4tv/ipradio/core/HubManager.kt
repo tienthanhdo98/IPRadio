@@ -29,7 +29,6 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
-import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -74,7 +73,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = ""
+    var versionName = "v16.4.2.1"
 
     private var registerOnMessageListener = false
 
@@ -94,16 +93,10 @@ class HubManager(
 
 
     init {
-        versionName = try {
-            appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
-        } catch (e: Exception) {
-            ""
-        }
         //https://hubip-alpha-binhdinh.tek4tv.vn/
-        hubUrl = ConfigUtil.getString(
+        hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.URL_HUB,
-            "https://hubip-quangngai.tek4tv.vn/hubServer"
+            ConfigUtil.URL_HUB
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext,
@@ -142,7 +135,7 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
@@ -150,10 +143,9 @@ class HubManager(
             )
 
             //Auth Url encrypted in c++ lib
-            val url = ConfigUtil.getString(
+            val url = ConfigUtil.getStringEncrypt(
                 context = appContext,
                 ConfigUtil.URL_TOKEN,
-                "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
             )
 
             val call = authService.getToken(body, url!!)
@@ -161,7 +153,6 @@ class HubManager(
             if (response.isSuccessful) {
                  val token = response.body()!!.token
 //                val token = response.body()!!.noiDung.token
-
                 token
             } else {
                 null

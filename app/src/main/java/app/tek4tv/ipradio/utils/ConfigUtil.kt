@@ -46,9 +46,9 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
+    fun getStringEncrypt(context: Context, key: String?): String? {
 
-        return getEncryptedSharedPreferences(context).getString(key,defaultValue)
+        return getEncryptedSharedPreferences(context).getString(key,"")
     }
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(
