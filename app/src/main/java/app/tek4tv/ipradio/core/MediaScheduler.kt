@@ -7,6 +7,7 @@ import android.app.PendingIntent.FLAG_IMMUTABLE
 import android.app.PendingIntent.FLAG_UPDATE_CURRENT
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.provider.Settings
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
@@ -22,17 +23,17 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     private val requestResetAndRescheduleAlarms = 1929
     private val requestEndForce = 1989
+    private val requestStartDefault = 1990
+    private val requestEndDefault = 1991
 
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val listMediaInPeriod = scheduledList.values.elementAt(i)
-            //setAlarmsForFrame(period)
             var isNewDayStarted = false
             val requestCode = mediaRepo.timeDividers[period]!![0].id
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
-
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
@@ -74,12 +75,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private fun setAlarmForList(
         listKey: String, requestCode: Int, time: Long, shouldEndPlaying: Boolean = false
     ) {
-        val isAlarmWorking = getScheduleListIntent(
-            listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-        )
+//        val isAlarmWorking = getScheduleListIntent(
+//            listKey, requestCode,
+//            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+//        )
 
-        if (isAlarmWorking != null) return
+//        if (isAlarmWorking != null) return
 
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
@@ -88,9 +89,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         if (alarmIntent != null) {
             alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
         }
-
     }
-
 
 
     private fun cancelAllListAlarm() {
@@ -110,12 +109,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private fun cancelListAlarm(
         listKey: String, requestCode: Int, shouldEndPlaying: Boolean = false
     ) {
-        val isAlarmWorking = getScheduleListIntent(
-            listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-        ) != null
+//        val isAlarmWorking = getScheduleListIntent(
+//            listKey, requestCode,
+//            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+//        ) != null
 
-        if (!isAlarmWorking) return
+      //  if (!isAlarmWorking) return
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
@@ -131,11 +130,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val alarmAction = if (shouldEndPlaying) MediaScheduleReceiver.ACTION_END_PLAYLIST
         else MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST
-
+//        Log.d("alarmx", "getScheduleListIntent: $listKey")
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
             action = alarmAction
             putExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY, listKey)
+            data = Uri.parse("app.tek4tv://$listKey/$shouldEndPlaying")
         }
 
         return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
@@ -203,8 +203,54 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         alarmIntent.cancel()
     }
 
+    fun scheduleDefaultScenario() {
+        if(mediaRepo.startTimeDefaultScenario != "" && mediaRepo.endTimeDefaultScenario != "") {
+            val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+                action = MediaScheduleReceiver.ACTION_START_DEFAULT_SCENARIO
+            }
+            val alarmIntent =
+                PendingIntent.getBroadcast(
+                    appContext,
+                    requestStartDefault,
+                    intent,
+                    FLAG_IMMUTABLE
+                )
+            val start = toCalendar(mediaRepo.startTimeDefaultScenario)
+            val date = Calendar.getInstance().time
+            val alarmDateStart = start.time
+
+            if (alarmDateStart.after(date)) {
+                val alarmClockInfo = AlarmClockInfo(start.timeInMillis, alarmIntent)
+                alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+                Log.d(
+                    "alarmx",
+                    "scheduleDefaultScenario Start ${mediaRepo.startTimeDefaultScenario}"
+                )
+            }
+            //
+            val end = toCalendar(mediaRepo.endTimeDefaultScenario)
+            val alarmDateEnd = end.time
+            if (alarmDateEnd.after(date)) {
+                val intentEnd = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+                    action = MediaScheduleReceiver.ACTION_END_DEFAULT_SCENARIO
+                }
+                val alarmIntentEnd =
+                    PendingIntent.getBroadcast(
+                        appContext,
+                        requestEndDefault,
+                        intentEnd,
+                        FLAG_IMMUTABLE
+                    )
+                val alarmClockInfoEnd = AlarmClockInfo(end.timeInMillis, alarmIntent)
+                alarmManager.setAlarmClock(alarmClockInfoEnd, alarmIntentEnd)
+                Log.d("alarmx", "scheduleDefaultScenario End ${mediaRepo.endTimeDefaultScenario}")
+            }
+        }
+    }
+
     fun scheduleAllAlarms() {
         scheduleHardResetAlarmsAndReschedule()
+        scheduleDefaultScenario()
         scheduleListAlarms()
 
     }

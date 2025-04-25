@@ -7,19 +7,19 @@ import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.authService
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.retrofit
-import app.tek4tv.ipradio.utils.*
-import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
-import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
+import app.tek4tv.ipradio.utils.Utils.Companion.parseJson
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.JsonDataException
-import com.squareup.moshi.JsonEncodingException
-import com.squareup.moshi.Moshi
 import kotlinx.coroutines.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 import java.util.*
 
 
@@ -28,7 +28,7 @@ class HubManager(
 ) : IConnectionServer {
     private val TAG = "HubManager"
     private val PING_HUB_INTERVAL = 60000L
-    private val API_CALL_INTERVAL = 10000L
+    private val API_CALL_INTERVAL = 30000L
     private val moshi = RetrofitInstance.moshi
 
     private var pingHubJob: Job? = null
@@ -83,7 +83,7 @@ class HubManager(
     }
 
     private fun getHubToken() {
-        try {
+        CoroutineScope(Dispatchers.IO).launch {
             val body = mapOf(
                 "Username" to "tek4tv_quangngai",
                 "Password" to "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1",
@@ -94,85 +94,117 @@ class HubManager(
                 "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
             )
             val call = retrofit.getToken(body, url!!)
-            val response = call.execute()
-            if (response.isSuccessful) {
-                pingCounter = 0
-                if ((response.body()?.trangThaiGUI ?: 1) != 1) {
-                    hubToken = response.body()!!.noiDung.token
+
+            call.enqueue(object : Callback<TokenDto> {
+                override fun onResponse(
+                    call: Call<TokenDto>,
+                    response: Response<TokenDto>
+                ) {
+                    if (response.isSuccessful && response.body() != null) {
+                        pingCounter = 0
+                        if ((response.body()?.trangThaiGUI ?: 1) != 1) {
+                            hubToken = response.body()!!.noiDung.token
+                        }
+                        Log.i(TAG, "getHubToken ok: $hubToken")
+                    } else {
+                        Log.i(TAG, "getHubToken fail")
+                        hubToken = null
+                    }
                 }
-                Log.i(TAG, "getHubToken ok: $hubToken")
-            } else {
-                Log.i(TAG, "getHubToken fail")
-                hubToken = null
-            }
-        } catch (e: Exception) {
-            Log.i(TAG, "getHubToken error: ${e.message}")
-            hubToken = null
+
+                override fun onFailure(call: Call<TokenDto>, t: Throwable) {
+                    Log.i(TAG, "getHubToken fail")
+                    hubToken = null
+                }
+            })
+
+
         }
     }
 
-    private fun getMqttInfo()
-    {
-        try {
-            val body = MQTTInfoModel(deviceImei)
-            val url = "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
-            val call = retrofit.getMQTTInfo(body,"Bearer $hubToken", url)
-            val response = call.execute()
-            Log.i(TAG, "get MqttInfo ${response.code()}")
-            if (response.isSuccessful) {
-                listMQTTInfo = response.body()!!.noiDung
-                Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
-                getDestinationInfo(response.body()!!.noiDung)
+    private fun getMqttInfo() {
+        //Never use call.execute() in main thread-> make app crash when api timeout
+        val body = MQTTInfoModel(deviceImei)
+        val url =
+            "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+        val call = retrofit.getMQTTInfo(body, "Bearer $hubToken", url)
+
+        call.enqueue(object : Callback<MQTTInfoValueModel> {
+            override fun onResponse(
+                call: Call<MQTTInfoValueModel>,
+                response: Response<MQTTInfoValueModel>
+            ) {
+                if (response.isSuccessful && response.body() != null) {
+                    listMQTTInfo = response.body()!!.noiDung
+                    Log.i(TAG, "MqttInfo: ${listMQTTInfo.size}")
+                    getDestinationInfo(response.body()!!.noiDung)
+                } else {
+                    listMQTTInfo = emptyList()
+                    Log.i(TAG, "Response failed: ${response.code()}")
+                }
             }
-        } catch (e: Exception) {
-            listMQTTInfo = emptyList()
-            Log.i(TAG, "MqttInfo fail: ${e.message}")
-        }
+
+            override fun onFailure(call: Call<MQTTInfoValueModel>, t: Throwable) {
+                listMQTTInfo = emptyList()
+                Log.e(TAG, "MqttInfo fail: ${t.message}", t)
+            }
+        })
+
     }
-    private fun getDestinationInfo(listMQTTInfo: List<NoiDungMQTT>)
-    {
+
+    private fun getDestinationInfo(listMQTTInfo: List<NoiDungMQTT>) {
         listMQTTInfo.forEach {
-            if (it.topic.contains("tinh") == true) {
-                nguonId = it.topic.substringAfter("/").toUpperCase()
-                dichId = it.topic.substringAfter("/").toUpperCase()
+            if (it.topic.contains("tinh")) {
+                nguonId = it.topic.substringAfter("/").uppercase()
+                dichId = it.topic.substringAfter("/").uppercase()
                 getSourceMQTT(nguonId, false)
             }
-            if (it.topic.contains("huyen") == true) {
-                nguonId = it.topic.substringAfter("/").toUpperCase()
+            if (it.topic.contains("huyen")) {
+                nguonId = it.topic.substringAfter("/").uppercase()
             }
-            if (it.topic.contains("xa") == true) {
-                nguonId = it.topic.substringAfter("/").toUpperCase()
+            if (it.topic.contains("xa")) {
+                nguonId = it.topic.substringAfter("/").uppercase()
             }
         }
-        getSourceMQTT(nguonId,true)
+        getSourceMQTT(nguonId, true)
 
     }
-    private  fun getSourceMQTT(id : String,timNguon : Boolean)
-    {
+
+    private fun getSourceMQTT(id: String, timNguon: Boolean) {
         val url = "https://v2-provider-data-warehouse.tek4tv.vn/Source/$id"
+
         try {
             val call = authService.getSourceMQTT(url)
-            val response = call.execute()
-            if (response.isSuccessful) {
-                val mqttSource : SourceMQTT = response.body()!!
-                if(timNguon) {
-                    tenNguon = mqttSource.name ?: ""
-                    if (tenNguon == "") {
-                        tenNguon = mqttSource.code ?: ""
+
+            call.enqueue(object : Callback<SourceMQTT> {
+                override fun onResponse(call: Call<SourceMQTT>, response: Response<SourceMQTT>) {
+                    if (response.isSuccessful && response.body() != null) {
+                        val mqttSource: SourceMQTT = response.body()!!
+                        if (timNguon) {
+                            tenNguon = mqttSource.name ?: ""
+                            if (tenNguon == "") {
+                                tenNguon = mqttSource.code ?: ""
+                            }
+                        } else {
+                            tenDich = mqttSource.name ?: ""
+                            if (tenDich == "") {
+                                tenDich = mqttSource.code ?: ""
+                            }
+                        }
+                    } else {
+                        Log.i(TAG, "Response failed: ${response.code()}")
                     }
                 }
-                else
-                {
-                    tenDich = mqttSource.name ?: ""
-                    if (tenDich == "") {
-                        tenDich = mqttSource.code ?: ""
-                    }
+
+                override fun onFailure(call: Call<SourceMQTT>, t: Throwable) {
+                    listMQTTInfo = emptyList()
+                    Log.e(TAG, "MqttInfo fail: ${t.message}", t)
                 }
-            }
-        }catch (e : Exception)
-        {
+            })
+        } catch (e: Exception) {
             Log.d(TAG, "getSourceMQTT: ${e.message}")
         }
+
     }
 
     private fun closeConnect() {
@@ -214,7 +246,7 @@ class HubManager(
                         listMQTTInfo
                     )
                     while (!isConnectSuccess) {
-                        mqttClient?.connectToMQTT(appContext)
+                        //mqttClient?.connectToMQTT(appContext)
                         delay(5000)
                     }
 
@@ -295,28 +327,21 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    private fun parseJson(jsonMessage: String, moshi: Moshi): MQTTReceivedScheduleModel? {
-        val mqttReceivedScheduleModelAdapter: JsonAdapter<MQTTReceivedScheduleModel> =
-            moshi.adapter(MQTTReceivedScheduleModel::class.java)
+    fun loadJSONFromAsset(context: Context, fileName: String): String? {
         return try {
-            // Attempt to parse the JSON message
-            mqttReceivedScheduleModelAdapter.fromJson(jsonMessage)
-        } catch (e: JsonDataException) {
-            // Handle errors related to data mismatch
-            println("Error: Malformed JSON structure or unexpected data type - ${e.message}")
-            null
-        } catch (e: JsonEncodingException) {
-            // Handle errors related to encoding issues (e.g., missing brackets, etc.)
-            println("Error: Malformed JSON encoding - ${e.message}")
-            null
-        } catch (e: Exception) {
-            // Handle any other unexpected exceptions
-            println("Error: Unexpected error during JSON parsing - ${e.message}")
+            val inputStream = context.assets.open(fileName)
+            val size = inputStream.available()
+            val buffer = ByteArray(size)
+            inputStream.read(buffer)
+            inputStream.close()
+            String(buffer, Charsets.UTF_8)
+        } catch (ex: Exception) {
+            ex.printStackTrace()
             null
         }
     }
 
-    private fun convertToHubCommand(jsonMessage: String) {
+    fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
         var hubCommand = ""
 
@@ -325,16 +350,8 @@ class HubManager(
                 Log.d(TAG, "Command: dv010")
                 val body = parseJson(jsonMessage, moshi)
                 if (body != null) {
-                    val mapMonthSchedule = convertWssMessToPlaylist(body.payload!!)
-                    val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                     hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    val typeScreen = body.payload?.phanVungManHinh
-                    ConfigUtil.putString(
-                        context = appContext,
-                        GlobalProperties.TYPE_SCREEN_KEY,
-                        typeScreen
-                    )
-                    onMessageListener.invoke(hubCommand, jsonMess)
+                    onMessageListener.invoke(hubCommand, jsonMessage)
                     sendLogUpdatePlaylist(body.payload!!)
                 } else {
                     Log.d(TAG, "Command received error: dv010")
@@ -533,7 +550,7 @@ class HubManager(
                 PhanVungManHinh = body.phanVungManHinh,
                 LichPhatID = body.lichPhatID,
                 TenLichPhat = body.tenLichPhat,
-                DanhSachNgayPhat = body.danhSachNgayPhat
+                DanhSachNgayPhat = body.DanhSachNgayPhat
             )
         )
         Log.d(TAG, "LogScheduleSucces: $request")
@@ -563,109 +580,6 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
-    private fun convertWssMessToPlaylist(payload: ReceivedPayloadSchedule): Map<String, String> {
-
-        val mapNgayPhat: MutableMap<String, String> = mutableMapOf()
-        val danhSachNgayPhat = payload.danhSachNgayPhat
-
-        //Lay lich tong cac ngay phat
-        danhSachNgayPhat?.forEach {
-            val jsonSchedule = findScheduleByDate(
-                it,
-                payload,
-
-            )
-            mapNgayPhat[unixTimeStampToDateTime(it.ngayPhat!!)] =
-                jsonSchedule
-        }
-
-        mapNgayPhat.forEach {
-            Log.d("wssplaylist", "Convert Map: ${it.key}")
-            Log.d("wssplaylist", "Convert Map: ${it.value}")
-        }
-        return mapNgayPhat
-    }
-    private var countId = 0
-    private fun findScheduleByDate(ngayPhat : DanhSachNgayPhat,playload : ReceivedPayloadSchedule): String {
-        val danhSachBanTinTrongNgay : MutableList<MediaItemModel> = mutableListOf()
-        //tim cac khung phat trong ngay
-        countId = 0
-        ngayPhat.thoiDiemPhat.forEach {
-            danhSachBanTinTrongNgay.addAll(convertToTimeFrame(it,playload))
-        }
-        return  jsonListMediaItemAdapter.toJson(danhSachBanTinTrongNgay)
-    }
-
-    private fun convertToTimeFrame(thoiDiemPhat: ThoiDiemPhat,playload : ReceivedPayloadSchedule): MutableList<MediaItemModel> {
-        val startTimeFrame = convertTimeStampToHHMMSS(thoiDiemPhat.thoiGianBatDau!!)
-        val endTimeFrame = convertTimeStampToHHMMSS(thoiDiemPhat.thoiGianKetThuc!!)
-        val newList : MutableList<MediaItemModel> = mutableListOf()
-        val tObjStart = MediaItemModel(
-            id = countId,
-            mediaID = "0",
-            projectID = "0",
-            title = "Khung $startTimeFrame - $endTimeFrame",
-            body = "start",
-            startTime =startTimeFrame,
-            start = startTimeFrame,
-            fixTime = startTimeFrame,
-            end = endTimeFrame,
-        )
-        newList.add(tObjStart)
-        countId ++
-        thoiDiemPhat.danhSachBanTin?.forEach {
-            val obj = MediaItemModel(
-                id = countId,
-                mediaID = countId.toString(),
-                projectID = it.banTinCongCongID,
-                sourceID = playload.nguonID,
-                sourceName = playload.tenNguon,
-                destinationID = playload.dichID,
-                destinationName = playload.tenDich,
-                title = it.tieuDe,
-                description = it.noiDungTomTat,
-                duration = it.thoiLuong,
-                contentType = Utils.convertContentType(it.loaiBanTin!!),
-                fieldType = Utils.convertFiend(it.loaiLinhVuc!!),
-                priority = Utils.convertPriority(it.mucDoUuTien!!),
-                category = Utils.convertFiend(it.loaiLinhVuc!!),
-                author = convertAuthor(it.tacGia!!),
-                body = it.noiDung,
-                sourceReference = it.tenDiaBanTAO,
-                type = getTypeOfMediaItem(it.loaiBanTin!!.toInt()),
-                createDate = it.thoiGianSANXuat.toString(),
-                metadata = mutableListOf(),
-                tag = mutableListOf(),
-                fixTime = "",
-                startTime = "",
-                start = "",
-                end = "",
-                broadcastRegion = BroadcastRegion(
-                    id = it.vungPhat,
-                    value = it.vungPhat!!
-                ),
-
-            )
-            countId ++
-            newList.add(obj)
-        }
-        val tObEnd = MediaItemModel(
-            id = countId,
-            mediaID = "0",
-            projectID = "0",
-            title = "Khung $startTimeFrame - $endTimeFrame",
-            body = "end",
-            startTime = startTimeFrame,
-            fixTime = endTimeFrame,
-            end = endTimeFrame,
-            start = startTimeFrame
-        )
-        newList.add(tObEnd)
-        countId ++
-        return newList
-    }
-
-
     private fun startPingTimer() {
         pingHubJob?.cancel()
         pingHubJob = coroutineScope.launch(Dispatchers.Default) {
@@ -689,11 +603,6 @@ class HubManager(
     }
 
 
-}
-
-
-interface HubComm {
-    fun forceRestartDevice()
 }
 
 

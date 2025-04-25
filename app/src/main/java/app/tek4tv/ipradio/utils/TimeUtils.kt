@@ -1,17 +1,8 @@
 package app.tek4tv.ipradio.utils
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
-import java.io.DataOutputStream
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.*
-import kotlin.math.abs
-
 
 
 //fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
@@ -36,11 +27,15 @@ fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", tim
     return formatter.format(date)
 }
 
+fun formatDateByFormat(date: Calendar, pattern: String = "dd-MM-yyyy"): String {
+    val formatter = SimpleDateFormat(pattern, Locale.getDefault())
+    return formatter.format(date.time)
+}
 
 fun convertTimeStampToHHMMSS(s: Long): String {
     return try {
         val sdf = SimpleDateFormat("HH:mm:ss")
-        val netDate = Date(s.toLong() * 1000)
+        val netDate = Date(s * 1000)
         sdf.format(netDate)
     } catch (e: Exception) {
         e.toString()
@@ -67,6 +62,7 @@ fun secToReadable(sec : Long) : String
     else "$ms:$ss"
 }
 fun toCalendar(time: String): Calendar {
+//    Log.d("toCalendar()",time)
     return try {
         Calendar.getInstance().apply {
             val t = time.split(":").map { it.toInt() }

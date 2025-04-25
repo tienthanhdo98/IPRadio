@@ -26,16 +26,16 @@ class MainViewModel  : ViewModel() {
 
     fun rescheduleMonthlyPlaylist()
     {
-        val jsonMonthlyListData = ConfigUtil.getString(appContext,
-            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
-        updateMonthlyScenarioWss(jsonMonthlyListData)
+        val scenarioData = ConfigUtil.getString(appContext,
+            ConfigUtil.SCENARIO_DATA, "") ?: ""
+        updateMonthlyScenarioWss(scenarioData)
     }
 
 
-    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
+    fun updateMonthlyScenarioWss(message: String)
     {
         viewModelScope.launch {
-            mediaRepo.updateMonthlyScenarioWss(strJsonMonthSchedule)
+            mediaRepo.updateMonthlyScenarioWss(message)
             getPlayerContentWss()
         }
     }
@@ -57,14 +57,13 @@ class MainViewModel  : ViewModel() {
         }
     }
 
-
-
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
     }
 
     fun downloadMedias() {
         mediaRepo.startDownloadMedia()
+        mediaRepo.startDownloadDefaultMedia()
     }
 
 

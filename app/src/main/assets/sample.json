@@ -1,0 +1,624 @@
+{
+  "id": "",
+  "topic": "dv010",
+  "payload": {
+    "Id": "3548",
+    "NguonID": "gogi.16.aeonmall",
+    "TenNguon": "Gogi Aeonmall Hải Phòng",
+    "DichID": "gogi.16.aeonmall",
+    "TenDich": "Gogi Aeonmall Hải Phòng",
+    "DanhSachDiaBanNhan": [
+      {
+        "TenDich": "Gogi Aeonmall Hải Phòng",
+        "DichID": "gogi.16.aeonmall",
+        "CumLoaID": [],
+        "BangDienTuID": []
+      }
+    ],
+    "PhanVungManHinh": "0",
+    "LichPhatID": "00000000-0000-0000-0000-000000000000",
+    "TenLichPhat": "Lịch phát thiết bị",
+    "DanhSachNgayPhat": [
+      {
+        "NgayPhat": 1745375266,
+        "ThoiDiemPhat": [
+          {
+            "ThoiGianBatDau": 1745382338,
+            "ThoiGianKetThuc": 1745382458,
+            "DanhSachBanTin": [
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "156",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "nội dung 11/4 1",
+                "LoaiLinhVuc": "156",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:04:41",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/4/11/8/5GGHNIP3DMB8/858541161.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "128",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Nội dung 13",
+                "LoaiLinhVuc": "128",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/17/11/495658481_839473222_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "112",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân gogi 1",
+                "LoaiLinhVuc": "112",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:10",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/16/10/WCYXGJ7LD8AG/219565457.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "29",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa đông gogi 1",
+                "LoaiLinhVuc": "29",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/11/393513929_462135376_831969569139628_8102327687813078286_n.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "24",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân 9:16 1",
+                "LoaiLinhVuc": "24",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/9/386576844_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "NgayPhat": 1745375266,
+        "ThoiDiemPhat": [
+          {
+            "ThoiGianBatDau": 1745382578,
+            "ThoiGianKetThuc": 1745382698,
+            "DanhSachBanTin": [
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "156",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "nội dung 11/4 2",
+                "LoaiLinhVuc": "156",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:04:41",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/4/11/8/5GGHNIP3DMB8/858541161.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "128",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Nội dung 13 2",
+                "LoaiLinhVuc": "128",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/17/11/495658481_839473222_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "112",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân gogi 2",
+                "LoaiLinhVuc": "112",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:10",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/16/10/WCYXGJ7LD8AG/219565457.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "29",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa đông gogi 2",
+                "LoaiLinhVuc": "29",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/11/393513929_462135376_831969569139628_8102327687813078286_n.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "24",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân 9:16 2",
+                "LoaiLinhVuc": "24",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/9/386576844_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "NgayPhat": 1745469098,
+        "ThoiDiemPhat": [
+          {
+            "ThoiGianBatDau": 1745483700,
+            "ThoiGianKetThuc": 1745484360,
+            "DanhSachBanTin": [
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "156",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "nội dung 11/4 3",
+                "LoaiLinhVuc": "156",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:04:41",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/4/11/8/5GGHNIP3DMB8/858541161.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "128",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Nội dung 13 3",
+                "LoaiLinhVuc": "128",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/17/11/495658481_839473222_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "112",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân gogi 3",
+                "LoaiLinhVuc": "112",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:10",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/16/10/WCYXGJ7LD8AG/219565457.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "29",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa đông gogi 2",
+                "LoaiLinhVuc": "29",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/11/393513929_462135376_831969569139628_8102327687813078286_n.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "24",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân 9:16 2",
+                "LoaiLinhVuc": "24",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/9/386576844_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              }
+            ]
+          }
+        ]
+      },
+      {
+        "NgayPhat": 1745548252 ,
+        "ThoiDiemPhat": [
+          {
+            "ThoiGianBatDau": 1745548403,
+            "ThoiGianKetThuc": 1745548823,
+            "DanhSachBanTin": [
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "156",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "nội dung 11/4 3",
+                "LoaiLinhVuc": "156",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:04:41",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/4/11/8/5GGHNIP3DMB8/858541161.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "128",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Nội dung 13 3",
+                "LoaiLinhVuc": "128",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/17/11/495658481_839473222_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "112",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân gogi 3",
+                "LoaiLinhVuc": "112",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:10",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/16/10/WCYXGJ7LD8AG/219565457.mp4",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "29",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa đông gogi 2",
+                "LoaiLinhVuc": "29",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/11/393513929_462135376_831969569139628_8102327687813078286_n.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              },
+              {
+                "VungPhat": "0",
+                "BanTinCongCongID": "24",
+                "LoaiBanTin": "4",
+                "MucDoUuTien": "0",
+                "TieuDe": "Chiến dịch mùa xuân 9:16 2",
+                "LoaiLinhVuc": "24",
+                "NoiDungTomTat": "",
+                "ThoiGianSanXuat": 1744860026,
+                "ThoiLuong": "00:00:30",
+                "TacGia": {
+                  "TenDayDu": "gogi house",
+                  "ButDanh": "gogi house",
+                  "Email": ""
+                },
+                "ThoiDiemBatDau": 1744860026,
+                "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/9/386576844_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+                "DiaBanTao": "gogi.16.aeonmall",
+                "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+                "ThongTinChiTietBanTin": [],
+                "NguonTin": "gogi.16.aeonmall",
+                "DanhSachNgayPhat": []
+              }
+            ]
+          }
+        ]
+      }
+    ],
+    "GioBatDau": "06:00:00",
+    "GioKeThuc": "18:50:00",
+    "DanhSachBanTin": [
+      {
+        "VungPhat": "0",
+        "BanTinCongCongID": "128",
+        "LoaiBanTin": "4",
+        "MucDoUuTien": "0",
+        "TieuDe": "Mặc định - Nội dung 13",
+        "LoaiLinhVuc": "128",
+        "NoiDungTomTat": "",
+        "ThoiGianSanXuat": 1744860026,
+        "ThoiLuong": "00:00:30",
+        "TacGia": {
+          "TenDayDu": "gogi house",
+          "ButDanh": "gogi house",
+          "Email": ""
+        },
+        "ThoiDiemBatDau": 1744860026,
+        "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/17/11/495658481_839473222_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+        "DiaBanTao": "gogi.16.aeonmall",
+        "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+        "ThongTinChiTietBanTin": [],
+        "NguonTin": "gogi.16.aeonmall",
+        "DanhSachNgayPhat": []
+      },
+      {
+        "VungPhat": "0",
+        "BanTinCongCongID": "112",
+        "LoaiBanTin": "4",
+        "MucDoUuTien": "0",
+        "TieuDe": "Mặc định - Chiến dịch mùa xuân gogi",
+        "LoaiLinhVuc": "112",
+        "NoiDungTomTat": "",
+        "ThoiGianSanXuat": 1744860026,
+        "ThoiLuong": "00:00:10",
+        "TacGia": {
+          "TenDayDu": "gogi house",
+          "ButDanh": "gogi house",
+          "Email": ""
+        },
+        "ThoiDiemBatDau": 1744860026,
+        "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/16/10/WCYXGJ7LD8AG/219565457.mp4",
+        "DiaBanTao": "gogi.16.aeonmall",
+        "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+        "ThongTinChiTietBanTin": [],
+        "NguonTin": "gogi.16.aeonmall",
+        "DanhSachNgayPhat": []
+      },
+      {
+        "VungPhat": "0",
+        "BanTinCongCongID": "29",
+        "LoaiBanTin": "4",
+        "MucDoUuTien": "0",
+        "TieuDe": "Mặc định - Chiến dịch mùa đông gogi",
+        "LoaiLinhVuc": "29",
+        "NoiDungTomTat": "",
+        "ThoiGianSanXuat": 1744860026,
+        "ThoiLuong": "00:00:30",
+        "TacGia": {
+          "TenDayDu": "gogi house",
+          "ButDanh": "gogi house",
+          "Email": ""
+        },
+        "ThoiDiemBatDau": 1744860026,
+        "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/11/393513929_462135376_831969569139628_8102327687813078286_n.jpg",
+        "DiaBanTao": "gogi.16.aeonmall",
+        "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+        "ThongTinChiTietBanTin": [],
+        "NguonTin": "gogi.16.aeonmall",
+        "DanhSachNgayPhat": []
+      },
+      {
+        "VungPhat": "0",
+        "BanTinCongCongID": "24",
+        "LoaiBanTin": "4",
+        "MucDoUuTien": "0",
+        "TieuDe": "Mặc định - Chiến dịch mùa xuân 9:16",
+        "LoaiLinhVuc": "24",
+        "NoiDungTomTat": "",
+        "ThoiGianSanXuat": 1744860026,
+        "ThoiLuong": "00:00:30",
+        "TacGia": {
+          "TenDayDu": "gogi house",
+          "ButDanh": "gogi house",
+          "Email": ""
+        },
+        "ThoiDiemBatDau": 1744860026,
+        "NoiDung": "https://storage-digital.tek4tv.vn//2025/1/10/9/386576844_z6207869740475_614370b0760bfd3b8c60a64d9cc00599.jpg",
+        "DiaBanTao": "gogi.16.aeonmall",
+        "TenDiaBanTao": "Gogi Aeonmall Hải Phòng",
+        "ThongTinChiTietBanTin": [],
+        "NguonTin": "gogi.16.aeonmall",
+        "DanhSachNgayPhat": []
+      }
+    ]
+  }
+}

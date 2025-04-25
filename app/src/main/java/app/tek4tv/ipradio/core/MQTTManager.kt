@@ -48,7 +48,8 @@ class MQTTManager(
         }
         publishTopicTinh = "tinh/$clientID"
 
-        val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
+//        val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
+        val serverURI = "tcp://digital-mqtt-thongtinnguon2.tek4tv.vn:1887"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {

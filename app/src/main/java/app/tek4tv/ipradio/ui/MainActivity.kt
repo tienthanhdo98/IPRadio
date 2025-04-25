@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
-import android.app.ActivityManager
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -44,10 +43,7 @@ import com.squareup.moshi.Types
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.videolan.libvlc.util.VLCVideoLayout
-import java.io.BufferedReader
 import java.io.File
-import java.io.InputStreamReader
-import java.io.RandomAccessFile
 import java.util.*
 
 
@@ -186,6 +182,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             }
         }
+//        lifecycleScope.launch {
+//            delay(5000)
+//            hubManager.convertToHubCommand(
+//                hubManager.loadJSONFromAsset(
+//                    baseContext,
+//                    "sample.json"
+//                )!!
+//            )
+//        }
 
 
     }
@@ -266,9 +271,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 delay(10000)
             }
         }
-
-
     }
+
     override fun onStart() {
         Log.i("ChangeLayout", "Mess: recreate onStart")
         super.onStart()
@@ -300,7 +304,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                playerManager.isInTimeFrame = true
                 Log.d("alarmx", "start: $listKey")
                 if (listKey != null) {
                     playerManager.setTimeFrame(listKey)
@@ -309,7 +312,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                playerManager.isInTimeFrame = false
                 Log.d("alarmx", "end: $listKey")
                 playerManager.stopPlaylist(listKey!!)
             }
@@ -331,6 +333,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.hardRestart()
                 }
 
+            }
+            MediaScheduleReceiver.ACTION_START_DEFAULT_SCENARIO -> {
+                Log.e("alarmx", "ACTION_START_DEFAULT_SCENARIO")
+//                playerManager.startFirstTimeFrame()
+                playerManager.playDefault()
+            }
+            MediaScheduleReceiver.ACTION_END_DEFAULT_SCENARIO -> {
+                Log.e("alarmx", "ACTION_END_DEFAULT_SCENARIO")
+                playerManager.stopAllPlayer()
             }
         }
     }
@@ -429,17 +440,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_MONTHLY_WSS -> {
-
                     clearDatastore()
-
                     playerManager.stopAllPlayer()
-
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
-                    Log.d("alarmx", "Cancel cancelAllScheduledListAlarm UPDATE_MONTHLY_WSS")
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     ForceMedia.clearMonthlyData(applicationContext)
-                    Log.d("sds", "handleFromCommandServer: $message ")
+                    Log.d("sds", "UPDATE_MONTHLY_WSS mess: $message ")
                     if (message != null) {
                         viewModel.updateMonthlyScenarioWss(message)
                     }
@@ -482,8 +489,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     //0,1,2,3
                     //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
                     Log.i("CONTROL_MEDIA", responseHub.message!!)
-                    val mess = responseHub.message!!.toInt()
-                    when (mess) {
+                    when (responseHub.message!!.toInt()) {
                         //dung phat
                         0 -> {
                             playerManager.stopAllPlayer()
@@ -491,9 +497,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                            if (playerManager.isInTimeFrame) {
                                 playerManager.playNextMedia()
-                            }
                         }
                         //Tạm dừng nội dung đang phát
                         2 -> {
@@ -604,7 +608,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         deleteAFileInFolder(recordPath, itemDelete)
                     } else {
                         appStorageManager.deleteAllRecord()
-
                     }
                 }
 

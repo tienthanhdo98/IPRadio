@@ -10,7 +10,6 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -57,7 +56,6 @@ class PlayersManager(
     private var isTimeOver = false
 
 
-    var currentTextPlaylist = listOf<MediaItemModel>()
 
     override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItemModel) {
         if (isLiveError) {
@@ -82,31 +80,47 @@ class PlayersManager(
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
-    var isInTimeFrame = false
     fun startFirstTimeFrame() {
-        var found = false
-        val scheduledList = mediaRepo.scheduledList
         val now = Calendar.getInstance().timeInMillis
-        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.keys}")
-        Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.size}")
-        for (i in scheduledList.keys.indices) {
-            val period = scheduledList.keys.elementAt(i)
-            Log.d(LOGTAG, "onTimeOver: $period")
-            val t = period.split("-")
-            val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-            if (now in start.timeInMillis..end.timeInMillis) {
-                setTimeFrame(period)
-                found = true
-                isInTimeFrame = true
-                break
+        if (mediaRepo.isHaveScheduler) {
+            val scheduledList = mediaRepo.scheduledList
+            Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.keys}")
+            Log.d(LOGTAG, "onTimeOver: play mode: ${scheduledList.size}")
+            for (i in scheduledList.keys.indices) {
+                val period = scheduledList.keys.elementAt(i)
+                Log.d(LOGTAG, "onTimeOver: $period")
+                val t = period.split("-")
+                val start = toCalendar(t[0])
+                val end = toCalendar(t[1])
+                if (now in start.timeInMillis..end.timeInMillis) {
+                    setTimeFrame(period)
+                    break
+                } else {
+                    val startDefault = toCalendar(mediaRepo.startTimeDefaultScenario)
+                    val endDefault = toCalendar(mediaRepo.endTimeDefaultScenario)
+                    if (now in startDefault.timeInMillis..endDefault.timeInMillis) {
+                        currentPlaylist = mediaRepo.listDefaultScenario
+                        playlistIndex = 0
+                        playMediaByIndex(playlistIndex)
+                    }
+                }
             }
+        } else {
+            val start = toCalendar(mediaRepo.startTimeDefaultScenario)
+            val end = toCalendar(mediaRepo.endTimeDefaultScenario)
+            if (now in start.timeInMillis..end.timeInMillis) {
+                currentPlaylist = mediaRepo.listDefaultScenario
+                playlistIndex = 0
+                playMediaByIndex(playlistIndex)
+            }
+
         }
-        if (!found) {
-            isInTimeFrame = false
-            playerManagerListener?.onTimeOver()
-            Log.d(LOGTAG, "onTimeOver: not time frame found")
-        }
+    }
+    fun playDefault()
+    {
+        currentPlaylist = mediaRepo.listDefaultScenario
+        playlistIndex = 0
+        playMediaByIndex(playlistIndex)
     }
 
     fun setTimeFrame(timeFrame: String) {
@@ -118,30 +132,23 @@ class PlayersManager(
         currentPlaylist =
             mediaRepo.scheduledList[timeFrame]
                 ?: listOf()
-        currentTextPlaylist =
-            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == LEFT_AREA }
-                ?: listOf()
-        Log.d("monthlyinfo", "show right ${currentPlaylist.size}")
-        Log.d("monthlyinfo", "show left ${currentTextPlaylist.size}")
 
         playlistIndex = 0
         playMediaByIndex(playlistIndex)
 
         isTimeOver = false
+
     }
 
     fun playNextMedia() {
         if (playMode == "") return
-        Log.d(LOGTAG, "Play media start ")
-        Log.d(LOGTAG, "Play media size ${currentPlaylist.size} ")
-        playlistIndex++
 
+        playlistIndex++
+        Log.d(LOGTAG, "playNextMedia $playlistIndex - ${currentPlaylist.size}")
         if (playlistIndex < currentPlaylist.size) {
             Log.d(LOGTAG, "Play media phat tiep")
             playMediaByIndex(playlistIndex)
-        }
-        else
-        {
+        } else {
             Log.d(LOGTAG, "Play media loop")
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
@@ -229,12 +236,18 @@ class PlayersManager(
     }
 
     fun stopPlaylist(cancelListKey: String) {
-        if (cancelListKey != playMode) return
-        playMode = ""
+        Log.d("alarmx", "stopPlaylist")
+//        if (cancelListKey != playMode) return
+//        playMode = ""
         stopAllPlayer()
         //check time over
         isTimeOver = true
-        checkTimeOver()
+//        checkTimeOver()
+        //
+        currentPlaylist = mediaRepo.listDefaultScenario
+        playlistIndex = 0
+        playMediaByIndex(playlistIndex)
+        Log.d("alarmx", "stopPlaylist: continue play default")
     }
 
     private fun stopTimeFrame()

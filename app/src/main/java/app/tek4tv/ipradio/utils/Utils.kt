@@ -9,13 +9,10 @@ import android.util.Base64.encodeToString
 import android.util.Log
 import androidx.core.content.ContextCompat
 import app.tek4tv.ipradio.di.RetrofitInstance.adapterThongTinKhac
-import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
-import com.squareup.moshi.Json
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
+import com.squareup.moshi.*
 import java.io.ByteArrayOutputStream
 import java.io.RandomAccessFile
 import java.net.NetworkInterface
@@ -295,6 +292,27 @@ class Utils {
             )
 
             return adapterThongTinKhac.toJson(infoList)
+        }
+
+        fun parseJson(jsonMessage: String, moshi: Moshi): MQTTReceivedScheduleModel? {
+            val mqttReceivedScheduleModelAdapter: JsonAdapter<MQTTReceivedScheduleModel> =
+                moshi.adapter(MQTTReceivedScheduleModel::class.java)
+            return try {
+                // Attempt to parse the JSON message
+                mqttReceivedScheduleModelAdapter.fromJson(jsonMessage)
+            } catch (e: JsonDataException) {
+                // Handle errors related to data mismatch
+                println("Error: Malformed JSON structure or unexpected data type - ${e.message}")
+                null
+            } catch (e: JsonEncodingException) {
+                // Handle errors related to encoding issues (e.g., missing brackets, etc.)
+                println("Error: Malformed JSON encoding - ${e.message}")
+                null
+            } catch (e: Exception) {
+                // Handle any other unexpected exceptions
+                println("Error: Unexpected error during JSON parsing - ${e.message}")
+                null
+            }
         }
     }
 

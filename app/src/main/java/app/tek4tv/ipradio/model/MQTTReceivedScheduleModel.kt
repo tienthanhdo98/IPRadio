@@ -22,48 +22,48 @@ data class MQTTReceivedScheduleModel(
     var topic: String?,
     var payload: ReceivedPayloadSchedule?
 )
-
-data class ReceivedPayloadSchedule (
+@JsonClass(generateAdapter = true)
+data class ReceivedPayloadSchedule(
     @Json(name = "Id")
-    var id: String?,
+    val Id: String?,
 
     @Json(name = "NguonID")
-    var nguonID: String?,
+    val nguonID: String?,
 
     @Json(name = "TenNguon")
-    var tenNguon: String?,
+    val tenNguon: String?,
 
     @Json(name = "DichID")
-    var dichID: String?,
+    val dichID: String?,
 
     @Json(name = "TenDich")
-    var tenDich: String?,
+    val tenDich: String?,
 
     @Json(name = "DanhSachDiaBanNhan")
-    var danhSachDiaBanNhan: List<DanhSachDiaBanNhan>?,
+    val danhSachDiaBanNhan: List<DanhSachDiaBanNhan>?,
 
     @Json(name = "PhanVungManHinh")
-    var phanVungManHinh: String?,
+    val phanVungManHinh: String?,
 
     @Json(name = "LichPhatID")
-    var lichPhatID: String?,
+    val lichPhatID: String?,
 
     @Json(name = "TenLichPhat")
-    var tenLichPhat: String?,
+    val tenLichPhat: String?,
 
     @Json(name = "DanhSachNgayPhat")
-    var danhSachNgayPhat: List<DanhSachNgayPhat>?,
+    val DanhSachNgayPhat: List<DanhSachNgayPhat?>? = null,
 
-    @Json(name = "CreateTime")
-    var createTime: Long?,
+    @Json(name = "GioBatDau")
+    val GioBatDau: String?,
 
-    @Json(name = "CreateDate")
-    var createDate: Long?,
+    @Json(name = "GioKeThuc")
+    val GioKeThuc: String?,
 
-    @Json(name = "UserName")
-    var userName: String?
+    @Json(name = "DanhSachBanTin")
+    val danhSachBanTin: List<DanhSachBanTin>?
 )
-
+@JsonClass(generateAdapter = true)
 data class DanhSachDiaBanNhan (
     @Json(name = "DichID")
     var dichID: String?,
@@ -71,27 +71,21 @@ data class DanhSachDiaBanNhan (
     @Json(name = "TenDich")
     var tenDich: String?,
 
-    @Json(name = "Email")
-    var email: String?,
-
-    @Json(name = "IsRead")
-    var isRead: Boolean?,
-
     @Json(name = "CumLoaID")
     var cumLoaID: List<Any?>?,
 
     @Json(name = "BangDienTuID")
-    var bangDienTuID: List<Any?>
+    var bangDienTuID: List<Any?>?
 )
-
+@JsonClass(generateAdapter = true)
 data class DanhSachNgayPhat (
     @Json(name = "NgayPhat")
     var ngayPhat: Long?,
 
     @Json(name = "ThoiDiemPhat")
-    var thoiDiemPhat: List<ThoiDiemPhat>
+    var thoiDiemPhat: List<ThoiDiemPhat>?
 )
-
+@JsonClass(generateAdapter = true)
 data class ThoiDiemPhat (
     @Json(name = "ThoiGianBatDau")
     var thoiGianBatDau: Long?,
@@ -102,7 +96,7 @@ data class ThoiDiemPhat (
     @Json(name = "DanhSachBanTin")
     var danhSachBanTin: List<DanhSachBanTin>?
 )
-
+@JsonClass(generateAdapter = true)
 data class DanhSachBanTin (
     @Json(name = "VungPhat")
     var vungPhat: String?,
@@ -149,11 +143,14 @@ data class DanhSachBanTin (
     @Json(name = "NguonTin")
     var nguonTin: String?,
 
-    @Json(name = "DanhSachNgayPhat")
-    var danhSachNgayPhat: List<Any?>
+//    @Json(name = "DanhSachNgayPhat")
+//    var danhSachNgayPhat: List<DanhSachNgayPhat?>
 )
+
 data class ChiTietBanTin(
     var Ten: String?,
     var GiaTri: String?
 )
+
+
 

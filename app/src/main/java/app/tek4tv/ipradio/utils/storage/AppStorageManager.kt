@@ -4,6 +4,7 @@ import android.app.ActivityManager
 import android.content.Context
 import android.os.Environment
 import android.os.StatFs
+import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.utils.*
 import java.io.File
 import kotlin.math.roundToInt
@@ -31,6 +32,11 @@ class AppStorageManager(appContext: Context) {
 
     fun deleteAllMusic() {
         deleteAllFileInFolder(audioDirPath)
+    }
+    fun getAvailableStorage(): Long {
+        val totalStorage = MainActivity.appStorageManager.getTotalRomStorage()
+        val usedStorage = MainActivity.appStorageManager.getUsedRomStorage()
+        return totalStorage - usedStorage
     }
 
     fun deleteAllMedia() {

@@ -22,6 +22,7 @@ object ConfigUtil {
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
+    const val SCENARIO_DATA = "SCENARIO_DATA"
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
 

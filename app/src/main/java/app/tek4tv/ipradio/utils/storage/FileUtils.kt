@@ -1,7 +1,10 @@
 package app.tek4tv.ipradio.utils.storage
 
+import android.content.Context
 import android.net.Uri
 import android.util.Log
+import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.utils.ConfigUtil
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.*
@@ -15,6 +18,10 @@ const val RECORDED_AUDIO_FOLDER_NAME = "recorded"
 fun isFileExisted(storagePath: String, fileName: String): Boolean {
     val file = File(storagePath, fileName)
     return file.exists() && file.isFile
+}
+
+fun getConfigFileExtension(context: Context): String? {
+    return ConfigUtil.getString(context, ConfigUtil.KEY_EXTEND_FILE, "mp4,jpg,png")
 }
 
 @Throws(IOException::class)

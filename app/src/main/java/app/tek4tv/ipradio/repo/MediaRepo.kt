@@ -2,15 +2,17 @@ package app.tek4tv.ipradio.repo
 
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appContext
-import app.tek4tv.ipradio.model.MediaItemModel
+import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
-import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.ConfigUtil.SCENARIO_DATA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.getConfigFileExtension
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
 import com.downloader.Error
@@ -20,12 +22,11 @@ import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import kotlinx.coroutines.launch
 import java.io.File
-import java.text.SimpleDateFormat
 import java.util.*
 
 
 class MediaRepo constructor(
-    moshi: Moshi,
+    private val moshi: Moshi,
 ) : BaseRepo<MediaItemModel>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
     val TAG = "MEDIA_REPO"
     override val jsonAdapter: JsonAdapter<List<MediaItemModel>> = moshi.adapter(
@@ -37,76 +38,39 @@ class MediaRepo constructor(
 
     var timeDividers = LinkedHashMap<String, List<MediaItemModel>>()
 
-
     private val downloadHelper = DownloadHelper2.getInstance()
 
     private val mediaStoragePath = appContext.filesDir.path
 
-    //250mb
-    val Limit_Storage : Long = 262144000
+    var startTimeDefaultScenario = ""
+    var endTimeDefaultScenario = ""
+    var listDefaultScenario = listOf<MediaItemModel>()
+    var isHaveScheduler = false
 
-    suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
+    //250mb
+    val Limit_Storage: Long = 262144000
+
+    fun updateMonthlyScenarioWss(message: String) {
         try {
             Log.e(TAG, "updateMonthlyScenario")
+            ConfigUtil.putString(
+                appContext,
+                SCENARIO_DATA,
+                message
+            )
+            val scenario = Utils.parseJson(jsonMessage = message, moshi = moshi)
 
-            val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-            
+            //lich dat theo ngay
+            val mapMonthSchedule = convertWssMessToPlaylist(scenario?.payload!!)
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_WSS_DATA,
-                strListMonthSchedule
+                jsonMapAdapter.toJson(mapMonthSchedule)
             )
-
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-
-
-            var dayScenario : String? = null
-
-            if (listMonthSchedule != null) {
-                for(i in listMonthSchedule) {
-                    if (i.key == currentDate) {
-                        Log.e(TAG, "get scenario co data ngay ${i.key}")
-                        dayScenario = i.value
-                        break
-                    } else {
-                        dayScenario = null
-                    }
-                }
-            }
-            if (dayScenario != null) {
-                Log.e(TAG, "có lịch trong ngày: update $dayScenario")
-                updateScenarioWss(dayScenario)
-            } else {
-                //In case there are no scenario for today, don't play anythings
-                saveItemsToFile(listOf())
-                Log.e("SavefileLog", "Save in updateMonthlyScenarioWss: Case not in day")
-                Log.e(TAG, "Không có lịch trong ngày")
-            }
 
         } catch (e: Exception) {
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
         }
-    }
-
-    private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItemModel> {
-        var result = listOf<MediaItemModel>()
-
-        try {
-            result = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)!!
-
-            if (result.isNotEmpty()) {
-                Log.e(TAG, "Save ${result.size} to local")
-                saveItemsToFile(result)
-                Log.e("SavefileLog", "Save in updateScenarioWss: Case have result")
-
-            } else {
-                Log.e(TAG, "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, e.toString())
-        }
-
-        return result
     }
 
     fun getScenarioWss(): List<MediaItemModel> {
@@ -114,44 +78,41 @@ class MediaRepo constructor(
         timeDividers.clear()
 
         var res = listOf<MediaItemModel>()
-
-        val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
-        Log.e(TAG, "get scenario $jsonMonthlyListData")
-        if (jsonMonthlyListData.isNotEmpty()) {
-            val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
-
-            if (monthlyListData?.isNotEmpty() == true) {
-
-                val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-
-                var dayScenario: String? = null
-
-                for(i in monthlyListData)
-                {
-                    if (i.key == currentDate) {
-                        Log.e(TAG, "get scenario co data ngay ${i.key}")
-                        Log.e(TAG, "get scenario co data ngay $currentDate")
-                        dayScenario = i.value
-                        break
-                    } else {
-                        dayScenario = null
-                    }
-                }
-                dayScenario?.let {
-
-                    res = jsonListMediaItemAdapter.fromJson(dayScenario)!!
-
-                } ?: run {
-                    Log.d(TAG, "Today does not have a playing schedule")
-                    res = listOf()
-                }
-
-            } else {
-                Log.d(TAG, "Nothing str list to play")
-                res = listOf()
+        val scenarioData = ConfigUtil.getString(
+            appContext,
+            SCENARIO_DATA, ""
+        )
+        if (scenarioData != "") {
+            val scenario = Utils.parseJson(jsonMessage = scenarioData!!, moshi = moshi)
+            if (scenario != null) {
+                //lich dat mac dinh
+                listDefaultScenario =
+                    convertToMediaItem(scenario.payload?.danhSachBanTin!!, scenario.payload!!)
+                startTimeDefaultScenario = scenario.payload!!.GioBatDau!!
+                endTimeDefaultScenario = scenario.payload!!.GioKeThuc!!
             }
         }
-        else {
+
+        val jsonMonthlyListData =
+            ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+        Log.e(TAG, "get scenario $jsonMonthlyListData")
+        if (jsonMonthlyListData != "") {
+            try {
+                val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
+                if (monthlyListData?.isNotEmpty() == true) {
+                    for (i in monthlyListData) {
+                        isHaveScheduler = true
+                        res = jsonListMediaItemAdapter.fromJson(i.value)!!
+                    }
+                } else {
+                    Log.d(TAG, "Nothing str list to play")
+                    res = listOf()
+                }
+            } catch (e: Exception) {
+                Log.d(TAG, "getScenarioWss: ${e.message}")
+            }
+
+        } else {
             Log.d(TAG, "Nothing str list to play")
             res = listOf()
         }
@@ -163,7 +124,162 @@ class MediaRepo constructor(
         return broadcastList
     }
 
+    private fun convertToMediaItem(
+        listBanTin: List<DanhSachBanTin>,
+        playload: ReceivedPayloadSchedule
+    ): List<MediaItemModel> {
+        val listMedia = mutableListOf<MediaItemModel>()
+        listBanTin.forEach {
+            val obj = MediaItemModel(
+                id = countId,
+                mediaID = countId.toString(),
+                projectID = it.banTinCongCongID,
+                sourceID = playload.nguonID,
+                sourceName = playload.tenNguon,
+                destinationID = playload.dichID,
+                destinationName = playload.tenDich,
+                title = it.tieuDe,
+                description = it.noiDungTomTat,
+                duration = it.thoiLuong,
+                contentType = Utils.convertContentType(it.loaiBanTin!!),
+                fieldType = Utils.convertFiend(it.loaiLinhVuc!!),
+                priority = Utils.convertPriority(it.mucDoUuTien!!),
+                category = Utils.convertFiend(it.loaiLinhVuc!!),
+                author = Utils.convertAuthor(it.tacGia!!),
+                body = it.noiDung,
+                sourceReference = it.tenDiaBanTAO,
+                type = Utils.getTypeOfMediaItem(it.loaiBanTin!!.toInt()),
+                createDate = it.thoiGianSANXuat.toString(),
+                metadata = mutableListOf(),
+                tag = mutableListOf(),
+                fixTime = "",
+                startTime = "",
+                start = "",
+                end = "",
+                broadcastRegion = BroadcastRegion(
+                    id = it.vungPhat,
+                    value = it.vungPhat!!
+                ),
 
+                )
+            countId++
+            listMedia.add(obj)
+        }
+        return listMedia
+    }
+
+    private fun convertWssMessToPlaylist(payload: ReceivedPayloadSchedule): Map<String, String> {
+
+        val mapNgayPhat: MutableMap<String, String> = mutableMapOf()
+        val danhSachNgayPhat = payload.DanhSachNgayPhat
+        //Lay lich tong cac ngay phat
+        val date = Calendar.getInstance()
+        val listNgayPhat: MutableList<DanhSachNgayPhat> = mutableListOf()
+        Log.d(TAG, "Hom nay ${formatDateByFormat(date)}")
+        danhSachNgayPhat?.forEach {
+            Log.d(TAG, "Lich phat ${unixTimeStampToDateTime(it!!.ngayPhat!!)}")
+            if (unixTimeStampToDateTime(it.ngayPhat!!) == formatDateByFormat(date)) {
+                listNgayPhat.add(it)
+            }
+        }
+        if (listNgayPhat.isNotEmpty()) {
+            val jsonSchedule = findScheduleByDate(
+                listNgayPhat,
+                payload,
+            )
+            mapNgayPhat[formatDateByFormat(date)] =
+                jsonSchedule
+        }
+        return mapNgayPhat
+    }
+
+    private var countId = 0
+    private fun findScheduleByDate(
+        listNgayPhat: MutableList<DanhSachNgayPhat>,
+        playload: ReceivedPayloadSchedule
+    ): String {
+        val danhSachBanTinTrongNgay: MutableList<MediaItemModel> = mutableListOf()
+        countId = 0
+        listNgayPhat.forEach {
+            it.thoiDiemPhat?.forEach {
+                danhSachBanTinTrongNgay.addAll(convertToTimeFrame(it, playload))
+            }
+        }
+
+        return jsonListMediaItemAdapter.toJson(danhSachBanTinTrongNgay)
+    }
+
+    private fun convertToTimeFrame(
+        thoiDiemPhat: ThoiDiemPhat,
+        playload: ReceivedPayloadSchedule
+    ): MutableList<MediaItemModel> {
+        val startTimeFrame = convertTimeStampToHHMMSS(thoiDiemPhat.thoiGianBatDau!!)
+        val endTimeFrame = convertTimeStampToHHMMSS(thoiDiemPhat.thoiGianKetThuc!!)
+        val newList: MutableList<MediaItemModel> = mutableListOf()
+        val tObjStart = MediaItemModel(
+            id = countId,
+            mediaID = "0",
+            projectID = "0",
+            title = "Khung $startTimeFrame - $endTimeFrame",
+            body = "start",
+            startTime = startTimeFrame,
+            start = startTimeFrame,
+            fixTime = startTimeFrame,
+            end = endTimeFrame,
+        )
+        newList.add(tObjStart)
+        countId++
+        thoiDiemPhat.danhSachBanTin?.forEach {
+            val obj = MediaItemModel(
+                id = countId,
+                mediaID = countId.toString(),
+                projectID = it.banTinCongCongID,
+                sourceID = playload.nguonID,
+                sourceName = playload.tenNguon,
+                destinationID = playload.dichID,
+                destinationName = playload.tenDich,
+                title = it.tieuDe,
+                description = it.noiDungTomTat,
+                duration = it.thoiLuong,
+                contentType = Utils.convertContentType(it.loaiBanTin!!),
+                fieldType = Utils.convertFiend(it.loaiLinhVuc!!),
+                priority = Utils.convertPriority(it.mucDoUuTien!!),
+                category = Utils.convertFiend(it.loaiLinhVuc!!),
+                author = Utils.convertAuthor(it.tacGia!!),
+                body = it.noiDung,
+                sourceReference = it.tenDiaBanTAO,
+                type = Utils.getTypeOfMediaItem(it.loaiBanTin!!.toInt()),
+                createDate = it.thoiGianSANXuat.toString(),
+                metadata = mutableListOf(),
+                tag = mutableListOf(),
+                fixTime = "",
+                startTime = "",
+                start = "",
+                end = "",
+                broadcastRegion = BroadcastRegion(
+                    id = it.vungPhat,
+                    value = it.vungPhat!!
+                ),
+
+                )
+            countId++
+            newList.add(obj)
+        }
+        val tObEnd = MediaItemModel(
+            id = countId,
+            mediaID = "0",
+            projectID = "0",
+            title = "Khung $startTimeFrame - $endTimeFrame",
+            body = "end",
+            startTime = startTimeFrame,
+            fixTime = endTimeFrame,
+            end = endTimeFrame,
+            start = startTimeFrame
+        )
+        newList.add(tObEnd)
+        countId++
+        return newList
+    }
 
 
     private fun filterMedia(mediaList: List<MediaItemModel>) {
@@ -190,10 +306,14 @@ class MediaRepo constructor(
         Log.d(TAG, "filterMedia: $scheduledList")
         Log.d(TAG, "filterMedia: $timeDividers")
     }
-    fun getAvailableStorage() : Long{
-        val totalStorage = appStorageManager.getTotalRomStorage()
-        val usedStorage = appStorageManager.getUsedRomStorage()
-        return totalStorage - usedStorage
+
+
+
+    fun startDownloadDefaultMedia() {
+        if (listDefaultScenario.isEmpty()) return
+        listDefaultScenario.forEach {
+            downloadAMediaItem(it)
+        }
     }
 
     fun startDownloadMedia() {
@@ -204,10 +324,6 @@ class MediaRepo constructor(
         }
     }
 
-    private fun getConfigExtension() : String?
-    {
-        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png")
-    }
 
     fun downloadAMediaItem(it: MediaItemModel) {
         //1 - bản tin ký tự
@@ -219,7 +335,7 @@ class MediaRepo constructor(
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
         //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
-        if(getAvailableStorage() <= Limit_Storage) return
+        if(appStorageManager.getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
         if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
 
@@ -227,7 +343,7 @@ class MediaRepo constructor(
         val extMedia = File(it.body ?: "").extension
 
         if(extMedia.isEmpty()) return
-        val isFile = getConfigExtension()!!.contains(extMedia)
+        val isFile = getConfigFileExtension(appContext)!!.contains(extMedia)
 
         if (!isFile) return
 
