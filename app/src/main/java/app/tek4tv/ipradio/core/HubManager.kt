@@ -58,7 +58,7 @@ class HubManager(
 
     var currentMediaItem: MediaItem? = null
 
-    var versionName = "v76M.4.2c"
+    var versionName = "W76.4.2c"
 
     private var hubToken: String? = null
 
@@ -78,7 +78,7 @@ class HubManager(
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
     val isMQTT = false
     private var getMQTTInfoJob: Job? = null
-//    var mqttClient: Mqtt5Helper? = null
+    
     var mqttClient: MQTTManager? = null
 
 
@@ -203,7 +203,7 @@ class HubManager(
                     continue
                 }
                 // Cancel and start a new MQTT info retrieval job
-                if(isMQTT) {
+                if (isMQTT) {
                     getMQTTInfoJob?.cancel()
                     getMQTTInfoJob = launch {
                         while (listMQTTInfo.isEmpty()) {
@@ -217,14 +217,20 @@ class HubManager(
 //                        mqttClient =
 //                            MQTTManager(appContext, listMQTTInfo, hubToken!!, this@HubManager)
                         mqttClient =
-                            MQTTManager(hubToken,appContext,this@HubManager, listMQTTInfo, destinationId = dichId)
+                            MQTTManager(
+                                hubToken,
+                                appContext,
+                                this@HubManager,
+                                listMQTTInfo,
+                                destinationId = dichId
+                            )
                         while (!isConnectSuccess) {
                             mqttClient?.connectToMQTT()
                             delay(5000)
                         }
 
                     }
-                }else {
+                } else {
                     wssManager = WssManager(hubToken, appContext, this@HubManager)
                     while (!isConnectSuccess) {
                         wssManager!!.connectToWss()
@@ -279,12 +285,12 @@ class HubManager(
     private fun sendPing() {
         pingCounter++
         var trangThaiHoatDong = "1"
-        var noiDungPhat= ""
+        var noiDungPhat = ""
         if (currentMediaItem != null) {
             noiDungPhat = currentMediaItem!!.pathBackup
             trangThaiHoatDong = "0"
         } else {
-            noiDungPhat =  ""
+            noiDungPhat = ""
             trangThaiHoatDong = "2"
         }
         val request = WssStatusModel(
@@ -617,6 +623,7 @@ class HubManager(
         }
         listDate.sort()
     }
+
     private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
@@ -843,9 +850,6 @@ class HubManager(
             reconnectToServer()
         }
     }
-
-
-
 
 
 }

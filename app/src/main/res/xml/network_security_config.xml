@@ -2,7 +2,7 @@
     <domain-config cleartextTrafficPermitted="false">
         <domain includeSubdomains="true">gateway-thongtinnguon.quangngai.gov.vn</domain>
         <domain includeSubdomains="true">storage-thongtinnguon.quangngai.gov.vn</domain>
-        <domain includeSubdomains="true">websocket-thongtinnguon.quangngai.gov.vn/</domain>
+        <domain includeSubdomains="true">websocket-thongtinnguon.quangngai.gov.vn</domain>
         <trust-anchors>
             <certificates src="@raw/qt" />
         </trust-anchors>
