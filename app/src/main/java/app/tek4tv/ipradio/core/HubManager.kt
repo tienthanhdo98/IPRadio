@@ -49,8 +49,8 @@ class HubManager(
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
-    val deviceImei = Utils.getDeviceId(appContext)
-    //val deviceImei = "54:78:C9:B8:0F:5C"
+    //val deviceImei = Utils.getDeviceId(appContext)
+    val deviceImei = "54:78:C9:B8:0F:5C"
 
     var pingCounter = 0
 
@@ -58,7 +58,7 @@ class HubManager(
 
     var currentMediaItem: MediaItem? = null
 
-    var versionName = "v76M.4.2c"
+    var versionName = "M99.4.2c"
 
     private var hubToken: String? = null
 
@@ -70,15 +70,13 @@ class HubManager(
 
     //mqtt
     var nguonId = "H48.52.01"
-
-    //    var tenNguon = "Xã Ba Cung"
-    var tenNguon = "Thị trấn Ba Tơ"
+    var tenNguon = "Tỉnh Bắc Ninh"
     var dichId = "H48"
-    var tenDich = "Quảng Ngãi"
+    var tenDich = "Bắc Ninh"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = false
+    val isMQTT = true
     private var getMQTTInfoJob: Job? = null
-//    var mqttClient: Mqtt5Helper? = null
+
     var mqttClient: MQTTManager? = null
 
 
@@ -142,7 +140,7 @@ class HubManager(
             if (it.topic?.contains("tinh") == true) {
                 nguonId = it.topic.substringAfter("/").uppercase()
                 dichId = it.topic.substringAfter("/").uppercase()
-                getSourceMQTT(nguonId, false)
+                // getSourceMQTT(nguonId, false)
             }
             if (it.topic?.contains("huyen") == true) {
                 nguonId = it.topic.substringAfter("/").uppercase()
@@ -151,11 +149,10 @@ class HubManager(
                 nguonId = it.topic.substringAfter("/").uppercase()
             }
         }
-        getSourceMQTT(nguonId, true)
+        //  getSourceMQTT(nguonId, true)
     }
 
     private fun getSourceMQTT(id: String, timNguon: Boolean) {
-
         val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_SOURCE)
         try {
             val call = authService.getSourceMQTT("${url}$id")
@@ -203,7 +200,7 @@ class HubManager(
                     continue
                 }
                 // Cancel and start a new MQTT info retrieval job
-                if(isMQTT) {
+                if (isMQTT) {
                     getMQTTInfoJob?.cancel()
                     getMQTTInfoJob = launch {
                         while (listMQTTInfo.isEmpty()) {
@@ -217,14 +214,14 @@ class HubManager(
 //                        mqttClient =
 //                            MQTTManager(appContext, listMQTTInfo, hubToken!!, this@HubManager)
                         mqttClient =
-                            MQTTManager(hubToken,appContext,this@HubManager, listMQTTInfo, destinationId = dichId)
+                            MQTTManager(appContext, listMQTTInfo, hubToken!!, this@HubManager)
                         while (!isConnectSuccess) {
                             mqttClient?.connectToMQTT()
                             delay(5000)
                         }
 
                     }
-                }else {
+                } else {
                     wssManager = WssManager(hubToken, appContext, this@HubManager)
                     while (!isConnectSuccess) {
                         wssManager!!.connectToWss()
@@ -279,12 +276,12 @@ class HubManager(
     private fun sendPing() {
         pingCounter++
         var trangThaiHoatDong = "1"
-        var noiDungPhat= ""
+        var noiDungPhat = ""
         if (currentMediaItem != null) {
             noiDungPhat = currentMediaItem!!.pathBackup
             trangThaiHoatDong = "0"
         } else {
-            noiDungPhat =  ""
+            noiDungPhat = ""
             trangThaiHoatDong = "2"
         }
         val request = WssStatusModel(
@@ -617,6 +614,7 @@ class HubManager(
         }
         listDate.sort()
     }
+
     private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
@@ -843,9 +841,6 @@ class HubManager(
             reconnectToServer()
         }
     }
-
-
-
 
 
 }
