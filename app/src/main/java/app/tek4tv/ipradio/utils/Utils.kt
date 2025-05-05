@@ -4,7 +4,7 @@ import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.core.TacGia
+import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -239,6 +239,17 @@ class Utils {
             } else {
                 return ""
             }
+        }
+        fun bytesToBinaryGB(bytes: Long): Double {
+            // 1 Binary GB = 1024^3 bytes
+            val divisor = 1024.0 * 1024.0 * 1024.0  // or 1073741824.0
+            return bytes / divisor
+        }
+
+        fun bytesToDecimalGB(bytes: Long): Double {
+            // 1 Decimal GB = 1,000,000,000 bytes
+            val divisor = 1_000_000_000.0
+            return bytes / divisor
         }
     }
 }

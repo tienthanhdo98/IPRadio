@@ -1,7 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import app.tek4tv.ipradio.core.DanhSachBanTin
-import app.tek4tv.ipradio.core.DanhSachDiaBanNhan
 import com.squareup.moshi.Json
 
 data class WssPlaylist (

@@ -104,7 +104,7 @@ class VlcMediaPlayer(
 //        args.add("--no-drop-late-frames")
 //        args.add("--file-caching=1000")
 //        args.add("--network-caching=2000")
-        //se ko bi dung o frame video cuoi nhung co bug o 1 vai truong hop
+        //se ko bi dung o frame video cuoi nhung co bug o 1 vai truong hop, hieu suat kem hon
 //        args.add("--vout=android-display")
         args.add("--skip-frames")
         args.add("--drop-late-frames")
@@ -119,7 +119,6 @@ class VlcMediaPlayer(
     }
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
-
         if (isPlaying) stop()
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
@@ -141,17 +140,17 @@ class VlcMediaPlayer(
     }
 
     override fun resume() {
-        vlcPlayer.play()
+//        vlcPlayer.play()
 //        val mediaStoragePath = appContext.filesDir.path
 //        Log.d("mediaStoragePath", "resume: $mediaStoragePath")
-//        val stream = Media(
-//            mLibVLC,
-//            Uri.parse("http://radiolive.tek4tv.vn:8888/live/vtv1/stream.m3u8")
-//        )
-//
-//        currentVlcMedia = stream
-//
-//        vlcPlayer.play(stream)
+        val stream = Media(
+            mLibVLC,
+            Uri.parse("https://storage-devkhanhhoa.tek4tv.vn//2025/3/11/11/774926481_xe-dap---thuy-chi-ft.-hoang-dung-[at-concert-25].mp3")
+        )
+
+        currentVlcMedia = stream
+
+        vlcPlayer.play(stream)
     }
 
 
@@ -251,10 +250,9 @@ class VlcMediaPlayer(
             add(Calendar.SECOND, getDurationInSecond(mediaItem.duration!!))
         }
         val check = (now <= liveEndTime)
-                && (stream.state != IMedia.State.Playing)
 
         Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
-        Log.d(TAG, "checkLiveStream isPlaying${stream.state != IMedia.State.Playing}")
+
 
         return check
     }
@@ -269,10 +267,9 @@ class VlcMediaPlayer(
         }
 
         val check = (now <= liveEndTime)
-                && (stream.state != IMedia.State.Playing)
 
         Log.e(TAG, "${now <= liveEndTime}")
-        Log.e(TAG, "${stream.state != IMedia.State.Playing}")
+
 
 
         return check

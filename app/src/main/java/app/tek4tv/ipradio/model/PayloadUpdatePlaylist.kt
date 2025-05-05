@@ -1,21 +1,16 @@
-package app.tek4tv.ipradio.core
+package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class ReceivedMessageScheduleModel(
+data class ReceivedMessageUpdatePlaylistModel(
     val id: String?,
     val topic: String?,
-    val payload: ReceivedPayloadSchedule?
+    val payload: PayloadUpdatePlaylist?
 )
 
-
-
-data class ReceivedPayloadSchedule(
-    @Json(name = "Id")
-    val id: String,
-
+data class PayloadUpdatePlaylist (
     @Json(name = "NguonID")
     val nguonID: String,
 
@@ -28,8 +23,11 @@ data class ReceivedPayloadSchedule(
     @Json(name = "TenDich")
     val tenDich: String,
 
-    @Json(name = "DanhSachDiaBanNhan")
-    val danhSachDiaBanNhan: List<DanhSachDiaBanNhan>,
+    @Json(name = "DanhSachDiaBan")
+    val danhSachDiaBan: List<DanhSachDiaBanNhan>,
+
+    @Json(name = "DanhSachThietBi")
+    val danhSachThietBI: List<DanhSachThietBi>,
 
     @Json(name = "PhanVungManHinh")
     val phanVungManHinh: String,
@@ -41,17 +39,5 @@ data class ReceivedPayloadSchedule(
     val tenLichPhat: String,
 
     @Json(name = "DanhSachBanTin")
-    val danhSachBanTin: List<DanhSachBanTin>,
-
-    @Json(name = "CreateTime")
-    val createTime: Long,
-
-    @Json(name = "CreateDate")
-    val createDate: Long,
-
-    @Json(name = "UserName")
-    val userName: String
+    val danhSachBanTin: List<DanhSachBanTin>
 )
-
-
-

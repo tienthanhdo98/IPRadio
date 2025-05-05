@@ -52,6 +52,7 @@ class AppStorageManager(appContext: Context) {
     fun getTotalRomStorage() = getTotalStorageInfo(Environment.getDataDirectory().path)
     fun getUsedRomStorage() = getUsedStorageInfo(Environment.getDataDirectory().path)
 
+
     fun getStorageCapacity(): Long {
         var r = 0L
 

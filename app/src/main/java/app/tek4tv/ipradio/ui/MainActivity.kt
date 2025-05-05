@@ -21,16 +21,23 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.tek4tv.digitalsignage.utils.MediaCapture
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
 import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.di.MoshiInst.moshi
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.local.MediaLogDao
+import app.tek4tv.ipradio.model.local.MediaLogModel
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.IHubObserve
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
@@ -64,7 +71,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener {
+class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -90,9 +97,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     @Inject
     lateinit var logService: LogService
 
+    @Inject
+    lateinit var mediaLogDao: MediaLogDao
+
     private lateinit var playerManager: PlayersManager
 
-    private lateinit var appStorageManager: AppStorageManager
+
 
     private lateinit var logUtils: LogUtils
 
@@ -135,10 +145,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 FULL_SCREEN
             )
             ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
-            startPlayingMedia()
-            if (oldTypeScreen != typeScreen) {
+//            startPlayingMedia()
+            Handler().postDelayed({
                 recreate()
-            }
+
+            }, 1000)
+
         }
 
         //Lỗi luồng live
@@ -166,10 +178,43 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 hubManager.curMediaName = displayName
 
                 serialPortController.turnOnPAVod()
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) StringValue.PAStatusOff
+                    else StringValue.PAStatusOn
+
 
                 hubManager.sendLogMediaSuccess(mediaItem)
-
-                viewModel.currentMedia = mediaItem
+                if(!hubManager.isConnectSuccess) {
+                    lifecycleScope.launch {
+                        val tacGia = TacGia(
+                            tenDayDu = mediaItem.author?.fullName ?: "",
+                            butDanh = mediaItem.author?.userName ?: "",
+                            email = mediaItem.author?.email ?: "",
+                            tenDangNhap = mediaItem.author?.userName ?: ""
+                        )
+                        val mediaLog = MediaLogModel(
+                            amLuong = Utils.getDeviceInfo(
+                                StringValue.deviceInfoVolume,
+                                SerialPortController.deviceInfo
+                            ),
+                            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                            thoiGianSanXuat = mediaItem.createDate?.toLong(),
+                            congSuat = paState,
+                            banTinID = mediaItem.projectID,
+                            loaiBanTin = mediaItem.contentType?.value,
+                            mucDoUuTien = mediaItem.priority?.id.toString(),
+                            noiDung = mediaItem.pathBackup,
+                            noiDungTomTat = mediaItem.description,
+                            tacGia = adapterTacGia.toJson(tacGia),
+                            thoiLuong = mediaItem.duration,
+                            tieuDe = mediaItem.title,
+                            loaiLinhVuc = mediaItem.fieldType?.value,
+                            vungPhat =  mediaItem.broadcastRegion!!.value,
+                            nguonTin = mediaItem.sourceName
+                        )
+                        mediaLogDao.insertLog(mediaLog)
+                    }
+                }
             }
 
         }
@@ -200,18 +245,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
-            override fun forceRestartApp(countHardRestart: Int) {
-                lifecycleScope.launch {
-                    serialPortController.turnOffPA()
-                    delay(3000)
-                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                }
-            }
+//            override fun forceRestartApp(countHardRestart: Int) {
+//                lifecycleScope.launch {
+//                    serialPortController.turnOffPA()
+//                    delay(3000)
+//                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
+//                }
+//            }
 
             override fun forceRestartDevice() {
                 Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
@@ -222,7 +267,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             }
         }
-        appStorageManager = AppStorageManager(applicationContext)
+
 
 
 
@@ -232,7 +277,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager.hubComm = hubComm
-        hubManager.appStorageManager = appStorageManager
+        hubManager.setConnectionListener(this)
 
         lifecycleScope.launch {
             hubManager.messageStateFlow.collectLatest { messagePair ->
@@ -273,7 +318,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         initDataByScreen()
 
         checkDeleteFileUpdate()
-//        playerManager.resumeMedia()
+//        lifecycleScope.launch{
+//            delay(10000)
+//            playerManager.resumeMedia()
+//        }
+
 
         //  doSwap("/data/data/app.tek4tv.ipradio/files/tt2.mp3",SwapType.BackToFront,SwapEncryptDecryptMode.Decrypt)
 
@@ -584,27 +633,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val responseHub = hubManager.responseHub
 
             when (command) {
-                HubCommand.ROTATION -> {
-                    if (responseHub.message != null) {
-                        Log.d("rotation", responseHub.message!!)
-                        try {
-                            val requireOrientation = responseHub.message!!
-
-                            ConfigUtil.putString(this, "pref_orientation", requireOrientation)
-                            lifecycleScope.launch {
-                                Toast.makeText(
-                                    baseContext, "Màn hình sẽ xoay sau 5s",
-                                    Toast.LENGTH_SHORT
-                                ).show()
-                                delay(5000)
-                                CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                            }
-
-                        } catch (e: Exception) {
-                            Log.e("orientation", "Error parsing orientation")
-                        }
-                    }
-                }
 
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     clearDatastore()
@@ -626,16 +654,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         currentTime.toString()
                     )
                     playerManager.stopForceMedia()
-
                     Handler().postDelayed({
                         recreate()
-
                     }, 1000)
                 }
 
                 HubCommand.DELETE_MONTHLY_LIST_WSS -> {
                     Log.d("sds", "handleFromCommandServer: $message ")
-
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
@@ -653,7 +678,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    Log.d("tesstlive", "handleFromCommandServer: live")
                     ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
                     ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
@@ -989,6 +1013,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun clearDatastore() {
+        //Luon de trong 500mb
+        //Xoa file khong co trong lich khong du se dung download
         //limit free data 1 gb
 //        val limit = 1000000000
         //limit free data 500 mb
@@ -1056,5 +1082,20 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
         val jsonMapAdapter: JsonAdapter<Map<String, String>> =
             moshi.adapter(typeMap)
+    }
+
+    override fun onHubConnected() {
+        lifecycleScope.launch {
+            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
+            listMediaLog.forEach{
+                hubManager.sendUnsentLogMediaSuccess(it)
+                mediaLogDao.deleteMediaItemById(it.id)
+            }
+        }
+        Log.d("HubObverse", "onHubConnected")
+    }
+
+    override fun onHubDisConnected() {
+        Log.d("HubObverse", "onHubDisConnected")
     }
 }

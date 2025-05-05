@@ -14,8 +14,6 @@ object ConfigUtil {
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
-    const val URL_HUB = "URL_HUB"
-    const val URL_TOKEN = "URL_TOKEN"
     const val KEY_LIST_LEFT_PREF = "KEY_LIST_LEFT_PREF"
     const val PROVIDER = "PROVIDER"
     const val DEFAULT_ANDROID_VOLUME = "DEFAULT_ANDROID_VOLUME"
@@ -25,6 +23,17 @@ object ConfigUtil {
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
     const val PHOTO_HOLDER_URL = "PHOTO_HOLDER_URL"
+    //
+    const val URL_HUB = "URL_HUB"
+    const val URL_TOKEN = "URL_TOKEN"
+    const val USERNAME = "USERNAME"
+    const val PASSWORD = "PASSWORD"
+    const val USERNAME_KEY = "USERNAME_KEY"
+    const val PASSWORD_KEY = "PASSWORD_KEY"
+    const val URL_MQTT = "URL_MQTT"
+    const val URL_MQTT_INFO = "URL_MQTT_INFO"
+    const val URL_MQTT_SOURCE = "URL_MQTT_SOURCE"
+    const val URL_WSS = "URL_WSS"
 
 
     fun putString(context: Context, key: String?, value: String?) {
@@ -40,10 +49,10 @@ object ConfigUtil {
         editor.apply()
     }
 
-//    fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
-//
-//        return getEncryptedSharedPreferences(context).getString(key,defaultValue)
-//    }
+    fun getStringEncrypt(context: Context, key: String): String {
+
+        return getEncryptedSharedPreferences(context).getString(key,"") ?: ""
+    }
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(
             context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
@@ -56,7 +65,6 @@ object ConfigUtil {
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
     }
-
 
     fun getString(context: Context, key: String?, defaultValue: String?): String? {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

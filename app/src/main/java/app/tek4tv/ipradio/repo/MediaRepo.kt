@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
@@ -14,6 +15,7 @@ import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
@@ -36,7 +38,6 @@ import javax.inject.Singleton
 
 @Singleton
 class MediaRepo @Inject constructor(
-    private val playlistService: PlaylistService,
     moshi: Moshi,
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
@@ -55,7 +56,9 @@ class MediaRepo @Inject constructor(
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
-    val mediaStoragePath = appContext.filesDir.path
+    val mediaStoragePath: String = appContext.filesDir.path
+    //250mb
+    val Limit_Storage : Long = 262144000
 
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
@@ -229,6 +232,8 @@ class MediaRepo @Inject constructor(
         //6 - Bản tin FM
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
+        //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
+        if(getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
         if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
 
@@ -290,6 +295,7 @@ class MediaRepo @Inject constructor(
             }
         })
     }
+
     fun downloadImage(url : String)
     {
         val fileName = getFileNameFromUrl(url)
@@ -312,5 +318,10 @@ class MediaRepo @Inject constructor(
         })
     }
 
+    fun getAvailableStorage() : Long{
+        val totalStorage = appStorageManager.getTotalRomStorage()
+        val usedStorage = appStorageManager.getUsedRomStorage()
+        return totalStorage - usedStorage
+    }
 
 }

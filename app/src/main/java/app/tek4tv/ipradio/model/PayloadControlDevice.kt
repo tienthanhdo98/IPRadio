@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.core
+package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass

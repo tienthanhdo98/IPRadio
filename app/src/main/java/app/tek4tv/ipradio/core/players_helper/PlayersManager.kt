@@ -33,8 +33,8 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    private val appContext: Context,
-    private val vlcVideoLayout: VLCVideoLayout,
+    appContext: Context,
+    vlcVideoLayout: VLCVideoLayout,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
@@ -195,21 +195,22 @@ class PlayersManager(
     }
 
     fun resumeMedia() {
-        val now = Calendar.getInstance().timeInMillis
-        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
-        val timeEnd = currentPauseTimePlayer + mediaDuration
-        Log.d("CONTROL_MEDIA", "resume: now $now")
-        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
-        if (now < timeEnd) {
-            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
-            vlcPlayer.resume()
-
-        } else {
-            if (currentPauseTimePlayer != 0L) {
-                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
-                startFirstTimeFrame()
-            }
-        }
+//        val now = Calendar.getInstance().timeInMillis
+//        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
+//        val timeEnd = currentPauseTimePlayer + mediaDuration
+//        Log.d("CONTROL_MEDIA", "resume: now $now")
+//        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
+//        if (now < timeEnd) {
+//            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
+//            vlcPlayer.resume()
+//
+//        } else {
+//            if (currentPauseTimePlayer != 0L) {
+//                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
+//                startFirstTimeFrame()
+//            }
+//        }
+        vlcPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
@@ -412,7 +413,7 @@ class PlayersManager(
                     //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
                 }
             forceMedia.saveItemToPref(context)
-            playForceMedia(forceMedia, mediaScheduler, false)
+//            playForceMedia(forceMedia, mediaScheduler, false)
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -427,7 +428,7 @@ class PlayersManager(
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllScheduledListAlarm()
 
-//           forceMedia.saveItemToPref()
+//           forceMedia.saveItemToPref(appContext)
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()

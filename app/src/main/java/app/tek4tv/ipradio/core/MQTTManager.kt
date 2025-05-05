@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.model.NoiDungMQTT
+import app.tek4tv.ipradio.utils.ConfigUtil
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.*
 
@@ -30,7 +31,7 @@ class MQTTManager(
 
         //val serverURI = "tcp://mqtt-ttn.longan.gov.vn:1884"
         //     val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
-        val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
+        val serverURI = ConfigUtil.getStringEncrypt(context,ConfigUtil.URL_MQTT)
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
