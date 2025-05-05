@@ -222,11 +222,11 @@ class Utils {
             return type
 
         }
-        fun getDeviceInfo(valueName: String,deviceInfo: String?, ): String {
+        fun getDeviceInfo(valueName: String,deviceInfo: String?, ): String? {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {
                 Log.d("debugLog", "getDeviceInfo: deviceInfo is null or empty")
-                return ""
+                return null
             }
             // Check if deviceInfo contains expected pattern
             if (deviceInfo.contains("$$,1,8")) {
@@ -235,20 +235,20 @@ class Utils {
                 // Ensure the list has enough elements before accessing indexes
                 if (listInfo.size < 12) {  // 12 because we're accessing index 11 later
                     Log.d("debugLog", "getDeviceInfo: Insufficient data in deviceInfo")
-                    return ""
+                    return null
                 }
 
                 val result = when (valueName) {
                     StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: ""
                     StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: ""
                     StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: ""
-                    else -> ""
+                    else -> null
                 }
                 Log.d("debugLog", "getDeviceInfo: Extracted result -> $result")
                 return result
             } else {
                 Log.d("debugLog", "getDeviceInfo: Pattern not found in deviceInfo $deviceInfo")
-                return ""
+                return null
             }
         }
 

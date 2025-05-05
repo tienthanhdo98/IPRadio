@@ -4,6 +4,7 @@ package app.tek4tv.ipradio.ui
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -11,6 +12,7 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -56,6 +58,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
+@RequiresApi(Build.VERSION_CODES.N)
 class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
