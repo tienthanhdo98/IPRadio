@@ -27,6 +27,7 @@ class GlobalProperties {
     var piCode = "0"
     var psName = "AAA"
     var nameDevice = "Bảng Điện Tử Xã Ba Cung"
+
     //var nameDevice = "Bảng Điện Tử Xã Ba Tơ"
     var resumeFromStart = false
     var lat: Float = 0f
@@ -42,10 +43,11 @@ class GlobalProperties {
     init {
         ////ha nam
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
+        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "0") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử Xã Ba Cung") ?: "Bảng Điện Tử Xã Ba Cung"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử Xã Ba Cung")
+            ?: "Bảng Điện Tử Xã Ba Cung"
         //nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Bảng Điện Tử Xã Ba Tơ") ?: "Bảng Điện Tử Xã Ba Tơ"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
@@ -128,7 +130,7 @@ class GlobalProperties {
         }
         if (responseHub.deviceName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
-            nameDevice = responseHub.deviceName?: ""
+            nameDevice = responseHub.deviceName ?: ""
         }
 
         if (responseHub.psName != "") {
@@ -158,7 +160,7 @@ class GlobalProperties {
         volume = vol
     }
 
-//    fun setTempVolume(vol: String) {
+    //    fun setTempVolume(vol: String) {
 //        ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
 //        volume = vol
 //    }

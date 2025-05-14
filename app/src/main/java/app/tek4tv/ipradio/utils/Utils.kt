@@ -14,7 +14,7 @@ import java.util.*
 class Utils {
     companion object {
         const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
+        const val ENCRYPTED_STORAGE_INFO = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
         const val DEVICE_ID = "device_id"
         const val APP_VERSION = "APP_VERSION"
@@ -88,6 +88,7 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+
         fun roundToNearestNumber(number: Int): Int {
             // Calculate remainder when dividing by 10
             val remainder = number % 10
@@ -96,40 +97,41 @@ class Utils {
             return if (remainder <= 4) {
                 (number - remainder) / 10
             } else {
-                ( number + (10 - remainder)) / 10
+                (number + (10 - remainder)) / 10
             }
         }
+
         //the loai
         fun convertContentType(strContentType: String): ContentType {
 
-            val contentType: ContentType =  when (strContentType) {
+            val contentType: ContentType = when (strContentType) {
                 "1" -> {
                     ContentType(1, "1")
                 }
                 "2" -> {
-                    ContentType(2,  "2")
+                    ContentType(2, "2")
                 }
                 "3" -> {
-                    ContentType(3,  "3")
+                    ContentType(3, "3")
                 }
                 "4" -> {
-                    ContentType(4,  "4")
+                    ContentType(4, "4")
                 }
                 "5" -> {
-                    ContentType(5,  "5")
+                    ContentType(5, "5")
                 }
                 "6" -> {
-                    ContentType(6,  "6")
+                    ContentType(6, "6")
                 }
                 else -> {
-                    ContentType(1,  "1")
+                    ContentType(1, "1")
                 }
             }
             return contentType
         }
 
         //do uu tien
-        fun convertPriority(priorityLevel: String) : Priority{
+        fun convertPriority(priorityLevel: String): Priority {
 //            val priority : Priority = when (priorityLevel) {
 //                "1" -> {
 //                    Priority(1,StringValue.priority1)
@@ -145,13 +147,13 @@ class Utils {
 //                    Priority(1, StringValue.priority1)
 //                }
 //            }
-            val priority : Priority = when (priorityLevel) {
+            val priority: Priority = when (priorityLevel) {
                 "1" -> {
-                    Priority(1,"1")
+                    Priority(1, "1")
 
                 }
                 "2" -> {
-                    Priority(2,"2")
+                    Priority(2, "2")
                 }
                 "3" -> {
                     Priority(3, "3")
@@ -194,16 +196,16 @@ class Utils {
             }
             return category
         }
-        fun convertAuthor(tacGia : TacGia) : Author
-        {
+
+        fun convertAuthor(tacGia: TacGia): Author {
             return Author(
                 fullName = tacGia.tenDayDu,
                 userName = tacGia.butDanh,
                 email = tacGia.email,
             )
         }
-        fun getTypeOfMediaItem(contentTypeId : Int) : String
-        {
+
+        fun getTypeOfMediaItem(contentTypeId: Int): String {
             var type = "VOD"
             if (contentTypeId == 5) {
                 type = "VOD"
@@ -215,7 +217,7 @@ class Utils {
 
         }
 
-        fun getDeviceInfo(valueName: String,deviceInfo: String?): String {
+        fun getDeviceInfo(valueName: String, deviceInfo: String?): String {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {
                 return ""
@@ -240,6 +242,7 @@ class Utils {
                 return ""
             }
         }
+
         fun bytesToBinaryGB(bytes: Long): Double {
             // 1 Binary GB = 1024^3 bytes
             val divisor = 1024.0 * 1024.0 * 1024.0  // or 1073741824.0

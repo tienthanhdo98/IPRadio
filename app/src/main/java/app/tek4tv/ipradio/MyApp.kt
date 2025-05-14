@@ -30,35 +30,35 @@ class MyApp : Application() {
 
         serialPortController = SerialPortController(applicationContext, appScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
-        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "tek4tv_quangngai")
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(applicationContext, ConfigUtil.USERNAME, "tek4tv_quangngai")
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.PASSWORD,
             "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1"
         )
-        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "USERNAME")
-        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(applicationContext, ConfigUtil.USERNAME_KEY, "USERNAME")
+        ConfigUtil.putString(applicationContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://gateway-thongtinnguon.tek4tv.vn/api/v2/oauth/token"
+            "https://gateway-thongtinnguon.quangngai.gov.vn/api/v2/oauth/token"
         )
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_MQTT,
-            "tcp://mqtt-digital-thongtinnguon.quangngai.gov.vn:1887"
+            "tcp://mqtt-digital-thongtinnguon.quangngai.gov.vn:1884"
         )
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_MQTT_INFO,
-            "https://gateway-thongtinnguon.tek4tv.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+            "https://gateway-thongtinnguon.quangngai.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
         )
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_MQTT_SOURCE,
             "https://v2-provider-data-warehouse.tek4tv.vn/Source/"
         )
-        ConfigUtil.putStringEncrypt(
+        ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_WSS,
             "wss://websocket-thongtinnguon.quangngai.gov.vn/ws/digital"

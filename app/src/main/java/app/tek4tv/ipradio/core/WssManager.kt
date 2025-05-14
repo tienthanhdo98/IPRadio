@@ -11,7 +11,11 @@ import okhttp3.WebSocketListener
 import okio.ByteString
 import java.util.concurrent.TimeUnit
 
-class WssManager(private var hubToken : String?, private val context: Context, private val connectEventListener : IConnectionServer) {
+class WssManager(
+    private var hubToken: String?,
+    private val context: Context,
+    private val connectEventListener: IConnectionServer
+) {
     val TAG = "WssManager"
     private var webSocket: WebSocket? = null
     private var client: OkHttpClient? = null
@@ -23,7 +27,7 @@ class WssManager(private var hubToken : String?, private val context: Context, p
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("Websocket receive", text )
+            Log.d("Websocket receive", text)
             //Vừa kết nối được lại hub
             connectEventListener.onReceiveMessageSuccess(message = text)
         }
@@ -43,19 +47,18 @@ class WssManager(private var hubToken : String?, private val context: Context, p
             connectEventListener.onConnectFailure(t.message)
         }
     }
-    fun sendMessage(message : String)
-    {
+
+    fun sendMessage(message: String) {
         webSocket?.send(message)
     }
 
-    fun connectToWss()
-    {
+    fun connectToWss() {
         client = OkHttpClient.Builder(
         ).connectTimeout(60, TimeUnit.SECONDS)
             .pingInterval(10, TimeUnit.SECONDS)
             .build()
         //wss://gateway-qltt.tek4tv.vn/ws/ipradio
-        val url = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_WSS)
+        val url = ConfigUtil.getString(context, ConfigUtil.URL_WSS, "")!!
         val request =
             Request.Builder().url(url)
                 .addHeader("Authorization", "Bearer $hubToken").build()

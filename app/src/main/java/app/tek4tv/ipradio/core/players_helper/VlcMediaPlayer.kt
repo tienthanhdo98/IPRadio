@@ -18,6 +18,7 @@ import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import org.videolan.libvlc.interfaces.IMedia
 import org.videolan.libvlc.util.VLCVideoLayout
+import java.io.File
 import java.util.*
 
 
@@ -196,8 +197,10 @@ class VlcMediaPlayer(
         Log.e(TAG, "vlc play file : time stamp $timeStamp")
         val media = mediaItem.getVlcMedia(mLibVLC)
         Log.e(TAG, "vlc play timeStamp $timeStamp")
-        if (timeStamp != -1 && mediaItem.contentType?.value != "2")
+        //neu file chua tai xong ma cho option start-time se khong chay.
+        if (timeStamp != -1 && mediaItem.contentType?.value != "2" && File(mediaItem.body!!).exists()) {
             media.addOption(":start-time=$timeStamp")
+        }
         currentVlcMedia = media
         vlcPlayer.play(media)
     }

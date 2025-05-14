@@ -50,7 +50,9 @@ class HubManager(
 
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    private val deviceImei = Utils.getDeviceId(appContext)
+    //    private val deviceImei = Utils.getDeviceId(appContext)
+    private val deviceImei = "54:78:C9:5D:86:04"
+    //private val deviceImei = "54:78:C9:B8:58:C8"
 
     private var typeMediaItem: ParameterizedType = Types.newParameterizedType(
         MutableList::class.java,
@@ -81,7 +83,7 @@ class HubManager(
         _messageStateFlow.emit(Pair(command, message)) // Update StateFlow
     }
 
-    var versionName = "D76W.4.2.1d"
+    var versionName = "D76M.4.2.1d"
     var nguonId = "H48.52.04"
     var tenNguon = "Xã Ba Cung"
     var dichId = "H48"
@@ -103,19 +105,20 @@ class HubManager(
 
     private fun getHubToken() {
         try {
-            val usernameKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME_KEY)
-            val passwordKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY)
-            val username = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME)
-            val password = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD)
+            val usernameKey = ConfigUtil.getString(appContext, ConfigUtil.USERNAME_KEY, "")
+            val passwordKey = ConfigUtil.getString(appContext, ConfigUtil.PASSWORD_KEY, "")
+            val username = ConfigUtil.getString(appContext, ConfigUtil.USERNAME, "")
+            val password = ConfigUtil.getString(appContext, ConfigUtil.PASSWORD, "")
             val body = mapOf(
-                usernameKey to username,
-                passwordKey to password,
+                usernameKey!! to username!!,
+                passwordKey!! to password!!,
             )
-            val url = ConfigUtil.getStringEncrypt(
+            val url = ConfigUtil.getString(
                 appContext,
                 ConfigUtil.URL_TOKEN,
+                ""
             )
-            val call = authService.getToken(body, url)
+            val call = authService.getToken(body, url!!)
             val response = call.execute()
             if (response.isSuccessful) {
                 pingCounter = 0
@@ -136,7 +139,7 @@ class HubManager(
     private fun getMqttInfo() {
         try {
             val body = MQTTInfoModel(deviceImei)
-            val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_INFO)
+            val url = ConfigUtil.getString(appContext, ConfigUtil.URL_MQTT_INFO, "")!!
             val call = authService.getMQTTInfo(body, "Bearer $hubToken", url)
             val response = call.execute()
             if (response.isSuccessful) {
@@ -171,7 +174,7 @@ class HubManager(
     }
 
     private fun getSourceMQTT(id: String, timNguon: Boolean) {
-        val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_SOURCE)
+        val url = ConfigUtil.getString(appContext, ConfigUtil.URL_MQTT_SOURCE, "")
         try {
             val call = authService.getSourceMQTT("${url}$id")
             val response = call.execute()
@@ -206,7 +209,7 @@ class HubManager(
     }
 
     fun reconnectToServer() {
-        closeConnect()
+//        closeConnect()
         connectToServer()
     }
 
@@ -923,11 +926,6 @@ class HubManager(
 
 
     private fun checkConnection() {
-//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-//
-//            hubComm.forceRestartApp(countForHardRestart)
-//        }
         if (pingCounter >= 3) {
             //Try to reconnect to hub
             hubToken = null
@@ -941,8 +939,6 @@ class HubManager(
         Log.d(TAG, "checkPingToReset: $pingCounter")
         //sau 5s se reset lai app neu api call that bai 60*5000
         if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-//            hubComm.forceRestartApp(countForHardRestart)
             reconnectToServer()
         }
     }

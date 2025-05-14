@@ -4,18 +4,15 @@ import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
-import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
-import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
@@ -23,7 +20,6 @@ import com.downloader.Error
 import com.downloader.OnDownloadListener
 import com.downloader.OnProgressListener
 import com.downloader.OnStartOrResumeListener
-import com.downloader.Progress
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -57,8 +53,9 @@ class MediaRepo @Inject constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     val mediaStoragePath: String = appContext.filesDir.path
+
     //250mb
-    val Limit_Storage : Long = 262144000
+    val Limit_Storage: Long = 262144000
 
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
@@ -75,10 +72,10 @@ class MediaRepo @Inject constructor(
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
 
-            var dayScenario : String? = null
+            var dayScenario: String? = null
 
             if (listMonthSchedule != null) {
-                for(i in listMonthSchedule) {
+                for (i in listMonthSchedule) {
                     if (i.key == currentDate) {
                         Log.e(TAG, "get scenario co data ngay ${i.key}")
                         dayScenario = i.value
@@ -113,7 +110,6 @@ class MediaRepo @Inject constructor(
         try {
             result = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)!!
 
-
             if (result.isNotEmpty()) {
                 Log.e(TAG, "Save ${result.size} to local")
                 saveItemsToFile(result)
@@ -134,7 +130,9 @@ class MediaRepo @Inject constructor(
 
         var res = listOf<MediaItem>()
 
-        val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+        val jsonMonthlyListData =
+            ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+
         Log.e(TAG, "get scenario $jsonMonthlyListData")
         if (jsonMonthlyListData.isNotEmpty()) {
             val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
@@ -145,8 +143,7 @@ class MediaRepo @Inject constructor(
 
                 var dayScenario: String? = null
 
-                for(i in monthlyListData)
-                {
+                for (i in monthlyListData) {
                     if (i.key == currentDate) {
                         Log.e(TAG, "get scenario co data ngay ${i.key}")
                         Log.e(TAG, "get scenario co data ngay $currentDate")
@@ -169,8 +166,7 @@ class MediaRepo @Inject constructor(
                 Log.d(TAG, "Nothing str list to play")
                 res = emptyList()
             }
-        }
-        else {
+        } else {
             Log.d(TAG, "Nothing str list to play")
             res = emptyList()
         }
@@ -181,8 +177,6 @@ class MediaRepo @Inject constructor(
         filterMedia(broadcastList)
         return broadcastList
     }
-
-
 
 
     private fun filterMedia(mediaList: List<MediaItem>) {
@@ -217,11 +211,12 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    private fun getConfigExtension() : String?
-    {
-        return ConfigUtil.getString(appContext,ConfigUtil.KEY_EXTEND_FILE,"mp4,jpg,png")
+    private fun getConfigExtension(): String {
+        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp4,jpg,png")
+            ?: "mp4,jpg,png"
     }
-    var currentMapDownload = mutableMapOf<String,String>()
+
+    var currentMapDownload = mutableMapOf<String, String>()
 
     fun downloadAMediaItem(it: MediaItem) {
         //1 - bản tin ký tự
@@ -233,15 +228,15 @@ class MediaRepo @Inject constructor(
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
         //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
-        if(getAvailableStorage() <= Limit_Storage) return
+        if (getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
-        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2") return
 
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body).extension
 
-        if(extMedia.isEmpty()) return
-        val isFile = getConfigExtension()!!.contains(extMedia)
+        if (extMedia.isEmpty()) return
+        val isFile = getConfigExtension().contains(extMedia)
 
         if (!isFile) return
 
@@ -285,8 +280,9 @@ class MediaRepo @Inject constructor(
                 }
 
             }
-            processListener = OnProgressListener {progress ->
-                val percentage = if (progress.totalBytes > 0) (progress.currentBytes * 100) / progress.totalBytes else 0
+            processListener = OnProgressListener { progress ->
+                val percentage =
+                    if (progress.totalBytes > 0) (progress.currentBytes * 100) / progress.totalBytes else 0
                 currentMapDownload[it.body!!] = "${percentage}/100}"
                 //Log.d("downloaditem", "downloadAMediaItem: ${it.title} - ${percentage}/100}")
             }
@@ -296,8 +292,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    fun downloadImage(url : String)
-    {
+    fun downloadImage(url: String) {
         val fileName = getFileNameFromUrl(url)
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
@@ -318,7 +313,7 @@ class MediaRepo @Inject constructor(
         })
     }
 
-    fun getAvailableStorage() : Long{
+    fun getAvailableStorage(): Long {
         val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
         return totalStorage - usedStorage

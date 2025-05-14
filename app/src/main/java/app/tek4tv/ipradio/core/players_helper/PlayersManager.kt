@@ -39,7 +39,7 @@ class PlayersManager(
 ) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this,vlcVideoLayout)
+    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this, vlcVideoLayout)
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
 
@@ -78,7 +78,7 @@ class PlayersManager(
 
     private var currentTextPlaylist = listOf<MediaItem>()
 
-    override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItem) {
+    override fun onPlayerError(e: Exception?, isLiveError: Boolean, mediaItem: MediaItem) {
         if (isLiveError) {
             //To log stream played duration
             onMediaStopPlaying()
@@ -110,14 +110,16 @@ class PlayersManager(
         }
         played = false
     }
-    fun stopLeftPlaylist()
-    {
+
+    fun stopLeftPlaylist() {
         playerManagerListener?.onEndLeftMediaPlaying()
     }
+
     fun startLeftTimeFrame(timeFrame: String) {
         val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: emptyList()
         playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
     }
+
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -267,26 +269,25 @@ class PlayersManager(
         }
     }
 
-    private fun playLiveStream(mediaItem: MediaItem,isForce : Boolean,timeStamp: Int ) {
-        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+    private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
-        vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
+        vlcPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
         currentPlayer = vlcPlayer
     }
 
-    fun   stopAllPlayer() {
+    fun stopAllPlayer() {
         vlcPlayer.stop()
         exoPlayer.stop()
         played = false
     }
-    fun stopAndEndTimeFrame(type: String)
-    {
+
+    fun stopAndEndTimeFrame(type: String) {
         vlcPlayer.stop()
         exoPlayer.stop()
         played = false
         playerManagerListener?.onTimeOver()
-        if(type != FULL_SCREEN)
-        {
+        if (type != FULL_SCREEN) {
             stopLeftPlaylist()
         }
 
@@ -310,7 +311,9 @@ class PlayersManager(
      * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
-            val mediaList = mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN } ?: return Pair(0, 0)
+            val mediaList =
+                mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+                    ?: return Pair(0, 0)
             val now = Calendar.getInstance()
             val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
 
@@ -358,11 +361,11 @@ class PlayersManager(
         checkTimeOver()
     }
 
-    private fun stopTimeFrame()
-    {
+    private fun stopTimeFrame() {
         playerManagerListener?.onTimeOver()
         Log.d("turnPA", "onTimeOver: stop time frame")
     }
+
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
 

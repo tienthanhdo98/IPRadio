@@ -25,23 +25,23 @@ class MainViewModel @ViewModelInject constructor(
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
 
-    fun rescheduleMonthlyPlaylist()
-    {
-        val jsonMonthlyListData = ConfigUtil.getString(MyApp.instance!!.baseContext,
-            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+    fun rescheduleMonthlyPlaylist() {
+        val jsonMonthlyListData = ConfigUtil.getString(
+            MyApp.instance!!.baseContext,
+            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, ""
+        ) ?: ""
         updateMonthlyScenarioWss(jsonMonthlyListData)
     }
 
 
-    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
-    {
+    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String) {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenarioWss(strJsonMonthSchedule)
             getPlayerContentWss()
         }
     }
-    fun getPlayerContentWss()
-    {
+
+    fun getPlayerContentWss() {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -57,7 +57,6 @@ class MainViewModel @ViewModelInject constructor(
             }
         }
     }
-
 
 
     fun checkPlaylist() {

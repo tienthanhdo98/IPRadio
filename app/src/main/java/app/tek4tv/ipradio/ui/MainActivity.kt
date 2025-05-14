@@ -1,6 +1,8 @@
 package app.tek4tv.ipradio.ui
 
 import android.Manifest
+import android.app.AppOpsManager
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.graphics.Bitmap
@@ -20,7 +22,6 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.tek4tv.digitalsignage.utils.MediaCapture
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
 import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
@@ -28,7 +29,6 @@ import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
-import app.tek4tv.ipradio.model.TacGia
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
@@ -103,7 +103,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private lateinit var playerManager: PlayersManager
 
 
-
     private lateinit var logUtils: LogUtils
 
     var locationTracker = LocationTracker()
@@ -141,16 +140,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             ForceMedia.deleteForeMediaPref(applicationContext)
             val oldTypeScreen = ConfigUtil.getString(
                 context = baseContext,
-                TYPE_PRE_SCREEN_KEY,
-                FULL_SCREEN
-            )
+                TYPE_PRE_SCREEN_KEY, FULL_SCREEN
+            ) ?: FULL_SCREEN
             ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 //            startPlayingMedia()
             Handler().postDelayed({
                 recreate()
 
             }, 1000)
-
         }
 
         //Lỗi luồng live
@@ -182,9 +179,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) StringValue.PAStatusOff
                     else StringValue.PAStatusOn
 
-
                 hubManager.sendLogMediaSuccess(mediaItem)
-                if(!hubManager.isConnectSuccess) {
+                if (!hubManager.isConnectSuccess) {
                     lifecycleScope.launch {
                         val tacGia = TacGia(
                             tenDayDu = mediaItem.author?.fullName ?: "",
@@ -209,7 +205,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             thoiLuong = mediaItem.duration,
                             tieuDe = mediaItem.title,
                             loaiLinhVuc = mediaItem.fieldType?.value,
-                            vungPhat =  mediaItem.broadcastRegion!!.value,
+                            vungPhat = mediaItem.broadcastRegion!!.value,
                             nguonTin = mediaItem.sourceName
                         )
                         mediaLogDao.insertLog(mediaLog)
@@ -238,28 +234,23 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen =
-            ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+            ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: FULL_SCREEN
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else if (typeScreen == MULTIPLE_AREA) {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        // Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
+//        if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
+        grantPermissionThoughAdb(baseContext)
 
         val hubComm = object : HubComm {
-//            override fun forceRestartApp(countHardRestart: Int) {
-//                lifecycleScope.launch {
-//                    serialPortController.turnOffPA()
-//                    delay(3000)
-//                    CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-//                }
-//            }
 
             override fun forceRestartDevice() {
-                Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
+                Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT)
+                    .show()
                 lifecycleScope.launch {
                     delay(5000)
                     serialPortController.hardRestart()
@@ -267,9 +258,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
             }
         }
-
-
-
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
@@ -369,6 +357,59 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
 
+    fun isPermissionGranted(permission: String): Boolean {
+        return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun isUsageStatsPermissionGranted(context: Context): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS,
+            android.os.Process.myUid(),
+            context.packageName
+        )
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    private fun grantPermissionThoughAdb(context: Context) {
+        val packageName = "app.tek4tv.digital"
+
+        if (!isPermissionGranted(Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            Log.d("PermissionCheck", "Granting READ_EXTERNAL_STORAGE...")
+            execSu("pm grant $packageName android.permission.READ_EXTERNAL_STORAGE")
+        } else {
+            Log.d("PermissionCheck", "READ_EXTERNAL_STORAGE already granted.")
+        }
+
+        if (!isPermissionGranted(Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            Log.d("PermissionCheck", "Granting WRITE_EXTERNAL_STORAGE...")
+            execSu("pm grant $packageName android.permission.WRITE_EXTERNAL_STORAGE")
+        } else {
+            Log.d("PermissionCheck", "WRITE_EXTERNAL_STORAGE already granted.")
+        }
+
+        if (!isUsageStatsPermissionGranted(context)) {
+            Log.d("PermissionCheck", "Granting GET_USAGE_STATS via appops...")
+            execSu("appops set $packageName GET_USAGE_STATS allow")
+        } else {
+            Log.d("PermissionCheck", "GET_USAGE_STATS already allowed.")
+        }
+
+        if (!isPermissionGranted(Manifest.permission.READ_PHONE_STATE)) {
+            Log.d("PermissionCheck", "Granting READ_PHONE_STATE...")
+            execSu("pm grant $packageName android.permission.READ_PHONE_STATE")
+        } else {
+            Log.d("PermissionCheck", "READ_PHONE_STATE already granted.")
+        }
+
+        if (!isPermissionGranted(Manifest.permission.RECORD_AUDIO)) {
+            Log.d("PermissionCheck", "Granting RECORD_AUDIO...")
+            execSu("pm grant $packageName android.permission.RECORD_AUDIO")
+        } else {
+            Log.d("PermissionCheck", "RECORD_AUDIO already granted.")
+        }
+    }
+
     private fun checkDeleteFileUpdate() {
         val destination = getDestinationApk()
         val file = File(destination)
@@ -379,13 +420,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
     }
+
     lateinit var tvDownload: TextView
     private fun initDataByScreen() {
         val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
         initPhotoHolder(url)
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
-            tvDownload = findViewById<TextView>(R.id.tvDownload)
+            tvDownload = findViewById(R.id.tvDownload)
             val tvPlaying = findViewById<TextView>(R.id.tvPlaying)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
             val info = "${Utils.getDeviceId(this)} - ${hubManager.versionName}"
@@ -768,7 +810,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
 
                 HubCommand.RESTART -> {
-                    Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        baseContext,
+                        resources.getString(R.string.reset),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     lifecycleScope.launch {
                         delay(5000)
                         serialPortController.hardRestart()
@@ -787,16 +833,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             changeVolume(
                                 (ConfigUtil.getString(
                                     baseContext,
-                                    DEFAULT_ANDROID_VOLUME,
-                                    "10"
+                                    DEFAULT_ANDROID_VOLUME, "10"
                                 ) ?: "10").toInt()
                             )
                             globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
                             globalProperties.saveVolume(
                                 (ConfigUtil.getString(
                                     baseContext,
-                                    DEFAULT_VOLUME,
-                                    "100"
+                                    DEFAULT_VOLUME, "100"
                                 ) ?: "100")
                             )
                         }
@@ -1039,11 +1083,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 val timeUpdate =
                     ConfigUtil.getString(
                         baseContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        "0"
-                    )!!
+                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
+                    ) ?: "0"
                 val idPlaylist =
-                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
+                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: ""
                 val scheduledList = viewModel.mediaRepo.timeDividers
                 for (i in scheduledList.keys.indices) {
                     val period = scheduledList.keys.elementAt(i)
@@ -1087,7 +1130,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     override fun onHubConnected() {
         lifecycleScope.launch {
             val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            listMediaLog.forEach{
+            listMediaLog.forEach {
                 hubManager.sendUnsentLogMediaSuccess(it)
                 mediaLogDao.deleteMediaItemById(it.id)
             }
