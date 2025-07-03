@@ -1,13 +1,14 @@
 package app.tek4tv.ipradio.repo
 
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMapAdapter
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.TimeUtils
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
@@ -55,7 +56,7 @@ class MediaRepo @Inject constructor(
     val mediaStoragePath: String = appContext.filesDir.path
 
     //250mb
-    val Limit_Storage: Long = 262144000
+    private val Limit_Storage: Long = 262144000
 
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
@@ -70,7 +71,7 @@ class MediaRepo @Inject constructor(
                 strListMonthSchedule
             )
 
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+            val currentDate = TimeUtils.DATE_FORMATTER.format(Date())
 
             var dayScenario: String? = null
 
@@ -86,7 +87,7 @@ class MediaRepo @Inject constructor(
                 }
             }
             if (dayScenario != null) {
-                Log.e(TAG, "có lịch trong ngày: update ${dayScenario}")
+                Log.e(TAG, "có lịch trong ngày: update $dayScenario")
                 updateScenarioWss(dayScenario)
             } else {
                 //In case there are no scenario for today, don't play anythings
@@ -99,10 +100,6 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
 
     private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
         var result = listOf<MediaItem>()
@@ -145,8 +142,8 @@ class MediaRepo @Inject constructor(
 
                 for (i in monthlyListData) {
                     if (i.key == currentDate) {
-                        Log.e(TAG, "get scenario co data ngay ${i.key}")
-                        Log.e(TAG, "get scenario co data ngay $currentDate")
+                        Log.d(TAG, "get scenario co data ngay ${i.key}")
+                        Log.d(TAG, "get scenario co data ngay $currentDate")
                         dayScenario = i.value
                         break
                     } else {
@@ -212,8 +209,8 @@ class MediaRepo @Inject constructor(
     }
 
     private fun getConfigExtension(): String {
-        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp4,jpg,png")
-            ?: "mp4,jpg,png"
+        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp4,jpg,png,webp")
+            ?: "mp4,jpg,png,webp"
     }
 
     var currentMapDownload = mutableMapOf<String, String>()

@@ -10,10 +10,11 @@ import android.content.Intent
 import android.provider.Settings
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.toCalendar
+import app.tek4tv.ipradio.utils.TimeUtils.toCalendar
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -90,7 +91,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
 
-
     private fun cancelAllListAlarm() {
         val scheduledList = mediaRepo.scheduledList
 
@@ -138,16 +138,16 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
 
-    fun scheduleForceMediaAlarm(forceMedia: ForceMedia) {
+    fun scheduleForceMediaAlarm(forceMedia: MediaItem) {
 
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
         val alarmIntent =
             PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
-        Log.d("alarmx", "force end time ${forceMedia.endTime}")
+        Log.d("alarmx", "force end time ${forceMedia.end}")
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(forceMedia.endTime)
+            time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(forceMedia.end)
         }
         mediaEndTimeInMillis.add(Calendar.SECOND, 2)
         if (mediaEndTimeInMillis.timeInMillis <= Calendar.getInstance().timeInMillis) return
@@ -161,7 +161,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestResetAndRescheduleAlarms,
+                intent,
+                FLAG_IMMUTABLE
+            )
 
         val cal_alarm = Calendar.getInstance()
 
@@ -176,7 +181,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
         cal_alarm.time
         Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
-        val alarmClockInfo = AlarmClockInfo( cal_alarm.timeInMillis, alarmIntent)
+        val alarmClockInfo = AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }

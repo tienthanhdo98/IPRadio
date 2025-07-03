@@ -2,7 +2,7 @@ package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 
-data class WssMediaLogModel(
+data class MediaLogModel(
     @Json(name = "NguonID")
     val nguonID: String,
 
@@ -69,4 +69,4 @@ data class WssMediaLogModel(
     @Json(name = "NguonTin")
     val nguonTin: String
 
-    )
+)

@@ -52,16 +52,14 @@ class ResponseHub : Serializable {
     var deviceName: String? = ""
 
     @Json(name = "Lat")
-    var lat: Float ?= null
+    var lat: Float? = null
 
     @Json(name = "Lng")
-    var lng: Float?= null
+    var lng: Float? = null
 
     @Json(name = "UserNameControl")
-    var userNameControl: String?= null
+    var userNameControl: String? = null
 
     @Json(name = "Mode")
-    var mode: String?= null
-
-
+    var mode: String? = null
 }

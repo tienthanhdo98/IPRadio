@@ -10,8 +10,6 @@ data class ReceivedMessageScheduleModel(
     val payload: ReceivedPayloadSchedule?
 )
 
-
-
 data class ReceivedPayloadSchedule(
     @Json(name = "Id")
     val id: String,

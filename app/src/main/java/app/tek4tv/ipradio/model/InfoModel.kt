@@ -2,11 +2,11 @@ package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 
-data class MQTTInfoModel(
+data class InfoModel(
     val BangDienTuID: String? = "",
 )
 
-data class MQTTInfoValueModel(
+data class InfoValueModel(
     @Json(name = "NoiDung")
     val noiDung: List<NoiDungMQTT>?,
 
@@ -16,13 +16,15 @@ data class MQTTInfoValueModel(
     @Json(name = "MoTa")
     val moTa: String?
 )
-data class NoiDungMQTT (
+
+data class NoiDungMQTT(
     val topic: String?,
     val action: String?
 )
+
 data class SourceMQTT(
     @Json(name = "Code")
-    var code : String?,
+    var code: String?,
     @Json(name = "Name")
-    var name : String?
+    var name: String?
 )

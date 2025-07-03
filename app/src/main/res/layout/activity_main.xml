@@ -43,32 +43,18 @@
             app:layout_constraintEnd_toEndOf="parent"
             android:layout_marginEnd="@dimen/_14sdp"
             android:layout_marginBottom="30dp"
-            android:elevation="16dp"
-            >
-        <TextView
-            android:id="@+id/tvCheckInternet"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:textColor="@color/white"
-            android:padding="@dimen/_2sdp"
-            android:textSize="@dimen/_5sdp"
-            android:background="@color/green_online"
-             />
+            android:elevation="16dp">
+
+            <TextView
+                android:id="@+id/tvCheckInternet"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="@color/white"
+                android:padding="@dimen/_2sdp"
+                android:textSize="@dimen/_5sdp"
+                android:background="@color/green_online" />
         </com.google.android.material.card.MaterialCardView>
 
-        <TextView
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:id="@+id/tvPlaying"
-            android:background="@color/black"
-            android:backgroundTint="@color/black"
-            android:layout_marginEnd="20dp"
-            android:textColor="@color/white"
-            app:layout_constraintTop_toTopOf="parent"
-            app:layout_constraintStart_toStartOf="parent"
-            app:layout_constraintEnd_toEndOf="parent"
-            android:layout_marginTop="@dimen/_15sdp"
-            />
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
@@ -78,26 +64,7 @@
             android:textColor="@color/white"
             app:layout_constraintTop_toTopOf="@id/card_status"
             app:layout_constraintBottom_toBottomOf="@id/card_status"
-            app:layout_constraintEnd_toStartOf="@id/card_status"/>
-        <LinearLayout
-            android:orientation="vertical"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            app:layout_constraintTop_toTopOf="@id/tvMac"
-            app:layout_constraintBottom_toBottomOf="@id/tvMac"
-            app:layout_constraintEnd_toStartOf="@id/tvMac"
-            >
-            <TextView
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:id="@+id/tvDownload"
-                android:background="@android:color/transparent"
-                android:layout_marginEnd="20dp"
-                android:textColor="@color/white"
-               />
-
-        </LinearLayout>
-
+            app:layout_constraintEnd_toStartOf="@id/card_status" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
 

@@ -1,14 +1,13 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.TimeUtils.getDurationInSecond
+import app.tek4tv.ipradio.utils.TimeUtils.toCalendar
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
-import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
@@ -16,31 +15,25 @@ import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import okhttp3.OkHttpClient
-import org.videolan.libvlc.Media
-import java.io.File
 import java.util.*
 
 
 //Mainly for playing m3u8 stream
 class ExoMediaPlayer(
     appContext: Context,
-    private val eventListener: IPlayerEventListener) : IMediaPlayer {
+    eventListener: IPlayerEventListener
+) : BaseMediaPlayer(eventListener) {
 
     private val TAG = "ExoMediaPlayer"
 
     private val exoPlayer: ExoPlayer
 
-    private var currentPlayingMedia: MediaItem? = null
-
     private var isPlaying = false
     private var isForceValue = false
 
-    override var disconnectedHub = false
 
     private var dataSourceFactory: DefaultDataSourceFactory
-    override fun isPlaying(): Boolean = isPlaying
 
-    var handler: Handler? = null
 
     var countReplayLive = 0
     private val exoEventListener = object : Player.Listener {
@@ -51,23 +44,21 @@ class ExoMediaPlayer(
             this@ExoMediaPlayer.isPlaying = isPlaying
 
             if (isPlaying) {
-                eventListener.onPlayMediaSuccess(currentPlayingMedia)
+                eventListener.onPlayMediaSuccess(currentMedia)
                 Log.i(TAG, "onPlaybackStateChanged: onIsPlayingChanged")
             }
         }
 
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
-            if(state == Player.STATE_ENDED)
-            {
+            if (state == Player.STATE_ENDED) {
                 Log.i(TAG, "onPlaybackStateChanged: end reach")
             }
             if (state == Player.STATE_BUFFERING) {
                 Log.i(TAG, "onPlaybackStateChanged: Buff")
             }
 
-            if(state == Player.STATE_READY)
-            {
+            if (state == Player.STATE_READY) {
                 Log.i(TAG, "onPlaybackStateChanged: play")
             }
         }
@@ -75,29 +66,26 @@ class ExoMediaPlayer(
         override fun onPlayerError(error: PlaybackException) {
             super.onPlayerError(error)
             Log.d(TAG, "exoerror: ${error.message ?: ""}")
-            if (disconnectedHub) return
             isPlaying = false
             try {
-                val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
+                val isStreamInTimeFrame = checkHls(currentMedia!!)
                 Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
                 if (isForceValue) {
                     if (isStreamInTimeFrame) {
-                        eventListener.onPlayerError(error, true, currentPlayingMedia!!)
+                        eventListener.onPlayerError(error, true, currentMedia!!)
                         Handler(Looper.getMainLooper()).postDelayed({
-                            countReplayLive++;
+                            countReplayLive++
                             Log.d(TAG, "onLiveErrorVlc: Chay lai live")
-                            playMedia(currentPlayingMedia!!, isForceValue)
+                            playMedia(currentMedia!!, isForceValue)
                         }, 10000)
                     } else {
                         Log.d(TAG, "Stopping from reconnect")
                         stop()
                     }
-                }
-                else{
-                    if(isStreamInTimeFrame)
-                    {
-                        val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
-                        playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
+                } else {
+                    if (isStreamInTimeFrame) {
+                        val resumeTime = calculateResumeLivePoint(currentMedia!!)
+                        playMedia(currentMedia!!, isForceValue, resumeTime)
                     }
 
                 }
@@ -123,21 +111,19 @@ class ExoMediaPlayer(
 
     }
 
-    override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
-        if(isPlaying) stop()
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        if (isPlaying) stop()
 
         try {
 
 
-            currentPlayingMedia = mediaItem
-                    isForceValue = isForce
-                    Log.e(TAG, "Exoplayer is force $isForceValue")
-                    playHlsExo(mediaItem, timeStamp)
+            currentMedia = mediaItem
+            isForceValue = isForce
+            Log.e(TAG, "Exoplayer is force $isForceValue")
+            playHlsExo(mediaItem, timeStamp)
 
 
-        }
-        catch (e :Exception)
-        {
+        } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
         }
@@ -159,16 +145,12 @@ class ExoMediaPlayer(
                 {
                     exoPlayer.stop()
                     Log.d(TAG, "stop")
-                    eventListener.onMediaEndReached(currentPlayingMedia)
+                    eventListener.onMediaEndReached(currentMedia)
                 },
                 (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
             )
         }
 
-
-    }
-
-    override fun reset() {
 
     }
 
@@ -185,7 +167,7 @@ class ExoMediaPlayer(
             handler?.removeCallbacksAndMessages(null)
             exoPlayer.stop()
             isPlaying = false
-            currentPlayingMedia = null
+            currentMedia = null
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -202,20 +184,6 @@ class ExoMediaPlayer(
     override fun release() {
         exoPlayer.release()
     }
-
-    override fun onLostHubConnection() {
-        disconnectedHub = true
-    }
-
-    override fun onHubReconnected() {
-        disconnectedHub = false
-
-        if (currentPlayingMedia != null && checkHls(currentPlayingMedia!!) && !isPlaying) {
-            playMedia(currentPlayingMedia!!,isForceValue)
-        }
-    }
-
-
 
     /**
      * Check if a stream is still in time to play

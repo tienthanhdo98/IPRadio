@@ -4,6 +4,7 @@ import android.app.Application
 import android.util.Log
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
@@ -20,6 +21,7 @@ class MyApp : Application() {
     private val UART_S4_NAME = "/dev/ttyS4"
     var appScope = CoroutineScope(Dispatchers.IO + SupervisorJob())
 
+
     override fun onCreate() {
         super.onCreate()
         instance = this
@@ -30,28 +32,33 @@ class MyApp : Application() {
 
         serialPortController = SerialPortController(applicationContext, appScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
-        ConfigUtil.putString(applicationContext, ConfigUtil.USERNAME, "tek4tv_quangngai")
+        ConfigUtil.putString(applicationContext, ConfigUtil.USERNAME, "tek4tv_hanam")
         ConfigUtil.putString(
             applicationContext,
             ConfigUtil.PASSWORD,
-            "4bfb2c4a-e049-4d21-86e0-4ffdf854b8a1"
+            "86229b68-b40a-48ed-a708-c69665d660c8"
         )
         ConfigUtil.putString(applicationContext, ConfigUtil.USERNAME_KEY, "USERNAME")
         ConfigUtil.putString(applicationContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
         ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://gateway-thongtinnguon.quangngai.gov.vn/api/v2/oauth/token"
+            "https://gateway-thongtinnguon.hanam.gov.vn/api/v2/oauth/token"
+        )
+        ConfigUtil.putString(
+            applicationContext,
+            ConfigUtil.URL_TOKEN,
+            "https://gateway-thongtinnguon.hanam.gov.vn/api/v2/oauth/token"
         )
         ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_MQTT,
-            "tcp://mqtt-digital-thongtinnguon.quangngai.gov.vn:1884"
+            "tcp://mqtt-digital-thongtinnguon.hanam.gov.vn:1884"
         )
         ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_MQTT_INFO,
-            "https://gateway-thongtinnguon.quangngai.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
+            "https://gateway-thongtinnguon.hanam.gov.vn/v2/mqtt-digital/digital/mqtt/dangkythietbi"
         )
         ConfigUtil.putString(
             applicationContext,
@@ -61,7 +68,7 @@ class MyApp : Application() {
         ConfigUtil.putString(
             applicationContext,
             ConfigUtil.URL_WSS,
-            "wss://websocket-thongtinnguon.quangngai.gov.vn/ws/digital"
+            "wss://websocket-thongtinnguon.hanam.gov.vn/ws/digital"
         )
         appScope.launch {
             delay(10000)
@@ -78,5 +85,6 @@ class MyApp : Application() {
         lateinit var hubManager: HubManager
         lateinit var serialPortController: SerialPortController
         lateinit var appStorageManager: AppStorageManager
+        lateinit var playerManager: PlayersManager
     }
 }

@@ -5,6 +5,7 @@ import android.util.Log
 import app.tek4tv.ipradio.model.NoiDungMQTT
 import app.tek4tv.ipradio.utils.ConfigUtil
 import org.eclipse.paho.android.service.MqttAndroidClient
+import org.eclipse.paho.android.service.MqttTraceHandler
 import org.eclipse.paho.client.mqttv3.*
 
 class MQTTManager(
@@ -17,7 +18,8 @@ class MQTTManager(
     private var publishTopicTinh = ""
 
 
-    private var mqttClient: MqttAndroidClient? = null
+    var mqttClient: MqttAndroidClient? = null
+
 
     fun connectToMQTT(context: Context) {
         listMQTTInfo.forEach {
@@ -32,6 +34,23 @@ class MQTTManager(
         //     val serverURI = "tcp://digital-mqtt-staging.thongtinnguon.vn:1884"
         val serverURI = ConfigUtil.getString(context, ConfigUtil.URL_MQTT, "")
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
+        mqttClient?.setTraceEnabled(true)
+
+        mqttClient?.setTraceCallback(object : MqttTraceHandler {
+            override fun traceDebug(tag: String?, message: String) {
+                Log.d("MQTTINFO", "TRACE DEBUG  [$tag]: $message")
+            }
+
+            override fun traceError(tag: String?, message: String) {
+                Log.e("MQTTINFO", "TRACE ERROR  [$tag]: $message")
+            }
+
+            override fun traceException(
+                tag: String?, message: String, e: Exception
+            ) {
+                Log.e("MQTTINFO", "TRACE EXCEPTION  [$tag]: $message", e)
+            }
+        })
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 Log.d(TAG, "Receive message: ${message.toString()} from topic: $topic")
@@ -69,7 +88,7 @@ class MQTTManager(
                     connectEventListener.onConnectFailure(exception.message)
                 }
             })
-        } catch (e: MqttException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -89,7 +108,7 @@ class MQTTManager(
                     Log.d(TAG, "Failed to publish to $publishTopicTinh")
                 }
             })
-        } catch (e: MqttException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -109,7 +128,7 @@ class MQTTManager(
 //                    }
                 }
             })
-        } catch (e: MqttException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }
@@ -127,7 +146,7 @@ class MQTTManager(
                     }
                 })
             }
-        } catch (e: MqttException) {
+        } catch (e: Exception) {
             e.printStackTrace()
         }
     }

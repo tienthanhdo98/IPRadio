@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.utils
 
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
@@ -33,7 +34,6 @@ class Utils {
         const val LEFT_AREA = "2"
         const val RIGHT_AREA = "3"
 
-
         @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
             var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
@@ -64,6 +64,19 @@ class Utils {
             } catch (ex: Exception) {
             }
             return "02:00:00:00:00:00"
+        }
+
+        fun saveListForceToPref(appContext: Context, jsonListMedia: String) {
+            ConfigUtil.run {
+                putBool(appContext, HAVE_FORCE_MEDIA, true)
+                putString(appContext, FORCE_MEDIA, jsonListMedia)
+            }
+        }
+
+        fun getLocalForceMedia(appContext: Context): List<MediaItem>? {
+            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+            if (value == null || value == "") return null
+            return jsonListMediaItemAdapter.fromJson(value)
         }
 
         fun getRootDirPath(context: Context): String {

@@ -3,14 +3,7 @@ package app.tek4tv.ipradio.model
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
-@JsonClass(generateAdapter = true)
-data class ReceivedMessageUpdatePlaylistModel(
-    val id: String?,
-    val topic: String?,
-    val payload: PayloadUpdatePlaylist?
-)
-
-data class PayloadUpdatePlaylist (
+data class PayloadUpdatePlaylist(
     @Json(name = "NguonID")
     val nguonID: String,
 

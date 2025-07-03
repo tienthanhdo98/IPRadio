@@ -6,14 +6,9 @@ import app.tek4tv.ipradio.model.MediaItem
  * Represent a media player
  * **/
 interface IMediaPlayer {
-    var disconnectedHub : Boolean
-    fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int = -1)
-    fun reset()
+    fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int = -1)
     fun stop()
     fun pause()
     fun resume()
     fun release()
-    fun isPlaying() : Boolean
-    fun onLostHubConnection()
-    fun onHubReconnected()
 }

@@ -16,7 +16,7 @@ data class itemMedia
     var danhSachBanTin: DanhSachBanTin
 )
 
-data class DanhSachDiaBanNhan (
+data class DanhSachDiaBanNhan(
     @Json(name = "DichID")
     val dichID: String?,
 
@@ -30,7 +30,7 @@ data class DanhSachDiaBanNhan (
     val bangDienTuID: List<String>?,
 )
 
-data class TacGia (
+data class TacGia(
     @Json(name = "TenDayDu")
     val tenDayDu: String,
 
@@ -51,6 +51,7 @@ data class ThongTinChiTietBanTin(
     @Json(name = "ThoiGianKetThuc")
     val thoiGianKetThuc: Long
 )
+
 data class ThongTinChiTietBanTinTa(
     @Json(name = "Ten")
     val ten: String?,
@@ -79,11 +80,11 @@ data class DanhSachBanTin(
     @Json(name = "DanhSachNgayPhat")
     val danhSachNgayPhat: List<DanhSachNgayPhat>?,
 
-    @Json(name = "NguonID")
-    val nguonID: String?,
-
-    @Json(name = "TenNguon")
-    val tenNguon: String?,
+//    @Json(name = "NguonID")
+//    val nguonID: String?,
+//
+//    @Json(name = "TenNguon")
+//    val tenNguon: String?,
 
     @Json(name = "DanhSachDiaBanNhan")
     val danhSachDiaBanNhan: List<DanhSachDiaBanNhan>?,
