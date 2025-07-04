@@ -85,10 +85,10 @@ class PlayersManager(
         playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
     }
 
-    fun stopLeftPlaylist()
-    {
+    fun stopLeftPlaylist() {
         playerManagerListener?.onEndLeftMediaPlaying()
     }
+
     /**
      * Tìm khung thơi gian hiện tại cần phát
      * **/
@@ -137,15 +137,21 @@ class PlayersManager(
         if (playMode == "") return
 
         playlistIndex++
-        if (playlistIndex < currentPlaylist.size) {
-            Log.d(TAG, "Play media next")
-            playMediaByIndex(playlistIndex)
-        } else {
-            Log.d(TAG, "Play media phat tiep cham dich")
-            stopAllPlayer()
-            stopTimeFrame()
+        try {
+            if (playlistIndex < currentPlaylist.size) {
+                Log.d(TAG, "Play media next")
+                playMediaByIndex(playlistIndex)
+            } else {
+                Log.d(TAG, "Play media phat tiep cham dich")
+                stopAllPlayer()
+                stopTimeFrame()
+            }
+        } catch (e: Exception) {
+
         }
+
     }
+
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
         playMode = ""
@@ -171,7 +177,8 @@ class PlayersManager(
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
         vlcPlayer.pause()
     }
-    var currentPauseTimePlayer : Long = 0
+
+    var currentPauseTimePlayer: Long = 0
     fun resumeMedia() {
         val now = Calendar.getInstance().timeInMillis
         val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
@@ -352,7 +359,7 @@ class PlayersManager(
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
             stopAllPlayer()
-            if(isPlayAtStart) {
+            if (isPlayAtStart) {
                 playMedia(forceMedia.toMediaItem())
             }
 //            playMedia(forceMedia.toMediaItem())
@@ -363,12 +370,10 @@ class PlayersManager(
         }
     }
 
-    fun stopAndEndTimeFrame(type : String)
-    {
+    fun stopAndEndTimeFrame(type: Int) {
         vlcPlayer.stop()
         playerManagerListener?.onTimeOver()
-        if(type != Utils.FULL_SCREEN)
-        {
+        if (type != Utils.FULL_SCREEN) {
             stopLeftPlaylist()
         }
     }

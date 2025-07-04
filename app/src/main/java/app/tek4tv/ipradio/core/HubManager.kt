@@ -36,7 +36,7 @@ import java.util.*
  * receive command, ping
  * **/
 class HubManager(
-    private val appContext : Context,
+    private val appContext: Context,
     private val authService: AuthService
 ) {
     private val LOG_TAG = "HubManager"
@@ -51,10 +51,12 @@ class HubManager(
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val videoAdapter = moshi.adapter(Video::class.java)
-    private val adapterListString: JsonAdapter<List<String>> = moshi.adapter<List<String>>(List::class.java)
+    private val adapterListString: JsonAdapter<List<String>> =
+        moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
-    private val deviceImei = Utils.getDeviceId(appContext)
-   // private val deviceImei = "72:BE:B5:09:17:98"
+
+    //private val deviceImei = Utils.getDeviceId(appContext)
+    private val deviceImei = "54:78:C9:B8:58:C8"
 
     val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
@@ -71,14 +73,14 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = ""
+    var versionName = "D90.4.2.1d"
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
 
     private var hubToken: String? = null
 
-    private var providerValue = ""
+    var providerValue = ""
 
     private var firstConnect = true
 
@@ -96,19 +98,13 @@ class HubManager(
 
 
     init {
-        versionName = try {
-            appContext.packageManager.getPackageInfo(appContext.packageName, 0).versionName
-        } catch (e: Exception) {
-            ""
-        }
         providerValue = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.PROVIDER, "TEK4TV"
+            ConfigUtil.PROVIDER
         )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
-            ConfigUtil.URL_HUB,
-            "https://hubdi-quangngai.tek4tv.vn/hubServer"
+            ConfigUtil.URL_HUB
         ).toString()
 
         hubConnection = HubConnectionBuilder.create(hubUrl)
@@ -133,14 +129,19 @@ class HubManager(
     //lấy token từ hub
     private fun getHubToken(): String? {
         return try {
-            val body = mapOf("Username" to "device", "Password" to "Device@123")
-            //Auth Url encrypted in c++ lib
-
-            val url = ConfigUtil.getStringEncrypt(
-                context = appContext,
-                ConfigUtil.URL_TOKEN,
-                "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
+            val usernameKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME_KEY)
+            val passwordKey = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY)
+            val username = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.USERNAME)
+            val password = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.PASSWORD)
+            val body = mapOf(
+                usernameKey!! to username!!,
+                passwordKey!! to password!!,
             )
+            val url = ConfigUtil.getStringEncrypt(
+                appContext,
+                ConfigUtil.URL_TOKEN,
+            )
+
             val call = authService.getToken(body, url!!)
             val response = call.execute()
 
@@ -358,12 +359,23 @@ class HubManager(
 
             var mode = "-1"
 
-            if (currentMediaItem != null) {
-                val path = currentMediaItem!!.pathBackup
-                mode = if (path.isNotEmpty() && !File(path).exists()) "1"
-                else "0"
-            }
+            //Ban v1
+//            if (currentMediaItem != null) {
+//                val path = currentMediaItem!!.pathBackup
+//                mode = if (path.isNotEmpty() && !File(path).exists()) "1"
+//                else "0"
+//            }
+//            val i = playlistIndex
+//            val video = Video("" + i, mode).apply {
+//                if (currentMediaItem != null) {
+//                    mediaName = curMediaName
+//                    path = currentMediaItem!!.pathBackup
+//                    level = currentMediaItem!!.level
+//                }
+//            }
 
+
+            //Ban v2
             //neu chay da man hinh path se gui la "path1,path2" path vùng 1,2,3
             val mediaPlay = Video("" + playlistIndex, mode).apply {
                 if (currentMediaItem != null) {
@@ -387,7 +399,7 @@ class HubManager(
                 imei = deviceImei
                 status = "START"
                 connectionId = (hubConnection.connectionId)
-                video = videoAdapter.toJson(mediaPlay)
+                this.video = videoAdapter.toJson(mediaPlay)
                 startTime = dateFormat.format(Date())
                 networkInfo = NetworkUtils.getNetworkInfo(appContext)
                 version = versionName

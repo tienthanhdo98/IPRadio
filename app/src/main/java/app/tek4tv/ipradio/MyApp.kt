@@ -5,6 +5,7 @@ import android.util.Log
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.utils.ConfigUtil
 import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.*
 import javax.inject.Inject
@@ -21,8 +22,21 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
-
-        hubManager = HubManager(applicationContext,authService)
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "device")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD, "Device@123")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "Username")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "Password")
+        ConfigUtil.putStringEncrypt(
+            applicationContext,
+            ConfigUtil.URL_TOKEN,
+            "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
+        )
+        ConfigUtil.putStringEncrypt(
+            applicationContext,
+            ConfigUtil.URL_HUB,
+            "https://hubdi-hanam.tek4tv.vn/hubServer"
+        )
+        hubManager = HubManager(applicationContext, authService)
         hubManager.connectToHub()
         serialPortController = SerialPortController(applicationContext, appScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -34,13 +48,14 @@ class MyApp : Application() {
                 Log.i("PA", "onCreate: s4")
             }
         }
-    }
 
+
+    }
 
 
     companion object {
         var instance: MyApp? = null
-        lateinit var hubManager : HubManager
+        lateinit var hubManager: HubManager
         lateinit var serialPortController: SerialPortController
     }
 }

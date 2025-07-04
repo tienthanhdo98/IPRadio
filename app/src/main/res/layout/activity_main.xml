@@ -9,6 +9,7 @@
         android:id="@+id/img_holder"
         android:layout_width="match_parent"
         android:visibility="gone"
+        android:src="@drawable/img_bg"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
@@ -42,8 +43,8 @@
             android:layout_marginEnd="@dimen/_14sdp"
             android:layout_marginBottom="@dimen/_12sdp"
             android:elevation="16dp"
-            android:padding="@dimen/_2sdp"
-            >
+            android:padding="@dimen/_2sdp">
+
             <TextView
                 android:text="@string/online"
                 android:id="@+id/tvCheckInternet"
@@ -55,8 +56,7 @@
                 android:paddingStart="@dimen/_5sdp"
                 android:paddingEnd="@dimen/_5sdp"
                 android:textSize="@dimen/_5sdp"
-                android:background="@color/green_online"
-                />
+                android:background="@color/green_online" />
         </com.google.android.material.card.MaterialCardView>
 
 
@@ -70,7 +70,7 @@
             android:textColor="@color/white"
             app:layout_constraintTop_toTopOf="@id/card_status"
             app:layout_constraintBottom_toBottomOf="@id/card_status"
-            app:layout_constraintEnd_toStartOf="@id/card_status"/>
+            app:layout_constraintEnd_toStartOf="@id/card_status" />
 
 
     </androidx.constraintlayout.widget.ConstraintLayout>

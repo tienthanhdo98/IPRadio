@@ -73,15 +73,15 @@ class MediaRepo @Inject constructor(
             val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                ConfigUtil.putString(
+                ConfigUtil.putInt(
                     appContext,
                     TYPE_SCREEN_KEY,
-                    dayScenario.broadcastRegionDigital
+                    dayScenario.broadcastRegionDigital.toInt()
                 )
                 getDayScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
-                saveItemsToFile(emptyList(),)
+                saveItemsToFile(emptyList())
                 isRescheduleSuccess = true
             }
 
@@ -106,7 +106,7 @@ class MediaRepo @Inject constructor(
 //                    resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
 //                result = convertToTimeFrame(listOnlyMedia)
 
-                saveItemsToFile(resBody,"getDayScenario")
+                saveItemsToFile(resBody, "getDayScenario")
                 isRescheduleSuccess = true
             } else {
                 isRescheduleSuccess = false
@@ -223,7 +223,8 @@ class MediaRepo @Inject constructor(
         else {
             Log.d("wssTImeFrame", "convertToTimeFrame: Nhiều khung")
             listTimeFrame.forEach {
-                val list : MutableList<MediaItem> =  listItem.subList(it.keys.first(),it.values.first()+1).toMutableList()
+                val list: MutableList<MediaItem> =
+                    listItem.subList(it.keys.first(), it.values.first() + 1).toMutableList()
                 val firstId: Int = listItem[it.keys.first()].id?.minus(1) ?: 0
                 val tObjStart = MediaItem(
                     id = firstId,
@@ -258,8 +259,7 @@ class MediaRepo @Inject constructor(
 
     }
 
-    suspend fun clearPlaylist()
-    {
+    suspend fun clearPlaylist() {
         saveItemsToFile(emptyList())
     }
 
@@ -282,7 +282,7 @@ class MediaRepo @Inject constructor(
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body ?: "").extension
 
-        if(extMedia.isEmpty()) return
+        if (extMedia.isEmpty()) return
         val isFile = getConfigExtension()!!.contains(extMedia)
 
         if (!isFile) return
@@ -297,7 +297,7 @@ class MediaRepo @Inject constructor(
                 Log.d("ĐÂSDF", "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
-                    saveItemsToFile(broadcastList,"downloadMediaItem check")
+                    saveItemsToFile(broadcastList, "downloadMediaItem check")
                     Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
                 }
             }
@@ -317,7 +317,7 @@ class MediaRepo @Inject constructor(
                     it.body = "$mediaStoragePath/$fileName"
 
                     coroutineScope.launch {
-                        saveItemsToFile(broadcastList,"downloadMediaItem")
+                        saveItemsToFile(broadcastList, "downloadMediaItem")
                         Log.e("SavefileLog", "Save in onDownloadComplete: onDownloadComplete")
                     }
 

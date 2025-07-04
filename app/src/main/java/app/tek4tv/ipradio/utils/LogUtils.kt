@@ -66,7 +66,6 @@ class LogUtils private constructor() {
         }
 
 
-
         /*rtDatabase = Firebase.database.reference
         rootDeviceDb = rtDatabase.child("ipradio").child("device").child(imei)
         playlistDb = rootDeviceDb.child("playlist")
@@ -112,7 +111,13 @@ class LogUtils private constructor() {
 //        }
 //    }
 
-    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String,typeScreen : String) {
+    fun logMediaStart(
+        mediaItem: MediaItem,
+        duration: Long,
+        volume: String,
+        paState: String,
+        typeScreen: Int
+    ) {
         val filePath = getLogFilePath(playerLogFolderPath)
 
         val externalSource: String
@@ -140,7 +145,7 @@ class LogUtils private constructor() {
             paState = paState,
             duration = mediaItem.duration,
             startTime = (currentTime.time / 1000),
-            body =  mediaItem.pathBackup,
+            body = mediaItem.pathBackup,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,

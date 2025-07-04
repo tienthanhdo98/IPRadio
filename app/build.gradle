@@ -24,7 +24,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "D76.4.2.1d"
+        versionName "D62.4.2.1d"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -107,7 +107,7 @@ dependencies {
     //stateflow
     implementation 'org.jetbrains.kotlinx:kotlinx-coroutines-core:1.4.0'
     //prdownloader
-    implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.1'
+    implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.2'
 
     implementation 'commons-net:commons-net:3.7.2'
 
@@ -122,10 +122,6 @@ dependencies {
 //    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
 //    implementation 'com.google.android.exoplayer:exoplayer-hls:2.16.1'
 //    implementation 'com.google.android.exoplayer:extension-okhttp:2.16.1'
-
-
-
-
 
 
 }

@@ -105,7 +105,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val globalProperties = GlobalProperties.getInst()
 
 
-    private var typeScreen: String = FULL_SCREEN
+    private var typeScreen: Int = FULL_SCREEN
     private lateinit var vlcVideoLayout: VLCVideoLayout
     private lateinit var imgHolder: ImageView
     private lateinit var tvTopArea: TextView
@@ -129,12 +129,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
-            val oldTypeScreen = ConfigUtil.getString(
+            val oldTypeScreen = ConfigUtil.getInt(
                 context = baseContext,
                 TYPE_PRE_SCREEN_KEY,
                 FULL_SCREEN
             )
-            ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
+            ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
 
             startPlayingMedia()
             if (oldTypeScreen != typeScreen) {
@@ -204,7 +204,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         typeScreen =
-            ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: "0"
+            ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: 0
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else if (typeScreen == MULTIPLE_AREA) {
@@ -406,29 +406,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
-                    lifecycleScope.launch {
-                        Log.d("alarmx", "reschedule all alarms")
-                        mediaScheduler.cancelAllScheduledListAlarm()
-                        ConfigUtil.getString(
-                            applicationContext,
-                            ConfigUtil.MONTHLY_SCENARIO_URL,
-                            ""
-                        )
-                            ?.takeIf { it.isNotBlank() }?.let { url ->
-                                lifecycleScope.launch {
-                                    repeat(10) { // Try 10 times before giving up
-                                        if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
-                                        viewModel.updateMonthlyScenarioAndGetContent(url)
-                                        delay(15000)
-                                    }
-                                    Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                lifecycleScope.launch {
+                    Log.d("alarmx", "reschedule all alarms")
+                    mediaScheduler.cancelAllScheduledListAlarm()
+                    ConfigUtil.getString(
+                        applicationContext,
+                        ConfigUtil.MONTHLY_SCENARIO_URL,
+                        ""
+                    )
+                        ?.takeIf { it.isNotBlank() }?.let { url ->
+                            lifecycleScope.launch {
+                                repeat(10) { // Try 10 times before giving up
+                                    if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
+                                    viewModel.updateMonthlyScenarioAndGetContent(url)
+                                    delay(15000)
                                 }
-                            } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
-                        serialPortController.turnOffPA()
-                        delay(120000)
-                        Log.e("alarmx", "Hub restart")
-                        serialPortController.hardRestart()
-                    }
+                                Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                            }
+                        } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
+                    serialPortController.turnOffPA()
+                    delay(120000)
+                    Log.e("alarmx", "Hub restart")
+                    serialPortController.hardRestart()
+                }
 
             }
         }
@@ -494,7 +494,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
 
-
     fun startPlayingMedia() {
         viewModel.getPlayerContent()
     }
@@ -508,10 +507,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 return
             }
 
-            val responseHub =  hubManager.responseHub
-//            val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
-//
-//            if (!isImei) return
+            val responseHub = hubManager.responseHub
+
+
             when (command) {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
@@ -533,8 +531,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
                     Log.d("tesstlive", "handleFromCommandServer: live")
-                    ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-                    ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
                     Handler().postDelayed({
                         onPlayForce(responseHub)
@@ -580,7 +578,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             ConfigUtil.PROVIDER,
                             listInfoConfig[6]
                         )
-//                        hubManager?.providerValue = listInfoConfig[6]
+                        hubManager.providerValue = listInfoConfig[6]
                     }
                     globalProperties.saveProperties(resposnHub)
                     Log.i("config_config", "updateconfig ${resposnHub.lat}")
@@ -728,7 +726,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
                 HubCommand.RESTART -> {
-                    Toast.makeText(baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT).show()
+                    Toast.makeText(
+                        baseContext,
+                        resources.getString(R.string.reset),
+                        Toast.LENGTH_SHORT
+                    ).show()
                     lifecycleScope.launch {
                         delay(5000)
                         serialPortController.hardRestart()

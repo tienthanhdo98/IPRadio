@@ -14,6 +14,10 @@ object ConfigUtil {
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val URL_HUB = "URL_HUB"
     const val URL_TOKEN = "URL_TOKEN"
+    const val USERNAME = "USERNAME"
+    const val PASSWORD = "PASSWORD"
+    const val USERNAME_KEY = "USERNAME_KEY"
+    const val PASSWORD_KEY = "PASSWORD_KEY"
     const val PROVIDER = "PROVIDER"
     const val DEFAULT_ANDROID_VOLUME = "DEFAULT_ANDROID_VOLUME"
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
@@ -33,9 +37,9 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun getStringEncrypt(context: Context, key: String?, defaultValue: String?): String? {
+    fun getStringEncrypt(context: Context, key: String?): String? {
 
-        return getEncryptedSharedPreferences(context).getString(key,defaultValue)
+        return getEncryptedSharedPreferences(context).getString(key,"")
     }
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(

@@ -14,7 +14,7 @@ import java.util.*
 class Utils {
     companion object {
         const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
+        const val ENCRYPTED_STORAGE_INFO = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
         const val DEVICE_ID = "device_id"
         const val APP_VERSION = "APP_VERSION"
@@ -25,8 +25,8 @@ class Utils {
         const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
         const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
         const val GET_RECORD = "GET_RECORD"
-        const val FULL_SCREEN = "0"
-        const val MULTIPLE_AREA = "1"
+        const val FULL_SCREEN = 0
+        const val MULTIPLE_AREA = 1
         const val TOP_AREA = "1"
         const val LEFT_AREA = "2"
         const val RIGHT_AREA = "3"
@@ -95,7 +95,7 @@ class Utils {
             return if (remainder <= 4) {
                 (number - remainder) / 10
             } else {
-                ( number + (10 - remainder)) / 10
+                (number + (10 - remainder)) / 10
             }
         }
     }
