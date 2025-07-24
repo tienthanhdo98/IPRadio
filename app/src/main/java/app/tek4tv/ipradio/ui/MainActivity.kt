@@ -123,11 +123,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.currentMediaItem = null
             vlcVideoLayout.visibility = View.INVISIBLE
             imgHolder.visibility = View.VISIBLE
+            val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
+            initPhotoHolder(url)
+            hideTopLeftArea()
             Log.d("PMLOG", "startFirstTimeFrame: time over")
         }
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
             val oldTypeScreen = ConfigUtil.getInt(
                 context = baseContext,
@@ -135,18 +139,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 FULL_SCREEN
             )
             ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
-
-            startPlayingMedia()
-            if (oldTypeScreen != typeScreen) {
-                recreate()
-            }
+//            startPlayingMedia()
+            recreate()
         }
 
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
-            hubManager.curMediaName = "Live Error"
+//            hubManager.curMediaName = "Live Error"
+//            hubManager.currentMediaItem = mediaItem
+//
+//            serialPortController.turnOffPA()
             hubManager.currentMediaItem = mediaItem
-
             serialPortController.turnOffPA()
         }
 
@@ -158,25 +161,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-            imgHolder.visibility = View.GONE
-            vlcVideoLayout.visibility = View.VISIBLE
+            if (mediaItem?.contentType?.value == "2") {
+                vlcVideoLayout.visibility = View.INVISIBLE
+                imgHolder.visibility = View.VISIBLE
+            } else {
+                vlcVideoLayout.visibility = View.VISIBLE
+                imgHolder.visibility = View.INVISIBLE
+            }
             if (mediaItem != null) {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
                 hubManager.curMediaName = mediaItem.title ?: ""
 
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.turnOnPAVod()
-                    }
-                } else {
-                    serialPortController.turnOnPAVod()
-                }
+                serialPortController.turnOnPAVod()
 
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
+
                 logUtils.logMediaStart(
                     mediaItem,
                     0,
@@ -184,13 +186,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     paState,
                     typeScreen
                 )
-                viewModel.currentMedia = mediaItem
             }
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
             if (typeScreen == MULTIPLE_AREA) {
                 showLeftArea(listMediaItem)
+            }
+            if (listMediaItem.isNotEmpty()) {
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                    else "0"
+                logUtils.logMediaStart(
+                    listMediaItem.first(),
+                    0,
+                    globalProperties.volume,
+                    paState,
+                    typeScreen
+                )
+                if (typeScreen == MULTIPLE_AREA) {
+                    showLeftArea(listMediaItem)
+                }
             }
         }
 
@@ -311,6 +327,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+
     private fun initPhotoHolder(url: String?) {
         if (url != "") {
             val fileName = getFileNameFromUrl(url!!)
@@ -322,6 +339,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Picasso.get().load(url).into(imgHolder)
                 Log.d("PhotoHolder", "initPhotoHolder: Online")
             }
+        } else {
+            // imgHolder.setImageResource(R.drawable.quangngai)
         }
     }
 
@@ -391,13 +410,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", "end: $listKey")
-                playerManager.stopPlaylist(listKey!!)
-                if (typeScreen == MULTIPLE_AREA) {
-                    Log.d("alarmx", "end left")
-                    playerManager.stopLeftPlaylist()
-                }
+//                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+//                Log.d("alarmx", "end: $listKey")
+//                playerManager.stopPlaylist(listKey!!)
+//                if (typeScreen == MULTIPLE_AREA) {
+//                    Log.d("alarmx", "end left")
+//                    playerManager.stopLeftPlaylist()
+//                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -513,7 +532,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             when (command) {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                    clearDatastore()
+                    viewModel.clearDatastore(appStorageManager)
                     val mess = responseHub.message!!
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
@@ -523,21 +542,35 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.updateMonthlyScenario(mess)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
                     playerManager.stopForceMedia()
-                    Handler().postDelayed({
+                    Handler(Looper.getMainLooper()).postDelayed({
                         recreate()
                     }, 1000)
 
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-                    Log.d("tesstlive", "handleFromCommandServer: live")
-                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+//                    Log.d("tesstlive", "handleFromCommandServer: live")
+//                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
+//                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
+//
+//                    Handler(Looper.getMainLooper()).postDelayed({
+//                        onPlayForce(responseHub)
+//                        recreate()
+//                    }, 1000)
+                    ConfigUtil.removeSharef(context = baseContext, "FORCE_MEDIA")
+                    val newTypeScreen = responseHub.type?.toInt() ?: 0
+                    if (newTypeScreen != typeScreen) {
+                        ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, newTypeScreen)
+                        ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
 
-                    Handler().postDelayed({
-                        onPlayForce(responseHub)
-                        recreate()
-                    }, 1000)
+                        //onPlayForce(responseHub)
+                        Handler(Looper.getMainLooper()).postDelayed({
+                            onPlayForce(responseHub, true)
+                            recreate()
+                        }, 1000)
+                    } else {
+                        onPlayForce(responseHub, false)
+                    }
 
                 }
                 HubCommand.UPDATE_PHOTO_HOLDER -> {
@@ -944,10 +977,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
     }
 
-    private fun onPlayForce(responseHub: ResponseHub) {
+    private fun onPlayForce(responseHub: ResponseHub, isLayoutChange: Boolean) {
         //Tránh trường hợp âm lượng bị tắt
         serialPortController.writeForceSetVolume(globalProperties.volume)
-        playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
+        playerManager.onPlayForceCommand(
+            applicationContext, responseHub, mediaScheduler, isLayoutChange
+        )
     }
 
     private fun cancelAllAlarm() {
@@ -959,20 +994,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         changeVolume(GlobalProperties.getInst().androidVolume.toInt())
     }
 
-    private fun clearDatastore() {
-        //limit free data 1 gb
-//        val limit = 1000000000
-        //limit free data 500 mb
-        val limit = 524288000
-        val totalStorage = appStorageManager.getTotalRomStorage()
-        val usedStorage = appStorageManager.getUsedRomStorage()
-        if (totalStorage - usedStorage <= limit) {
-            Log.d("clearDatastore", "clearDatastore: Must Clear")
-            appStorageManager.deleteAllMedia()
-        } else {
-            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
-        }
-    }
 
     private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
         var logDeviceData: DataValueModel

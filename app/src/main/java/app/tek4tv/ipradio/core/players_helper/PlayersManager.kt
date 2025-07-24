@@ -3,13 +3,17 @@ package app.tek4tv.ipradio.core.players_helper
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.MediaScheduler
-import app.tek4tv.ipradio.di.MoshiInst.moshi
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.Utils.Companion.saveListForceToPref
+import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.toCalendar
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -293,49 +297,103 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
 
+//    fun onPlayForceCommand(
+//        context: Context,
+//        responseHub: ResponseHub,
+//        mediaScheduler: MediaScheduler
+//    ) {
+//        try {
+//            val responseAdapter = moshi.adapter(MediaItem::class.java)
+//            val duration = responseHub.duration!!
+//            val type = responseHub.type!!
+//            val level = responseHub.level!!
+//            val mediaItemObject = responseAdapter.fromJson(responseHub.name)
+//
+//            //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
+//            //Nếu có thì bỏ qua không phát
+//            //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
+//            if (playMode == PLAY_MODE_FORCE) {
+//                val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
+//                if (value != null && value != "") {
+//                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
+//
+//                    if (currentForceMedia != null && currentForceMedia.level < level) return
+//                }
+//            }
+//            val forceMedia =
+//                ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
+//                    val listDur = duration.split(":")
+//                    val h = listDur[0].toInt()
+//                    val m = listDur[1].toInt()
+//                    val s = listDur[2].toInt()
+//                    val mediaEndTime = Calendar.getInstance().apply {
+//                        add(Calendar.HOUR, h)
+//                        add(Calendar.MINUTE, m)
+//                        add(Calendar.SECOND, s)
+//                    }
+//                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
+//                    //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
+//                }
+//            forceMedia.saveItemToPref(context)
+//            playForceMedia(forceMedia, mediaScheduler, false)
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//        }
+//    }
+
     fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
-        mediaScheduler: MediaScheduler
+        mediaScheduler: MediaScheduler,
+        isLayoutChange: Boolean? = false
     ) {
         try {
-            val responseAdapter = moshi.adapter(MediaItem::class.java)
-            val duration = responseHub.duration!!
-            val type = responseHub.type!!
-            val level = responseHub.level!!
-            val mediaItemObject = responseAdapter.fromJson(responseHub.name)
-
+            val listMediaItem = jsonListMediaItemAdapter.fromJson(responseHub.name)
+            val listForceMedia = mutableListOf<MediaItem>()
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
             //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-            if (playMode == PLAY_MODE_FORCE) {
-                val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
-                if (value != null && value != "") {
-                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
+//            if (playMode == PLAY_MODE_FORCE) {
+//                val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
+//                if (value != null && value != "") {
+//                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
+//                    if (currentForceMedia != null && currentForceMedia.level < level) return
+//                }
+//            }
+            val currentTime = Calendar.getInstance()
 
-                    if (currentForceMedia != null && currentForceMedia.level < level) return
-                }
-            }
-            val forceMedia =
-                ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-                    val listDur = duration.split(":")
+            listMediaItem?.forEach {
+                val forceMedia = ForceMedia(
+                    duration = it.duration!!,
+                    type = it.type!!,
+                    level = it.level,
+                    mediaItem = it
+                ).apply {
+                    val listDur = duration!!.split(":")
                     val h = listDur[0].toInt()
                     val m = listDur[1].toInt()
                     val s = listDur[2].toInt()
-                    val mediaEndTime = Calendar.getInstance().apply {
+                    val mediaEndTime = currentTime.apply {
                         add(Calendar.HOUR, h)
                         add(Calendar.MINUTE, m)
                         add(Calendar.SECOND, s)
                     }
                     endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
-                    //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
-                }
-            forceMedia.saveItemToPref(context)
-            playForceMedia(forceMedia, mediaScheduler, false)
+                }.toMediaItem()
+                listForceMedia.add(forceMedia)
+            }
+            Log.d(
+                "wssLive", "live: ${jsonListMediaItemAdapter.toJson(listForceMedia)}"
+            )
+            saveListForceToPref(context, jsonListMediaItemAdapter.toJson(listForceMedia))
+            if (isLayoutChange == false) {
+                playForceMedia(listForceMedia, mediaScheduler = mediaScheduler)
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
+
 
     private fun convertStringToInt(time: String): Int {
         val listDur = time.split(":")
@@ -345,25 +403,52 @@ class PlayersManager(
         return (h * 3600 + m * 60 + s) / 60
     }
 
+//    fun playForceMedia(
+//        forceMedia: ForceMedia,
+//        mediaScheduler: MediaScheduler,
+//        isPlayAtStart: Boolean
+//    ) {
+//        try {
+//            Log.d(TAG, "Play force")
+//            //Hủy hẹn giờ của kịch bản đang phát
+//            mediaScheduler.cancelAllScheduledListAlarm()
+//
+////           forceMedia.saveItemToPref()
+//            //hẹn giờ dừng media khẩn cấp
+//            playMode = PLAY_MODE_FORCE
+//            stopAllPlayer()
+//            if (isPlayAtStart) {
+//                playMedia(forceMedia.toMediaItem())
+//            }
+////            playMedia(forceMedia.toMediaItem())
+//            mediaScheduler.scheduleForceMediaAlarm(forceMedia)
+//
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//        }
+//    }
+
     fun playForceMedia(
-        forceMedia: ForceMedia,
-        mediaScheduler: MediaScheduler,
-        isPlayAtStart: Boolean
+        listForceMedia: List<MediaItem>, mediaScheduler: MediaScheduler
     ) {
         try {
-            Log.d(TAG, "Play force")
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllScheduledListAlarm()
 
-//           forceMedia.saveItemToPref()
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
-            stopAllPlayer()
-            if (isPlayAtStart) {
-                playMedia(forceMedia.toMediaItem())
-            }
-//            playMedia(forceMedia.toMediaItem())
-            mediaScheduler.scheduleForceMediaAlarm(forceMedia)
+
+            currentTextPlaylist = listForceMedia.filter { it.broadcastRegion?.value == LEFT_AREA }
+
+            playerManagerListener?.onLeftMediaPlaying(currentTextPlaylist)
+
+            currentPlaylist =
+                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+            playlistIndex = 0
+
+            playMediaByIndex(playlistIndex, 0)
+
+            //mediaScheduler.scheduleForceMediaAlarm(listForceMedia.lastOrNull()!!)
 
         } catch (e: Exception) {
             e.printStackTrace()

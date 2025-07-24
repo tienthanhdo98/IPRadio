@@ -80,7 +80,7 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    var providerValue = ""
+    var providerValue = "TEK4TV"
 
     private var firstConnect = true
 
@@ -98,9 +98,9 @@ class HubManager(
 
 
     init {
-        providerValue = ConfigUtil.getStringEncrypt(
+        providerValue = ConfigUtil.getString(
             appContext,
-            ConfigUtil.PROVIDER
+            ConfigUtil.PROVIDER, "TEK4TV"
         )!!
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,

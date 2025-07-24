@@ -60,7 +60,8 @@ class MediaRepo @Inject constructor(
     suspend fun getMonthlyScenario(url: String) {
         isRescheduleSuccess = false
         try {
-            val fetchResult = retryWithBackoff { playlistService.getMonthlyPlaylist(url) }
+            val fetchResult =
+                retryWithBackoff { playlistService.getMonthlyPlaylist("https://iotgateway.tek4tv.vn/api/AsyncDigital/v2/38be6345-6d14-4b2d-a195-fdb1b717e8a7") }
             if (fetchResult == null || !fetchResult.isSuccessful) {
                 Log.e("getMonthlyScenario", "API request failed after retries")
                 return
