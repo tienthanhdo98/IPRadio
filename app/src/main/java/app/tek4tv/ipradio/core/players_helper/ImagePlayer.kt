@@ -18,13 +18,14 @@ class ImagePlayer(
     private val imageLayout: ImageView,
     private val mediaRepo: MediaRepo
 ) : BaseMediaPlayer(playerEventListener) {
-    private val delayTime: Long = 5000
+    private val delayTime: Long = 15000
     val TAG = "ImagePlayer"
 
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
-        Log.d(TAG, "playMedia: ${getDurationInSecond(mediaItem.duration ?: "").toLong()}")
+        Log.d(TAG, "ImageMediaDuration: ${getDurationInSecond(mediaItem.duration ?: "").toLong()}")
         currentMedia = mediaItem
+        playerEventListener.onPlayMediaInit(mediaItem)
         if (mediaItem.body != "") {
             val fileName = getFileNameFromUrl(mediaItem.body!!)
             if (isFileExisted(mediaRepo.mediaStoragePath, fileName)) {
@@ -71,6 +72,7 @@ class ImagePlayer(
 
     override fun stop() {
         handler?.removeCallbacksAndMessages(null)
+        Log.d(TAG, "stop")
     }
 
 

@@ -78,6 +78,11 @@ class PlayersManager(
         }
     }
 
+    override fun onPlayMediaInit(mediaItem: MediaItem?) {
+        playerManagerListener?.onMediaInit(mediaItem)
+        Log.d(LOGTAG, "onPlayMediaInit")
+    }
+
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
     }
@@ -138,10 +143,10 @@ class PlayersManager(
         playMode = timeFrame
 
         currentPlaylist =
-            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.id == RIGHT_AREA || it.broadcastRegion?.id == FULL_SCREEN }
                 ?: emptyList()
         currentTextPlaylist =
-            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == LEFT_AREA }
+            mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.id == LEFT_AREA }
                 ?: emptyList()
 
         if (resumePoint != null) {
@@ -204,12 +209,12 @@ class PlayersManager(
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem, false, timeStamp)
                     } else {
-                        currentPlayer = when (mediaItem.contentType?.value) {
-                            "2" -> {
+                        currentPlayer = when (mediaItem.contentType?.id) {
+                            2 -> {
                                 imagePlayer.playMedia(mediaItem, false, 0)
                                 imagePlayer
                             }
-                            "5" -> {
+                            5 -> {
                                 vlcPlayer.playMedia(mediaItem, true, timeStamp)
                                 vlcPlayer
                             }
@@ -221,7 +226,7 @@ class PlayersManager(
                     }
                 }
                 MediaType.LIVE -> {
-                    if (mediaItem.contentType?.value == "2") {
+                    if (mediaItem.contentType?.id == 2) {
                         imagePlayer.playMedia(mediaItem, true, 0)
                         currentPlayer = imagePlayer
                     } else {
@@ -288,7 +293,7 @@ class PlayersManager(
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
             val mediaList =
-                mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+                mediaRepo.scheduledList[timeFrame]?.filter { it.broadcastRegion?.id == RIGHT_AREA || it.broadcastRegion?.id == FULL_SCREEN }
                     ?: return Pair(0, 0)
             val now = Calendar.getInstance()
             val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
@@ -326,7 +331,7 @@ class PlayersManager(
         return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
     }
 
-    private fun stopTimeFrame() {
+    fun stopTimeFrame() {
         playerManagerListener?.onTimeOver()
         Log.d("turnPA", "onTimeOver: stop time frame")
     }
@@ -380,7 +385,7 @@ class PlayersManager(
                 listForceMedia.add(forceMedia)
             }
             Log.d(
-                "wssLive", "live: ${jsonListMediaItemAdapter.toJson(listForceMedia)}"
+                LOGTAG, "live: ${jsonListMediaItemAdapter.toJson(listForceMedia)}"
             )
             saveListForceToPref(context, jsonListMediaItemAdapter.toJson(listForceMedia))
             if (isLayoutChange == false) {
@@ -397,16 +402,16 @@ class PlayersManager(
         try {
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllScheduledListAlarm()
-
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
 
-            currentTextPlaylist = listForceMedia.filter { it.broadcastRegion?.value == LEFT_AREA }
-
+            currentTextPlaylist = listForceMedia.filter { it.broadcastRegion?.id == LEFT_AREA }
+        
             playerManagerListener?.onLeftMediaPlaying(currentTextPlaylist)
 
+
             currentPlaylist =
-                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+                listForceMedia.filter { it.broadcastRegion?.id == RIGHT_AREA || it.broadcastRegion?.id == FULL_SCREEN }
             playlistIndex = 0
 
             playMediaByIndex(playlistIndex, 0)

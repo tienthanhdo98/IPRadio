@@ -51,7 +51,9 @@ class LogUtils private constructor() {
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
     var logService: LogService? = null
-
+    val destinationId = "H25.24.25"
+    val destinationName = "Phường Quang Trung"
+    var providerValue = GlobalProperties.getInst().providerValue
 
     init {
         listOf(
@@ -63,7 +65,6 @@ class LogUtils private constructor() {
         ).forEach {
             if (!isFolderExisted(it)) createFolder(it)
         }
-
 
 
         /*rtDatabase = Firebase.database.reference
@@ -81,95 +82,72 @@ class LogUtils private constructor() {
         writeLogToFile(filePath, "$command : $message", true)
     }
 
-//    fun logStartTimeFrame(frame: String) {
-//        val reportObj = TimeFrameRecord(imei, frame, TimeFrameRecord.STATUS_START)
-//        logTimeFrame(reportObj)
-//    }
-//
-//    fun logEndTimeFrame(frame: String) {
-//        val reportObj = TimeFrameRecord(imei, frame, TimeFrameRecord.STATUS_STOP)
-//        logTimeFrame(reportObj)
-//    }
 
-//    private fun logTimeFrame(reportObj: TimeFrameRecord) {
-//        val filePath = getLogFilePath(timeframeLogFolderPath)
+    fun logMediaStart(
+        mediaItem: MediaItem,
+        duration: Long,
+        volume: String,
+        paState: String,
+        typeScreen: Int
+    ) {
+        val filePath = getLogFilePath(playerLogFolderPath)
+
+        val externalSource: String
+        val isExternalSource: Int
+        if (mediaItem.type != "VOD") {
+            externalSource = mediaItem.pathBackup
+            isExternalSource = 1
+        } else {
+            externalSource = ""
+            isExternalSource = 0
+        }
+        // remove at 4.1.3b
+
+        val currentTime = Calendar.getInstance().time
+
+        val reportObj = MediaRecord(
+            imei = imei,
+            title = mediaItem.title ?: "",
+            sourceID = destinationId,
+            sourceName = destinationName,
+            destinationId = destinationId,
+            destinationName = destinationName,
+            mediaID = mediaItem.projectID,
+            volume = volume,
+            paState = paState,
+            duration = mediaItem.duration,
+            startTime = (currentTime.time / 1000),
+            body = mediaItem.pathBackup,
+            author = mediaItem.author,
+            category = mediaItem.category,
+            priority = mediaItem.priority,
+            contentType = mediaItem.contentType,
+            description = mediaItem.description,
+            externalSource = externalSource,
+            isExternal = isExternalSource,
+            deviceName = GlobalProperties.getInst().nameDevice,
+            sourceReference = mediaItem.sourceReference,
+            provider = providerValue,
+            mode = typeScreen.toString()
+        )
 //        val str = getRecordStr(reportObj)
 //
 //        if (str != null)
 //            writeLogToFile(filePath, str)
-//
-//        //timeframeDb.child(reportObj.time.toString()).setValue(reportObj)
-//
-//        coroutineScope.launch {
-//            try {
-//                logService?.postTimeframeInfo(reportObj)
-//                Log.d("LogUtils", "log timeframe success")
-//            } catch (e: Exception) {
-//                Log.d("LogUtils", "Error send log timeframe")
-//                e.printStackTrace()
-//            }
-//        }
-//    }
 
-//    fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String,typeScreen : String) {
-//        val filePath = getLogFilePath(playerLogFolderPath)
-//
-//        val externalSource: String
-//        val isExternalSource: Int
-//        if (mediaItem.type != "VOD") {
-//            externalSource = mediaItem.pathBackup
-//            isExternalSource = 1
-//        } else {
-//            externalSource = ""
-//            isExternalSource = 0
-//        }
-//        // remove at 4.1.3b
-//
-//        val currentTime = Calendar.getInstance().time
-//
-//        val reportObj = MediaRecord(
-//            imei = imei,
-//            title = mediaItem.title ?: "",
-//            sourceID = destinationId,
-//            sourceName = destinationName,
-//            destinationId = destinationId,
-//            destinationName = destinationName,
-//            mediaID = mediaItem.projectID,
-//            volume = volume,
-//            paState = paState,
-//            duration = mediaItem.duration,
-//            startTime = (currentTime.time / 1000),
-//            body =  mediaItem.pathBackup,
-//            author = mediaItem.author,
-//            category = mediaItem.category,
-//            priority = mediaItem.priority,
-//            contentType = mediaItem.contentType,
-//            description = mediaItem.description,
-//            externalSource = externalSource,
-//            isExternal = isExternalSource,
-//            deviceName = GlobalProperties.getInst().nameDevice,
-//            sourceReference = mediaItem.sourceReference,
-//            provider = providerValue,
-//            mode = typeScreen.toString()
-//        )
-//        val str = getRecordStr(reportObj)
-//
-//        if (str != null)
-//            writeLogToFile(filePath, str)
-//
-//        coroutineScope.launch {
-//            try {
-//                logService?.postMediaInfoStart(reportObj)
-//                Log.d(
-//                    LOG_TAG,
-//                    "Log media start ${reportObj}"
-//                )
-//            } catch (e: Exception) {
-//                Log.d(LOG_TAG, "Error send log media start ${e.message}")
-//                e.printStackTrace()
-//            }
-//        }
-//    }
+        coroutineScope.launch {
+            try {
+                val res = logService?.postMediaInfoStart(reportObj)
+                Log.d(
+                    LOG_TAG,
+                    "Log media start result ${res}"
+                )
+            } catch (e: Exception) {
+                Log.d(LOG_TAG, "Error send log media start ${e.message}")
+                e.printStackTrace()
+            }
+        }
+    }
 
     fun logDataHub(imei: String, data: DataValueModel) {
         val LOG_TAG = "MYLOG"

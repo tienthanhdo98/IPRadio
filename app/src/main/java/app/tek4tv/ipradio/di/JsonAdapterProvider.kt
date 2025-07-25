@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.di
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Types
+import java.lang.reflect.ParameterizedType
 import java.lang.reflect.Type
 
 object JsonAdapterProvider {
@@ -28,10 +29,12 @@ object JsonAdapterProvider {
         Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
     val jsonMapAdapter: JsonAdapter<Map<String, String>> =
         MoshiInst.moshi.adapter(typeMap)
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
+
+
+    //
+    val adapterListString: JsonAdapter<List<String>> = moshi.adapter<List<String>>(List::class.java)
+    val videoAdapter = moshi.adapter(Video::class.java)
+    val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
 
 
 }

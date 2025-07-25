@@ -115,8 +115,6 @@ class ExoMediaPlayer(
         if (isPlaying) stop()
 
         try {
-
-
             currentMedia = mediaItem
             isForceValue = isForce
             Log.e(TAG, "Exoplayer is force $isForceValue")
@@ -133,7 +131,7 @@ class ExoMediaPlayer(
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
-
+        eventListener.onPlayMediaInit(mediaItem)
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()

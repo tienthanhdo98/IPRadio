@@ -20,6 +20,7 @@ import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.Protocol
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
@@ -117,6 +118,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         }
 
+
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
             hubManager.currentMediaItem = mediaItem
@@ -128,15 +130,19 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         }
 
-        override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-            if (mediaItem?.contentType?.value == "2") {
+        override fun onMediaInit(mediaItem: MediaItem?) {
+            if (mediaItem?.contentType?.id == 2) {
                 vlcVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
             } else {
                 vlcVideoLayout.visibility = View.VISIBLE
                 imgHolder.visibility = View.INVISIBLE
             }
+        }
+
+        override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
+
             if (mediaItem != null) {
                 hubManager.playlistIndex = playerManager.playlistIndex
                 hubManager.currentMediaItem = mediaItem
@@ -147,44 +153,71 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) StringValue.PAStatusOff
                     else StringValue.PAStatusOn
 
-                hubManager.sendLogMediaSuccess(mediaItem)
-                if (!hubManager.isConnectSuccess) {
-                    lifecycleScope.launch {
-                        val tacGia = TacGia(
-                            tenDayDu = mediaItem.author?.fullName ?: "",
-                            butDanh = mediaItem.author?.userName ?: "",
-                            email = mediaItem.author?.email ?: "",
-                            tenDangNhap = mediaItem.author?.userName ?: ""
-                        )
-                        val mediaLog = MediaLogModel(
-                            amLuong = Utils.getDeviceInfo(
-                                StringValue.deviceInfoVolume, SerialPortController.deviceInfo
-                            ),
-                            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                            thoiGianSanXuat = mediaItem.createDate?.toLong(),
-                            congSuat = paState,
-                            banTinID = mediaItem.projectID,
-                            loaiBanTin = mediaItem.contentType?.value,
-                            mucDoUuTien = mediaItem.priority?.id.toString(),
-                            noiDung = mediaItem.pathBackup,
-                            noiDungTomTat = mediaItem.description,
-                            tacGia = adapterTacGia.toJson(tacGia),
-                            thoiLuong = mediaItem.duration,
-                            tieuDe = mediaItem.title,
-                            loaiLinhVuc = mediaItem.fieldType?.value,
-                            vungPhat = mediaItem.broadcastRegion!!.value,
-                            nguonTin = mediaItem.sourceName
-                        )
-                        mediaLogDao.insertLog(mediaLog)
+                if (hubManager.protocol == Protocol.API) {
+                    logUtils.logMediaStart(
+                        mediaItem, 0, globalProperties.volume, paState, typeScreen.toInt()
+                    )
+                } else {
+                    hubManager.sendLogMediaSuccess(mediaItem)
+                    if (!hubManager.isConnectSuccess) {
+                        lifecycleScope.launch {
+                            val tacGia = TacGia(
+                                tenDayDu = mediaItem.author?.fullName ?: "",
+                                butDanh = mediaItem.author?.userName ?: "",
+                                email = mediaItem.author?.email ?: "",
+                                tenDangNhap = mediaItem.author?.userName ?: ""
+                            )
+                            try {
+                                val mediaLog = MediaLogModel(
+                                    amLuong = Utils.getDeviceInfo(
+                                        StringValue.deviceInfoVolume,
+                                        SerialPortController.deviceInfo
+                                    ),
+                                    thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                                    thoiGianSanXuat = mediaItem.createDate?.toLong(),
+                                    congSuat = paState,
+                                    banTinID = mediaItem.projectID,
+                                    loaiBanTin = mediaItem.contentType?.id.toString(),
+                                    mucDoUuTien = mediaItem.priority?.id.toString(),
+                                    noiDung = mediaItem.pathBackup,
+                                    noiDungTomTat = mediaItem.description,
+                                    tacGia = adapterTacGia.toJson(tacGia),
+                                    thoiLuong = mediaItem.duration,
+                                    tieuDe = mediaItem.title,
+                                    loaiLinhVuc = mediaItem.fieldType?.value,
+                                    vungPhat = mediaItem.broadcastRegion!!.id,
+                                    nguonTin = mediaItem.sourceName
+                                )
+                                mediaLogDao.insertLog(mediaLog)
+                            } catch (e: Exception) {
+                                Log.d("onPlayMediaLog", "insertLog fail: ${e.message}")
+                            }
+
+                        }
                     }
                 }
+
+
             }
 
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
             if (listMediaItem.isNotEmpty()) {
-                hubManager.sendLogMediaSuccess(listMediaItem.first())
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) StringValue.PAStatusOff
+                    else StringValue.PAStatusOn
+                if (hubManager.protocol == Protocol.API) {
+                    logUtils.logMediaStart(
+                        listMediaItem.first(),
+                        0,
+                        globalProperties.volume,
+                        paState,
+                        typeScreen.toInt()
+                    )
+                } else {
+                    hubManager.sendLogMediaSuccess(listMediaItem.first())
+                }
                 if (typeScreen == MULTIPLE_AREA) {
                     showLeftArea(listMediaItem)
                 }
@@ -206,7 +239,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             ConfigUtil.getString(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: FULL_SCREEN
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
-        } else if (typeScreen == MULTIPLE_AREA) {
+        } else {
             setContentView(R.layout.activity_main_multiple_view2)
         }
         supportActionBar?.hide()
@@ -246,7 +279,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
             }
         }
-
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
@@ -368,23 +400,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
 
-    override fun onStop() {
-        Log.e("monthlyinfo", "onStop")
-        playerManager.stopAllPlayer()
-        cancelAllAlarm()
-        Log.i("ChangeLayout", "Mess: recreate stop")
-        super.onStop()
-    }
-
-    override fun onDestroy() {
-        Log.e("monthlyinfo", "onDestroy ")
-
-        handler.removeCallbacksAndMessages(null)
-        playerManager.onActivityDestroy()
-//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-        Log.i("ChangeLayout", "Mess: onDestroy")
-        super.onDestroy()
-    }
+////        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+//        Log.i("ChangeLayout", "Mess: onDestroy")
+//        super.onDestroy()
+//    }
 
     override fun onAlarm(intent: Intent) {
         when (intent.action) {
@@ -472,19 +491,43 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
 
     private fun startPlayingMedia() {
-        viewModel.getPlayerContentWss()
+        if (hubManager.protocol == Protocol.API) {
+            viewModel.getPlayerContent()
+        } else {
+            viewModel.getPlayerContentWss()
+        }
+
     }
 
     private fun initHubConnect() {
         hubManager.connectToServer()
     }
 
+    var currentCommand = ""
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-
+//            if (command == currentCommand) return
+//            currentCommand = command!!
             val responseHub = hubManager.responseHub
 
             when (command) {
+
+                HubCommand.UPDATE_MONTHLY_LIST -> {
+                    val message = responseHub.message
+                    playerManager.stopAllPlayer()
+                    playerManager.resetPlayMode()
+                    cancelAllAlarm()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
+                    viewModel.updateMonthlyScenario(message!!)
+                    ConfigUtil.putString(
+                        applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, message
+                    )
+                    playerManager.stopForceMedia()
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        recreate()
+                    }, 1000)
+
+                }
 
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     viewModel.clearDatastore(appStorageManager)
@@ -532,8 +575,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (newTypeScreen != typeScreen) {
                         ConfigUtil.putString(baseContext, TYPE_SCREEN_KEY, newTypeScreen)
                         ConfigUtil.putString(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-
-                        //onPlayForce(responseHub)
                         Handler(Looper.getMainLooper()).postDelayed({
                             onPlayForce(responseHub, true)
                             recreate()
@@ -541,6 +582,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     } else {
                         onPlayForce(responseHub, false)
                     }
+
                 }
 
 
@@ -859,7 +901,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     companion object {
         var alarmListener: AlarmListener? = null
-
     }
 
     override fun onHubConnected() {

@@ -1,9 +1,6 @@
 package app.tek4tv.ipradio.network
 
-import app.tek4tv.ipradio.model.InfoModel
-import app.tek4tv.ipradio.model.InfoValueModel
-import app.tek4tv.ipradio.model.SourceMQTT
-import app.tek4tv.ipradio.model.TokenDto
+import app.tek4tv.ipradio.model.*
 import retrofit2.Call
 import retrofit2.http.Body
 import retrofit2.http.GET
@@ -15,6 +12,11 @@ interface AuthService {
     @POST
     //@GET("https://hub.gateway.httt.tek4tv.vn/api/Device/Token")
     fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
+
+
+    @POST
+    //@GET("https://hub.gateway.httt.tek4tv.vn/api/Device/Token")
+    fun getTokenAPI(@Body body: Map<String, String>, @Url url: String): Call<TokenAPI>
 
     @POST
     fun getMQTTInfo(

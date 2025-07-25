@@ -45,6 +45,32 @@ class MainViewModel @ViewModelInject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
+    //
+    fun updateMonthlyScenario(url: String) {
+        viewModelScope.launch {
+            mediaRepo.getMonthlyScenario(url)
+            getPlayerContent()
+        }
+    }
+
+    fun getPlayerContent() {
+        viewModelScope.launch {
+            getContentJob?.join()
+
+            //cancel media check here
+            mediaWatchdog.cancelCheck()
+
+            getContentJob = launch {
+                val mediaList = mediaRepo.getDataDayScenario()
+
+                content.value = Pair(mediaList, listOf())
+
+                getContentJob = null
+            }
+        }
+    }
+
+    //
 
     fun rescheduleMonthlyPlaylist() {
         val jsonMonthlyListData = ConfigUtil.getString(

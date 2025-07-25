@@ -1,13 +1,15 @@
 package app.tek4tv.ipradio.repo
 
-import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMapAdapter
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appStorageManager
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMapAdapter
 import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.TimeUtils
 import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
 import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
@@ -27,7 +29,6 @@ import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import java.io.File
-import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -35,6 +36,7 @@ import javax.inject.Singleton
 
 @Singleton
 class MediaRepo @Inject constructor(
+    private val playlistService: PlaylistService,
     moshi: Moshi,
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
@@ -58,6 +60,78 @@ class MediaRepo @Inject constructor(
     //250mb
     private val Limit_Storage: Long = 262144000
 
+    //api
+    suspend fun getMonthlyScenario(url: String) {
+
+        try {
+            val fetchResult = playlistService.getMonthlyPlaylist(url)
+            if (!fetchResult.isSuccessful) {
+                Log.e("getMonthlyScenario", "API request failed after retries")
+                return
+            }
+
+            val monthScenario = fetchResult.body() ?: return
+
+            val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+
+            val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
+
+            if (dayScenario != null) {
+                ConfigUtil.putString(
+                    appContext,
+                    TYPE_SCREEN_KEY,
+                    dayScenario.broadcastRegionDigital
+                )
+                getDayScenario(dayScenario.sourceUrl)
+            } else {
+                //In case there are no scenario for today, don't play anythings
+                saveItemsToFile(emptyList())
+            }
+
+        } catch (e: Exception) {
+            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
+        }
+    }
+
+    private suspend fun getDayScenario(urlDatSchedule: String): List<MediaItem> {
+        val result = listOf<MediaItem>()
+        try {
+            val res = playlistService.getPlaylist(urlDatSchedule)
+            if (!res.isSuccessful) {
+                Log.e("getDayScenario", "API request failed after retries")
+                return emptyList()
+            }
+            val resBody = res.body()
+            if (resBody != null) {
+                saveItemsToFile(resBody)
+            } else {
+                Log.e("yee", "Lịch rỗng rồi")
+            }
+        } catch (e: Exception) {
+            Log.e("yee", e.toString())
+        }
+
+        return result
+    }
+
+    suspend fun getDataDayScenario(): List<MediaItem> {
+        scheduledList.clear()
+        scheduledListLeft.clear()
+
+        val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
+            Log.d("readplaylist", "local ")
+            readItemsFromFile()
+        } else listOf()
+
+        broadcastList.clear()
+
+        broadcastList.addAll(result)
+
+        filterMedia(broadcastList)
+
+        return broadcastList
+    }
+    //
 
     suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
         try {
@@ -189,12 +263,12 @@ class MediaRepo @Inject constructor(
 
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
-                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA || mediaItem.broadcastRegion?.value == FULL_SCREEN }
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.id == RIGHT_AREA || mediaItem.broadcastRegion?.id == FULL_SCREEN }
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
                 scheduledListLeft[key] = mediaList.subList(startIndex + 1, endIndex)
-                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == LEFT_AREA }
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.id == LEFT_AREA }
             }
         }
     }
@@ -227,7 +301,7 @@ class MediaRepo @Inject constructor(
         //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
         if (getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
-        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2") return
+        if (it.contentType?.id != 4 && it.contentType?.id != 3 && it.contentType?.id != 2) return
 
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body).extension

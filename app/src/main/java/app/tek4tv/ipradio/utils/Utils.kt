@@ -1,12 +1,13 @@
 package app.tek4tv.ipradio.utils
 
-import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.os.StatFs
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.model.TacGia
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.net.NetworkInterface
@@ -266,6 +267,40 @@ class Utils {
             // 1 Decimal GB = 1,000,000,000 bytes
             val divisor = 1_000_000_000.0
             return bytes / divisor
+        }
+
+        fun getTotalInternalStorageUsingStatFs(): Long {
+            // Get the internal data directory.
+            val path = Environment.getDataDirectory()
+            val stat = StatFs(path.path)
+            // Obtain block count and block size.
+            val blockCount = stat.blockCountLong
+            val blockSize = stat.blockSizeLong
+            // Total storage (in bytes) is numberOfBlocks * sizeOfEachBlock.
+            return blockCount * blockSize
+        }
+
+        fun getStorageInfo(appStorageManager: AppStorageManager): String {
+            val total = bytesToBinaryGB(getTotalInternalStorageUsingStatFs())
+            val used = bytesToBinaryGB(appStorageManager.getUsedRomStorage())
+            return "Storage: ${used}/${total}"
+        }
+
+        fun getMemoryInfo(appStorageManager: AppStorageManager): String {
+            val total = bytesToBinaryGB(appStorageManager.getTotalRam())
+            val used = bytesToBinaryGB(appStorageManager.getUsedRam())
+            return "Ram: ${used}/${total}"
+        }
+
+        fun getDuration(duration: String?): String {
+            if (duration.equals("00:00:00")) {
+                return "00:00:15"
+            }
+            return if (duration?.isEmpty() == true) {
+                "00:00:15"
+            } else {
+                duration!!
+            }
         }
     }
 }

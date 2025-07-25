@@ -88,7 +88,7 @@ data class MediaItem(
     @Json(name = "FieldType")
     val fieldType: Category? = null,
 
-) : Serializable {
+    ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
@@ -143,7 +143,8 @@ enum class MediaType {
     AM,
     UNKNOWN
 }
-data class BroadcastRegion (
+
+data class BroadcastRegion(
     @Json(name = "Id")
     val id: String?,
 
@@ -175,13 +176,15 @@ data class Category(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class ContentType(
     @Json(name = "Id")
-    val id: Long? = null,
+    val id: Int? = null,
 
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class Priority(
     @Json(name = "Id")
     val id: Long? = null,

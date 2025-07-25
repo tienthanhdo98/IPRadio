@@ -1,4 +1,3 @@
-
 package app.tek4tv.ipradio.core
 
 /**
@@ -6,6 +5,6 @@ package app.tek4tv.ipradio.core
  * **/
 interface IConnectionServer {
     fun onConnectSuccess()
-    fun onConnectFailure(message : String?)
-    fun onReceiveMessageSuccess(message : String)
+    fun onConnectFailure(message: String?)
+    fun onReceiveMessageSuccess(command: String? = "", message: String)
 }

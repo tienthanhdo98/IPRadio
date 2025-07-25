@@ -54,7 +54,7 @@ class MQTTManager(
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 Log.d(TAG, "Receive message: ${message.toString()} from topic: $topic")
-                connectEventListener.onReceiveMessageSuccess(message.toString())
+                connectEventListener.onReceiveMessageSuccess(message = message.toString())
             }
 
             override fun connectionLost(cause: Throwable?) {
@@ -65,12 +65,13 @@ class MQTTManager(
 
             }
         })
-        val options = MqttConnectOptions()
-        if (hubToken != null) {
-            options.userName = clientID
-            options.password = hubToken?.toCharArray()
+        val options = MqttConnectOptions().apply {
+            if (hubToken != null) {
+                userName = clientID
+                password = hubToken?.toCharArray()
+            }
         }
-
+        
         try {
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {

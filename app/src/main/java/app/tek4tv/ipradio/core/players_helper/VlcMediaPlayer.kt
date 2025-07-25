@@ -73,7 +73,7 @@ class VlcMediaPlayer(
     init {
         val args = ArrayList<String>()
         //bật log vlc
-        //args.add("-vvv")
+//        args.add("-vvv")
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = MediaPlayer(mLibVLC)
         vlcPlayer.attachViews(vlcVideoLayout, null, false, false)
@@ -83,7 +83,7 @@ class VlcMediaPlayer(
     }
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
-        stop()
+//        stop()
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
@@ -127,7 +127,7 @@ class VlcMediaPlayer(
         Log.e(TAG, "vlc play file : time stamp $timeStamp")
         val media = mediaItem.getVlcMedia(mLibVLC)
         //neu file chua tai xong ma cho option start-time se khong chay.
-        if (timeStamp != -1 && mediaItem.contentType?.value != "2" && File(mediaItem.body!!).exists()) {
+        if (timeStamp != -1 && mediaItem.contentType?.id != 2 && File(mediaItem.body!!).exists()) {
             media.addOption(":start-time=$timeStamp")
         }
         vlcPlayer.play(media)
@@ -137,12 +137,16 @@ class VlcMediaPlayer(
         Log.e(TAG, "vlc play live")
         val stream = mediaItem.getVlcMedia(mLibVLC)
         vlcPlayer.media = stream
-        Handler(Looper.getMainLooper()).postDelayed({
-            vlcPlayer.play(stream)
-        }, 200) // thử 100-200ms
-        Log.e(TAG, "Player vlc live start ${mediaItem.body}")
+//        Handler(Looper.getMainLooper()).postDelayed({
+//            vlcPlayer.play(stream)
+//        }, 200)
+        playerEventListener.onPlayMediaInit(mediaItem)
+        vlcPlayer.play(stream)
+
+        Log.e(TAG, "Live url play ${mediaItem.body}")
+        Log.e(TAG, "Live base url ${mediaItem.pathBackup}")
         //luong live
-        if (mediaItem.contentType?.value == "5") {
+        if (mediaItem.contentType?.id == 5) {
             handler?.removeCallbacksAndMessages(null)
             handler = Handler(Looper.getMainLooper()).apply {
                 postDelayed(
@@ -153,7 +157,7 @@ class VlcMediaPlayer(
                             if (!isStreamFailed) {
                                 Log.e(TAG, "EndReached ${currentMedia?.title}")
                                 Log.d(TAG, "Player vlc live stop file")
-                                eventListener.onMediaEndReached(currentMedia)
+                                playerEventListener.onMediaEndReached(currentMedia)
                             } else {
                                 Log.e(TAG, "EncounteredError handler live ${currentMedia?.title}")
                                 checkStreamError()
