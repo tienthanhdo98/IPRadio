@@ -30,6 +30,7 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.model.DataValueModel
 import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
@@ -133,13 +134,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         override fun onEndForceMedia() {
             hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
+            Log.d("LiveLog", "onEndForceMedia current ${typeScreen}")
             val oldTypeScreen = ConfigUtil.getInt(
-                context = baseContext,
-                TYPE_PRE_SCREEN_KEY,
-                FULL_SCREEN
+                context = baseContext, TYPE_PRE_SCREEN_KEY, FULL_SCREEN
             )
+            Log.d("LiveLog", "onEndForceMedia old ${oldTypeScreen}")
             ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
-//            startPlayingMedia()
+            Log.d("LiveLog", "onEndForceMedia")
             recreate()
         }
 
@@ -161,7 +162,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-            if (mediaItem?.contentType?.value == "2") {
+            if (mediaItem?.contentType?.id == 2) {
                 vlcVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
             } else {
@@ -180,47 +181,33 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     else "0"
 
                 logUtils.logMediaStart(
-                    mediaItem,
-                    0,
-                    globalProperties.volume,
-                    paState,
-                    typeScreen
+                    mediaItem, 0, globalProperties.volume, paState, typeScreen
                 )
             }
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
-            if (typeScreen == MULTIPLE_AREA) {
-                showLeftArea(listMediaItem)
-            }
+            if (typeScreen == FULL_SCREEN) return
             if (listMediaItem.isNotEmpty()) {
                 val paState =
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 logUtils.logMediaStart(
-                    listMediaItem.first(),
-                    0,
-                    globalProperties.volume,
-                    paState,
-                    typeScreen
+                    listMediaItem.first(), 0, globalProperties.volume, paState, typeScreen
                 )
-                if (typeScreen == MULTIPLE_AREA) {
-                    showLeftArea(listMediaItem)
-                }
+                showLeftArea(listMediaItem)
+
             }
         }
 
         override fun onEndLeftMediaPlaying() {
-            if (typeScreen == MULTIPLE_AREA) {
-                hideTopLeftArea()
-            }
+            hideTopLeftArea()
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        typeScreen =
-            ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: 0
+        typeScreen = ConfigUtil.getInt(context = baseContext, TYPE_SCREEN_KEY, FULL_SCREEN) ?: 0
         if (typeScreen == FULL_SCREEN) {
             setContentView(R.layout.activity_main)
         } else if (typeScreen == MULTIPLE_AREA) {
@@ -263,8 +250,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             hubManager.messageStateFlow.collectLatest { messagePair ->
                 messagePair?.let { (command, message) ->
                     Log.d(
-                        "MainActivityMess",
-                        "Received Message: Command=$command, Message=$message"
+                        "MainActivityMess", "Received Message: Command=$command, Message=$message"
                     )
                     handleFromCommandServer(command, message)
                 }
@@ -274,9 +260,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
-            applicationContext,
-            vlcVideoLayout,
-            viewModel.mediaRepo
+            applicationContext, vlcVideoLayout, imgHolder, viewModel.mediaRepo
         )
 
         playerManager.playerManagerListener = playerCallback
@@ -340,13 +324,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 Log.d("PhotoHolder", "initPhotoHolder: Online")
             }
         } else {
-            // imgHolder.setImageResource(R.drawable.quangngai)
+            imgHolder.setImageResource(R.drawable.quangngai)
         }
     }
 
     private fun startAutoScroll() {
 
-        val speed = 3 // Tốc độ cuộn (số pixel mỗi lần chạy)
+
+        val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
         val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
 
         scrollRunnable = object : Runnable {
@@ -372,10 +357,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun hideTopLeftArea() {
-        if (typeScreen == MULTIPLE_AREA) {
-            recyclerView.visibility = View.INVISIBLE
-            handler.removeCallbacksAndMessages(null)
-        }
+        if (typeScreen == FULL_SCREEN) return
+        recyclerView.visibility = View.INVISIBLE
+        handler.removeCallbacksAndMessages(null)
     }
 
 
@@ -429,20 +413,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.d("alarmx", "reschedule all alarms")
                     mediaScheduler.cancelAllScheduledListAlarm()
                     ConfigUtil.getString(
-                        applicationContext,
-                        ConfigUtil.MONTHLY_SCENARIO_URL,
-                        ""
-                    )
-                        ?.takeIf { it.isNotBlank() }?.let { url ->
-                            lifecycleScope.launch {
-                                repeat(10) { // Try 10 times before giving up
-                                    if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
-                                    viewModel.updateMonthlyScenarioAndGetContent(url)
-                                    delay(15000)
-                                }
-                                Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                        applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, ""
+                    )?.takeIf { it.isNotBlank() }?.let { url ->
+                        lifecycleScope.launch {
+                            repeat(10) { // Try 10 times before giving up
+                                if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
+                                viewModel.updateMonthlyScenarioAndGetContent(url)
+                                delay(15000)
                             }
-                        } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
+                            Log.e("alarmx", "Failed to reschedule after 10 attempts")
+                        }
+                    } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
                     serialPortController.turnOffPA()
                     delay(120000)
                     Log.e("alarmx", "Hub restart")
@@ -484,22 +465,17 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         /**
          * khi cần
          * **/
-        viewModel.content.observe(this)
-        {
+        viewModel.content.observe(this) {
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
             //Media khẩn cấp lưu share pref
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
-//                mediaScheduler.scheduleForceMediaAlarm()
-                val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                Log.i("Changelayout", "Mess: local ${forceMedia?.mediaItem}")
-                if (forceMedia != null)
-                    playerManager.playForceMedia(
-                        forceMedia,
-                        mediaScheduler,
-                        true
-                    )
+                val listForceMedia = getLocalForceMedia(applicationContext)
+                Log.i("Changelayout", "Mess: local ${listForceMedia?.size}")
+                if (listForceMedia != null) playerManager.playForceMedia(
+                    listForceMedia, mediaScheduler
+                )
                 return@observe
             }
             //default
@@ -549,16 +525,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {
-//                    Log.d("tesstlive", "handleFromCommandServer: live")
-//                    ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, FULL_SCREEN)
-//                    ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-//
-//                    Handler(Looper.getMainLooper()).postDelayed({
-//                        onPlayForce(responseHub)
-//                        recreate()
-//                    }, 1000)
                     ConfigUtil.removeSharef(context = baseContext, "FORCE_MEDIA")
-                    val newTypeScreen = responseHub.type?.toInt() ?: 0
+                    val newTypeScreen = responseHub.mode!!.toInt()
                     if (newTypeScreen != typeScreen) {
                         ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, newTypeScreen)
                         ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
@@ -607,9 +575,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                     if (listInfoConfig.size >= 7 && listInfoConfig[6] != "null") {
                         ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listInfoConfig[6]
+                            applicationContext, ConfigUtil.PROVIDER, listInfoConfig[6]
                         )
                         hubManager.providerValue = listInfoConfig[6]
                     }
@@ -628,40 +594,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val urlToken = listValue[1]
                     if (listValue.size >= 3) {
                         ConfigUtil.putStringEncrypt(
-                            applicationContext,
-                            ConfigUtil.PROVIDER,
-                            listValue[2]
+                            applicationContext, ConfigUtil.PROVIDER, listValue[2]
                         )
                     }
-                    val hubConnection = HubConnectionBuilder.create(urlHub)
-                        .withAccessTokenProvider(Single.defer {
+                    val hubConnection =
+                        HubConnectionBuilder.create(urlHub).withAccessTokenProvider(Single.defer {
                             val token = hubManager.getHubToken(urlToken)
                             if (token != null) {
                                 Single.just(token)
-                            } else
-                                Single.error(Exception())
-                        })
-                        .withTransport(TransportEnum.WEBSOCKETS)
-                        .build()
+                            } else Single.error(Exception())
+                        }).withTransport(TransportEnum.WEBSOCKETS).build()
                     lifecycleScope.launch {
                         val id = hubManager.openConnection2(hubConnection)
                         if (id != null) {
                             ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_HUB,
-                                urlHub
+                                applicationContext, ConfigUtil.URL_HUB, urlHub
                             )
                             ConfigUtil.putStringEncrypt(
-                                applicationContext,
-                                ConfigUtil.URL_TOKEN,
-                                urlToken
+                                applicationContext, ConfigUtil.URL_TOKEN, urlToken
                             )
                             Log.i("config_config", "updateconfig success: reseting")
                             delay(60000)
                             Toast.makeText(
-                                baseContext,
-                                resources.getString(R.string.reset),
-                                Toast.LENGTH_SHORT
+                                baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT
                             ).show()
                             delay(10000)
                             serialPortController.hardRestart()
@@ -671,9 +626,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             Log.i("config_config", "updateconfig fail: reseting")
                             delay(2000)
                             Toast.makeText(
-                                baseContext,
-                                resources.getString(R.string.reset),
-                                Toast.LENGTH_SHORT
+                                baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT
                             ).show()
                             delay(5000)
                             serialPortController.hardRestart()
@@ -750,7 +703,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.FM -> {
-                    onPlayForce(responseHub)
+//                    onPlayForce(responseHub)
                 }
 
                 HubCommand.UPDATE_STATUS -> {
@@ -760,9 +713,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.RESTART -> {
                     Toast.makeText(
-                        baseContext,
-                        resources.getString(R.string.reset),
-                        Toast.LENGTH_SHORT
+                        baseContext, resources.getString(R.string.reset), Toast.LENGTH_SHORT
                     ).show()
                     lifecycleScope.launch {
                         delay(5000)
@@ -771,7 +722,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.SWITCH_MODE_FM -> {
-                    onPlayForce(responseHub)
+//                    onPlayForce(responseHub)
                 }
 
                 HubCommand.SET_MUTE_DEVICE -> {
@@ -785,17 +736,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         } else {
                             changeVolume(
                                 (ConfigUtil.getString(
-                                    baseContext,
-                                    DEFAULT_ANDROID_VOLUME,
-                                    "10"
+                                    baseContext, DEFAULT_ANDROID_VOLUME, "10"
                                 ) ?: "10").toInt()
                             )
                             globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
                             globalProperties.saveVolume(
                                 (ConfigUtil.getString(
-                                    baseContext,
-                                    DEFAULT_VOLUME,
-                                    "100"
+                                    baseContext, DEFAULT_VOLUME, "100"
                                 ) ?: "100")
                             )
                             Log.d(
@@ -1002,12 +949,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             while (true) {
                 strTimeFrame.clear()
                 val imei = Utils.getDeviceId(baseContext)
-                val timeUpdate =
-                    ConfigUtil.getString(
-                        baseContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        "0"
-                    )!!
+                val timeUpdate = ConfigUtil.getString(
+                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
+                )!!
                 val idPlaylist =
                     ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
                 val scheduledList = viewModel.mediaRepo.timeDividers
@@ -1022,11 +966,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         strPlaylist = readFile(fileStoragePath)
                     }
                     logDeviceData = DataValueModel(
-                        idPlaylist,
-                        timeUpdate,
-                        getCurrentTime(),
-                        strTimeFrame,
-                        strPlaylist
+                        idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame, strPlaylist
                     )
                 } else {
                     logDeviceData =

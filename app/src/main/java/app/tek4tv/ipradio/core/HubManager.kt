@@ -55,8 +55,7 @@ class HubManager(
         moshi.adapter<List<String>>(List::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
 
-    //private val deviceImei = Utils.getDeviceId(appContext)
-    private val deviceImei = "54:78:C9:B8:58:C8"
+    private val deviceImei = Utils.getDeviceId(appContext)
 
     val responseAdapter = moshi.adapter(ResponseHub::class.java)
 

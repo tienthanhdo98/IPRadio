@@ -114,7 +114,7 @@ data class MediaItem(
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
         return !(body == "start" || body == "end") &&
-                (contentType?.value == "3" || contentType?.value == "4" || contentType?.value == "2")
+                (contentType?.id == 3 || contentType?.id == 4 || contentType?.id == 2)
     }
 
     fun getMediaType(): MediaType {
@@ -154,7 +154,8 @@ enum class MediaType {
     AM,
     UNKNOWN
 }
-data class BroadcastRegion (
+
+data class BroadcastRegion(
     @Json(name = "Id")
     val id: Int?,
 
@@ -163,7 +164,7 @@ data class BroadcastRegion (
 )
 
 
-data class Author (
+data class Author(
     @Json(name = "Id")
     val id: Any,
 
@@ -187,13 +188,15 @@ data class Category(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class ContentType(
     @Json(name = "Id")
-    val id: Long? = null,
+    val id: Int? = null,
 
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class Priority(
     @Json(name = "Id")
     val id: Long? = null,

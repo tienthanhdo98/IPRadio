@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
+import android.widget.ImageView
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.model.ForceMedia
@@ -10,10 +11,13 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
+import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
+import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.saveListForceToPref
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
+import com.squareup.moshi.JsonDataException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -32,18 +36,16 @@ import java.util.*
 class PlayersManager(
     appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
+    imageLayout: ImageView,
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
-    var TAG = "alarmx"
+    var TAG = "PlayersManager"
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this, vlcVideoLayout)
+    private val imagePlayer = ImagePlayer(this, imageLayout, mediaRepo)
     private var currentPlayingMedia: MediaItem? = null
-
-    /**
-     * The timestamp when a media begin to play
-     * **/
-    private var mediaStartTime = 0L
+    private var currentPlayer: IMediaPlayer? = null
 
     /**
      * -2 for force media
@@ -56,6 +58,9 @@ class PlayersManager(
      * List of media for a timeframe
      * **/
     private var currentPlaylist = listOf<MediaItem>()
+
+
+    private var currentTextPlaylist = listOf<MediaItem>()
 
     var playlistIndex = 0
         private set
@@ -76,11 +81,15 @@ class PlayersManager(
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
-        mediaStartTime = Calendar.getInstance().timeInMillis
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
         playerManagerListener?.onMediaEndReach(mediaItem!!)
+        playNextMedia()
+    }
+
+    override fun onMediaForceEndReached(mediaItem: MediaItem?) {
+        Log.d(TAG, "onMediaForceEndReached")
         playNextMedia()
     }
 
@@ -111,7 +120,7 @@ class PlayersManager(
                 setTimeFrame(period, resumePoint)
                 startLeftTimeFrame(timeFrame = period)
                 found = true
-                Log.d(TAG, "startFirstTimeFrame: found, start")
+                Log.d(TAG, "startFirstTimeFrame: found, start $resumePoint")
                 break
             }
         }
@@ -138,31 +147,33 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
+//        if (playMode == "") return
+//
+//        playlistIndex++
+//        try {
+//            if (playlistIndex < currentPlaylist.size) {
+//                Log.d(TAG, "Play media next")
+//                playMediaByIndex(playlistIndex)
+//            } else {
+//                Log.d(TAG, "Play media phat tiep cham dich")
+//                stopAllPlayer()
+//                stopTimeFrame()
+//            }
+//        } catch (e: Exception) {
+//
+//        }
         if (playMode == "") return
-
         playlistIndex++
-        try {
-            if (playlistIndex < currentPlaylist.size) {
-                Log.d(TAG, "Play media next")
-                playMediaByIndex(playlistIndex)
+        if (playlistIndex < currentPlaylist.size) {
+            playMediaByIndex(playlistIndex)
+        } else {
+            if (playMode == PLAY_MODE_FORCE) {
+                stopForceMedia()
             } else {
-                Log.d(TAG, "Play media phat tiep cham dich")
-                stopAllPlayer()
                 stopTimeFrame()
             }
-        } catch (e: Exception) {
-
         }
 
-    }
-
-    fun stopPlaylist(cancelListKey: String) {
-        if (cancelListKey != playMode) return
-        playMode = ""
-        stopAllPlayer()
-        //check time over
-        isTimeOver = true
-        checkTimeOver()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
@@ -206,12 +217,34 @@ class PlayersManager(
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
-                    vlcPlayer.playMedia(mediaItem, timeStamp)
-                    vlcPlayer
+                    if (mediaItem.body!!.contains("m3u8")) {
+                        playLiveStream(mediaItem)
+                    } else {
+                        currentPlayer = when (mediaItem.contentType?.id) {
+                            2 -> {
+                                imagePlayer.playMedia(mediaItem)
+                                imagePlayer
+                            }
+                            5 -> {
+                                vlcPlayer.playMedia(mediaItem)
+                                vlcPlayer
+                            }
+                            else -> {
+                                vlcPlayer.playMedia(mediaItem)
+                                vlcPlayer
+                            }
+                        }
+                    }
                 }
 
                 MediaType.LIVE -> {
-                    playLiveStream(mediaItem)
+                    if (mediaItem.contentType?.id == 2) {
+                        imagePlayer.playMedia(mediaItem)
+                        currentPlayer = imagePlayer
+                    } else {
+                        playLiveStream(mediaItem)
+                        currentPlayer = vlcPlayer
+                    }
                 }
 
                 else -> {
@@ -226,12 +259,16 @@ class PlayersManager(
 
     private fun playLiveStream(mediaItem: MediaItem) {
         vlcPlayer.playMedia(mediaItem, 0)
-
     }
 
 
     fun stopAllPlayer() {
-        vlcPlayer.stop()
+        if (currentPlayer == vlcPlayer) {
+            vlcPlayer.stop()
+        }
+        if (currentPlayer == imagePlayer) {
+            imagePlayer.stop()
+        }
     }
 
 
@@ -297,49 +334,6 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
 
-//    fun onPlayForceCommand(
-//        context: Context,
-//        responseHub: ResponseHub,
-//        mediaScheduler: MediaScheduler
-//    ) {
-//        try {
-//            val responseAdapter = moshi.adapter(MediaItem::class.java)
-//            val duration = responseHub.duration!!
-//            val type = responseHub.type!!
-//            val level = responseHub.level!!
-//            val mediaItemObject = responseAdapter.fromJson(responseHub.name)
-//
-//            //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
-//            //Nếu có thì bỏ qua không phát
-//            //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
-//            if (playMode == PLAY_MODE_FORCE) {
-//                val value = ConfigUtil.getString(context, ConfigUtil.FORCE_MEDIA, "")
-//                if (value != null && value != "") {
-//                    val currentForceMedia = ForceMedia.jsonAdapter.fromJson(value)
-//
-//                    if (currentForceMedia != null && currentForceMedia.level < level) return
-//                }
-//            }
-//            val forceMedia =
-//                ForceMedia(responseHub.message!!, duration, type, level, mediaItemObject).apply {
-//                    val listDur = duration.split(":")
-//                    val h = listDur[0].toInt()
-//                    val m = listDur[1].toInt()
-//                    val s = listDur[2].toInt()
-//                    val mediaEndTime = Calendar.getInstance().apply {
-//                        add(Calendar.HOUR, h)
-//                        add(Calendar.MINUTE, m)
-//                        add(Calendar.SECOND, s)
-//                    }
-//                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
-//                    //fixTime = SimpleDateFormat("HH:mm:ss").format(Date())
-//                }
-//            forceMedia.saveItemToPref(context)
-//            playForceMedia(forceMedia, mediaScheduler, false)
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//    }
 
     fun onPlayForceCommand(
         context: Context,
@@ -438,18 +432,21 @@ class PlayersManager(
             //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
 
-            currentTextPlaylist = listForceMedia.filter { it.broadcastRegion?.value == LEFT_AREA }
+            currentTextPlaylist =
+                listForceMedia.filter { it.broadcastRegion?.value == LEFT_AREA.toInt() }
 
             playerManagerListener?.onLeftMediaPlaying(currentTextPlaylist)
 
             currentPlaylist =
-                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA || it.broadcastRegion?.value == FULL_SCREEN }
+                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA.toInt() || it.broadcastRegion?.value == FULL_SCREEN }
             playlistIndex = 0
 
             playMediaByIndex(playlistIndex, 0)
 
             //mediaScheduler.scheduleForceMediaAlarm(listForceMedia.lastOrNull()!!)
 
+        } catch (e: JsonDataException) {
+            Log.d(TAG, "playForceMedia error: ${e.message} ")
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -458,7 +455,7 @@ class PlayersManager(
     fun stopAndEndTimeFrame(type: Int) {
         vlcPlayer.stop()
         playerManagerListener?.onTimeOver()
-        if (type != Utils.FULL_SCREEN) {
+        if (type != FULL_SCREEN) {
             stopLeftPlaylist()
         }
     }

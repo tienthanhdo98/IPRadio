@@ -1,12 +1,10 @@
 package app.tek4tv.ipradio.model
 
 import android.content.Context
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
 import com.squareup.moshi.Json
-import java.text.SimpleDateFormat
-import java.util.*
 
 data class ForceMedia(
     @Json(name = "Message")
@@ -42,9 +40,10 @@ data class ForceMedia(
 //        val ms = if (m >= 10) "$m" else "0$m"
 
         return MediaItem(
-            body = path,
+            id = mediaItem!!.id,
+            body = mediaItem!!.body,
             title = mediaItem!!.title,
-            type = type,
+            type = mediaItem!!.type,
             fixTime = fixTime,
             duration = mediaItem!!.duration,
             author = mediaItem!!.author,
@@ -58,8 +57,9 @@ data class ForceMedia(
             sourceReference = mediaItem!!.sourceReference,
             startTime = mediaItem!!.startTime,
             createDate = mediaItem!!.createDate,
-            id = mediaItem!!.id,
-            projectID = mediaItem!!.projectID
+            projectID = mediaItem!!.projectID,
+            broadcastRegion = mediaItem!!.broadcastRegion,
+            end = endTime
         ).also { it.level = level }
     }
 
@@ -75,24 +75,36 @@ data class ForceMedia(
     companion object {
         val jsonAdapter = MoshiInst.moshi.adapter(ForceMedia::class.java)
 
-        fun getLocalForceMedia(appContext: Context): ForceMedia? {
+        fun getLocalForceMedia(appContext: Context): List<MediaItem>? {
             val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
             if (value == null || value == "") return null
-            return jsonAdapter.fromJson(value)
+            return jsonListMediaItemAdapter.fromJson(value)
         }
 
+        //        fun hasValidForceMedia(appContext: Context): Boolean {
+//            val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
+//            if (!hasForceMedia) return false
+//
+//            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+//            if (value == null || value == "") return false
+//
+//            val fm = jsonAdapter.fromJson(value) ?: return false
+//
+//            if (SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(fm.endTime) <= Date()) return false
+//
+//            return true
+//        }
         fun hasValidForceMedia(appContext: Context): Boolean {
-            val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
-            if (!hasForceMedia) return false
+            try {
+                val hasForceMedia =
+                    ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
+                if (!hasForceMedia) return false
 
-            val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
-            if (value == null || value == "") return false
+                return true
+            } catch (_: Exception) {
+                return false
+            }
 
-            val fm = jsonAdapter.fromJson(value) ?: return false
-
-            if (SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(fm.endTime) <= Date()) return false
-
-            return true
         }
 
         fun deleteForeMediaPref(appContext: Context) {

@@ -24,6 +24,7 @@ class GlobalProperties {
 
 
     var volume = "100"
+
     var androidVolume = "10"
 
     var userNameController = ""
@@ -102,13 +103,13 @@ class GlobalProperties {
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H25.24.25") ?: "H25.24.25"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H42.315") ?: "H42.315"
         destinationName =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Quang Trung")
-                ?: "Phường Quang Trung"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Phủ Lý")
+                ?: "Phường Phủ Lý"
         nameDevice =
-            ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Phường Quang Trung")
-                ?: "TB Phường Quang Trung"
+            ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI")
+                ?: "TB DI"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)

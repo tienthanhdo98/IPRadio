@@ -34,7 +34,7 @@ class MyApp : Application() {
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-hanam.tek4tv.vn/hubServer"
+            "https://hubdi-ninhbinh.tek4tv.vn/hubServer"
         )
         hubManager = HubManager(applicationContext, authService)
         hubManager.connectToHub()
