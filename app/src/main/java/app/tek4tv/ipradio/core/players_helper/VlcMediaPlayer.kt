@@ -98,6 +98,9 @@ class VlcMediaPlayer(
                 playLiveStream(mediaItem)
             }
 
+            else -> {
+                playFile(mediaItem, timeStamp)
+            }
         }
 
         currentMedia = mediaItem

@@ -24,26 +24,6 @@ class ImagePlayer(
     private var currentMedia: MediaItem? = null
 
 
-    override fun resume() {
-        handler?.removeCallbacksAndMessages(null)
-        handler = Handler(Looper.getMainLooper()).apply {
-            postDelayed(
-                {
-                    if (currentMedia?.getMediaType() == MediaType.FILE) {
-                        playerEventListener.onMediaEndReached(currentMedia)
-                    } else {
-                        playerEventListener.onMediaForceEndReached(currentMedia)
-
-                    }
-                }, delayTime
-            )
-        }
-    }
-
-    override fun release() {
-
-    }
-
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
         Log.d(TAG, "ImageMediaDuration: ${getDurationInSecond(mediaItem.duration ?: "").toLong()}")
         currentMedia = mediaItem
@@ -73,6 +53,27 @@ class ImagePlayer(
         }
     }
 
+    override fun resume() {
+        handler?.removeCallbacksAndMessages(null)
+        handler = Handler(Looper.getMainLooper()).apply {
+            postDelayed(
+                {
+                    if (currentMedia?.getMediaType() == MediaType.FILE) {
+                        playerEventListener.onMediaEndReached(currentMedia)
+                    } else {
+                        playerEventListener.onMediaForceEndReached(currentMedia)
+
+                    }
+                }, delayTime
+            )
+        }
+    }
+
+    override fun release() {
+
+    }
+
+
     override fun reset() {
 
     }
@@ -80,7 +81,6 @@ class ImagePlayer(
 
     override fun stop() {
         handler?.removeCallbacksAndMessages(null)
-
     }
 
     override fun pause() {

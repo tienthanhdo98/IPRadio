@@ -62,7 +62,8 @@ import java.io.File
 import java.util.*
 import javax.inject.Inject
 
-
+//log ban tin live 2 lan
+// a
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity(), AlarmListener {
 
@@ -161,29 +162,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
-            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-            if (mediaItem?.contentType?.id == 2) {
+            if (mediaItem == null) return
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: ${mediaItem.title} ")
+            if (mediaItem.contentType?.id == 2) {
                 vlcVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
             } else {
                 vlcVideoLayout.visibility = View.VISIBLE
                 imgHolder.visibility = View.INVISIBLE
             }
-            if (mediaItem != null) {
-                hubManager.playlistIndex = playerManager.playlistIndex
-                hubManager.currentMediaItem = mediaItem
-                hubManager.curMediaName = mediaItem.title ?: ""
 
-                serialPortController.turnOnPAVod()
+            hubManager.playlistIndex = playerManager.playlistIndex
+            hubManager.currentMediaItem = mediaItem
+            hubManager.curMediaName = mediaItem.title ?: ""
 
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                    else "0"
+            serialPortController.turnOnPAVod()
 
-                logUtils.logMediaStart(
-                    mediaItem, 0, globalProperties.volume, paState, typeScreen
-                )
-            }
+            val paState =
+                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+                else "0"
+
+            logUtils.logMediaStart(
+                mediaItem, 0, globalProperties.volume, paState, typeScreen
+            )
+
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
@@ -391,16 +393,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         playerManager.startLeftTimeFrame(listKey)
                     }
                 }
-            }
-
-            MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
-//                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-//                Log.d("alarmx", "end: $listKey")
-//                playerManager.stopPlaylist(listKey!!)
-//                if (typeScreen == MULTIPLE_AREA) {
-//                    Log.d("alarmx", "end left")
-//                    playerManager.stopLeftPlaylist()
-//                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {

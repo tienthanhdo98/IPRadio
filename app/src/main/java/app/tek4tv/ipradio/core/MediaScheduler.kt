@@ -27,68 +27,37 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val scheduledList = mediaRepo.scheduledList
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
-            val listMediaInPeriod = scheduledList.values.elementAt(i)
-            //setAlarmsForFrame(period)
-            var isNewDayStarted = false
+
             val requestCode = mediaRepo.timeDividers[period]!![0].id
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             val t = period.split("-")
             val start = toCalendar(t[0])
-            val end = toCalendar(t[1])
-
-            if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)
-            ) isNewDayStarted = true
-
-            if (isNewDayStarted) {
-                if (start.get(Calendar.HOUR_OF_DAY) > end.get(Calendar.HOUR_OF_DAY)) end.add(
-                    Calendar.DAY_OF_MONTH, 1
-                )
-                else {
-                    start.add(Calendar.DAY_OF_MONTH, 1)
-                    end.add(Calendar.DAY_OF_MONTH, 1)
-                }
-            }
 
             val now = Calendar.getInstance().timeInMillis
 
-            if (now in start.timeInMillis..end.timeInMillis) {
-                setAlarmForList(
-                    period,
-                    endRequestCode!!,
-                    end.timeInMillis + (listMediaInPeriod.size + 1) * 1000,
-                    true
-                )
-            } else if (now < start.timeInMillis) {
+            if (now < start.timeInMillis) {
                 setAlarmForList(period, requestCode!!, start.timeInMillis)
-                setAlarmForList(
-                    period,
-                    endRequestCode!!,
-                    end.timeInMillis + (listMediaInPeriod.size + 1) * 1000,
-                    true
-                )
             }
         }
     }
 
     private fun setAlarmForList(
-        listKey: String, requestCode: Int, time: Long, shouldEndPlaying: Boolean = false
+        listKey: String, requestCode: Int, time: Long
     ) {
         val isAlarmWorking = getScheduleListIntent(
             listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+            PendingIntent.FLAG_NO_CREATE
         )
 
         if (isAlarmWorking != null) return
 
-        Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
+        Log.d("alarmx", "Set start frame $listKey - $requestCode")
+        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0)
 
         val alarmClockInfo = AlarmClockInfo(time, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
-
 
 
     private fun cancelAllListAlarm() {
@@ -101,36 +70,34 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
             cancelListAlarm(period, requestCode!!)
-            cancelListAlarm(period, endRequestCode!!, true)
+            cancelListAlarm(period, endRequestCode!!)
         }
     }
 
     private fun cancelListAlarm(
-        listKey: String, requestCode: Int, shouldEndPlaying: Boolean = false
+        listKey: String, requestCode: Int
     ) {
         val isAlarmWorking = getScheduleListIntent(
             listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+            PendingIntent.FLAG_NO_CREATE
         ) != null
 
         if (!isAlarmWorking) return
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
+        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0)
         alarmManager.cancel(alarmIntent)
         alarmIntent?.cancel()
     }
 
     private fun getScheduleListIntent(
-        listKey: String, requestCode: Int, flag: Int, shouldEndPlaying: Boolean = false
+        listKey: String, requestCode: Int, flag: Int
     ): PendingIntent? {
 
-        val alarmAction = if (shouldEndPlaying) MediaScheduleReceiver.ACTION_END_PLAYLIST
-        else MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST
 
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             Settings.ACTION_IGNORE_BATTERY_OPTIMIZATION_SETTINGS
-            action = alarmAction
+            action = MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST
             putExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY, listKey)
         }
 
@@ -161,7 +128,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestResetAndRescheduleAlarms,
+                intent,
+                FLAG_IMMUTABLE
+            )
 
         val cal_alarm = Calendar.getInstance()
 
@@ -176,9 +148,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
         cal_alarm.time
         Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
-        val alarmClockInfo = AlarmClockInfo( cal_alarm.timeInMillis, alarmIntent)
+        val alarmClockInfo = AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
-
     }
 
     private fun getScheduleForceMediaIntent(flag: Int): PendingIntent? {

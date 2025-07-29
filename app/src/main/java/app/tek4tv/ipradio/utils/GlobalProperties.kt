@@ -230,7 +230,6 @@ class GlobalProperties {
         }
     }
 
-
     fun saveVolume(vol: String) {
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
         volume = vol

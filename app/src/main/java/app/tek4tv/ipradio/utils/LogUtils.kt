@@ -168,7 +168,7 @@ class LogUtils private constructor() {
                 logService?.postMediaInfoStart(reportObj)
                 Log.d(
                     LOG_TAG,
-                    "Log media start ${reportObj}"
+                    "Log media start $reportObj"
                 )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media start ${e.message}")

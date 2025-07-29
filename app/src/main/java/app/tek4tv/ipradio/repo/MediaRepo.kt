@@ -149,7 +149,6 @@ class MediaRepo @Inject constructor(
                 val startIndex = it[0]
                 val endIndex = it[1]
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
-                Log.d("alarmx", "Set $key")
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
                     .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN.toInt() }
 
@@ -273,24 +272,20 @@ class MediaRepo @Inject constructor(
         }
     }
 
-
-    private fun getConfigExtension(): String? {
-        return ConfigUtil.getString(appContext, "KEY_EXTEND_FILE", "mp4,jpg,png")
-    }
-
     fun downloadMediaItem(it: MediaItem) {
 
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body ?: "").extension
 
         if (extMedia.isEmpty()) return
-        val isFile = getConfigExtension()!!.contains(extMedia)
+        val isFile = getConfigExtension()?.contains(extMedia.toLowerCase()) ?: false
 
         if (!isFile) return
 
         val url = it.body
 
         val fileName = getFileNameFromUrl(url!!)
+
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
@@ -353,4 +348,10 @@ class MediaRepo @Inject constructor(
             }
         })
     }
+
+
+    private fun getConfigExtension(): String? {
+        return ConfigUtil.getString(appContext, "KEY_EXTEND_FILE", "mp4,jpg,png")
+    }
+
 }
