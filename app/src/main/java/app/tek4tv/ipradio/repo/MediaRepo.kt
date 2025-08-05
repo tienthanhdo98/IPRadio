@@ -264,8 +264,7 @@ class MediaRepo @Inject constructor(
     }
 
     fun startDownloadMedia() {
-        val needDownloadList = broadcastList.filter { it.shouldDownload() }.toList()
-
+        val needDownloadList = broadcastList.filter { it.shouldDownload() }
 
         if (needDownloadList.isNotEmpty()) {
             needDownloadList.forEach { downloadMediaItem(it) }
@@ -311,12 +310,10 @@ class MediaRepo @Inject constructor(
                 override fun onDownloadComplete() {
                     it.pathBackup = it.body!!
                     it.body = "$mediaStoragePath/$fileName"
-
                     coroutineScope.launch {
                         saveItemsToFile(broadcastList, "downloadMediaItem")
                         Log.e("SavefileLog", "Save in onDownloadComplete: onDownloadComplete")
                     }
-
                     Log.d("downloadcomplete", it.body!!)
                 }
 

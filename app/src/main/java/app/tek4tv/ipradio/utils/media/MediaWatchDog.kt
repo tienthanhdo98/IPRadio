@@ -28,8 +28,7 @@ class MediaWatchDog(
         }
     }
 
-    private suspend fun checkBrokenPath()
-    {
+    private suspend fun checkBrokenPath() {
         try {
             val brokenItems = mediaRepo.broadcastList.filter {
                 it.body != null && it.getMediaType() == MediaType.FILE && !File(it.body!!).exists()
@@ -38,20 +37,17 @@ class MediaWatchDog(
             if (brokenItems.isNotEmpty()) {
                 brokenItems.forEach {
                     if (it.pathBackup.startsWith("http")) it.body = it.pathBackup
-                    Log.d("foundBrokenPath", it.title)
+                    Log.d("foundBrokenPath", it.title ?: "")
                 }
-                mediaRepo.saveItemsToFile(mediaRepo.broadcastList,"checkBrokenPath")
+                mediaRepo.saveItemsToFile(mediaRepo.broadcastList, "checkBrokenPath")
             }
-        }
-        catch (e: Exception)
-        {
+        } catch (e: Exception) {
             Log.e(LOG_TAG, "error check path")
             e.printStackTrace()
         }
     }
 
-    private fun checkDownload()
-    {
+    private fun checkDownload() {
         try {
             val needDownload = mediaRepo.broadcastList
                 .filter { it.getMediaType() == MediaType.FILE && it.body!!.startsWith("http") }
@@ -60,16 +56,13 @@ class MediaWatchDog(
             if (needDownload.isNotEmpty()) {
                 needDownload.forEach { mediaRepo.downloadMediaItem(it) }
             }
-        }
-        catch (e : Exception)
-        {
+        } catch (e: Exception) {
             Log.e(LOG_TAG, "error check download")
             e.printStackTrace()
         }
     }
 
-    fun cancelCheck()
-    {
+    fun cancelCheck() {
         checkPlaylistJob?.cancel()
         checkPlaylistJob = null
     }

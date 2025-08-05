@@ -2,6 +2,8 @@ package app.tek4tv.ipradio.model
 
 import android.net.Uri
 import android.util.Log
+import androidx.room.Entity
+import androidx.room.PrimaryKey
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import org.videolan.libvlc.LibVLC
@@ -9,8 +11,10 @@ import org.videolan.libvlc.Media
 import java.io.File
 import java.io.Serializable
 
+@Entity(tableName = "media_logs")
 @JsonClass(generateAdapter = true)
 data class MediaItem(
+    @PrimaryKey(autoGenerate = true)
     @Json(name = "ID")
     val id: Int? = null,
 
@@ -80,11 +84,11 @@ data class MediaItem(
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
-    @Json(name = "Metadata")
-    val metadata: List<Any?>? = null,
-
-    @Json(name = "Tag")
-    val tag: List<Any?>? = null
+//    @Json(name = "Metadata")
+//    val metadata: List<Any?>? = null,
+//
+//    @Json(name = "Tag")
+//    val tag: List<Any?>? = null
 
 ) : Serializable {
 
@@ -112,7 +116,7 @@ data class MediaItem(
         //5 - Bản tin trực tiếp
         //6 - Bản tin FM
         //7 - Bản tin ghi âm trực tiếp
-        //không phải files thì không tải, chỉ tải type 3 , type 4
+        //không phải files thì không tải, chỉ tải type 3 , type 4, type 2
         return !(body == "start" || body == "end") &&
                 (contentType?.id == 3 || contentType?.id == 4 || contentType?.id == 2)
     }

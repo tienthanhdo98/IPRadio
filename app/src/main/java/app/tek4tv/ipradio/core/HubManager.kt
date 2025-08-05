@@ -27,7 +27,6 @@ import io.reactivex.Single
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
-import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -76,6 +75,7 @@ class HubManager(
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
+    var isConnectSuccess = false
 
     private var hubToken: String? = null
 
@@ -267,7 +267,7 @@ class HubManager(
                     if (command != null && message != null) {
                         when (command) {
                             HubCommand.PONG -> {
-
+                                isConnectSuccess = true
                                 //Vừa kết nối được lại hub
                                 if (pingCounter >= 3 && !firstConnect) {
                                     Log.e(LOG_TAG, "Hub Reconnected")
@@ -350,6 +350,7 @@ class HubManager(
             Utils.toJsonString(moshi, DirectMessage::class.java, directMessage)
         )
     }
+
 
     private fun sendPing() {
         pingCounter++
@@ -443,6 +444,7 @@ class HubManager(
             hubComm.forceRestartApp()
         }
         if (pingCounter >= 3) {
+            isConnectSuccess = false
             Log.e(LOG_TAG, "Losed hub connection")
             hubToken = null
             Log.e(LOG_TAG, "Hub Disconnected")

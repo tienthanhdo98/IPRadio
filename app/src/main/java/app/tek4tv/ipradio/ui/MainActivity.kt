@@ -33,7 +33,9 @@ import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.local.MediaLogDao
 import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.IHubObserve
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
@@ -65,7 +67,7 @@ import javax.inject.Inject
 //log ban tin live 2 lan
 // a
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener {
+class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -92,6 +94,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     @Inject
     lateinit var logService: LogService
+
+    @Inject
+    lateinit var mediaLogDao: MediaLogDao
 
     private lateinit var playerManager: PlayersManager
 
@@ -178,13 +183,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             serialPortController.turnOnPAVod()
 
-            val paState =
-                if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-                else "0"
+            val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+            else "0"
 
             logUtils.logMediaStart(
                 mediaItem, 0, globalProperties.volume, paState, typeScreen
             )
+            if (!hubManager.isConnectSuccess) {
+                lifecycleScope.launch {
+
+                    mediaLogDao.insertLog(mediaItem)
+                }
+            }
 
         }
 
@@ -973,6 +983,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     companion object {
         var alarmListener: AlarmListener? = null
+    }
+
+    override fun onHubConnected() {
+        lifecycleScope.launch {
+            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
+            val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
+            else "0"
+            listMediaLog.forEach {
+
+
+                logUtils.logMediaStart(
+                    it, 0, globalProperties.volume, paState, typeScreen
+                )
+                mediaLogDao.deleteMediaItemById(it.id!!)
+            }
+        }
+        Log.d("HubObverse", "onHubConnected")
+    }
+
+    override fun onHubDisConnected() {
+        Log.d("HubObverse", "onHubDisConnected")
     }
 
 

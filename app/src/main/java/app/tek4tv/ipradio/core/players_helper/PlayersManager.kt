@@ -239,12 +239,12 @@ class PlayersManager(
                 }
 
                 MediaType.LIVE -> {
-                    if (mediaItem.contentType?.id == 2) {
+                    currentPlayer = if (mediaItem.contentType?.id == 2) {
                         imagePlayer.playMedia(mediaItem)
-                        currentPlayer = imagePlayer
+                        imagePlayer
                     } else {
                         playLiveStream(mediaItem)
-                        currentPlayer = vlcPlayer
+                        vlcPlayer
                     }
                 }
 

@@ -29,7 +29,7 @@ class MyApp : Application() {
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
+            "https://oauth-device.tek4tv.vn/api/auth/login"
         )
         ConfigUtil.putStringEncrypt(
             applicationContext,
