@@ -46,27 +46,15 @@ class ImagePlayer(
                             playerEventListener.onMediaForceEndReached(currentMedia)
 
                         }
-//                    }, getDurationInSecond(mediaItem.duration ?: "").toLong() * 1000
-                    }, delayTime
+                    }, getDurationInSecond(mediaItem.duration ?: "00:15").toLong() * 1000
+//                    }, delayTime
                 )
             }
         }
     }
 
     override fun resume() {
-        handler?.removeCallbacksAndMessages(null)
-        handler = Handler(Looper.getMainLooper()).apply {
-            postDelayed(
-                {
-                    if (currentMedia?.getMediaType() == MediaType.FILE) {
-                        playerEventListener.onMediaEndReached(currentMedia)
-                    } else {
-                        playerEventListener.onMediaForceEndReached(currentMedia)
 
-                    }
-                }, delayTime
-            )
-        }
     }
 
     override fun release() {

@@ -19,8 +19,9 @@ class AppStorageManager(appContext: Context) {
     private val memoryInfo = ActivityManager.MemoryInfo()
 
     init {
-        //activityManager.getMemoryInfo(memoryInfo)
+        activityManager.getMemoryInfo(memoryInfo)
     }
+
 
     fun getTotalMediaSize() = getFolderSize(fileDirPath)
     fun getTotalMusicSize() = getFolderSize(audioDirPath)
@@ -74,12 +75,11 @@ class AppStorageManager(appContext: Context) {
 
     fun getAllRecordedAudioPath() = getAllFilePathInFolder(recordedAudioDirPath)
 
-    fun deleteAllLog()
-    {
+    fun deleteAllLog() {
         deleteAllFileInFolder(logDirPath)
     }
-    fun deleteAllRecord()
-    {
+
+    fun deleteAllRecord() {
         deleteAllFileInFolder(recordedAudioDirPath)
     }
 }

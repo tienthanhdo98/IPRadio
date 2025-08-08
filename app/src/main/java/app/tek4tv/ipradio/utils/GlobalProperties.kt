@@ -40,64 +40,6 @@ class GlobalProperties {
 
 
     init {
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H17.24.32") ?: "H17.24.32"
-//        destinationName =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Thanh Bình")
-//                ?: "Phường Thanh Bình"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Phường Thanh Bình")
-//            ?: "TB Phường Thanh Bình"
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
-
-        ////Longan
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.21.12") ?: "H39.21.12"
-//        destinationName =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thị trấn Cần Đước")
-//                ?: "Thị trấn Cần Đước"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thị trấn Cần Đước")
-//            ?: "TB DI Thị trấn Cần Đước"
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER) ?: "TEK4TV"
-        ////Quang ngai
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H48.52.02") ?: "H48.52.02"
-//        destinationName =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Ba Bích") ?: "Xã Ba Bích"
-//        nameDevice =
-//            ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Ba Bích") ?: "TB DI Xã Ba Bích"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.33.33") ?: "H39.33.33"
-//        destinationName =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "TTVH Thủ Thừa")
-//                ?: "TTVH Thủ Thừa"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Demo")
-//            ?: "TB Demo"
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER) ?: "VATC"
-        ////ha nam
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
@@ -115,73 +57,6 @@ class GlobalProperties {
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
         providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
-
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H39.21.38") ?: "H39.21.38"
-//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Trung Tâm Văn Hóa Huyện Cần Đước") ?: "Trung Tâm Văn Hóa Huyện Cần Đước"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Trung Tâm Văn Hóa Huyện Cần Đước") ?: "TB Trung Tâm Văn Hóa Huyện Cần Đước"
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
-
-        //bac giang
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H02.37.27") ?: "H02.37.27"
-//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã Dương Hưu") ?: "Xã Dương Hưu"
-//        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Xã Dương Hưu") ?: "TB Xã Dương Hưu"
-//        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
-
-        //binh dinh
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H08.37") ?: "H08.37"
-//        destinationName = ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Thành phố Quy Nhơn")
-//            ?: "Thành phố Quy Nhơn"
-//        nameDevice =
-//            ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI Thành phố Quy Nhơn") ?: "TB Thành phố Quy Nhơn"
-//        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER, "VATC") ?: "VATC"
-        //
-        //
-//        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-//        androidVolume = ConfigUtil.getString(appContext, DEFAULT_ANDROID_VOLUME, "10") ?: "10"
-//        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-//        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-//        destinationId =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H35.46") ?: "H35.46"
-//        destinationName =
-//            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Huyện Phong Thổ")
-//                ?: "Huyện Phong Thổ"
-//        nameDevice =
-//            ConfigUtil.getString(appContext, NAME_DEVICE, "Màn hình Led Cửa khẩu")
-//                ?: "Màn hình Led Cửa khẩu"
-//        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-//        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-//        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-//        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-//        providerValue = ConfigUtil.getStringEncrypt(appContext, PROVIDER) ?: "TEK4TV"
-
-
     }
 
     fun saveProperties(responseHub: ResponseHub) {

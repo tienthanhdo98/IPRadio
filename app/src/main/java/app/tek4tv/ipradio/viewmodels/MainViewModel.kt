@@ -11,10 +11,8 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
-import com.squareup.moshi.Types
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
-import java.lang.reflect.Type
 
 
 class MainViewModel @ViewModelInject constructor(

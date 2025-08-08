@@ -419,8 +419,6 @@ class HubManager(
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
             Log.i("loghub", "log hub device info: ${pingRequestAdapter.toJson(request)}")
-            Log.i("loghub", "log hub device info: ${request.video} ${hubConnection.connectionId}")
-            Log.i("loghub", "log hub device info: ${GlobalProperties.getInst().androidVolume}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()

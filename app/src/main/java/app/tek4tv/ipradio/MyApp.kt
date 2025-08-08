@@ -26,10 +26,11 @@ class MyApp : Application() {
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD, "Device@123")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "Username")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "Password")
+        //https://oauth-device.tek4tv.vn/api/auth/login
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://oauth-device.tek4tv.vn/api/auth/login"
+            "https://apigatewayhttt.tek4tv.vn/api/Auth/Login"
         )
         ConfigUtil.putStringEncrypt(
             applicationContext,

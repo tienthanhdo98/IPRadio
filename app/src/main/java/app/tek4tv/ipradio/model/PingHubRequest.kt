@@ -1,7 +1,5 @@
 package app.tek4tv.ipradio.model
 
-/*import com.google.gson.annotations.Expose
-import com.google.gson.annotations.SerializedName*/
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
@@ -76,6 +74,6 @@ class PingHubRequest {
     var isRecord: String? = null
 
     @Json(name = "DeviceInfo")
-    var deviceInfo : String? = null
+    var deviceInfo: String? = null
 
 }

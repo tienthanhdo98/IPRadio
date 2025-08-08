@@ -15,16 +15,15 @@ import java.io.FileInputStream
 object FtpUtils {
     private val scope = CoroutineScope(Dispatchers.IO)
 
-    private fun connectToFtpServer() : FTPClient
-    {
+    private fun connectToFtpServer(): FTPClient {
         val ftpClient = FTPClient()
         ftpClient.connect("14.225.16.145")
-        ftpClient.login("sondev", "123456")
+        ftpClient.login("test", "123456")
 
         return ftpClient
     }
 
-    private fun uploadFile(appContext: Context, filePath: String, fileType : Int) {
+    private fun uploadFile(appContext: Context, filePath: String, fileType: Int) {
         scope.launch(Dispatchers.IO) {
             if (!File(filePath).exists()) return@launch
 
@@ -54,8 +53,7 @@ object FtpUtils {
         }
     }
 
-    fun uploadLogFile(appContext: Context, filePath: String)
-    {
+    fun uploadLogFile(appContext: Context, filePath: String) {
         uploadFile(appContext, filePath, FTP.ASCII_FILE_TYPE)
     }
 }

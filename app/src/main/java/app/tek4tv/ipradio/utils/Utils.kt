@@ -99,11 +99,6 @@ class Utils {
             }
         }
 
-        fun saveListForceToPref(appContext: Context, jsonListMedia: String) {
-            ConfigUtil.run {
-                putBool(appContext, HAVE_FORCE_MEDIA, true)
-                putString(appContext, FORCE_MEDIA, jsonListMedia)
-            }
-        }
+
     }
 }

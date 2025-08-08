@@ -138,7 +138,6 @@ class VlcMediaPlayer(
         if (timeStamp != -1 && mediaItem.contentType?.id != 2 && File(mediaItem.body!!).exists()) {
             media.addOption(":start-time=$timeStamp")
         }
-
         vlcPlayer.play(media)
     }
 
