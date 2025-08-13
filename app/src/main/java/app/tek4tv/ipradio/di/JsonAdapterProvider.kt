@@ -20,6 +20,7 @@ object JsonAdapterProvider {
         List::class.java,
         MediaItem::class.java
     )
-
+    val adapterListString: JsonAdapter<List<String>> =
+        moshi.adapter<List<String>>(List::class.java)
 
 }

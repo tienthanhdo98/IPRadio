@@ -2,14 +2,24 @@ package app.tek4tv.ipradio.utils
 
 import android.annotation.SuppressLint
 import android.content.Context
+import android.graphics.Bitmap
+import android.net.TrafficStats
 import android.os.Environment
+import android.os.Handler
+import android.os.Looper
+import android.os.Process
+import android.util.Base64.encodeToString
+import android.util.Log
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.model.MediaItem
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
-import java.lang.reflect.Type
+import java.io.ByteArrayOutputStream
 import java.net.NetworkInterface
 import java.util.*
+import android.util.Base64
+import app.tek4tv.ipradio.model.*
+import com.squareup.moshi.*
+
 
 class Utils {
     companion object {
@@ -25,11 +35,6 @@ class Utils {
         const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
         const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
         const val GET_RECORD = "GET_RECORD"
-        const val FULL_SCREEN = 0
-        const val MULTIPLE_AREA = 1
-        const val TOP_AREA = "1"
-        const val LEFT_AREA = "2"
-        const val RIGHT_AREA = "3"
 
 
         @SuppressLint("HardwareIds")
@@ -97,6 +102,45 @@ class Utils {
             } else {
                 (number + (10 - remainder)) / 10
             }
+        }
+
+
+        fun measureStreamingBandwidth(intervalMs: Long = 1000L) {
+            val uid = Process.myUid()
+            val handler = Handler(Looper.getMainLooper())
+
+            var prevBytes = TrafficStats.getUidRxBytes(uid)
+            var prevTime = System.currentTimeMillis()
+
+            val runnable = object : Runnable {
+                override fun run() {
+                    val currBytes = TrafficStats.getUidRxBytes(uid)
+                    val currTime = System.currentTimeMillis()
+
+                    val bytesDiff = currBytes - prevBytes
+                    val timeDiffSec = (currTime - prevTime) / 1000.0
+                    val bandwidthBps = (bytesDiff * 8) / timeDiffSec // bits/sec
+                    val bandwidthKbps = bandwidthBps / 1024
+
+                    Log.d("LOGDEVICEINFO", "Download: %.2f Kbps".format(bandwidthKbps))
+
+                    prevBytes = currBytes
+                    prevTime = currTime
+
+                    handler.postDelayed(this, intervalMs)
+                }
+            }
+
+            handler.post(runnable)
+        }
+
+        fun bitmapToBase64(bitmap: Bitmap): String {
+            val outputStream = ByteArrayOutputStream()
+            // Compress the bitmap to JPEG format, you can use PNG or WEBP as well
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 100, outputStream)
+            val byteArray = outputStream.toByteArray()
+            // Convert the byte array to a Base64 string
+            return encodeToString(byteArray, Base64.NO_WRAP)
         }
 
 

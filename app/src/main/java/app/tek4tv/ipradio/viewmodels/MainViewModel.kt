@@ -1,18 +1,33 @@
 package app.tek4tv.ipradio.viewmodels
 
 import android.app.Activity
+import android.graphics.Bitmap
+import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
+import android.view.PixelCopy
+import android.view.SurfaceView
 import android.view.View
+import android.widget.FrameLayout
+import androidx.annotation.RequiresApi
+import androidx.core.view.children
 import androidx.hilt.lifecycle.ViewModelInject
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.tek4tv.ipradio.MyApp.Companion.hubManager
+import app.tek4tv.ipradio.model.CaptureScreenModel
 import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.Utils.Companion.bitmapToBase64
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
+import org.videolan.libvlc.util.VLCVideoLayout
 
 
 class MainViewModel @ViewModelInject constructor(
@@ -88,6 +103,48 @@ class MainViewModel @ViewModelInject constructor(
             appStorageManager.deleteAllMedia()
         } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun capture(vlcVideoLayout: VLCVideoLayout, logService: LogService) {
+        try {
+            val surfaceView = (vlcVideoLayout.getChildAt(
+                0
+            ) as FrameLayout).children.filter { it is SurfaceView }
+                .first() as SurfaceView
+
+            val bitmap = Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888)
+
+            PixelCopy.request(surfaceView, bitmap, {
+                saveBitmap(bitmap, logService)
+            }, Handler(Looper.getMainLooper()))
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun saveBitmap(bitmap: Bitmap, logService: LogService) {
+        // Create directory for saving
+        val captureModel = CaptureScreenModel(
+            Imei = hubManager.deviceImei,
+            SourceId = GlobalProperties.getInst().destinationId,
+            SourceName = GlobalProperties.getInst().destinationName,
+            Base64Image = bitmapToBase64(bitmap)
+        )
+        try {
+            viewModelScope.launch {
+                val res = logService.postScreenCapture(
+                    captureModel,
+                    "https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/capture"
+                )
+                Log.d("captureError", "saveBitmap S: ${captureModel}")
+                Log.d("captureError", "saveBitmap S: ${res}")
+                // Log.d("captureError", "saveBitmap S: ${captureModel.Base64Image}")
+            }
+
+        } catch (e: Exception) {
+            Log.d("captureError", "saveBitmap ERR: ${e.message}")
         }
     }
 }

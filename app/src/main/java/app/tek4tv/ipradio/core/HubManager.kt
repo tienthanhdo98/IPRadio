@@ -6,13 +6,13 @@ import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
+import app.tek4tv.ipradio.core.constants.AppConstants.PROVIDER_DEFAULT_NAME
+import app.tek4tv.ipradio.di.JsonAdapterProvider.adapterListString
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.network.IHubObserve
+import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
@@ -22,7 +22,6 @@ import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
-import com.squareup.moshi.JsonAdapter
 import io.reactivex.Single
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -41,8 +40,10 @@ class HubManager(
     private val LOG_TAG = "HubManager"
     var mediaCapture: MediaCapture? = null
     lateinit var hubComm: HubComm
+    lateinit var hubObverse: IHubObserve
+    lateinit var logUtils: LogUtils
     private val CONNECT_COUNTER_LIMIT = 15
-    private val PING_INTERVAL = 15000L
+    private val PING_INTERVAL = 10000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
@@ -50,11 +51,10 @@ class HubManager(
     private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
     private val videoAdapter = moshi.adapter(Video::class.java)
-    private val adapterListString: JsonAdapter<List<String>> =
-        moshi.adapter<List<String>>(List::class.java)
+
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
 
-    private val deviceImei = Utils.getDeviceId(appContext)
+    val deviceImei = Utils.getDeviceId(appContext)
 
     val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
@@ -99,8 +99,8 @@ class HubManager(
     init {
         providerValue = ConfigUtil.getString(
             appContext,
-            ConfigUtil.PROVIDER, "TEK4TV"
-        )!!
+            ConfigUtil.PROVIDER, PROVIDER_DEFAULT_NAME
+        ) ?: PROVIDER_DEFAULT_NAME
         hubUrl = ConfigUtil.getStringEncrypt(
             appContext,
             ConfigUtil.URL_HUB
@@ -116,7 +116,9 @@ class HubManager(
                         hubToken = token
                         Single.just(token)
                     } else
+
                         Single.error(Exception())
+
                 }
             })
             .withTransport(TransportEnum.WEBSOCKETS)
@@ -152,7 +154,9 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
+            logUtils.logException(e.message!!)
             e.printStackTrace()
+
             null
         }
     }
@@ -182,6 +186,7 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
+            logUtils.logException(e.message!!)
             e.printStackTrace()
             null
         }
@@ -241,9 +246,9 @@ class HubManager(
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
-
                 hubConnection.connectionId
             } catch (e: Exception) {
+                logUtils.logException(e.message!!)
                 hubToken = null
                 e.printStackTrace()
                 Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
@@ -268,12 +273,16 @@ class HubManager(
                         when (command) {
                             HubCommand.PONG -> {
                                 isConnectSuccess = true
+//                                hubObserve.onHubConnected()
                                 //Vừa kết nối được lại hub
                                 if (pingCounter >= 3 && !firstConnect) {
                                     Log.e(LOG_TAG, "Hub Reconnected")
                                 }
 
-                                if (firstConnect) firstConnect = false
+                                if (firstConnect) {
+                                    firstConnect = false
+                                    hubObverse.onHubConnected()
+                                }
 
                                 pingCounter = 0
                             }
@@ -438,11 +447,13 @@ class HubManager(
     }
 
     private suspend fun checkConnection() {
-        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-            hubComm.forceRestartApp()
-        }
-        if (pingCounter >= 3) {
+//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+//            hubComm.forceRestartApp()
+//        }
+        if (pingCounter >= 2) {
+            hubObverse.onHubDisConnected()
             isConnectSuccess = false
+            firstConnect = true
             Log.e(LOG_TAG, "Losed hub connection")
             hubToken = null
             Log.e(LOG_TAG, "Hub Disconnected")

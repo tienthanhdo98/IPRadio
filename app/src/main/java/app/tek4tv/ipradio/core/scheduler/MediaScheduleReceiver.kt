@@ -1,13 +1,9 @@
-package app.tek4tv.ipradio.ui
+package app.tek4tv.ipradio.core.scheduler
 
-import android.app.Service
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Bundle
-import android.os.IBinder
-import android.util.Log
-import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.ui.MainActivity
 
 
 class MediaScheduleReceiver : BroadcastReceiver() {
@@ -24,6 +20,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
     companion object {
         //bắt đầu phát khung giờ
         const val ACTION_PLAY_MEDIA_LIST = "xaction_play_media_list"
+        const val ACTION_END_PLAYLIST = "xaction_end_playlist"
 
         const val SCHEDULED_LIST_KEY = "scheduled_list_key"
 

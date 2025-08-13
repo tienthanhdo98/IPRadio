@@ -10,4 +10,6 @@ interface IPlayerEventListener {
     fun onPlayMediaSuccess(mediaItem: MediaItem?)
     fun onMediaEndReached(mediaItem: MediaItem?)
     fun onMediaForceEndReached(mediaItem: MediaItem?)
+
+
 }

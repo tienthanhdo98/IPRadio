@@ -119,9 +119,16 @@ dependencies {
     implementation 'com.squareup.picasso:picasso:2.71828'
 
     //
+//    implementation("com.google.android.exoplayer:exoplayer:2.16.1")
 //    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
 //    implementation 'com.google.android.exoplayer:exoplayer-hls:2.16.1'
 //    implementation 'com.google.android.exoplayer:extension-okhttp:2.16.1'
+    //
+    def media3_version = "1.4.1" // hoặc 1.5.x nếu muốn mới nhất
+
+    implementation "androidx.media3:media3-exoplayer:$media3_version"
+    implementation "androidx.media3:media3-exoplayer-hls:$media3_version"
+    implementation "androidx.media3:media3-ui:$media3_version"
 
     //room
     implementation "androidx.room:room-runtime:2.5.2"

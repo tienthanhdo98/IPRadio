@@ -2,6 +2,10 @@ package app.tek4tv.ipradio.utils
 
 import android.content.Context
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.core.constants.AppConstants.DESTINATION_DEFAULT_ID
+import app.tek4tv.ipradio.core.constants.AppConstants.DESTINATION_DEFAULT_NAME
+import app.tek4tv.ipradio.core.constants.AppConstants.DEVICE_DEFAULT_NAME
+import app.tek4tv.ipradio.core.constants.AppConstants.PROVIDER_DEFAULT_NAME
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
@@ -36,7 +40,7 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "TEK4TV"
+    var providerValue: String = PROVIDER_DEFAULT_NAME
 
 
     init {
@@ -45,18 +49,20 @@ class GlobalProperties {
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H42.315") ?: "H42.315"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, DESTINATION_DEFAULT_ID)
+                ?: DESTINATION_DEFAULT_ID
         destinationName =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Phủ Lý")
-                ?: "Phường Phủ Lý"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, DESTINATION_DEFAULT_NAME)
+                ?: DESTINATION_DEFAULT_NAME
         nameDevice =
-            ConfigUtil.getString(appContext, NAME_DEVICE, "TB DI")
-                ?: "TB DI"
+            ConfigUtil.getString(appContext, NAME_DEVICE, DEVICE_DEFAULT_NAME)
+                ?: DEVICE_DEFAULT_NAME
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, PROVIDER_DEFAULT_NAME)
+            ?: PROVIDER_DEFAULT_NAME
     }
 
     fun saveProperties(responseHub: ResponseHub) {

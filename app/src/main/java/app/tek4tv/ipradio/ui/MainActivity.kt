@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.ui
 
+import BandwidthManager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -16,6 +17,7 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
+import android.widget.VideoView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
@@ -26,10 +28,15 @@ import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.scheduler.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
+import app.tek4tv.ipradio.core.constants.AppConstants.MULTIPLE_AREA
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
+import app.tek4tv.ipradio.core.scheduler.AlarmListener
+import app.tek4tv.ipradio.core.scheduler.MediaScheduleReceiver
 import app.tek4tv.ipradio.model.DataValueModel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
@@ -44,14 +51,13 @@ import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.MULTIPLE_AREA
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.exoplayer2.ui.PlayerView
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
@@ -115,6 +121,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private var typeScreen: Int = FULL_SCREEN
     private lateinit var vlcVideoLayout: VLCVideoLayout
+    private lateinit var exoVideoLayout: PlayerView
     private lateinit var imgHolder: ImageView
     private lateinit var recyclerView: RecyclerView
     private lateinit var adapter: AutoScrollAdapter
@@ -149,12 +156,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 initPhotoHolder(url)
             }
 
-//            vlcVideoLayout.visibility = View.INVISIBLE
-//            imgHolder.visibility = View.VISIBLE
-//            val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
-//            initPhotoHolder(url)
-//            hideTopLeftArea()
-
             Log.d("PlayersManager", "onTimeOver")
         }
 
@@ -162,11 +163,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         override fun onEndForceMedia() {
             hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
-            Log.d("LiveLog", "onEndForceMedia current ${typeScreen}")
+            Log.d("LiveLog", "onEndForceMedia current $typeScreen")
             val oldTypeScreen = ConfigUtil.getInt(
                 context = baseContext, TYPE_PRE_SCREEN_KEY, FULL_SCREEN
             )
-            Log.d("LiveLog", "onEndForceMedia old ${oldTypeScreen}")
+            Log.d("LiveLog", "onEndForceMedia old $oldTypeScreen")
             ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, oldTypeScreen)
             Log.d("LiveLog", "onEndForceMedia")
             if (oldTypeScreen != typeScreen) {
@@ -203,7 +204,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
             hubManager.curMediaName = mediaItem.title ?: ""
-
+            hubManager.logUtils = logUtils
             serialPortController.turnOnPAVod()
 
             val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
@@ -239,7 +240,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
-    //using for android 11, it couldn`t auto open after reboot
+    //need for android 11, it couldn`t auto open after reboot
     private fun requestPermission() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Settings.canDrawOverlays(this)) {
             val intent = Intent(
@@ -289,6 +290,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager.hubComm = hubComm
+        hubManager.hubObverse = this
         hubManager.mediaCapture = mediaCapture
 
         lifecycleScope.launch {
@@ -301,11 +303,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
             }
         }
+        exoVideoLayout = findViewById(R.id.exo_player)
 
         vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
-            applicationContext, vlcVideoLayout, imgHolder, viewModel.mediaRepo
+            applicationContext, vlcVideoLayout, imgHolder, viewModel.mediaRepo, exoVideoLayout
         )
 
         playerManager.playerManagerListener = playerCallback
@@ -326,32 +329,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         initDataByScreen()
 
         registerObservers()
+
+        lifecycleScope.launch {
+            repeat(Int.MAX_VALUE) {
+                viewModel.capture(vlcVideoLayout = vlcVideoLayout, logService = logService)
+                delay(300000)
+            }
+        }
     }
 
-    //    fun getCPU() {
-//        lifecycleScope.launch {
-//            // At T1
-//            // At T1
-//            val cpuTime1 = Process.getElapsedCpuTime()
-//            val upTime1 = SystemClock.uptimeMillis()
-//            delay(1000)
-//            val cpuTime2 = Process.getElapsedCpuTime()
-//            val upTime2 = SystemClock.uptimeMillis()
-//
-//            val cpuTimeDelta = cpuTime2 - cpuTime1 // in ms
-//
-//            val upTimeDelta = upTime2 - upTime1 // in ms
-//
-//            val cpuUsagePercent = cpuTimeDelta * 100f / upTimeDelta
-//
-//            Log.d(
-//                "LOGDEVICEINFO",
-//                "CPU: ${cpuUsagePercent}%"
-//            )
-//        }
-//
-//    }
-    fun getCpuUsage(): String {
+    private fun getCpuUsage(): String {
         try {
             val reader = RandomAccessFile("/proc/stat", "r")
 
@@ -359,17 +346,17 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             val load1 = reader.readLine()
             val toks1 = load1.split(" +".toRegex()).drop(1)
             val idle1 = toks1[3].toLong()
-            val total1 = toks1.take(7).map { it.toLong() }.sum()
+            val total1 = toks1.take(7).sumOf { it.toLong() }
 
             // Chờ 360ms để lấy mẫu tiếp theo
-            Thread.sleep(360)
+            Thread.sleep(2000)
 
             // Đọc lại từ đầu file
             reader.seek(0)
             val load2 = reader.readLine()
             val toks2 = load2.split(" +".toRegex()).drop(1)
             val idle2 = toks2[3].toLong()
-            val total2 = toks2.take(7).map { it.toLong() }.sum()
+            val total2 = toks2.take(7).sumOf { it.toLong() }
 
             reader.close()
 
@@ -394,23 +381,33 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
             val info = Utils.getDeviceId(this).takeLast(5)
-            tvMacAddress.text = info
+            // tvMacAddress.text = info
             val totalRam: Float = appStorageManager.getTotalRam() / (1024f * 1024f * 1024f)
-
+            val sampler = BandwidthManager()
+            sampler.start()
             lifecycleScope.launch {
                 while (true) {
                     val usedRam: Float = appStorageManager.getUsedRam() / (1024f * 1024f * 1024f)
                     //tvMacAddress.text = "${usedRam}/${totalRam}"
-                    Log.d(
-                        "LOGDEVICEINFO",
-                        "Ram: ${String.format("%.2f", usedRam)}/${
-                            String.format(
-                                "%.2f GB",
-                                totalRam
-                            )
-                        }"
-                    )
-                    getCpuUsage()
+//                    Log.d(
+//                        "LOGDEVICEINFO", "Ram: ${String.format("%.2f", usedRam)}/${
+//                            String.format(
+//                                "%.2f GB", totalRam
+//                            )
+//                        }"
+//                    )
+                    val cpu = getCpuUsage()
+                    val deviceInfo = "Ram: ${
+                        String.format(
+                            "%.2f GB", usedRam
+                        )
+                    }/${
+                        String.format(
+                            "%.2f GB", totalRam
+                        )
+                    }_Cpu: ${cpu}"
+                    tvMacAddress.text = "$deviceInfo"
+
                     delay(5000)
                 }
             }
@@ -426,7 +423,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         tvCheckInternet.text = resources.getString(R.string.offine)
                     }
 
-
                     delay(10000)
                 }
             }
@@ -434,7 +430,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             initDefaultTopAndLeftArea()
         }
     }
-
 
     private fun initPhotoHolder(url: String?) {
         if (url != "") {
@@ -517,6 +512,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
             }
 
+            MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
+                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+                Log.d("alarmx", "end: $listKey")
+
+                playerManager.stopPlaylist(listKey!!)
+            }
+
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
                 playerManager.stopForceMedia()
                 Log.d("alarmx", "stop force")
@@ -543,7 +545,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     Log.e("alarmx", "Hub restart")
                     serialPortController.hardRestart()
                 }
-
             }
         }
     }
@@ -600,7 +601,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
 
-    fun startPlayingMedia() {
+    private fun startPlayingMedia() {
         viewModel.getPlayerContent()
     }
 
@@ -803,28 +804,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         }
                     }
                 }
-
-                HubCommand.PLAYLIST_INFO -> {
-//                    lifecycleScope.launch(Dispatchers.IO) {
-//                        try {
-//                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
-//                            val dataFromPlaylist: String = readFile(path)
-//                            Log.d("readplaylist", "value2 $dataFromPlaylist ")
-//                            val connectionId = responseHub.message
-//                            Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
-//                            if (connectionId != null) {
-//                                hubManager.sendHubDirectMessage(
-//                                    connectionId,
-//                                    HubCommand.PLAYLIST_INFO,
-//                                    dataFromPlaylist
-//                                )
-//                            }
-//                        } catch (e: IOException) {
-//                            Log.e("readplaylist", "error reading playlist!!!")
-//                        }
-//                    }
-                }
-
 
                 HubCommand.UPDATE_STATUS -> {
                     serialPortController.updateStatus()
@@ -1088,24 +1067,37 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     override fun onHubConnected() {
+        Log.d("HubObverse", "onHubConnected")
         lifecycleScope.launch {
             val listMediaLog = mediaLogDao.getUnsentMediaLogs()
             val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
             else "0"
             listMediaLog.forEach {
-
-
                 logUtils.logMediaStart(
                     it, 0, globalProperties.volume, paState, typeScreen
                 )
                 mediaLogDao.deleteMediaItemById(it.id!!)
             }
         }
-        Log.d("HubObverse", "onHubConnected")
+        //
+        if (playerManager.playMode == PLAY_MODE_FORCE) {
+            if (ForceMedia.hasValidForceMedia(applicationContext)) {
+                val listForceMedia = getLocalForceMedia(applicationContext)
+                Log.i("Changelayout", "Mess: local ${listForceMedia?.size}")
+                if (listForceMedia != null) playerManager.playForceMedia(
+                    listForceMedia, mediaScheduler
+                )
+            }
+        } else {
+            playerManager.startFirstTimeFrame()
+        }
+
     }
 
     override fun onHubDisConnected() {
+        playerManager.stopAllPlayer()
         Log.d("HubObverse", "onHubDisConnected")
+
     }
 
 

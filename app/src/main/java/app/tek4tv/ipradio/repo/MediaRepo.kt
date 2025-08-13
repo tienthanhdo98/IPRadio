@@ -2,14 +2,14 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
+import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
+import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
+import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
@@ -47,11 +47,12 @@ class MediaRepo @Inject constructor(
 
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
 
-    val downloadHelper = DownloadHelper2.getInstance()
+    private val downloadHelper = DownloadHelper2.getInstance()
 
     val mediaStoragePath: String = appContext.filesDir.path
 
-    var isRescheduleSuccess = false;
+    var isRescheduleSuccess = false
+
     val type: Type = Types.newParameterizedType(
         List::class.java,
         MediaItem::class.java
@@ -67,14 +68,12 @@ class MediaRepo @Inject constructor(
                 return
             }
 
-
             val monthScenario = fetchResult.body() ?: return
 
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 
             val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
-
 
 
             if (dayScenario != null) {
@@ -154,7 +153,7 @@ class MediaRepo @Inject constructor(
                 val endIndex = it[1]
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
-                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN.toInt() }
+                    .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN }
 
                 timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
 
@@ -188,7 +187,7 @@ class MediaRepo @Inject constructor(
         val extMedia = File(it.body ?: "").extension
 
         if (extMedia.isEmpty()) return
-        val isFile = getConfigExtension()?.contains(extMedia.toLowerCase()) ?: false
+        val isFile = getConfigExtension()?.contains(extMedia.lowercase()) ?: false
 
         if (!isFile) return
 

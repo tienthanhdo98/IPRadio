@@ -8,7 +8,6 @@ import androidx.security.crypto.MasterKey
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
 
-    //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
     const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
@@ -39,11 +38,15 @@ object ConfigUtil {
 
     fun getStringEncrypt(context: Context, key: String?): String? {
 
-        return getEncryptedSharedPreferences(context).getString(key,"")
+        return getEncryptedSharedPreferences(context).getString(key, "")
     }
+
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(
-            context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            context,
+            PREFERENCE_FILE_NAME,
+            getKey(context),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
@@ -83,6 +86,7 @@ object ConfigUtil {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getFloat(key, defaultValue)
     }
+
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()

@@ -3,7 +3,11 @@ package app.tek4tv.ipradio.core.players_helper
 import android.content.Context
 import android.util.Log
 import android.widget.ImageView
-import app.tek4tv.ipradio.core.MediaScheduler
+import android.widget.VideoView
+import app.tek4tv.ipradio.core.scheduler.MediaScheduler
+import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
+import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
+import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.saveListForceToPref
@@ -12,11 +16,9 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.GlobalProperties
-import app.tek4tv.ipradio.utils.Utils.Companion.FULL_SCREEN
-import app.tek4tv.ipradio.utils.Utils.Companion.LEFT_AREA
-import app.tek4tv.ipradio.utils.Utils.Companion.RIGHT_AREA
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
+import com.google.android.exoplayer2.ui.PlayerView
 import com.squareup.moshi.JsonDataException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,12 +39,14 @@ class PlayersManager(
     appContext: Context,
     vlcVideoLayout: VLCVideoLayout,
     imageLayout: ImageView,
-    private val mediaRepo: MediaRepo
+    private val mediaRepo: MediaRepo,
+    exoVideoLayout: PlayerView
 ) : IPlayerEventListener {
 
     var TAG = "PlayersManager"
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this, vlcVideoLayout)
+    private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this, exoVideoLayout)
     private val imagePlayer = ImagePlayer(this, imageLayout, mediaRepo)
     private var currentPlayingMedia: MediaItem? = null
 
@@ -51,7 +55,7 @@ class PlayersManager(
      * 0 for init
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    private var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_INIT//"0"
 
     /**
      * List of media for a timeframe
@@ -91,6 +95,7 @@ class PlayersManager(
         Log.d(TAG, "onMediaForceEndReached")
         playNextMedia()
     }
+
 
     fun startLeftTimeFrame(timeFrame: String) {
         val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: listOf()
@@ -154,7 +159,6 @@ class PlayersManager(
                 stopTimeFrame()
             }
         }
-
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
@@ -236,7 +240,8 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        vlcPlayer.playMedia(mediaItem, 0)
+        //vlcPlayer.playMedia(mediaItem, 0)
+        exoPlayer.playMedia(mediaItem, 0)
     }
 
 
@@ -305,11 +310,19 @@ class PlayersManager(
         playerManagerListener?.onTimeOver()
     }
 
+    fun stopPlaylist(cancelListKey: String) {
+        if (cancelListKey != playMode) return
+        playMode = ""
+        stopAllPlayer()
+        //check time over
+        isTimeOver = true
+        checkTimeOver()
+    }
+
+
     /**
      * Nhận lệnh phát khẩn cấp từ hub
      * **/
-
-
     fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
@@ -380,7 +393,7 @@ class PlayersManager(
 
             playMediaByIndex(playlistIndex, 0)
 
-//            mediaScheduler.scheduleForceMediaAlarm(listForceMedia.lastOrNull()!!)
+            mediaScheduler.scheduleForceMediaAlarm(listForceMedia.lastOrNull()!!)
 
         } catch (e: JsonDataException) {
             Log.d(TAG, "playForceMedia error: ${e.message} ")
