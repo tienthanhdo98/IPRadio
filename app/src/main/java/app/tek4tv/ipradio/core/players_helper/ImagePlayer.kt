@@ -46,7 +46,7 @@ class ImagePlayer(
                             playerEventListener.onMediaForceEndReached(currentMedia)
 
                         }
-                    }, getDurationInSecond(mediaItem.duration ?: "00:15").toLong() * 1000
+                    }, getDurationInSecond(mediaItem.duration ?: "00:00:15").toLong() * 1000
 //                    }, delayTime
                 )
             }

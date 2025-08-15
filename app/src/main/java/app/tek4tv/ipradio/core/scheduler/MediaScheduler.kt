@@ -62,7 +62,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)
-        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent!!)
 
     }
 
@@ -94,8 +94,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.cancel(alarmIntent)
-        alarmIntent?.cancel()
+        alarmManager.cancel(alarmIntent!!)
+        alarmIntent.cancel()
     }
 
     private fun getScheduleListIntent(

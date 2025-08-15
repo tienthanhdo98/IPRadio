@@ -14,8 +14,6 @@ import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.IHubObserve
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.crypto.b64Decode
-import app.tek4tv.ipradio.utils.crypto.decryptData
-import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -37,7 +35,7 @@ class HubManager(
     private val appContext: Context,
     private val authService: AuthService
 ) {
-    private val LOG_TAG = "HubManager"
+    private val TAG = "HubManager"
     var mediaCapture: MediaCapture? = null
     lateinit var hubComm: HubComm
     lateinit var hubObverse: IHubObserve
@@ -56,11 +54,11 @@ class HubManager(
 
     val deviceImei = Utils.getDeviceId(appContext)
 
-    val responseAdapter = moshi.adapter(ResponseHub::class.java)
+    private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     var pingCounter = 69
 
-    var hubConnection: HubConnection
+    private var hubConnection: HubConnection
 
     //current response Hub
     var responseHub = ResponseHub()
@@ -71,7 +69,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "D90.4.2.1d"
+    private var versionName = "D90.4.2.1d"
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -83,7 +81,6 @@ class HubManager(
 
     private var firstConnect = true
 
-    private var privateKeyStr: String
 
     private var hubUrl = ""
 
@@ -124,7 +121,6 @@ class HubManager(
             .withTransport(TransportEnum.WEBSOCKETS)
             .build()
 
-        privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
     }
 
     //lấy token từ hub
@@ -148,7 +144,7 @@ class HubManager(
 
             if (response.isSuccessful) {
                 val token = response.body()!!.token
-                Log.i("tntntn", "getHubToken: $token")
+                Log.i(TAG, "getHubToken: $token")
                 token
             } else {
                 null
@@ -194,7 +190,7 @@ class HubManager(
 
     suspend fun openConnection2(hubConnection: HubConnection): String? {
         //open connection on another thread
-        Log.i(LOG_TAG, "open connection")
+        Log.i(TAG, "open connection")
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
@@ -203,7 +199,7 @@ class HubManager(
             } catch (e: Exception) {
                 hubToken = null
                 e.printStackTrace()
-                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
+                Log.e(TAG, "error connecting to hub: ${e.message ?: ""}")
                 null
             }
         }
@@ -230,9 +226,9 @@ class HubManager(
                 i++
                 delay(PING_INTERVAL)
                 connectionId = openConnection()
-                Log.e(LOG_TAG, "Trying to reconnect... $i")
+                Log.e(TAG, "Trying to reconnect... $i")
             }
-            Log.d(LOG_TAG, "$connectionId")
+            Log.d(TAG, "$connectionId")
             onMessage()
             startPingTimer()
             //notifyHubConnected()
@@ -240,9 +236,9 @@ class HubManager(
         }
     }
 
-    suspend fun openConnection(): String? {
+    private suspend fun openConnection(): String? {
         //open connection on another thread
-        Log.i(LOG_TAG, "open connection")
+        Log.i(TAG, "open connection")
         return withContext(Dispatchers.IO) {
             try {
                 hubConnection.start().blockingAwait()
@@ -251,7 +247,7 @@ class HubManager(
                 logUtils.logException(e.message!!)
                 hubToken = null
                 e.printStackTrace()
-                Log.e(LOG_TAG, "error connecting to hub: ${e.message ?: ""}")
+                Log.e(TAG, "error connecting to hub: ${e.message ?: ""}")
                 null
             }
         }
@@ -267,16 +263,16 @@ class HubManager(
                     Log.d("command", command ?: "")
                     Log.d("message", message ?: "")
                     var messDe = ""
-                    var needDecrypt = false
 
                     if (command != null && message != null) {
                         when (command) {
                             HubCommand.PONG -> {
                                 isConnectSuccess = true
-//                                hubObserve.onHubConnected()
+
+
                                 //Vừa kết nối được lại hub
                                 if (pingCounter >= 3 && !firstConnect) {
-                                    Log.e(LOG_TAG, "Hub Reconnected")
+                                    Log.e(TAG, "Hub Reconnected")
                                 }
 
                                 if (firstConnect) {
@@ -296,17 +292,14 @@ class HubManager(
                                     responseHub.message ?: ""
                             }
 
-                            HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
-                                needDecrypt = true
-                            }
                         }
                     }
                     //Handle command from server in MainActivity
                     coroutineScope.launch {
                         if (messDe != "") {
-                            parseHubResponse(messDe, needDecrypt)
+                            parseHubResponse(messDe)
                         } else {
-                            parseHubResponse(message, needDecrypt)
+                            parseHubResponse(message)
                         }
                         receiveMessage(command, message)
                     }
@@ -318,14 +311,14 @@ class HubManager(
         }, String::class.java, String::class.java)
     }
 
-    private fun sendMessage(mess: String, command: String) {
+    private fun sendMessage(mess: String) {
         try {
             if (hubConnection.connectionId != null) {
-                hubConnection.invoke(command, Utils.getDeviceId(appContext), mess)
-                Log.i("datadevice", "volume: $mess")
+                hubConnection.invoke(Utils.ping, Utils.getDeviceId(appContext), mess)
+                Log.i(TAG, "volume: $mess")
             }
         } catch (e: Exception) {
-            Log.e(LOG_TAG, e.message!!)
+            Log.e(TAG, e.message!!)
             e.printStackTrace()
         }
     }
@@ -349,26 +342,16 @@ class HubManager(
         )
     }
 
-    fun sendEncryptedMessage(connectionId: String, command: String, message: String) {
-        Log.d(LOG_TAG, "be4 encrypted: $message")
-        val encryptedMessage = encryptData(message, publicKey)
-        val directMessage = DirectMessage(deviceImei, encryptedMessage ?: "")
-
-        sendDirectMessage(
-            connectionId, command,
-            Utils.toJsonString(moshi, DirectMessage::class.java, directMessage)
-        )
-    }
-
 
     private fun sendPing() {
         pingCounter++
         try {
-            Log.d(LOG_TAG, "ping hub")
+            Log.d(TAG, "ping hub")
 
-            var mode = "-1"
 
+            val mode = "-1"
             //Ban v1
+            //
 //            if (currentMediaItem != null) {
 //                val path = currentMediaItem!!.pathBackup
 //                mode = if (path.isNotEmpty() && !File(path).exists()) "1"
@@ -426,8 +409,8 @@ class HubManager(
                 isRecord = isRecording
                 deviceInfo = SerialPortController.deviceInfo
             }
-            sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub device info: ${pingRequestAdapter.toJson(request)}")
+            sendMessage(pingRequestAdapter.toJson(request))
+            Log.i(TAG, "log hub device info: ${pingRequestAdapter.toJson(request)}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
@@ -439,7 +422,7 @@ class HubManager(
         pingHubJob = coroutineScope.launch(Dispatchers.Default) {
             while (true) {
                 sendPing()
-                Log.d(LOG_TAG, "ping: $pingCounter")
+                Log.d(TAG, "ping: $pingCounter")
                 delay(PING_INTERVAL)
                 checkConnection()
             }
@@ -454,9 +437,9 @@ class HubManager(
             hubObverse.onHubDisConnected()
             isConnectSuccess = false
             firstConnect = true
-            Log.e(LOG_TAG, "Losed hub connection")
+            Log.e(TAG, "Lose hub connection")
             hubToken = null
-            Log.e(LOG_TAG, "Hub Disconnected")
+            Log.e(TAG, "Hub Disconnected")
             //Try to reconnect to hub
             openConnection()
         }
@@ -464,18 +447,14 @@ class HubManager(
 
 
     //parse hub command content
-    private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
+    private fun parseHubResponse(message: String?) {
         if (message.isNullOrEmpty()) return
         try {
             responseHub = ResponseHub()
-            if (needDecrypt) {
-                val decryptedStr = decryptData(message, privateKeyStr)
-                if (decryptedStr != null && decryptedStr.startsWith("{"))
-                    responseHub = responseAdapter.fromJson(decryptedStr)!!
-            } else {
-                if (message.startsWith("{"))
-                    responseHub = responseAdapter.fromJson(message)!!
-            }
+
+            if (message.startsWith("{"))
+                responseHub = responseAdapter.fromJson(message)!!
+
         } catch (e: Exception) {
             e.printStackTrace()
         }
@@ -487,10 +466,3 @@ interface HubComm {
     fun forceRestartDevice()
 }
 
-
-val publicKey =
-    "MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAIkOIaw3KkEJHxvfYZ9FZzC4zBryierYfjXocoi2zOY/HvfXK6bfjuu7ZwiaUX5C6tOl8T0Dd0AEw32NwhAzi60CAwEAAQ=="
-
-/*
-val privateKeyStr =
-    "MIICWwIBAAKBgQCUN2A7D+wecFVoH9xQkg1o87hA/DFa8mMTfshyU4mrcvf3w0UkhmvxWJXA4hcvQWjpsXDm1ok7AhB9qeoEbxXYejyQLf9+znaBt2m4rgpSTPNb2ioOFd6d9JuiWJ1oPhPETjoyBdJ37yAZWkoX4nPXK4GcaaW5KPHcMGGRIzP/bQIDAQABAoGARlt7HM5UIablhAYLyVtrbjSzdHXC4A9LpMd8U3kAUxjCSSSyv8Hnn6uTevpYUyBTswt+MrYIcrBqL5zm76/jyCQ/i7wobqO+y089gyOVP6z6ZL2IASFoyEvMeI6Mp673p2EOWEyL/nbaiOmwhk16wsCg3hA9rABZVb3cHOCBzsECQQDKDDRCNYQjqHI9qHqDeq/7nOnQb59bJPb/8/EyxTA/2gFpjaRzyaHg/YUw0XsY9B0wzf+JJXFQ5OOPNusD/yNJAkEAu8tPCX5qSDYY+K/C+JvRob/keB7eXfQlNvDC6e2xs3rl7Qlt5f/bvhv/YdwmHEGQUDgXgsbIl7TW3WtnbebXBQJAen69rCpv64JziIg9hrr6OMzgQLt73LFjgrgt0n8UipGsa4cxXfWvzA1IE9ndDLrre6xYsZhexBGRGUHNaEXl6QJAV43rdJauwKoQLGntsfEb5JjN0T87F3zLmPjZNy1t6ysCZeg+h7wpXFI7WAnG7ueWfAAa3gsF3M0gXC1GFJRKbQJAO932dYpY+Ht5sJMHfQ7KwV8RsIN9vcWfdzoeI1a6/2LjYOoo23z98FCDKYdMV6QZr2JksPRfddMdvnquWxDMlg=="*/

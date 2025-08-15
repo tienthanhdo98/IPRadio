@@ -6,6 +6,7 @@ import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
 import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
 import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.Tag
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
@@ -23,7 +24,6 @@ import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.launch
 import java.io.File
-import java.lang.reflect.Type
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
@@ -35,7 +35,7 @@ class MediaRepo @Inject constructor(
     moshi: Moshi,
     @ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
-
+    val TAG = "MediaRepo"
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
@@ -53,10 +53,6 @@ class MediaRepo @Inject constructor(
 
     var isRescheduleSuccess = false
 
-    val type: Type = Types.newParameterizedType(
-        List::class.java,
-        MediaItem::class.java
-    )
 
     suspend fun getMonthlyScenario(url: String) {
         isRescheduleSuccess = false
@@ -64,7 +60,7 @@ class MediaRepo @Inject constructor(
             val fetchResult =
                 retryWithBackoff { playlistService.getMonthlyPlaylist(url) }
             if (fetchResult == null || !fetchResult.isSuccessful) {
-                Log.e("getMonthlyScenario", "API request failed after retries")
+                Log.e(TAG, "API request failed after retries")
                 return
             }
 
@@ -74,7 +70,6 @@ class MediaRepo @Inject constructor(
             val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 
             val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
-
 
             if (dayScenario != null) {
                 ConfigUtil.putInt(
@@ -90,7 +85,7 @@ class MediaRepo @Inject constructor(
             }
 
         } catch (e: Exception) {
-            Log.e("updateDailyScenario", "Cannot update daily scenario ${e.message}")
+            Log.e(TAG, "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -100,25 +95,20 @@ class MediaRepo @Inject constructor(
             val res = retryWithBackoff { playlistService.getPlaylist(urlDatSchedule) }
             if (res == null || !res.isSuccessful) {
                 isRescheduleSuccess = false
-                Log.e("getDayScenario", "API request failed after retries")
+                Log.e(TAG, "API request failed after retries")
                 return emptyList()
             }
             val resBody = res.body()
             if (resBody != null) {
-                //dung khi moi ban tin 1 lich
-//                val listOnlyMedia =
-//                    resBody.filter { it.body != null && it.body != "start" && it.body != "end" }
-//                result = convertToTimeFrame(listOnlyMedia)
-
                 saveItemsToFile(resBody, "getDayScenario")
                 isRescheduleSuccess = true
             } else {
                 isRescheduleSuccess = false
-                Log.e("yee", "Lịch rỗng rồi")
+                Log.e(TAG, "Lịch rỗng rồi")
             }
         } catch (e: Exception) {
             isRescheduleSuccess = false
-            Log.e("yee", e.toString())
+            Log.e(TAG, e.toString())
         }
 
         return result
@@ -129,7 +119,7 @@ class MediaRepo @Inject constructor(
         scheduledListLeft.clear()
 
         val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-            Log.d("readplaylist", "local ")
+            Log.d(TAG, "read local ")
             readItemsFromFile()
         } else listOf()
 
@@ -198,18 +188,18 @@ class MediaRepo @Inject constructor(
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path
             if (it.body != "$mediaStoragePath/$fileName") {
-                Log.d("ĐÂSDF", "${mediaStoragePath}/${fileName}")
-                Log.d("ĐÂSDF", "filterMedia: ${it.body}")
+                Log.d(TAG, "${mediaStoragePath}/${fileName}")
+                Log.d(TAG, "filterMedia: ${it.body}")
                 it.body = "$mediaStoragePath/$fileName"
                 coroutineScope.launch {
                     saveItemsToFile(broadcastList, "downloadMediaItem check")
-                    Log.e("SavefileLog", "Save in downloadAMediaItem: Case handle broken path")
+                    Log.e("TAG", "Save in downloadAMediaItem: Case handle broken path")
                 }
             }
             return
         }
 
-        Log.d("downloaditem", url)
+        Log.d(TAG, "Down load $url")
 
         downloadHelper.addToQueue(DownloadItem().apply {
             itDownloadUrl = url
@@ -222,7 +212,7 @@ class MediaRepo @Inject constructor(
                     it.body = "$mediaStoragePath/$fileName"
                     coroutineScope.launch {
                         saveItemsToFile(broadcastList, "downloadMediaItem")
-                        Log.e("SavefileLog", "Save in onDownloadComplete: onDownloadComplete")
+                        Log.e(TAG, "Save in onDownloadComplete: onDownloadComplete")
                     }
                     Log.d("downloadcomplete", it.body!!)
                 }

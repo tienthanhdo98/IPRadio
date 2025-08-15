@@ -12,6 +12,6 @@ interface AuthService {
     //@GET("https://hub.gateway.httt.tek4tv.vn/api/Device/Token")
     fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
 
-    @POST("https://gateway-digitalsignage.tek4tv.vn/api/v2/oauth/sso/token")
+    @POST
     fun getTokenLog(@Body body: Map<String, String>, @Url url: String): Call<LogToken>
 }

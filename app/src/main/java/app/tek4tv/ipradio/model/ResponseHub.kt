@@ -16,10 +16,10 @@ class ResponseHub : Serializable {
     var volume: String? = ""
 
     @Json(name = "Lat")
-    var lat: Float? ?= null
+    var lat: Float? = null
 
     @Json(name = "Lng")
-    var lng: Float?= null
+    var lng: Float? = null
 
     @Json(name = "DestinationID")
     var destinationId: String? = ""
@@ -28,7 +28,7 @@ class ResponseHub : Serializable {
     var destinationName: String? = ""
 
     @Json(name = "UserNameControl")
-    var userNameControl: String?= null
+    var userNameControl: String? = null
 
     @Json(name = "Start")
     var start: String? = null
@@ -37,10 +37,10 @@ class ResponseHub : Serializable {
     var duration: String? = ""
 
     @Json(name = "PI")
-    var piCode : String? = ""
+    var piCode: String? = ""
 
     @Json(name = "PS")
-    var psName : String? = ""
+    var psName: String? = ""
 
     @Json(name = "Log")
     var logEnabled: Boolean? = null
@@ -61,10 +61,8 @@ class ResponseHub : Serializable {
     var deviceName: String? = ""
 
 
-
-
     @Json(name = "Mode")
-    var mode: String?= null
+    var mode: String? = null
 
 
 }

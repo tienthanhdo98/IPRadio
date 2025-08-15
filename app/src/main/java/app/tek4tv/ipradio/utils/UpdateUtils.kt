@@ -62,9 +62,6 @@ fun downloadUpdateApk(
     if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
         file.delete()
 
-    val successMsg = StringBuilder();
-
-    val errorMsg = StringBuilder();
     //set downloadmanager
     val request = DownloadManager.Request(Uri.parse(url))
     request.setDescription("update version")

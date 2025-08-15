@@ -98,7 +98,6 @@ class NetworkUtils private constructor() {
 
     companion object {
         const val BASE_URL = "https://box.dev.tek4tv.vn/"
-
         private var INSTANCE: NetworkUtils? = null
         val instance: NetworkUtils
             get() {
@@ -189,7 +188,7 @@ class NetworkUtils private constructor() {
                     helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
                 //data nhận, data gửi
 //                "$allRxByte,$allTxByte"
-                val total = (allRxByte + allTxByte)/1024
+                val total = (allRxByte + allTxByte) / 1024
                 "$total"
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -200,7 +199,7 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-                 val dataUsage = getNetworkUsage(appContext)
+                val dataUsage = getNetworkUsage(appContext)
 
                 val level = when (networkClass) {
                     "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
@@ -222,9 +221,9 @@ class NetworkUtils private constructor() {
             }
         }
 
-        fun setWifiEnable(appContext: Context, enable : Boolean)
-        {
-            val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        fun setWifiEnable(appContext: Context, enable: Boolean) {
+            val wifiManager =
+                appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             wifiManager.isWifiEnabled = enable
         }
     }

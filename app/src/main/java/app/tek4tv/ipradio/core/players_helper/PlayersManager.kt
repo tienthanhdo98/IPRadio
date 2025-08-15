@@ -1,13 +1,14 @@
 package app.tek4tv.ipradio.core.players_helper
 
+//import org.videolan.libvlc.util.VLCVideoLayout
 import android.content.Context
 import android.util.Log
 import android.widget.ImageView
-import android.widget.VideoView
-import app.tek4tv.ipradio.core.scheduler.MediaScheduler
+import androidx.media3.ui.PlayerView
 import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
 import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
 import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
+import app.tek4tv.ipradio.core.scheduler.MediaScheduler
 import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.saveListForceToPref
@@ -18,13 +19,11 @@ import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
-import com.google.android.exoplayer2.ui.PlayerView
 import com.squareup.moshi.JsonDataException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -37,7 +36,6 @@ import java.util.*
  * **/
 class PlayersManager(
     appContext: Context,
-    vlcVideoLayout: VLCVideoLayout,
     imageLayout: ImageView,
     private val mediaRepo: MediaRepo,
     exoVideoLayout: PlayerView
@@ -45,7 +43,6 @@ class PlayersManager(
 
     var TAG = "PlayersManager"
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this, vlcVideoLayout)
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this, exoVideoLayout)
     private val imagePlayer = ImagePlayer(this, imageLayout, mediaRepo)
     private var currentPlayingMedia: MediaItem? = null
@@ -75,11 +72,10 @@ class PlayersManager(
      * **/
     var isTimeOver = false
 
-    override fun onPlayerError(e: Exception?, isLiveError: Boolean, mediaItem: MediaItem) {
-        if (isLiveError) {
-            //To log stream played duration
-            playerManagerListener?.onLiveError(mediaItem)
-        }
+    override fun onPlayerError(e: Exception, mediaItem: MediaItem) {
+        Log.d(TAG, "onPlayerError: ${e.message}")
+        playerManagerListener?.onMediaError(e.message!!, mediaItem)
+
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -175,7 +171,8 @@ class PlayersManager(
 
     fun pauseMedia() {
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
-        vlcPlayer.pause()
+        //vlcPlayer.pause()
+        exoPlayer.pause()
     }
 
     var currentPauseTimePlayer: Long = 0
@@ -187,7 +184,8 @@ class PlayersManager(
         Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
         if (now < timeEnd) {
             Log.d("CONTROL_MEDIA", "resume: $timeEnd")
-            vlcPlayer.resume()
+            //vlcPlayer.resume()
+            exoPlayer.resume()
 
         } else {
             if (currentPauseTimePlayer != 0L) {
@@ -211,7 +209,7 @@ class PlayersManager(
 
                             }
                             else -> {
-                                vlcPlayer.playMedia(mediaItem, timeStamp)
+                                exoPlayer.playMedia(mediaItem, timeStamp)
 
                             }
                         }
@@ -247,7 +245,8 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         imagePlayer.stop()
-        vlcPlayer.stop()
+//        vlcPlayer.stop()
+        exoPlayer.stop()
 
     }
 
@@ -330,7 +329,7 @@ class PlayersManager(
         isLayoutChange: Boolean? = false
     ) {
         try {
-            val listMediaItem = jsonListMediaItemAdapter.fromJson(responseHub.name)
+            val listMediaItem = responseHub.name?.let { jsonListMediaItemAdapter.fromJson(it) }
             val listForceMedia = mutableListOf<MediaItem>()
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
@@ -410,7 +409,8 @@ class PlayersManager(
 
 
     fun onActivityDestroy() {
-        vlcPlayer.release()
+        //vlcPlayer.release()
+        exoPlayer.release()
     }
 
     fun resetPlayMode() {

@@ -6,6 +6,7 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.model.logmodel.ExceptionLogModel
+import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -44,9 +45,12 @@ class LogUtils private constructor() {
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
     var logService: LogService? = null
+    var authService: AuthService? = null
+
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
     var providerValue = GlobalProperties.getInst().providerValue
+
 
     init {
         listOf(
@@ -60,6 +64,30 @@ class LogUtils private constructor() {
         }
     }
 
+    fun getLogToken(): String? {
+        return try {
+            val body = mapOf(
+                "Username" to "digitalsignage",
+                "Password" to "c6033006-575e-4739-8da9-a191a7d0768d",
+            )
+            val url = "https://gateway-digitalsignage.tek4tv.vn/api/v2/oauth/sso/token"
+
+            val call = authService?.getTokenLog(body, url)
+            val response = call?.execute()
+
+            if (response?.isSuccessful == true) {
+                val token = response.body()!!.noiDung.token
+                token
+            } else {
+                null
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+            Log.i(LOG_TAG, "getHubToken: ${e.message}")
+            null
+        }
+    }
+
     fun logHubCommand(command: String, message: String) {
         val filePath = getLogFilePath(commandLogFolderPath)
         writeLogToFile(filePath, "$command : $message", true)
@@ -67,7 +95,6 @@ class LogUtils private constructor() {
 
     fun logMediaStart(
         mediaItem: MediaItem,
-        duration: Long,
         volume: String,
         paState: String,
         typeScreen: Int
@@ -129,16 +156,13 @@ class LogUtils private constructor() {
             deviceId = imei,
             data = data,
         )
-        Log.d(
-            LOG_TAG,
-            data
-        )
         coroutineScope.launch {
-//            logService?.postExceptionLog(body)
-//            Log.d(
-//                LOG_TAG,
-//                data
-//            )
+            val hubLogToken: String? = getLogToken()
+            logService?.postExceptionLog(hubLogToken!!, body)
+            Log.d(
+                LOG_TAG,
+                data
+            )
         }
     }
 

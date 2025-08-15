@@ -6,8 +6,6 @@ import androidx.room.Entity
 import androidx.room.PrimaryKey
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import java.io.File
 import java.io.Serializable
 
@@ -105,7 +103,7 @@ data class MediaItem(
         pathBackup = body!!
     }
 
-    fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
+    fun getFileName() = if (body!!.startsWith("http")) Uri.parse(body).path?.let { File(it).name }
     else File("file://$body").name
 
     fun shouldDownload(): Boolean {
@@ -131,23 +129,24 @@ data class MediaItem(
         }
     }
 
-    fun getVlcMedia(mLibVLC: LibVLC): Media {
-//        if (getMediaType() == MediaType.LIVE) {
-//            Log.d("player", "live: $body")
-//            return Media(mLibVLC, Uri.parse(body))
+//    fun getVlcMedia(mLibVLC: LibVLC): Media {
+//        return if (body!!.isNotEmpty() && File(body).exists()) {
+//            Log.d("player", "local: $body")
+//            Media(mLibVLC, Uri.parse("file://$body"))
+//        } else {
+//            Log.d("player", "online: $pathBackup")
+//            Media(mLibVLC, Uri.parse(pathBackup))
 //        }
+//    }
 
+    fun getExoMedia(): androidx.media3.common.MediaItem {
         return if (body!!.isNotEmpty() && File(body).exists()) {
             Log.d("player", "local: $body")
-            Media(mLibVLC, Uri.parse("file://$body"))
+            androidx.media3.common.MediaItem.fromUri(Uri.fromFile(File(body)))
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, Uri.parse(pathBackup))
+            androidx.media3.common.MediaItem.fromUri(pathBackup)
         }
-    }
-
-    companion object {
-        const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"
     }
 }
 

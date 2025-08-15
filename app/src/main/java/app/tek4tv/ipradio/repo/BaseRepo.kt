@@ -15,18 +15,18 @@ abstract class BaseRepo<T>(
 
     protected val coroutineScope = CoroutineScope(Dispatchers.IO)
 
-    suspend fun saveItemsToFile(playlist: List<T>,from : String = "") {
+    suspend fun saveItemsToFile(playlist: List<T>, from: String = "") {
         saveFileJob?.join()
         saveFileJob = coroutineScope.launch(Dispatchers.IO) {
             try {
-                    val json = jsonAdapter.toJson(playlist)
-                    Log.d("writefile", "$from $fileStoragePath")
-                    writeFile(fileStoragePath, json)
-                } catch (e: Exception) {
-                    Log.e("BaseRepo", "error writing playlist!!!")
-                    e.printStackTrace()
-                }
-                //saveFileJob = null
+                val json = jsonAdapter.toJson(playlist)
+                Log.d("writefile", "$from $fileStoragePath")
+                writeFile(fileStoragePath, json)
+            } catch (e: Exception) {
+                Log.e("BaseRepo", "error writing playlist")
+                e.printStackTrace()
+            }
+            //saveFileJob = null
 
         }
         saveFileJob?.join()
@@ -41,7 +41,7 @@ abstract class BaseRepo<T>(
                 val contentFromFile = readFile(fileStoragePath)
                 result = jsonAdapter.fromJson(contentFromFile) ?: listOf()
             } catch (e: Exception) {
-                Log.e("BaseRepo", "error reading playlist!!!")
+                Log.e("BaseRepo", "error reading playlist")
             }
 
         }

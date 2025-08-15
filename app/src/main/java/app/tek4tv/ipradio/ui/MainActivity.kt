@@ -17,10 +17,10 @@ import android.view.WindowManager
 import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
-import android.widget.VideoView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.ui.PlayerView
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import app.tek4tv.ipradio.MyApp
@@ -28,7 +28,6 @@ import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.MyApp.Companion.serialPortController
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
-import app.tek4tv.ipradio.core.scheduler.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
 import app.tek4tv.ipradio.core.constants.AppConstants.MULTIPLE_AREA
@@ -37,6 +36,7 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.core.scheduler.AlarmListener
 import app.tek4tv.ipradio.core.scheduler.MediaScheduleReceiver
+import app.tek4tv.ipradio.core.scheduler.MediaScheduler
 import app.tek4tv.ipradio.model.DataValueModel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
@@ -57,7 +57,6 @@ import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.google.android.exoplayer2.ui.PlayerView
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
@@ -67,7 +66,6 @@ import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.io.RandomAccessFile
 import java.util.*
@@ -120,7 +118,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private val globalProperties = GlobalProperties.getInst()
 
     private var typeScreen: Int = FULL_SCREEN
-    private lateinit var vlcVideoLayout: VLCVideoLayout
     private lateinit var exoVideoLayout: PlayerView
     private lateinit var imgHolder: ImageView
     private lateinit var recyclerView: RecyclerView
@@ -150,7 +147,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule $isHaveSchedule")
 
             if (!isHaveSchedule) {
-                vlcVideoLayout.visibility = View.INVISIBLE
+                exoVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
                 val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
                 initPhotoHolder(url)
@@ -178,10 +175,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             }
         }
 
-        //Lỗi luồng live
-        override fun onLiveError(mediaItem: MediaItem) {
-            hubManager.currentMediaItem = mediaItem
-            serialPortController.turnOffPA()
+        override fun onMediaError(error: String, mediaItem: MediaItem) {
+            logUtils.logException(error)
+            exoVideoLayout.visibility = View.INVISIBLE
+            imgHolder.visibility = View.VISIBLE
         }
 
         override fun onMediaEndReach(mediaItem: MediaItem) {
@@ -194,10 +191,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             if (mediaItem == null) return
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: ${mediaItem.title} ")
             if (mediaItem.contentType?.id == 2) {
-                vlcVideoLayout.visibility = View.INVISIBLE
+                exoVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
             } else {
-                vlcVideoLayout.visibility = View.VISIBLE
+                exoVideoLayout.visibility = View.VISIBLE
                 imgHolder.visibility = View.INVISIBLE
             }
 
@@ -211,7 +208,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             else "0"
 
             logUtils.logMediaStart(
-                mediaItem, 0, globalProperties.volume, paState, typeScreen
+                mediaItem, globalProperties.volume, paState, typeScreen
             )
             if (!hubManager.isConnectSuccess) {
                 lifecycleScope.launch {
@@ -229,7 +226,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
                     else "0"
                 logUtils.logMediaStart(
-                    listMediaItem.first(), 0, globalProperties.volume, paState, typeScreen
+                    listMediaItem.first(), globalProperties.volume, paState, typeScreen
                 )
                 showLeftArea(listMediaItem)
             }
@@ -263,7 +260,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
-        requestPermission()
 
         val hubComm = object : HubComm {
             override fun forceRestartApp() {
@@ -286,6 +282,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
+        logUtils.authService = authService
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
@@ -305,10 +302,9 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
         exoVideoLayout = findViewById(R.id.exo_player)
 
-        vlcVideoLayout = findViewById(R.id.vlc_video_layout)
         imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
-            applicationContext, vlcVideoLayout, imgHolder, viewModel.mediaRepo, exoVideoLayout
+            applicationContext, imgHolder, viewModel.mediaRepo, exoVideoLayout
         )
 
         playerManager.playerManagerListener = playerCallback
@@ -332,7 +328,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         lifecycleScope.launch {
             repeat(Int.MAX_VALUE) {
-                viewModel.capture(vlcVideoLayout = vlcVideoLayout, logService = logService)
+                viewModel.capture(playerView = exoVideoLayout, logService = logService)
                 delay(300000)
             }
         }
@@ -380,7 +376,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
-            val info = Utils.getDeviceId(this).takeLast(5)
+            //val info = Utils.getDeviceId(this).takeLast(5)
             // tvMacAddress.text = info
             val totalRam: Float = appStorageManager.getTotalRam() / (1024f * 1024f * 1024f)
             val sampler = BandwidthManager()
@@ -388,14 +384,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             lifecycleScope.launch {
                 while (true) {
                     val usedRam: Float = appStorageManager.getUsedRam() / (1024f * 1024f * 1024f)
-                    //tvMacAddress.text = "${usedRam}/${totalRam}"
-//                    Log.d(
-//                        "LOGDEVICEINFO", "Ram: ${String.format("%.2f", usedRam)}/${
-//                            String.format(
-//                                "%.2f GB", totalRam
-//                            )
-//                        }"
-//                    )
                     val cpu = getCpuUsage()
                     val deviceInfo = "Ram: ${
                         String.format(
@@ -422,7 +410,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         tvCheckInternet.setBackgroundColor(getColor(R.color.red_offline))
                         tvCheckInternet.text = resources.getString(R.string.offine)
                     }
-
                     delay(10000)
                 }
             }
@@ -678,7 +665,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                 HubCommand.UPDATE_DESTINATION -> {
                     val mess = responseHub.message!!
-                    Log.i("config_config", "updateconfig $mess")
 
                     val listInfoConfig = mess.split(",")
                     val resposnHub = ResponseHub().apply {
@@ -867,18 +853,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     serialPortController.setTimeOver()
                 }
 
-                HubCommand.SETUP_PI_PS_NAME -> {
-                    serialPortController.setUpPiPsName(responseHub.message ?: "")
-                }
-
-                HubCommand.PLAY_VOD_LIVE_FORCE -> {
-                    serialPortController.writePlayVodLiveForce(responseHub.message ?: "")
-                }
-
-                HubCommand.PLAY_TUNER_LIVE_FORCE -> {
-                    serialPortController.playTunerLiveForce(responseHub.message ?: "")
-                }
-
                 HubCommand.READ_DEVICE_INFO -> {
                     serialPortController.readDeviceInfo()
                 }
@@ -969,18 +943,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                 }
 
-                HubCommand.GET_ENCRYPTED_STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-
-                        hubManager.sendEncryptedMessage(
-                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
-                        )
-                    }
-                }
 
                 HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
@@ -989,7 +951,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
 
                 HubCommand.GET_LOG_FILE -> {
-                    val data = responseHub.message?.split('-') ?: return
+                    //val data = responseHub.message?.split('-') ?: return
 //                   logUtils.sendLogFile(data[0], data[1])
                 }
             }
@@ -1003,7 +965,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private fun changeVolume(volumeValue: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-
         audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
     }
 
@@ -1074,7 +1035,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             else "0"
             listMediaLog.forEach {
                 logUtils.logMediaStart(
-                    it, 0, globalProperties.volume, paState, typeScreen
+                    it, globalProperties.volume, paState, typeScreen
                 )
                 mediaLogDao.deleteMediaItemById(it.id!!)
             }
@@ -1099,6 +1060,5 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         Log.d("HubObverse", "onHubDisConnected")
 
     }
-
 
 }

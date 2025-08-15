@@ -152,32 +152,14 @@
             android:elevation="@dimen/_15sdp"
             android:visibility="gone" />
 
-        <org.videolan.libvlc.util.VLCVideoLayout
+        <androidx.media3.ui.PlayerView
             android:id="@+id/vlc_video_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center">
 
-            <!--            <androidx.constraintlayout.widget.ConstraintLayout-->
-            <!--                android:layout_width="match_parent"-->
-            <!--                android:layout_height="match_parent">-->
-            <!--                <TextView-->
-            <!--                    android:id="@+id/tvCheckInternet"-->
-            <!--                    android:layout_width="wrap_content"-->
-            <!--                    android:layout_height="wrap_content"-->
-            <!--                    android:layout_marginEnd="@dimen/_10sdp"-->
-            <!--                    android:layout_marginBottom="@dimen/_10sdp"-->
-            <!--                    android:elevation="30dp"-->
-            <!--                    android:text="·"-->
-            <!--                    android:textColor="@color/green_online"-->
-            <!--                    android:textSize="@dimen/_5sdp"-->
-            <!--                    app:layout_constraintBottom_toBottomOf="parent"-->
-            <!--                    app:layout_constraintEnd_toEndOf="parent" />-->
 
-            <!--            </androidx.constraintlayout.widget.ConstraintLayout>-->
-
-
-        </org.videolan.libvlc.util.VLCVideoLayout>
+        </androidx.media3.ui.PlayerView>
 
 
     </androidx.cardview.widget.CardView>

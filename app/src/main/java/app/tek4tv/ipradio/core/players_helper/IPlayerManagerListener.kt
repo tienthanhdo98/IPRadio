@@ -7,7 +7,7 @@ import app.tek4tv.ipradio.model.MediaItem
  * **/
 interface IPlayerManagerListener {
     fun onTimeOver()
-    fun onLiveError(mediaItem: MediaItem)
+    fun onMediaError(error: String, mediaItem: MediaItem)
     fun onEndForceMedia()
     fun onPlayMediaSuccess(mediaItem: MediaItem?)
     fun onMediaEndReach(mediaItem: MediaItem)

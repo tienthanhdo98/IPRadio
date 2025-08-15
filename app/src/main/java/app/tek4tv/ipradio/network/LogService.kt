@@ -4,6 +4,7 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.model.logmodel.ExceptionLogModel
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.Url
 
@@ -40,23 +41,26 @@ interface LogService {
 //    suspend fun postReport(@Body report: Report)
 
     //dung cho thai nguyen, can tho,hanam
-    @POST("https://hub-data.tek4tv.vn/DigitalDataLog")
-    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+//    @POST("https://hub-data.tek4tv.vn/DigitalDataLog")
+//    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     //binhd dinh, bac giang,binh duong,long an,dong nai
 //    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
-    //quang ngai api
-//    @POST("https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog")
-//    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+    //quang ngai api, ninh binh
+    @POST("https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog")
+    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     //
     @POST("https://v2-provider-data-warehouse.tek4tv.vn/IpRadioDataLog/device/log")
     suspend fun postDeviceLog(@Body dataLogModel: DataLogModel): Response<Any>
 
     @POST("https://gateway-digitalsignage.tek4tv.vn/api/v2/log/device/add")
-    suspend fun postExceptionLog(@Body body: ExceptionLogModel)
+    suspend fun postExceptionLog(
+        @Header("Authorization") token: String,
+        @Body body: ExceptionLogModel
+    )
 
 
     @POST
