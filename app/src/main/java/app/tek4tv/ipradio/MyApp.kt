@@ -72,6 +72,7 @@ class MyApp : Application() {
 
     companion object {
         var instance: MyApp? = null
+        var logToken = ""
         lateinit var hubManager: HubManager
         lateinit var serialPortController: SerialPortController
     }

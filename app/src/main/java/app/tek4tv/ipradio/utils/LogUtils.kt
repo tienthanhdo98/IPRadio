@@ -71,12 +71,11 @@ class LogUtils private constructor() {
                 "Password" to "c6033006-575e-4739-8da9-a191a7d0768d",
             )
             val url = "https://gateway-digitalsignage.tek4tv.vn/api/v2/oauth/sso/token"
-
-            val call = authService?.getTokenLog(body, url)
+            val call = authService?.getTokenLog(url, body)
             val response = call?.execute()
 
             if (response?.isSuccessful == true) {
-                val token = response.body()!!.noiDung.token
+                val token = "Bearer  ${response.body()!!.noiDung.token}"
                 token
             } else {
                 null
@@ -94,10 +93,7 @@ class LogUtils private constructor() {
     }
 
     fun logMediaStart(
-        mediaItem: MediaItem,
-        volume: String,
-        paState: String,
-        typeScreen: Int
+        mediaItem: MediaItem, volume: String, paState: String, typeScreen: Int
     ) {
 
         val externalSource: String
@@ -141,8 +137,7 @@ class LogUtils private constructor() {
             try {
                 logService?.postMediaInfoStart(reportObj)
                 Log.d(
-                    LOG_TAG,
-                    "Log media start $reportObj"
+                    LOG_TAG, "Log media start $reportObj"
                 )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media start ${e.message}")
@@ -157,12 +152,16 @@ class LogUtils private constructor() {
             data = data,
         )
         coroutineScope.launch {
-            val hubLogToken: String? = getLogToken()
-            logService?.postExceptionLog(hubLogToken!!, body)
-            Log.d(
-                LOG_TAG,
-                data
-            )
+            val bearer = app.tek4tv.ipradio.di.TokenAuth.getOrFetchBearer(getInst())
+            val res = logService?.postExceptionLog(bearer!!, body)
+            Log.d(LOG_TAG, "saveBitmap S: ${res}")
+            if (res?.code() == 401) {
+                app.tek4tv.ipradio.di.TokenAuth.clear()
+                val newBearer = app.tek4tv.ipradio.di.TokenAuth.getOrFetchBearer(getInst())
+                if (newBearer != null) {
+                    logService?.postExceptionLog(bearer!!, body)
+                }
+            }
         }
     }
 
@@ -183,14 +182,12 @@ class LogUtils private constructor() {
         val strJs = data.toJson()
         coroutineScope.launch {
             val reportObj = DataLogModel(
-                imei = imei,
-                data = strJs
+                imei = imei, data = strJs
             )
             try {
                 val a = logService?.postDeviceLog(reportObj)
                 Log.d(
-                    LOG_TAG,
-                    "Log hub data ${reportObj}-${a!!.body()}"
+                    LOG_TAG, "Log hub data ${reportObj}-${a!!.body()}"
                 )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")

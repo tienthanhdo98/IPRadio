@@ -60,13 +60,12 @@ interface LogService {
     suspend fun postExceptionLog(
         @Header("Authorization") token: String,
         @Body body: ExceptionLogModel
-    )
-
+    ): Response<Any>
 
     @POST
     suspend fun postScreenCapture(
+        @Url url: String,
         @Body captureScreenModel: CaptureScreenModel,
-        @Url url: String
     ): Response<Any>
 
     //long an

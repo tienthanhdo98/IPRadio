@@ -124,7 +124,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private lateinit var adapter: AutoScrollAdapter
     private val handler = Handler(Looper.getMainLooper())
     private var scrollRunnable: Runnable? = null
-
+    var logToken = ""
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -328,7 +328,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         lifecycleScope.launch {
             repeat(Int.MAX_VALUE) {
-                viewModel.capture(playerView = exoVideoLayout, logService = logService)
+                viewModel.capture(
+                    playerView = exoVideoLayout,
+                    logService = logService,
+                )
                 delay(300000)
             }
         }
@@ -435,7 +438,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun startAutoScroll() {
-
 
         val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
         val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
@@ -620,22 +622,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     Handler(Looper.getMainLooper()).postDelayed({
                         recreate()
                     }, 1000)
-
-
-//                    val newTypeScreen = viewModel.mediaRepo.broadcastRegion
-//                    Log.d("update_motn", "new: $newTypeScreen")
-//                    Log.d("update_motn", "current $typeScreen")
-//                    if (typeScreen != newTypeScreen) {
-//                        viewModel.updateMonthlyScenario(mess)
-//                        ConfigUtil.putString(
-//                            applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess
-//                        )
-//                        Handler(Looper.getMainLooper()).postDelayed({
-//                            recreate()
-//                        }, 1000)
-//                    } else {
-//                        viewModel.updateMonthlyScenarioAndGetContent(mess)
-//                    }
                 }
                 //Phát khẩn cấp luồng live
                 HubCommand.LIVE -> {

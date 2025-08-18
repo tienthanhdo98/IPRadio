@@ -23,6 +23,7 @@ import androidx.media3.ui.PlayerView
 import app.tek4tv.ipradio.MyApp.Companion.hubManager
 import app.tek4tv.ipradio.model.CaptureScreenModel
 import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.GlobalProperties
@@ -162,9 +163,11 @@ class MainViewModel @ViewModelInject constructor(
         )
         try {
             viewModelScope.launch {
-                val res = logService.postScreenCapture(
-                    captureModel,
+                val url =
                     "https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/capture"
+                val res = logService.postScreenCapture(
+                    url,
+                    captureModel,
                 )
                 Log.d("captureInfo", "saveBitmap S: ${captureModel}")
                 Log.d("captureInfo", "saveBitmap S: ${res}")

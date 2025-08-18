@@ -6,7 +6,6 @@ import app.tek4tv.ipradio.core.constants.AppConstants.FULL_SCREEN
 import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
 import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.Tag
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
@@ -142,6 +141,7 @@ class MediaRepo @Inject constructor(
                 val startIndex = it[0]
                 val endIndex = it[1]
                 val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
+
                 scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
                     .filter { mediaItem -> mediaItem.broadcastRegion?.value == RIGHT_AREA.toInt() || mediaItem.broadcastRegion?.value == FULL_SCREEN }
 
