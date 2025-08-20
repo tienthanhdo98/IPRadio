@@ -4,8 +4,6 @@ import android.net.Uri
 import android.util.Log
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import java.io.File
 import java.io.Serializable
 
@@ -88,7 +86,7 @@ data class MediaItemModel(
     @Json(name = "FieldType")
     val fieldType: Category? = null,
 
-) : Serializable {
+    ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
@@ -115,18 +113,14 @@ data class MediaItemModel(
             else -> MediaType.UNKNOWN
         }
     }
-
-    fun getVlcMedia(mLibVLC: LibVLC): Media {
-//        if (getMediaType() == MediaType.LIVE) {
-//            Log.d("player", "live: $body")
-//            return Media(mLibVLC, Uri.parse(body))
-//        }
+    
+    fun getExoMedia(): androidx.media3.common.MediaItem {
         return if (body!!.isNotEmpty() && File(body).exists()) {
             Log.d("player", "local: $body")
-            Media(mLibVLC, Uri.parse("file://$body"))
+            androidx.media3.common.MediaItem.fromUri(Uri.fromFile(File(body)))
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, Uri.parse(pathBackup))
+            androidx.media3.common.MediaItem.fromUri(pathBackup)
         }
     }
 
@@ -142,7 +136,8 @@ enum class MediaType {
     AM,
     UNKNOWN
 }
-data class BroadcastRegion (
+
+data class BroadcastRegion(
     @Json(name = "Id")
     val id: String?,
 
@@ -174,13 +169,15 @@ data class Category(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class ContentType(
     @Json(name = "Id")
-    val id: Long? = null,
+    val id: Int? = null,
 
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class Priority(
     @Json(name = "Id")
     val id: Long? = null,

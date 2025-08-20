@@ -15,7 +15,11 @@ fun convertToUnixTime(dateString: String, format: String): Long {
     return date?.time ?: 0L // Convert Date to Unix time in milliseconds
 }
 
-fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", timeZone: TimeZone = TimeZone.getDefault()): String {
+fun unixTimeStampToDateTime(
+    epochTime: Long,
+    pattern: String = "dd-MM-yyyy",
+    timeZone: TimeZone = TimeZone.getDefault()
+): String {
     // Convert epoch time to milliseconds
     val date = Date(epochTime * 1000)
 
@@ -43,13 +47,11 @@ fun convertTimeStampToHHMMSS(s: Long): String {
 }
 
 
-fun getCurrentTime() : Long
-{
+fun getCurrentTime(): Long {
     return Calendar.getInstance().time.time
 }
 
-fun secToReadable(sec : Long) : String
-{
+fun secToReadable(sec: Long): String {
     val h = sec / 3600
     val m = (sec - h * 3600) / 60
     val s = sec - h * 3600 - m * 60
@@ -58,11 +60,11 @@ fun secToReadable(sec : Long) : String
     val ms = if (m >= 10) "$m" else "0$m"
     val ss = if (s >= 10) "$s" else "0$s"
 
-    return if(h > 0)"$hs:$ms:$ss"
+    return if (h > 0) "$hs:$ms:$ss"
     else "$ms:$ss"
 }
+
 fun toCalendar(time: String): Calendar {
-//    Log.d("toCalendar()",time)
     return try {
         Calendar.getInstance().apply {
             val t = time.split(":").map { it.toInt() }

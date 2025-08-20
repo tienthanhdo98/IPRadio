@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.core
+package app.tek4tv.ipradio.core.MqttManager
 
 import android.content.Context
 import android.util.Log
@@ -9,7 +9,7 @@ import org.eclipse.paho.client.mqttv3.*
 class MQTTManager(
     private var hubToken: String?,
     private val connectEventListener: IConnectionServer,
-    private val listMQTTInfo : List<NoiDungMQTT>
+    private val listMQTTInfo: List<NoiDungMQTT>
 ) {
     val TAG = "MQTTLOG"
     var clientID = ""
@@ -19,20 +19,16 @@ class MQTTManager(
 
     fun getSubscribeTopic() {
         listMQTTInfo.forEach {
-            if(it.topic.lowercase().contains("thietbi"))
-            {
+            if (it.topic.lowercase().contains("thietbi")) {
                 subscribe(it.topic)
             }
-            if(it.topic.lowercase().contains("tinh"))
-            {
+            if (it.topic.lowercase().contains("tinh")) {
                 subscribe(it.topic)
             }
-            if(it.topic.lowercase().contains("huyen"))
-            {
+            if (it.topic.lowercase().contains("huyen")) {
                 subscribe(it.topic)
             }
-            if(it.topic.lowercase().contains("xa"))
-            {
+            if (it.topic.lowercase().contains("xa")) {
                 subscribe(it.topic)
             }
         }
@@ -41,15 +37,14 @@ class MQTTManager(
 
     fun connectToMQTT(context: Context) {
         listMQTTInfo.forEach {
-            if(it.topic.contains("thietbi"))
-            {
+            if (it.topic.contains("thietbi")) {
                 clientID = it.topic.substringAfter("/")
             }
         }
         publishTopicTinh = "tinh/$clientID"
 
 //        val serverURI = "tcp://digital-mqtt-thongtinnguon.tek4tv.vn:1887"
-        val serverURI = "tcp://digital-mqtt-thongtinnguon2.tek4tv.vn:1887"
+        val serverURI = "tcp://mqtt-digitalsignage.tek4tv.vn:1888"
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
         mqttClient?.setCallback(object : MqttCallback {
             override fun messageArrived(topic: String?, message: MqttMessage?) {
@@ -66,7 +61,7 @@ class MQTTManager(
             }
         })
         val options = MqttConnectOptions()
-        if(hubToken != null) {
+        if (hubToken != null) {
             options.userName = clientID
             options.password = hubToken?.toCharArray()
         }
@@ -112,7 +107,7 @@ class MQTTManager(
 
     private fun subscribe(subscribeTopic: String, qos: Int = 1) {
         try {
-            mqttClient?. subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
+            mqttClient?.subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Subscribed to $subscribeTopic")
                 }
@@ -128,7 +123,7 @@ class MQTTManager(
 
     fun disconnectMqtt() {
         try {
-            if(mqttClient != null) {
+            if (mqttClient != null) {
                 mqttClient?.disconnect(null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "Disconnected")

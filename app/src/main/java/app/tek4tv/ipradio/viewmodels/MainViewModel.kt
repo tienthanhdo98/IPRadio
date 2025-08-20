@@ -15,8 +15,8 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 
 
-class MainViewModel  : ViewModel() {
-    val mediaRepo : MediaRepo = MediaRepo(moshi)
+class MainViewModel : ViewModel() {
+    val mediaRepo: MediaRepo = MediaRepo(moshi)
     val content = MutableLiveData<Pair<List<MediaItemModel>, List<String>>>()
 
     private var getContentJob: Job? = null
@@ -24,23 +24,23 @@ class MainViewModel  : ViewModel() {
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
 
-    fun rescheduleMonthlyPlaylist()
-    {
-        val scenarioData = ConfigUtil.getString(appContext,
-            ConfigUtil.SCENARIO_DATA, "") ?: ""
+    fun rescheduleMonthlyPlaylist() {
+        val scenarioData = ConfigUtil.getString(
+            appContext,
+            ConfigUtil.SCENARIO_DATA, ""
+        ) ?: ""
         updateMonthlyScenarioWss(scenarioData)
     }
 
 
-    fun updateMonthlyScenarioWss(message: String)
-    {
+    fun updateMonthlyScenarioWss(message: String) {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenarioWss(message)
             getPlayerContentWss()
         }
     }
-    fun getPlayerContentWss()
-    {
+
+    fun getPlayerContentWss() {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -78,4 +78,6 @@ class MainViewModel  : ViewModel() {
         newUiOptions = newUiOptions or View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY
         decorView.systemUiVisibility = newUiOptions
     }
+
+
 }

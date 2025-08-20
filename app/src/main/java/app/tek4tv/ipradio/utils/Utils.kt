@@ -8,7 +8,7 @@ import android.util.Base64
 import android.util.Base64.encodeToString
 import android.util.Log
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.di.RetrofitInstance.adapterThongTinKhac
+import app.tek4tv.ipradio.di.JsonAdapterProvider.adapterThongTinKhac
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
@@ -26,6 +26,7 @@ class Utils {
         const val TOP_AREA = "1"
         const val LEFT_AREA = "2"
         const val RIGHT_AREA = "3"
+
         //Device info
         const val deviceInfoPA = "PA"
         const val deviceInfoVolume = "Volume"
@@ -87,6 +88,7 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+
         fun roundToNearestNumber(number: Int): Int {
             // Calculate remainder when dividing by 10
             val remainder = number % 10
@@ -95,37 +97,39 @@ class Utils {
             return if (remainder <= 4) {
                 (number - remainder) / 10
             } else {
-                ( number + (10 - remainder)) / 10
+                (number + (10 - remainder)) / 10
             }
         }
+
         //the loai
         fun convertContentType(strContentType: String): ContentType {
 
-            val contentType: ContentType =  when (strContentType) {
+            val contentType: ContentType = when (strContentType) {
                 "1" -> {
                     ContentType(1, "1")
                 }
                 "2" -> {
-                    ContentType(2,  "2")
+                    ContentType(2, "2")
                 }
                 "3" -> {
-                    ContentType(3,  "3")
+                    ContentType(3, "3")
                 }
                 "4" -> {
-                    ContentType(4,  "4")
+                    ContentType(4, "4")
                 }
                 "5" -> {
-                    ContentType(5,  "5")
+                    ContentType(5, "5")
                 }
                 "6" -> {
-                    ContentType(6,  "6")
+                    ContentType(6, "6")
                 }
                 else -> {
-                    ContentType(1,  "1")
+                    ContentType(1, "1")
                 }
             }
             return contentType
         }
+
         fun bitmapToBase64(bitmap: Bitmap): String {
             val outputStream = ByteArrayOutputStream()
             // Compress the bitmap to JPEG format, you can use PNG or WEBP as well
@@ -136,14 +140,14 @@ class Utils {
         }
 
         //do uu tien
-        fun convertPriority(priorityLevel: String) : Priority{
-            val priority : Priority = when (priorityLevel) {
+        fun convertPriority(priorityLevel: String): Priority {
+            val priority: Priority = when (priorityLevel) {
                 "1" -> {
-                    Priority(1,"1")
+                    Priority(1, "1")
 
                 }
                 "2" -> {
-                    Priority(2,"2")
+                    Priority(2, "2")
                 }
                 "3" -> {
                     Priority(3, "3")
@@ -186,16 +190,16 @@ class Utils {
             }
             return category
         }
-        fun convertAuthor(tacGia : TacGia) : Author
-        {
+
+        fun convertAuthor(tacGia: TacGia): Author {
             return Author(
                 fullName = tacGia.tenDayDu,
                 userName = tacGia.butDanh,
                 email = tacGia.email,
             )
         }
-        fun getTypeOfMediaItem(contentTypeId : Int) : String
-        {
+
+        fun getTypeOfMediaItem(contentTypeId: Int): String {
             var type = "VOD"
             if (contentTypeId == 5) {
                 type = "VOD"
@@ -207,7 +211,7 @@ class Utils {
 
         }
 
-        fun getDeviceInfo(valueName: String,deviceInfo: String?): String {
+        fun getDeviceInfo(valueName: String, deviceInfo: String?): String {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {
                 return ""
@@ -233,12 +237,11 @@ class Utils {
             }
         }
 
-        fun roundNumber(value : Double ) : Double{
+        fun roundNumber(value: Double): Double {
             return String.format("%.2f", value).toDouble()
         }
 
-        fun getMemoryUsage() : String
-        {
+        fun getMemoryUsage(): String {
             val usedRam = roundNumber(MainActivity.appStorageManager.getUsedRam())
             val totalRam = roundNumber(MainActivity.appStorageManager.getTotalRam())
             return "${usedRam}/${totalRam}"
@@ -281,8 +284,11 @@ class Utils {
         }
 
         fun getOtherInfo(deviceInfo: String, appStorageManager: AppStorageManager): String {
-            val usedStorageGb = roundNumber(appStorageManager.getUsedRomStorage().toDouble() / 1_073_741_824) // 1024^3
-            val totalStorageGb = roundNumber(appStorageManager.getTotalRomStorage().toDouble() / 1_073_741_824)
+            val usedStorageGb = roundNumber(
+                appStorageManager.getUsedRomStorage().toDouble() / 1_073_741_824
+            ) // 1024^3
+            val totalStorageGb =
+                roundNumber(appStorageManager.getTotalRomStorage().toDouble() / 1_073_741_824)
 
             val infoList = listOf(
                 ThongTinKhac("deviceInfo", deviceInfo),

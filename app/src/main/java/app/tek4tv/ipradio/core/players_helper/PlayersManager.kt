@@ -2,7 +2,10 @@ package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.core.MediaScheduler
+import android.widget.ImageView
+import androidx.media3.ui.PlayerView
+import app.tek4tv.ipradio.MyApp.Companion.appContext
+import app.tek4tv.ipradio.core.SchedulerManager.MediaScheduler
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItemModel
@@ -15,7 +18,6 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -27,15 +29,22 @@ import java.util.*
  * Force Media: Play media by command from server
  * **/
 class PlayersManager(
-    vlcVideoLayout: VLCVideoLayout,
-    private val mediaRepo: MediaRepo
+    private val mediaRepo: MediaRepo,
+    exoVideoLayout: PlayerView,
+    imageLayout: ImageView,
 ) : IPlayerEventListener {
+    companion object {
+        val PLAY_MODE_FORCE = "-2"
+        val PLAY_MODE_INIT = "0"
+    }
+
     private val LOGTAG = "player"
-    private val PLAY_MODE_FORCE = "-2"
-    private val PLAY_MODE_INIT = "0"
     var currentPlaylist = listOf<MediaItemModel>()
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
-    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(this, vlcVideoLayout)
+
+    //    private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(this, vlcVideoLayout)
+    private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this, exoVideoLayout)
+    private val imagePlayer = ImagePlayer(this, imageLayout, mediaRepo)
     private var currentPlayingMedia: MediaItemModel? = null
 
     /**
@@ -56,12 +65,8 @@ class PlayersManager(
     private var isTimeOver = false
 
 
-
-    override fun onPlayerError(e: Exception?, isLiveError: Boolean,mediaItem: MediaItemModel) {
-        if (isLiveError) {
-            //To log stream played duration
-            playerManagerListener?.onLiveError(mediaItem)
-        }
+    override fun onPlayerError(e: Exception?, isLiveError: Boolean, mediaItem: MediaItemModel) {
+        playerManagerListener?.onMediaError(e?.message!!, mediaItem)
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItemModel?) {
@@ -70,7 +75,6 @@ class PlayersManager(
 
     override fun onMediaEndReached(mediaItem: MediaItemModel?) {
         playNextMedia()
-
     }
 
     override fun onMediaForceEndReached(mediaItem: MediaItemModel?) {
@@ -116,8 +120,8 @@ class PlayersManager(
 
         }
     }
-    fun playDefault()
-    {
+
+    fun playDefault() {
         currentPlaylist = mediaRepo.listDefaultScenario
         playlistIndex = 0
         playMediaByIndex(playlistIndex)
@@ -155,9 +159,8 @@ class PlayersManager(
         }
     }
 
-    fun resumeMedia()
-    {
-        vlcPlayer.resume()
+    fun resumeMedia() {
+        exoPlayer.resume()
     }
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
@@ -180,38 +183,49 @@ class PlayersManager(
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     if (mediaItem.body!!.contains("m3u8")) {
-                        playLiveStream(mediaItem, false, timeStamp)
+                        playLiveStream(mediaItem)
                     } else {
-                        if (mediaItem.contentType?.value == "5") {
-                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
-                        } else {
-                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                        when (mediaItem.contentType?.id) {
+                            2 -> {
+                                imagePlayer.playMedia(mediaItem, timeStamp)
+
+                            }
+                            else -> {
+                                exoPlayer.playMedia(mediaItem, timeStamp)
+
+                            }
                         }
                     }
                 }
+
                 MediaType.LIVE -> {
-                    playLiveStream(mediaItem, true, timeStamp)
+                    if (mediaItem.contentType?.id == 2) {
+                        imagePlayer.playMedia(mediaItem, timeStamp)
+
+                    } else {
+                        playLiveStream(mediaItem)
+
+                    }
                 }
+
+
                 else -> {
-                    Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
                 }
-            }
 
+            }
         } catch (e: Exception) {
             e.printStackTrace()
         }
     }
 
-    private fun playLiveStream(mediaItem: MediaItemModel,isForce : Boolean,timeStamp: Int ) {
-//        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
-        val resumeLiveTime = 0
-        Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
-        vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
+    private fun playLiveStream(mediaItem: MediaItemModel) {
+        //vlcPlayer.playMedia(mediaItem, 0)
+        exoPlayer.playMedia(mediaItem, 0)
     }
 
-    fun   stopAllPlayer() {
-        vlcPlayer.stop()
+    fun stopAllPlayer() {
+        exoPlayer.stop()
     }
 
 
@@ -250,8 +264,7 @@ class PlayersManager(
         Log.d("alarmx", "stopPlaylist: continue play default")
     }
 
-    private fun stopTimeFrame()
-    {
+    private fun stopTimeFrame() {
         playerManagerListener?.onTimeOver()
         Log.d("turnPA", "onTimeOver: stop time frame")
     }
@@ -268,7 +281,7 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub, chuyen json "name" sang media va convert sang force media, tính thời điểm bắt đầu và kết thúc của force media
      * **/
 
-    fun  onPlayForceCommand(
+    fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
@@ -290,7 +303,8 @@ class PlayersManager(
 
                     if (currentForceMedia != null && currentForceMedia.level < level) {
                         Log.d("alarmx", " ko đủ level ${currentForceMedia.level} - $level")
-                        return}
+                        return
+                    }
                     Log.d("alarmx", " đủ level ${currentForceMedia!!.level} - $level")
                 }
 
@@ -337,7 +351,7 @@ class PlayersManager(
     }
 
     fun onActivityDestroy() {
-        vlcPlayer.release()
+        exoPlayer.release()
     }
 
     fun resetPlayMode() {

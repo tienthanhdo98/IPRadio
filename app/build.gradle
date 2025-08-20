@@ -80,7 +80,7 @@ dependencies {
 //    androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation "androidx.activity:activity-ktx:1.1.0"
 
-    implementation 'org.videolan.android:libvlc-all:3.6.0-eap10'
+//    implementation 'org.videolan.android:libvlc-all:3.6.0-eap10'
     //implementation fileTree(include: ['*.aar'], dir: 'libs')
 
 //    implementation 'com.microsoft.signalr:signalr:5.0.1'
@@ -104,27 +104,26 @@ dependencies {
     //prdownloader
     implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.2'
 
-//    implementation 'commons-net:commons-net:3.7.2'
 
-//    implementation 'com.google.android.exoplayer:exoplayer:2.19.1'
-//    implementation 'com.google.android.exoplayer:exoplayer-core:2.19.1'
-//    implementation 'com.google.android.exoplayer:exoplayer-hls:2.19.1'
-//    implementation 'com.google.android.exoplayer:extension-okhttp:2.19.1'
+    //
+    def media3_version = "1.4.1" // hoặc 1.5.x nếu muốn mới nhất
 
-
+    implementation "androidx.media3:media3-exoplayer:$media3_version"
+    implementation "androidx.media3:media3-exoplayer-hls:$media3_version"
+    implementation "androidx.media3:media3-ui:$media3_version"
+    //
 
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
 
     //mqtt
     implementation 'org.eclipse.paho:org.eclipse.paho.client.mqttv3:1.2.4'
     implementation 'org.eclipse.paho:org.eclipse.paho.android.service:1.1.1'
+    implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.1.0"
+
 
     implementation 'com.squareup.picasso:picasso:2.8'
 
     implementation fileTree(dir: 'libs', include: ['*.aar', '*.jar'], exclude: [])
-
-
-
 
 
 }

@@ -22,6 +22,7 @@ data class MQTTReceivedScheduleModel(
     var topic: String?,
     var payload: ReceivedPayloadSchedule?
 )
+
 @JsonClass(generateAdapter = true)
 data class ReceivedPayloadSchedule(
     @Json(name = "Id")
@@ -57,14 +58,15 @@ data class ReceivedPayloadSchedule(
     @Json(name = "GioBatDau")
     val GioBatDau: String?,
 
-    @Json(name = "GioKeThuc")
+    @Json(name = "GioKetThuc")
     val GioKeThuc: String?,
 
     @Json(name = "DanhSachBanTin")
     val danhSachBanTin: List<DanhSachBanTin>?
 )
+
 @JsonClass(generateAdapter = true)
-data class DanhSachDiaBanNhan (
+data class DanhSachDiaBanNhan(
     @Json(name = "DichID")
     var dichID: String?,
 
@@ -77,16 +79,18 @@ data class DanhSachDiaBanNhan (
     @Json(name = "BangDienTuID")
     var bangDienTuID: List<Any?>?
 )
+
 @JsonClass(generateAdapter = true)
-data class DanhSachNgayPhat (
+data class DanhSachNgayPhat(
     @Json(name = "NgayPhat")
     var ngayPhat: Long?,
 
     @Json(name = "ThoiDiemPhat")
     var thoiDiemPhat: List<ThoiDiemPhat>?
 )
+
 @JsonClass(generateAdapter = true)
-data class ThoiDiemPhat (
+data class ThoiDiemPhat(
     @Json(name = "ThoiGianBatDau")
     var thoiGianBatDau: Long?,
 
@@ -96,8 +100,9 @@ data class ThoiDiemPhat (
     @Json(name = "DanhSachBanTin")
     var danhSachBanTin: List<DanhSachBanTin>?
 )
+
 @JsonClass(generateAdapter = true)
-data class DanhSachBanTin (
+data class DanhSachBanTin(
     @Json(name = "VungPhat")
     var vungPhat: String?,
 

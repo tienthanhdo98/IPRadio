@@ -2,10 +2,10 @@ package app.tek4tv.ipradio.repo
 
 import android.util.Log
 import app.tek4tv.ipradio.MyApp.Companion.appContext
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMapAdapter
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.ui.MainActivity.Companion.appStorageManager
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.ui.MainActivity.Companion.jsonMapAdapter
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
 import app.tek4tv.ipradio.utils.ConfigUtil.SCENARIO_DATA
@@ -40,7 +40,7 @@ class MediaRepo constructor(
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
-    private val mediaStoragePath = appContext.filesDir.path
+    val mediaStoragePath = appContext.filesDir.path
 
     var startTimeDefaultScenario = ""
     var endTimeDefaultScenario = ""
@@ -85,11 +85,14 @@ class MediaRepo constructor(
         if (scenarioData != "") {
             val scenario = Utils.parseJson(jsonMessage = scenarioData!!, moshi = moshi)
             if (scenario != null) {
-                //lich dat mac dinh
-                listDefaultScenario =
-                    convertToMediaItem(scenario.payload?.danhSachBanTin!!, scenario.payload!!)
-                startTimeDefaultScenario = scenario.payload!!.GioBatDau!!
-                endTimeDefaultScenario = scenario.payload!!.GioKeThuc!!
+                if (scenario.payload?.danhSachBanTin?.isNotEmpty() == true) {
+                    //lich dat mac dinh
+                    listDefaultScenario =
+                        convertToMediaItem(scenario.payload?.danhSachBanTin!!, scenario.payload!!)
+
+                    startTimeDefaultScenario = scenario.payload!!.GioBatDau ?: ""
+                    endTimeDefaultScenario = scenario.payload!!.GioKeThuc ?: ""
+                }
             }
         }
 
@@ -308,7 +311,6 @@ class MediaRepo constructor(
     }
 
 
-
     fun startDownloadDefaultMedia() {
         if (listDefaultScenario.isEmpty()) return
         listDefaultScenario.forEach {
@@ -335,14 +337,14 @@ class MediaRepo constructor(
         //7 - Bản tin ghi âm trực tiếp
         //không phải files thì không tải, chỉ tải type 3 , type 4
         //Khong tai khi dung luong con 250mb(de tranh day gay mat ket noi)
-        if(appStorageManager.getAvailableStorage() <= Limit_Storage) return
+        if (appStorageManager.getAvailableStorage() <= Limit_Storage) return
         if (it.body == "start" || it.body == "end") return
-        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2" ) return
+        if (it.contentType?.value != "4" && it.contentType?.value != "3" && it.contentType?.value != "2") return
 
         //xác định có là file hay không, lấy đuôi file
         val extMedia = File(it.body ?: "").extension
 
-        if(extMedia.isEmpty()) return
+        if (extMedia.isEmpty()) return
         val isFile = getConfigFileExtension(appContext)!!.contains(extMedia)
 
         if (!isFile) return

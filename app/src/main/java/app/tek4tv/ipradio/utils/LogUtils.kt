@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.di.NetworkStatus
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
@@ -56,53 +57,12 @@ class LogUtils private constructor() {
             if (!isFolderExisted(it)) createFolder(it)
         }
 
-
-
-        /*rtDatabase = Firebase.database.reference
-        rootDeviceDb = rtDatabase.child("ipradio").child("device").child(imei)
-        playlistDb = rootDeviceDb.child("playlist")
-        timeframeDb = rootDeviceDb.child("time_frame")
-        deviceStatusDb = rootDeviceDb.child("device_status")
-        networkDb = rootDeviceDb.child("network")*/
-        /*devicePlaylistDb = rtDatabase.child("ipradio").child("device")
-            .child(imei).child("playlist")*/
     }
 
     fun logHubCommand(command: String, message: String) {
         val filePath = getLogFilePath(commandLogFolderPath)
         writeLogToFile(filePath, "$command : $message", true)
     }
-
-//    fun logStartTimeFrame(frame: String) {
-//        val reportObj = TimeFrameRecord(imei, frame, TimeFrameRecord.STATUS_START)
-//        logTimeFrame(reportObj)
-//    }
-//
-//    fun logEndTimeFrame(frame: String) {
-//        val reportObj = TimeFrameRecord(imei, frame, TimeFrameRecord.STATUS_STOP)
-//        logTimeFrame(reportObj)
-//    }
-
-//    private fun logTimeFrame(reportObj: TimeFrameRecord) {
-//        val filePath = getLogFilePath(timeframeLogFolderPath)
-//        val str = getRecordStr(reportObj)
-//
-//        if (str != null)
-//            writeLogToFile(filePath, str)
-//
-//        //timeframeDb.child(reportObj.time.toString()).setValue(reportObj)
-//
-//        coroutineScope.launch {
-//            try {
-//                logService?.postTimeframeInfo(reportObj)
-//                Log.d("LogUtils", "log timeframe success")
-//            } catch (e: Exception) {
-//                Log.d("LogUtils", "Error send log timeframe")
-//                e.printStackTrace()
-//            }
-//        }
-//    }
-
 
 
     fun logDataHub(imei: String, data: DataValueModel) {
@@ -122,6 +82,23 @@ class LogUtils private constructor() {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")
                 e.printStackTrace()
             }
+        }
+
+    }
+
+    suspend fun logException(data: String, imei: String, token: String): NetworkStatus {
+        val body = ExceptionLogModel(
+            deviceId = imei,
+            data = data,
+        )
+        val res = logService?.postExceptionLog(token, body)
+        if (res?.code() == 200) {
+            return NetworkStatus.Success
+        }
+        return if (res?.code() == 401) {
+            NetworkStatus.UnAuthorization
+        } else {
+            NetworkStatus.Fail
         }
 
 

@@ -11,22 +11,31 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import android.view.PixelCopy
+import android.view.SurfaceHolder
 import android.view.SurfaceView
-import android.widget.FrameLayout
+import android.view.View
+import android.widget.ImageView
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.viewModels
+import androidx.annotation.OptIn
 import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.view.children
 import androidx.lifecycle.lifecycleScope
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.PlayerView
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubManager
-import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.HubManager.HubManager
+import app.tek4tv.ipradio.core.HubManager.IHubObserve
+import app.tek4tv.ipradio.core.SchedulerManager.AlarmListener
+import app.tek4tv.ipradio.core.SchedulerManager.MediaScheduleReceiver
+import app.tek4tv.ipradio.core.SchedulerManager.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
+import app.tek4tv.ipradio.di.NetworkStatus
 import app.tek4tv.ipradio.di.RetrofitInstance
 import app.tek4tv.ipradio.di.RetrofitInstance.moshi
 import app.tek4tv.ipradio.model.*
@@ -38,11 +47,9 @@ import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Types
+import com.squareup.picasso.Picasso
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.videolan.libvlc.util.VLCVideoLayout
 import java.io.File
 import java.util.*
 
@@ -73,18 +80,41 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var vlcVideoLayout: VLCVideoLayout
+
+    private lateinit var exoVideoLayout: PlayerView
+    private lateinit var imgHolder: ImageView
     private val globalProperties = GlobalProperties.getInst()
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
-
+    var tokenDigital = ""
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             serialPortController.turnOffPA()
             hubManager.currentMediaItem = null
-            Log.d("PMLOG", "playerCallback: time over")
+            val scheduledList = viewModel.mediaRepo.scheduledList
+            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule ${scheduledList.size}")
+
+            val now = Calendar.getInstance().timeInMillis
+
+            val isHaveSchedule = scheduledList.keys.any { period ->
+                val t = period.split("-")
+                val start = toCalendar(t[0])
+                val end = toCalendar(t[1])
+                now in start.timeInMillis..end.timeInMillis
+            }
+
+            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule $isHaveSchedule")
+
+            if (!isHaveSchedule) {
+                exoVideoLayout.visibility = View.INVISIBLE
+                imgHolder.visibility = View.VISIBLE
+                val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
+                initPhotoHolder(url)
+            }
+
+            Log.d("PlayersManager", "onTimeOver")
         }
 
 
@@ -92,29 +122,75 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         override fun onEndForceMedia() {
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
-
         }
 
         //Lỗi luồng live
-        override fun onLiveError(mediaItem: MediaItemModel) {
-            hubManager.currentMediaItem = mediaItem
-            serialPortController.turnOffPA()
+        override fun onMediaError(error: String, mediaItem: MediaItemModel) {
+            lifecycleScope.launch {
+                val status = logUtils.logException(
+                    data = error, imei = hubManager.deviceImei, token = tokenDigital
+                )
+                if (status == NetworkStatus.UnAuthorization) {
+                    tokenDigital = ""
+                    getTokenDigital()
+                    if (tokenDigital != "") {
+                        logUtils.logException(
+                            data = error, imei = hubManager.deviceImei, token = tokenDigital
+                        )
+                    }
+                }
+            }
+            exoVideoLayout.visibility = View.INVISIBLE
+            imgHolder.visibility = View.VISIBLE
         }
-
 
         override fun onMediaStopPlaying(mediaItem: MediaItemModel, duration: Long) {
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: onMediaStopPlaying ")
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItemModel?) {
-            Log.d("onPlayMediaLog", "onPlayMediaSuccess: onPlayMediaSuccess ")
-
-            if (mediaItem != null) {
-                hubManager.currentMediaItem = mediaItem
-                serialPortController.turnOnPAVod()
-                hubManager.sendLogMediaSuccess(mediaItem)
+            if (mediaItem == null) return
+            Log.d("onPlayMediaLog", "onPlayMediaSuccess: ${mediaItem.title} ")
+            if (mediaItem.contentType?.id == 2) {
+                exoVideoLayout.visibility = View.INVISIBLE
+                imgHolder.visibility = View.VISIBLE
+            } else {
+                exoVideoLayout.visibility = View.VISIBLE
+                imgHolder.visibility = View.INVISIBLE
             }
+
+
+            hubManager.currentMediaItem = mediaItem
+            serialPortController.turnOnPAVod()
+            hubManager.sendLogMediaSuccess(mediaItem)
+
         }
+    }
+
+    private val hubCallBack = object : IHubObserve {
+        override fun onHubConnected() {
+            Log.d("HubObverse", "onHubConnected")
+            //
+            if (playerManager.playMode == PLAY_MODE_FORCE) {
+                if (ForceMedia.hasValidForceMedia(applicationContext)) {
+                    val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
+                    if (forceMedia != null) {
+                        mediaScheduler.scheduleForceMediaAlarm(forceMedia)
+                        playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
+                    }
+                }
+            } else {
+                playerManager.startFirstTimeFrame()
+            }
+
+        }
+
+        override fun onHubDisConnected() {
+            playerManager.stopAllPlayer()
+            Log.d("HubObverse", "onHubDisConnected")
+
+        }
+
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -135,6 +211,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         hubManager = HubManager { command, message ->
             handleFromCommandServer(command, message)
         }
+        hubManager.hubObverse = hubCallBack
 
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -147,11 +224,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        vlcVideoLayout = findViewById(R.id.vlc_video_layout)
+        exoVideoLayout = findViewById(R.id.exo_player)
 
+        imgHolder = findViewById(R.id.img_holder)
+        initPhotoHolder("")
         playerManager = PlayersManager(
-            vlcVideoLayout,
-            viewModel.mediaRepo
+            viewModel.mediaRepo, exoVideoLayout, imgHolder,
         )
 
         playerManager.playerManagerListener = playerCallback
@@ -175,45 +253,78 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         checkDeleteFileUpdate()
 
         lifecycleScope.launch {
-            repeat(Int.MAX_VALUE)
-            {
-                capture()
-                delay(300000)
+            getTokenDigital()
+            repeat(Int.MAX_VALUE) {
+
+                if (tokenDigital != "") {
+                    capture()
+                    delay(300000)
+                }
 
             }
         }
-//        lifecycleScope.launch {
-//            delay(5000)
-//            hubManager.convertToHubCommand(
-//                hubManager.loadJSONFromAsset(
-//                    baseContext,
-//                    "sample.json"
-//                )!!
-//            )
-//        }
-
 
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
-    fun capture() {
-        try {
-            val surfaceView = (vlcVideoLayout.getChildAt(
-                0
-            ) as FrameLayout).children.filter { it is SurfaceView }
-                .first() as SurfaceView
-
-            val bitmap = Bitmap.createBitmap(480, 270, Bitmap.Config.ARGB_8888)
-
-            PixelCopy.request(surfaceView, bitmap, {
-                saveBitmap(bitmap)
-            }, Handler(Looper.getMainLooper()))
-        } catch (e: Exception) {
-            e.printStackTrace()
+    private suspend fun getTokenDigital() {
+        val body = mapOf(
+            "Username" to "digitalsignage",
+            "Password" to "c6033006-575e-4739-8da9-a191a7d0768d",
+        )
+        val res = retrofit.getDigitalToken(
+            "https://gateway-digitalsignage.tek4tv.vn/api/v2/oauth/sso/token", body
+        )
+        if (res.code() == 200 && res.isSuccessful) {
+            tokenDigital = "Bearer ${res.body()?.noiDung?.token}"
         }
     }
 
-    private fun saveBitmap(bitmap: Bitmap) {
+    @OptIn(UnstableApi::class)
+    @RequiresApi(Build.VERSION_CODES.N)
+    fun capture(
+    ) {
+        // Lấy đúng video surface của PlayerView
+        val surfaceView = (exoVideoLayout.videoSurfaceView as? SurfaceView) ?: return
+
+        surfaceView.holder.addCallback(object : SurfaceHolder.Callback {
+            override fun surfaceCreated(holder: SurfaceHolder) {
+                // chỉ chụp khi surface đã valid
+                doPixelCopy(surfaceView)
+                surfaceView.holder.removeCallback(this)
+            }
+
+            override fun surfaceChanged(
+                holder: SurfaceHolder, format: Int, width: Int, height: Int
+            ) {
+            }
+
+            override fun surfaceDestroyed(holder: SurfaceHolder) {}
+        })
+
+        // Nếu đã valid thì chụp luôn
+        if (surfaceView.holder.surface?.isValid == true) {
+            doPixelCopy(surfaceView)
+        }
+    }
+
+    @RequiresApi(Build.VERSION_CODES.N)
+    private fun doPixelCopy(
+        surfaceView: SurfaceView,
+    ) {
+        val w = surfaceView.width.coerceAtLeast(1)
+        val h = surfaceView.height.coerceAtLeast(1)
+        val bitmap = Bitmap.createBitmap(w, h, Bitmap.Config.ARGB_8888)
+
+        PixelCopy.request(surfaceView, bitmap, { result ->
+            if (result == PixelCopy.SUCCESS) {
+                saveBitmap(bitmap)
+            }
+        }, Handler(Looper.getMainLooper()))
+    }
+
+    private fun saveBitmap(
+        bitmap: Bitmap,
+    ) {
         // Create directory for saving
         val captureModel = CaptureScreenModel(
             Imei = hubManager.deviceImei,
@@ -223,19 +334,31 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         )
         try {
             lifecycleScope.launch {
+                val url = "https://gateway-digitalsignage.tek4tv.vn/api/v2/digital/capture"
                 val res = retrofit.postScreenCapture(
+                    url,
+                    tokenDigital,
                     captureModel,
-                    "https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog/digital/capture"
                 )
-                Log.d("captureError", "saveBitmap S: ${res}")
-                // Log.d("captureError", "saveBitmap S: ${captureModel.Base64Image}")
+                if (res.isSuccessful) {
+                    Log.d("captureInfo", "saveBitmap S: ${res}")
+                }
+                if (res.code() == 401) {
+                    tokenDigital = ""
+                    getTokenDigital()
+                    if (tokenDigital != "") {
+                        retrofit.postScreenCapture(
+                            url,
+                            tokenDigital,
+                            captureModel,
+                        )
+                    }
+                }
             }
-
         } catch (e: Exception) {
-            Log.d("captureError", "saveBitmap ERR: ${e.message}")
+            Log.d("captureInfo", "saveBitmap ERR: ${e.message}")
         }
     }
-
 
     private fun checkDeleteFileUpdate() {
         val destination = getDestinationApk()
@@ -250,7 +373,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     @RequiresApi(Build.VERSION_CODES.N)
     private fun initDataByScreen() {
-            checkInternetAndTime()
+        checkInternetAndTime()
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -377,8 +500,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         /**
          * khi cần
          * **/
-        viewModel.content.observe(this)
-        {
+        viewModel.content.observe(this) {
             viewModel.downloadMedias()
             //Check xem có đang phát khẩn cấp không
             //Nếu có thì phát media khẩn cấp
@@ -426,8 +548,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             ConfigUtil.putString(this, "pref_orientation", requireOrientation)
                             lifecycleScope.launch {
                                 Toast.makeText(
-                                    baseContext, "Màn hình sẽ xoay sau 5s",
-                                    Toast.LENGTH_SHORT
+                                    baseContext, "Màn hình sẽ xoay sau 5s", Toast.LENGTH_SHORT
                                 ).show()
                                 delay(5000)
                                 CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
@@ -497,7 +618,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         }
                         //dung phat va chuyen sang ban tin tiep
                         1 -> {
-                                playerManager.playNextMedia()
+                            playerManager.playNextMedia()
                         }
                         //Tạm dừng nội dung đang phát
                         2 -> {
@@ -525,17 +646,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         } else {
                             changeVolume(
                                 (ConfigUtil.getString(
-                                    baseContext,
-                                    DEFAULT_ANDROID_VOLUME,
-                                    "10"
+                                    baseContext, DEFAULT_ANDROID_VOLUME, "10"
                                 ) ?: "10").toInt()
                             )
                             globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
                             globalProperties.setTempVolume(
                                 (ConfigUtil.getString(
-                                    baseContext,
-                                    DEFAULT_VOLUME,
-                                    "100"
+                                    baseContext, DEFAULT_VOLUME, "100"
                                 ) ?: "100")
                             )
                             Log.d(
@@ -561,9 +678,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             roundToNearestNumber(responseHub.message!!.toInt()).toString()
                         )
                         ConfigUtil.putString(
-                            applicationContext,
-                            DEFAULT_VOLUME,
-                            responseHub.message!!
+                            applicationContext, DEFAULT_VOLUME, responseHub.message!!
                         )
 
                     }
@@ -655,6 +770,22 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
+    private fun initPhotoHolder(url: String?) {
+        if (url != "") {
+            val fileName = getFileNameFromUrl(url!!)
+            if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
+                val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
+                Picasso.get().load(urlLocal).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Local")
+            } else {
+                Picasso.get().load(url).into(imgHolder)
+                Log.d("PhotoHolder", "initPhotoHolder: Online")
+            }
+        } else {
+            imgHolder.setImageResource(R.drawable.quangngai)
+        }
+    }
+
     private fun changeVolume(volumeValue: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
 
@@ -699,12 +830,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             while (true) {
                 strTimeFrame.clear()
                 val imei = Utils.getDeviceId(baseContext)
-                val timeUpdate =
-                    ConfigUtil.getString(
-                        baseContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        "0"
-                    )!!
+                val timeUpdate = ConfigUtil.getString(
+                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
+                )!!
                 val idPlaylist =
                     ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
                 val scheduledList = viewModel.mediaRepo.timeDividers
@@ -719,11 +847,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         strPlaylist = readFile(fileStoragePath)
                     }
                     logDeviceData = DataValueModel(
-                        idPlaylist,
-                        timeUpdate,
-                        getCurrentTime(),
-                        strTimeFrame,
-                        strPlaylist
+                        idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame, strPlaylist
                     )
                 } else {
                     logDeviceData =
@@ -738,14 +862,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        val typeListMediaItem =
-            Types.newParameterizedType(List::class.java, MediaItemModel::class.java)
-        val jsonListMediaItemAdapter: JsonAdapter<List<MediaItemModel>> = moshi.adapter<List<MediaItemModel>>(typeListMediaItem)
         val retrofit = RetrofitInstance.authService
-        val typeMap =
-            Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
-        val jsonMapAdapter: JsonAdapter<Map<String, String>> =
-            moshi.adapter(typeMap)
         lateinit var appStorageManager: AppStorageManager
     }
 }

@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.core
+package app.tek4tv.ipradio.core.SchedulerManager
 
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
@@ -12,7 +12,6 @@ import android.provider.Settings
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
@@ -114,7 +113,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 //            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
 //        ) != null
 
-      //  if (!isAlarmWorking) return
+        //  if (!isAlarmWorking) return
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
@@ -151,7 +150,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
         Log.d("alarmx", "force end time ${forceMedia.endTime}")
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(forceMedia.endTime)
+            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(forceMedia.endTime)
         }
         mediaEndTimeInMillis.add(Calendar.SECOND, 2)
         if (mediaEndTimeInMillis.timeInMillis <= Calendar.getInstance().timeInMillis) return
@@ -165,7 +164,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestResetAndRescheduleAlarms,
+                intent,
+                FLAG_IMMUTABLE
+            )
 
         val cal_alarm = Calendar.getInstance()
 
@@ -180,7 +184,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
         cal_alarm.time
         Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
-        val alarmClockInfo = AlarmClockInfo( cal_alarm.timeInMillis, alarmIntent)
+        val alarmClockInfo = AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
 
     }
@@ -204,7 +208,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun scheduleDefaultScenario() {
-        if(mediaRepo.startTimeDefaultScenario != "" && mediaRepo.endTimeDefaultScenario != "") {
+        if (mediaRepo.startTimeDefaultScenario != "" && mediaRepo.endTimeDefaultScenario != "") {
             val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
                 action = MediaScheduleReceiver.ACTION_START_DEFAULT_SCENARIO
             }
