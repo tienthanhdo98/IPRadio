@@ -27,6 +27,7 @@ object ConfigUtil {
     const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
     const val ServerTimeout = "ServerTimeout"
     const val KeepAliveInterval = "KeepAliveInterval"
+
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
@@ -40,34 +41,40 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun putStringEncrypt(context: Context, key: String?, value: String?) {
-        val editor = getEncryptedSharedPreferences(context).edit()
-        editor.putString(key, value)
-        editor.apply()
-    }
+//    fun putStringEncrypt(context: Context, key: String?, value: String?) {
+//        val editor = getEncryptedSharedPreferences(context).edit()
+//        editor.putString(key, value)
+//        editor.apply()
+//    }
 
-    fun getStringEncrypt(context: Context, key: String?): String? {
+//    fun getStringEncrypt(context: Context, key: String?, default: String? = ""): String? {
+//
+//        return getEncryptedSharedPreferences(context).getString(key, default)
+//    }
 
-        return getEncryptedSharedPreferences(context).getString(key,"")
-    }
-    private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
-        return EncryptedSharedPreferences.create(
-            context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
-    }
+//    private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
+//        return EncryptedSharedPreferences.create(
+//            context,
+//            PREFERENCE_FILE_NAME,
+//            getKey(context),
+//            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+//            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+//        )
+//    }
 
-    private fun getKey(context: Context): MasterKey {
-        return MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-    }
+//    private fun getKey(context: Context): MasterKey {
+//        return MasterKey.Builder(context)
+//            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+//            .build()
+//    }
+
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
         editor.putInt(key, value)
         editor.apply()
     }
+
     fun getInt(context: Context, key: String, defaultValue: Int): Int {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getInt(key, defaultValue)

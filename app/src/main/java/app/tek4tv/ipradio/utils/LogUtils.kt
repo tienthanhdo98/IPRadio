@@ -45,6 +45,7 @@ class LogUtils private constructor() {
      private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
 
+
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
@@ -80,8 +81,7 @@ class LogUtils private constructor() {
         writeLogToFile(filePath, "$command : $message", true)
     }
 
-    fun logHubError(error: String)
-    {
+    fun logHubError(error: String) {
         try {
             val logPath = "logFolderPath/${fileNameFormat.format(Date())}.txt"
             val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
@@ -141,7 +141,7 @@ class LogUtils private constructor() {
             paState = paState,
             duration = mediaItem.duration,
             startTime = (currentTime.time / 1000),
-            body =  mediaItem.pathBackup,
+            body = mediaItem.pathBackup,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,
@@ -163,10 +163,10 @@ class LogUtils private constructor() {
         )
         coroutineScope.launch {
             try {
-                logService?.postMediaInfoStart(reportObj)
+                val a = logService?.postMediaInfoStart(reportObj)
                 Log.d(
                     LOG_TAG,
-                    "Log media start ${reportObj}"
+                    "Log media start ${a?.body()}"
                 )
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")
@@ -226,7 +226,7 @@ class LogUtils private constructor() {
             externalSource = externalSource,
             isExternal = isExternalSource,
             deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference =  mediaItem.sourceReference,
+            sourceReference = mediaItem.sourceReference,
             provider = providerValue
         )
         val str = getRecordStr(reportObj)

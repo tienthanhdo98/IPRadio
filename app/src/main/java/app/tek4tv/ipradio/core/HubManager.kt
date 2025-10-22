@@ -38,11 +38,11 @@ class HubManager(
     private val hubComm: HubComm,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
-    ) {
+) {
     private val LOG_TAG = "HubManager"
     val CONNECT_COUNTER_LIMIT = 20
-    private val PING_DATA_INTERVAL = 15000L
-    private val PING_HUB_INTERVAL = 10000L
+    private val PING_DATA_INTERVAL = 30000L
+    private val PING_HUB_INTERVAL = 30000L
     private val moshi = MoshiInst.moshi
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
@@ -55,7 +55,8 @@ class HubManager(
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
     private val heartBeatAdapter = moshi.adapter(HeartbeatRequest::class.java)
-    private val deviceImei = Utils.getDeviceId(appContext)
+
+    val deviceImei = Utils.getDeviceId(appContext)
 
     private val responseAdapter = moshi.adapter(ResponseHub::class.java)
     private val listAdapter = moshi.adapter(List::class.java)
@@ -73,7 +74,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v16.4.2.1"
+    var versionName = "v61.4.2.1c"
 
     private var registerOnMessageListener = false
 
@@ -90,37 +91,39 @@ class HubManager(
 
     //check ping to hub
     private var hubUrl = ""
+    private var tokenUrl = ""
+    var providerValue = ""
 
 
     init {
-        //https://hubip-alpha-binhdinh.tek4tv.vn/
-        hubUrl = ConfigUtil.getStringEncrypt(
+        providerValue = ConfigUtil.getString(
+            appContext, ConfigUtil.PROVIDER, "VATC"
+        )!!
+        hubUrl = ConfigUtil.getString(
             appContext,
-            ConfigUtil.URL_HUB
+            ConfigUtil.URL_HUB,
+            "https://hubip-binhduong.tek4tv.vn/hubServer"
+        )!!
+        tokenUrl = ConfigUtil.getString(
+            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(MyApp.instance!!.packageName)
         )!!
         serverTimeout = ConfigUtil.getInt(
-            appContext,
-            ConfigUtil.ServerTimeout, 60000
+            appContext, ConfigUtil.ServerTimeout, 60000
         )
         keepAliveInterval = ConfigUtil.getInt(
-            appContext,
-            ConfigUtil.KeepAliveInterval, 30000
+            appContext, ConfigUtil.KeepAliveInterval, 30000
         )
-        hubConnection = HubConnectionBuilder.create(hubUrl)
-            .withAccessTokenProvider(Single.defer {
-                if (hubToken != null) {
-                    Single.just(hubToken)
-                } else {
-                    val token = getHubToken()
-                    if (token != null) {
-                        hubToken = token
-                        Single.just(token)
-                    } else
-                        Single.error(Exception())
-                }
-            })
-            .withTransport(TransportEnum.WEBSOCKETS)
-            .build()
+        hubConnection = HubConnectionBuilder.create(hubUrl).withAccessTokenProvider(Single.defer {
+            if (hubToken != null) {
+                Single.just(hubToken)
+            } else {
+                val token = getHubToken()
+                if (token != null) {
+                    hubToken = token
+                    Single.just(token)
+                } else Single.error(Exception())
+            }
+        }).withTransport(TransportEnum.WEBSOCKETS).build()
         hubConnection.serverTimeout = serverTimeout.toLong()
         hubConnection.keepAliveInterval = keepAliveInterval.toLong()
 
@@ -142,16 +145,11 @@ class HubManager(
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
 
-            //Auth Url encrypted in c++ lib
-            val url = ConfigUtil.getStringEncrypt(
-                context = appContext,
-                ConfigUtil.URL_TOKEN,
-            )
 
-            val call = authService.getToken(body, url!!)
+            val call = authService.getToken(body, tokenUrl)
             val response = call.execute()
             if (response.isSuccessful) {
-                 val token = response.body()!!.token
+                val token = response.body()!!.token
 //                val token = response.body()!!.noiDung.token
                 token
             } else {
@@ -164,25 +162,20 @@ class HubManager(
     }
 
     //check
-    fun getHubToken(urlToken : String): String? {
+    fun getHubToken(urlToken: String): String? {
         return try {
             val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getqmHINDtk(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
 
             val body = mapOf(
                 String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
-            val url = ConfigUtil.getString(
-                context = appContext,
-                ConfigUtil.URL_TOKEN,
-                urlToken
-            )
 
-            val call = authService.getToken(body, url!!)
+            val call = authService.getToken(body, tokenUrl!!)
             val response = call.execute()
             if (response.isSuccessful) {
                 val token = response.body()!!.token
@@ -233,7 +226,8 @@ class HubManager(
                 }
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) {
-                    val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+                    val countForHardRestart =
+                        ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
                     hubComm.forceRestartApp(countForHardRestart)
                 }
                 i++
@@ -292,7 +286,8 @@ class HubManager(
                                 pingCounter = 0
 
                             }
-                            HubCommand.UPDATE_CONFIG , HubCommand.UPDATE_DESTINATION -> {
+
+                            HubCommand.UPDATE_CONFIG, HubCommand.UPDATE_DESTINATION -> {
                                 meessDe = b64Decode(message)
                                 Log.d("meessDe", "onMessage: $meessDe")
                             }
@@ -344,7 +339,8 @@ class HubManager(
     fun sendHubDirectMessage(connectionId: String, command: String, message: String) {
         val directMessage = DirectMessage(deviceImei, message)
         sendDirectMessage(
-            connectionId, command,
+            connectionId,
+            command,
             Utils.toJsonString(moshi, DirectMessage::class.java, directMessage)
         )
     }
@@ -355,7 +351,8 @@ class HubManager(
         val directMessage = DirectMessage(deviceImei, encryptedMessage ?: "")
 
         sendDirectMessage(
-            connectionId, command,
+            connectionId,
+            command,
             Utils.toJsonString(moshi, DirectMessage::class.java, directMessage)
         )
     }
@@ -397,21 +394,26 @@ class HubManager(
             }
         }
     }
-    private fun getMetadata() : String
-    {
+
+    private fun getMetadata(): String {
         //thong tin lich phat
-        val listMetadata : MutableList<MetadataModel> = mutableListOf()
-        val modifyTimePlaylist = ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST,"")
-        val monthlyPlaylistId = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL,"")?.split("/")?.last()
-        val playlistInfo = MetadataModel("PLAYLISTINFO","$monthlyPlaylistId,$modifyTimePlaylist")
+        val listMetadata: MutableList<MetadataModel> = mutableListOf()
+        val modifyTimePlaylist =
+            ConfigUtil.getString(appContext, ConfigUtil.KEY_MODIFY_TIME_PLAYLIST, "")
+        val monthlyPlaylistId =
+            ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")?.split("/")
+                ?.last()
+        val playlistInfo = MetadataModel("PLAYLISTINFO", "$monthlyPlaylistId,$modifyTimePlaylist")
         listMetadata.add(playlistInfo)
         //thong tin stream encoder
-        if(isEncoder &&  streamingModel != null)
-        {
-            val streamInfo = MetadataModel("STREAMINGINFO","${streamingModel!!.streamUrl},${streamingModel!!.protocolStream},${streamingModel!!.bitrateStream},${streamingModel!!.samplerate}")
+        if (isEncoder && streamingModel != null) {
+            val streamInfo = MetadataModel(
+                "STREAMINGINFO",
+                "${streamingModel!!.streamUrl},${streamingModel!!.protocolStream},${streamingModel!!.bitrateStream},${streamingModel!!.samplerate}"
+            )
             listMetadata.add(streamInfo)
         }
-        return  listAdapter.toJson(listMetadata)
+        return listAdapter.toJson(listMetadata)
     }
 
     private fun sendPingData() {
@@ -445,7 +447,7 @@ class HubManager(
                 destinationName = GlobalProperties.getInst().destinationName
                 appName = "Ipradio"
                 logType = hubUrl
-                provider = GlobalProperties.getInst().providerValue
+                provider = providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
                 volume = SerialPortController.volume
@@ -454,12 +456,10 @@ class HubManager(
                 userNameControl = GlobalProperties.getInst().userNameController
                 isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
-                metadata =  getMetadata()
+                metadata = getMetadata()
             }
             sendMessage(pingRequestAdapter.toJson(request), Utils.ping)
-            Log.i("loghub", "log hub: ${request.networkInfo}")
-            Log.i("loghub", "log hub: ${request.volume}")
-            Log.i("loghub", "log hub: ${request.metadata}")
+            Log.i("loghub", "log hub: ${pingRequestAdapter.toJson(request)}")
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
@@ -481,7 +481,6 @@ class HubManager(
     }
 
 
-
     //parse hub command content
     private fun parseHubResponse(message: String?, needDecrypt: Boolean) {
         if (message.isNullOrEmpty()) return
@@ -489,20 +488,19 @@ class HubManager(
             responseHub = ResponseHub()
             if (needDecrypt) {
                 val decryptedStr = decryptData(message, privateKeyStr)
-                if (decryptedStr != null && decryptedStr.startsWith("{"))
-                    responseHub = responseAdapter.fromJson(decryptedStr)!!
+                if (decryptedStr != null && decryptedStr.startsWith("{")) responseHub =
+                    responseAdapter.fromJson(decryptedStr)!!
             } else {
-                if (message.startsWith("{"))
-                    responseHub = responseAdapter.fromJson(message)!!
+                if (message.startsWith("{")) responseHub = responseAdapter.fromJson(message)!!
             }
         } catch (e: Exception) {
-            e.printStackTrace()
+            Log.d("alarmx", "JsonEncodingException: ${e.message}")
         }
     }
 }
 
 interface HubComm {
-    fun forceRestartApp(countHardRestart : Int)
+    fun forceRestartApp(countHardRestart: Int)
     fun forceRestartDevice()
 }
 

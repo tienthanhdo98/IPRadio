@@ -47,6 +47,13 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
+        coroutineScope.launch(Dispatchers.IO) {
+            while (true) {
+                updateStatus()
+                delay(5000)
+            }
+        }
+
 
         if (serialPort != null && inputStream != null && outputStream != null) {
             coroutineScope.launch(Dispatchers.IO) {
@@ -114,7 +121,7 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-       coroutineScope.launch(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             while (!Thread.currentThread().isInterrupted) {
                 var size: Int
                 try {
@@ -132,7 +139,7 @@ class SerialPortController(
                             val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
-                                volume = list[5]
+                                volume = if (list.size > 5) list[5] else ""
                             }
                             dataFinal = StringBuffer()
                         }

@@ -12,7 +12,7 @@ import java.io.Serializable
 @JsonClass(generateAdapter = true)
 data class MediaItem(
     @Json(name = "ID")
-    val id: Int? = null,
+    val id: String? = null,
 
     @Json(name = "Start")
     val start: String? = null,
@@ -83,7 +83,7 @@ data class MediaItem(
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
-) : Serializable {
+    ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
@@ -170,6 +170,7 @@ data class Category(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class ContentType(
     @Json(name = "Id")
     val id: Long? = null,
@@ -177,6 +178,7 @@ data class ContentType(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class Priority(
     @Json(name = "Id")
     val id: Long? = null,

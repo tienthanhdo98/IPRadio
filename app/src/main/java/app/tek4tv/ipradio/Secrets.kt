@@ -10,18 +10,15 @@ class Secrets {
             System.loadLibrary("secrets")
         }
     }
+
     // token device
     external fun getAQNIjugs(packageName: String): String
 
-    external fun getWJsNVsim(packageName: String): String
 
     external fun getHubPrivateKey(packageName: String): String
 
 
-    external fun gethubUrl(packageName: String): String
+    external fun gethubUrlBinhDinhAl(packageName: String): String
 
-    external fun gettokenUrl(packageName: String): String
-
-    //token binh dinh
-    external fun getqmHINDtk(packageName: String): String
+    external fun getgetTokenApi(packageName: String): String
 }

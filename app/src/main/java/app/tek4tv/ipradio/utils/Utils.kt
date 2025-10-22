@@ -12,7 +12,7 @@ import java.util.*
 class Utils {
     companion object {
         const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
+        const val ENCRYPTED_STORAGE_INFO = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
         const val heartbeat = "Heartbeat"
         const val DEVICE_ID = "device_id"
@@ -80,5 +80,8 @@ class Utils {
             val adapter = moshi.adapter<List<String>>(listType)
             return adapter.toJson(list)
         }
+
+
     }
+
 }

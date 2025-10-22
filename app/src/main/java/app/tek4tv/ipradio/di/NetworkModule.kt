@@ -44,16 +44,16 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun providePlaylistService(retrofit: Retrofit) : PlaylistService =
+    fun providePlaylistService(retrofit: Retrofit): PlaylistService =
         retrofit.create(PlaylistService::class.java)
 
     @Provides
     @Singleton
-    fun provideAuthService(retrofit: Retrofit) : AuthService =
+    fun provideAuthService(retrofit: Retrofit): AuthService =
         retrofit.create(AuthService::class.java)
 
     @Provides
     @Singleton
-    fun provideLogService(retrofit: Retrofit) : LogService =
+    fun provideLogService(retrofit: Retrofit): LogService =
         retrofit.create(LogService::class.java)
 }

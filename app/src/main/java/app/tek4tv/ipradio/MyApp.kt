@@ -14,10 +14,8 @@ class MyApp : Application() {
         super.onCreate()
         appContext = applicationContext
         instance = this
-        //
-        ConfigUtil.putStringEncrypt(appContext,URL_HUB,"https://hubip-haiphong.tek4tv.vn/hubServer")
-        ConfigUtil.putStringEncrypt(appContext,URL_TOKEN,"https://apigatewayhttt.tek4tv.vn/api/Auth/Login")
-    // Firebase.database.setPersistenceEnabled(true)
+
+
     }
 
     companion object {

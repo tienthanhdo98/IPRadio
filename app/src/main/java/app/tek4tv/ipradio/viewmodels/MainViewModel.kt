@@ -9,6 +9,7 @@ import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
@@ -22,10 +23,9 @@ class MainViewModel @Inject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia : MediaItem? = null
+    var currentMedia: MediaItem? = null
 
-    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
-    {
+    fun getPlayerContent() {
         viewModelScope.launch {
             getContentJob?.join()
 
@@ -33,7 +33,7 @@ class MainViewModel @Inject constructor(
             mediaWatchdog.cancelCheck()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
+                val mediaList = mediaRepo.getScenario()
 
                 content.value = Pair(mediaList, listOf())
 
@@ -50,12 +50,12 @@ class MainViewModel @Inject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-    fun updateMonthlyScenario(url : String)
-    {
+    fun updateMonthlyScenario(url: String) {
         viewModelScope.launch {
-            mediaRepo.updateMonthlyScenario(url)
-            getPlayerContent("", false)
+            mediaRepo.safeUpdateMonthlyScenario(url)
+            getPlayerContent()
         }
     }
+
 
 }

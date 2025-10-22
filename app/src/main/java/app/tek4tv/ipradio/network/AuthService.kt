@@ -8,6 +8,5 @@ import retrofit2.http.Url
 
 interface AuthService {
     @POST
-    //@GET("https://hub.gateway.httt.tek4tv.vn/api/Device/Token")
-    fun getToken(@Body body: Map<String, String>, @Url url: String) : Call<TokenDto>
+    fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
 }
