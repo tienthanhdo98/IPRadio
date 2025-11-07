@@ -2,6 +2,9 @@ package app.tek4tv.ipradio.model
 
 import android.net.Uri
 import android.util.Log
+import app.tek4tv.ipradio.utils.AppConsts.TYPE_AUDIO
+import app.tek4tv.ipradio.utils.AppConsts.TYPE_IMAGE
+import app.tek4tv.ipradio.utils.AppConsts.TYPE_VIDEO
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import org.videolan.libvlc.LibVLC
@@ -133,6 +136,19 @@ data class MediaItem(
         }
     }
 
+    fun shouldDownload(): Boolean {
+        //1 - bản tin ký tự
+        //2 - bản tin hình ảnh
+        //3 - bản tin âm thanh
+        //4 - Bản tin video
+        //5 - Bản tin trực tiếp
+        //6 - Bản tin FM
+        //7 - Bản tin ghi âm trực tiếp
+        //không phải files thì không tải, chỉ tải type 3 , type 4, type 2
+        return !(body == "start" || body == "end") &&
+                (contentType?.id == TYPE_AUDIO || contentType?.id == TYPE_VIDEO)
+    }
+
     companion object {
         const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"
     }
@@ -173,7 +189,7 @@ data class Category(
 
 data class ContentType(
     @Json(name = "Id")
-    val id: Long? = null,
+    val id: Int? = null,
 
     @Json(name = "Value")
     val value: String? = null

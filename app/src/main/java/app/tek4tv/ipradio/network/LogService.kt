@@ -19,7 +19,7 @@ interface LogService {
 //    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
-    //binhd dinh, bac giang,binh duong,long an,dong nai,gia lai
+    //binhd dinh, bac giang,binh duong,long an,dong nai,gia lai, tiengiang,phu tho
     @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord): Response<Any>//doi media id
 

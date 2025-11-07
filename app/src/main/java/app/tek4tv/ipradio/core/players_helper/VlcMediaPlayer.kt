@@ -30,7 +30,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     private var lastError = -1
 
-    // private var endCount = 0
     var countReplayLive = 0
 
 
@@ -53,6 +52,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     playerEventListener.onMediaForceEndReached(currentMedia)
                 }
             }
+
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
@@ -101,19 +101,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
         if (isPlaying) stop()
-//        if (checkOldMediaPlaying(mediaItem) && !isForce ) stop()
-//        when (mediaItem.getMediaType()) {
-//            MediaType.FILE -> {
-//                playFile(mediaItem, timeStamp)
-//            }
-//            MediaType.LIVE -> {
-//                playLiveStream(mediaItem)
-//            }
-//            else -> {
-//                Log.e(TAG, "cant play")
-//            }
-//        }
-
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
@@ -135,34 +122,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun resume() {
         vlcPlayer.play()
-
-        val stream = Media(
-            mLibVLC,
-            Uri.parse("https://storage-hp-ttn.thongtinnguon.vn//2025/8/26/14/541734447_ct-c-thu-4-ngay-27-8.mp3")
-        )
-//        stream.addOption(":rtsp-tcp")
-//        stream.addOption(":network-caching=20")
-//
-//        stream.addOption(":run-time=600")
-//        currentVlcMedia = stream
-//
-//        vlcPlayer.play(stream)
-//        val handler = Handler(Looper.getMainLooper())
-//        handler.postDelayed(
-//            {
-//                vlcPlayer.stop()
-//                playerEventListener.onMediaEndReached(currentMedia)
-//            },
-//            60000
-//        )
-//        val stream = Media(
-//            mLibVLC,
-//            Uri.parse("http://14.224.130.186:8000/binhdinh")
-//        )
-//
-        currentVlcMedia = stream
-
-        vlcPlayer.play(stream)
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
@@ -182,11 +141,9 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         Log.e(TAG, "vlc play live : time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
-
-//        stream.addOption(":network-caching=20")
         var currentTimeStamp = 0
-//        if (timeStamp >= 0) currentTimeStamp = timeStamp
-//        //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
+        if (timeStamp >= 0) currentTimeStamp = timeStamp
+        //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
 //        if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()))
 //            stream.addOption(":start-time=$timeStamp")
         currentVlcMedia = stream

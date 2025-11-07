@@ -49,7 +49,7 @@ class HubManager(
     private var pingDataJob: Job? = null
     private var openNewConnectionJob: Job? = null
 
-    private var coroutineScope = CoroutineScope(Dispatchers.Main)
+    private var coroutineScope = CoroutineScope(Dispatchers.IO)
     val appContext: Context = MyApp.instance!!.applicationContext
 
     private val videoAdapter = moshi.adapter(Video::class.java)
@@ -74,7 +74,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v61.4.2.1c"
+    var versionName = "v63.4.2.1d"
 
     private var registerOnMessageListener = false
 
@@ -97,12 +97,12 @@ class HubManager(
 
     init {
         providerValue = ConfigUtil.getString(
-            appContext, ConfigUtil.PROVIDER, "VATC"
+            appContext, ConfigUtil.PROVIDER, "TEK4TV"
         )!!
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-binhduong.tek4tv.vn/hubServer"
+            "https://hubip-tiengiang.tek4tv.vn/hubServer"
         )!!
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(MyApp.instance!!.packageName)
@@ -359,7 +359,7 @@ class HubManager(
 
     private fun startPingTimer() {
         pingHubJob?.cancel()
-        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
+        pingHubJob = coroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 sendPing()
                 Log.d(LOG_TAG, "ping: $pingCounter")
@@ -387,7 +387,7 @@ class HubManager(
 
     private fun startPingDataTimer() {
         pingDataJob?.cancel()
-        pingDataJob = coroutineScope.launch(Dispatchers.Default) {
+        pingDataJob = coroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 sendPingData()
                 delay(PING_DATA_INTERVAL)

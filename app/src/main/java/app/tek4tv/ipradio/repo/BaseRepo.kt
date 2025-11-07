@@ -22,7 +22,7 @@ abstract class BaseRepo<T>(
             withContext(Dispatchers.IO) {
                 try {
                     val json = jsonAdapter.toJson(playlist)
-                    Log.d("writefile", "$fileStoragePath")
+                    Log.d("writefile", fileStoragePath)
                     writeFile(fileStoragePath, json)
                 } catch (e: IOException) {
                     Log.e("BaseRepo", "error writing playlist!!!")

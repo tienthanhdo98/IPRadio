@@ -215,7 +215,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        //viewModel.grantPermissionThoughAdb(baseContext)
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, PERMISSION_REQUEST_CODE)
@@ -594,9 +594,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
                 if (forceMedia != null) playerManager.playForceMedia(
-                    applicationContext,
-                    forceMedia,
-                    mediaScheduler
+                    applicationContext, forceMedia, mediaScheduler
                 )
                 return@observe
             }
@@ -606,7 +604,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             playerManager.startFirstTimeFrame()
             sendLogDataHub()
             //all load done, check
-//            viewModel.checkPlaylist()
+            viewModel.checkPlaylist(appStorageManager)
         }
     }
 
@@ -689,7 +687,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                    clearDatastore()
                     val mess = responseHub.message!!
                     //  //add at 4.1.3d
 //                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
@@ -697,6 +694,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     playerManager.resetPlayMode() //reset lại trạng thái phát (player mode, FM, Live)
                     cancelAllAlarm() //xóa tất hẹn giờ
                     ForceMedia.deleteForeMediaPref(applicationContext) //xóa bản tin phát trực tiếp
+                    viewModel.stopDownloadMedia()
                     viewModel.updateMonthlyScenario(mess) //cập nhật lịch mới
                     ConfigUtil.putString(
                         applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess
@@ -1125,8 +1123,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         playerManager.onPlayForceCommand(applicationContext, responseHub, mediaScheduler)
     }
 
-    private fun cancelAllAlarm() {
-        /* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
+    private fun cancelAllAlarm() {/* if (ForceMedia.hasValidForceMedia(applicationContext)) mediaScheduler.cancelForceMediaAlarm()
          else mediaScheduler.cancelAllScheduledListAlarm()*/
         mediaScheduler.cancelAllAlarm()
     }
@@ -1141,20 +1138,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         }
     }
 
-    private fun clearDatastore() {
-        //limit free data 1 gb
-        val limit = 1000000000
-        //limit free data 500 mb
-        //val limit = 524288000
-        val totalStorage = appStorageManager.getTotalRomStorage()
-        val usedStorage = appStorageManager.getUsedRomStorage()
-        if (totalStorage - usedStorage <= limit) {
-            Log.d("clearDatastore", "clearDatastore: Must Clear")
-            appStorageManager.deleteAllMedia()
-        } else {
-            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
-        }
-    }
 
     companion object {
         var alarmListener: AlarmListener? = null

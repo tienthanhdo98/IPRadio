@@ -2,6 +2,7 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
+import android.webkit.URLUtil
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ScheduleDay
 import app.tek4tv.ipradio.network.PlaylistService
@@ -9,22 +10,28 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_MODIFY_TIME_PLAYLIST
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_DATA
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
-import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
-import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
+import com.downloader.Error
 import com.downloader.OnDownloadListener
+import com.downloader.PRDownloader
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.sync.withPermit
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
 import java.util.*
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.coroutines.resume
 
 @Singleton
 class MediaRepo @Inject constructor(
@@ -37,13 +44,14 @@ class MediaRepo @Inject constructor(
         Types.newParameterizedType(List::class.java, MediaItem::class.java)
     )
 
-    private val LOG_TAG = "MEDIA_REPO"
+    private val TAG = "MEDIA_REPO"
 
     var broadcastList = mutableListOf<MediaItem>()
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
 
     private val downloadHelper = DownloadHelper2.getInstance()
+    val numberFileDownloadAtOnce = 2
 
     private val mediaStoragePath = appContext.filesDir.path
 
@@ -69,7 +77,7 @@ class MediaRepo @Inject constructor(
 
     private suspend fun updateMonthlyScenario(url: String) {
         try {
-            Log.e(LOG_TAG, "updateMonthlyScenario")
+            Log.e(TAG, "updateMonthlyScenario")
             val fetchResult = playlistService.getMonthlyPlaylist(url)
 
             if (!fetchResult.isSuccessful) return
@@ -92,16 +100,16 @@ class MediaRepo @Inject constructor(
             val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
 
             if (dayScenario != null) {
-                Log.e(LOG_TAG, "có lịch trong ngày: update")
+                Log.e(TAG, "có lịch trong ngày: update")
                 updateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
-                Log.e(LOG_TAG, "Không có lịch trong ngày")
+                Log.e(TAG, "Không có lịch trong ngày")
             }
 
         } catch (e: Exception) {
-            Log.e(LOG_TAG, "Cannot update daily scenario ${e.message}")
+            Log.e(TAG, "Cannot update daily scenario ${e.message}")
         }
     }
 
@@ -119,25 +127,27 @@ class MediaRepo @Inject constructor(
             val monthlyDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData)
 
             val res = if (monthlyDataList.isNullOrEmpty()) {
-                Log.d(LOG_TAG, "No monthly scenario data")
+                Log.d(TAG, "No monthly scenario data")
                 emptyList()
             } else {
                 val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
                 when {
                     todayScenario == null -> {
-                        Log.d(LOG_TAG, "No schedule for today")
+                        Log.d(TAG, "No schedule for today")
                         emptyList()
                     }
+
                     isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME) -> {
-                        Log.d(LOG_TAG, "Reading playlist from local file")
+                        Log.d(TAG, "Reading playlist from local file")
                         val localList = readItemsFromFile()
                         localList.ifEmpty {
-                            Log.d(LOG_TAG, "Local file is empty, fallback to network")
+                            Log.d(TAG, "Local file is empty, fallback to network")
                             updateScenario(todayScenario.sourceUrl)
                         }
                     }
+
                     else -> {
-                        Log.d(LOG_TAG, "No local file, fallback to network")
+                        Log.d(TAG, "No local file, fallback to network")
                         updateScenario(todayScenario.sourceUrl)
                     }
                 }
@@ -145,7 +155,7 @@ class MediaRepo @Inject constructor(
 
             broadcastList.clear()
             broadcastList.addAll(res)
-            Log.d(LOG_TAG, "local ${res.size}")
+            Log.d(TAG, "local ${res.size}")
             filterMedia(broadcastList)
             return broadcastList
         } else {
@@ -200,78 +210,273 @@ class MediaRepo @Inject constructor(
     }
 
 
-    fun startDownloadMedia() {
-        if (broadcastList.isEmpty()) return
+//    fun startDownloadMedia() {
+//        if (broadcastList.isEmpty()) return
+//
+//        broadcastList.forEach {
+//            downloadAMediaItem(it)
+//        }
+//    }
+//
+//    private fun getConfigExtension(): String? {
+//        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp3#aac#wav#wma#ac3")
+//    }
+//
+//    fun downloadAMediaItem(it: MediaItem) {
+//        //1 - bản tin ký tự
+//        //2 - bản tin hình ảnh
+//        //3 - bản tin âm thanh
+//        //4 - Bản tin video
+//        //5 - Bản tin trực tiếp
+//        //6 - Bản tin FM
+//        //7 - Bản tin ghi âm trực tiếp
+//        //không phải files thì không tải, chỉ tải type 3 , type 4
+//        if (it.contentType?.value != "4" && it.contentType?.value != "3") return
+//
+//        //xác định có là file hay không, lấy đuôi file
+//        val extMedia = File(it.body).extension
+//
+//        if (extMedia.isEmpty()) return
+//        val isFile = getConfigExtension()!!.contains(extMedia)
+//
+//        if (!isFile) return
+//
+//        val url = it.body
+//        //if (url.isEmpty() || !url.startsWith("http")) return
+//
+//        val fileName = getFileNameFromUrl(url!!)
+//        if (isFileExisted(mediaStoragePath, fileName)) {
+//            //handle broken path
+//            if (it.body != "$mediaStoragePath/$fileName") {
+//                it.body = "$mediaStoragePath/$fileName"
+//                coroutineScope.launch {
+//                    saveItemsToFile(broadcastList)
+//                }
+//            }
+//
+//            return
+//        }
+//
+//        Log.d("download item", url)
+//
+//        downloadHelper.addToQueue(DownloadItem().apply {
+//            itDownloadUrl = url
+//            itStoragePath = mediaStoragePath
+//            itFileName = fileName
+//            priority = 0
+//            downloadListener = object : OnDownloadListener {
+//                override fun onDownloadComplete() {
+//                    it.pathBackup = it.body!!
+//                    it.body = "$mediaStoragePath/$fileName"
+//
+//                    coroutineScope.launch {
+//                        saveItemsToFile(broadcastList)
+//                    }
+//
+//                    Log.d("downloadcomplete", it.body!!)
+//                }
+//
+//                override fun onError(error: com.downloader.Error?) {
+//                    Log.d("downloaderror", it.body!!)
+//                }
+//
+//            }
+//        })
+//    }
 
-        broadcastList.forEach {
-            downloadAMediaItem(it)
-        }
+    ///
+
+
+    private val allowedExt by lazy {
+        setOf(
+            "mp3",
+            "aac",
+            "wav",
+            "wma",
+            "ac3",
+        )
     }
 
-    private fun getConfigExtension(): String? {
-        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp3#aac#wav#wma#ac3")
+    private fun isAllowedExtension(ext: String) =
+        allowedExt.any { it.equals(ext, ignoreCase = true) }
 
+    private fun fileExists(path: String) = File(path).exists()
+
+    suspend fun startDownloadMedia() {
+        downloadAllAndSaveOnce(
+            broadcastList = broadcastList,
+            mediaStoragePath = mediaStoragePath,
+            isAllowedExtension = ::isAllowedExtension,
+            fileExists = ::fileExists,
+            saveItemsToFile = { list -> saveItemsToFile(list) }, // ghi JSON 1 lần
+            parallelism = numberFileDownloadAtOnce // tùy máy/IO
+        )
     }
 
-    fun downloadAMediaItem(it: MediaItem) {
-        //1 - bản tin ký tự
-        //2 - bản tin hình ảnh
-        //3 - bản tin âm thanh
-        //4 - Bản tin video
-        //5 - Bản tin trực tiếp
-        //6 - Bản tin FM
-        //7 - Bản tin ghi âm trực tiếp
-        //không phải files thì không tải, chỉ tải type 3 , type 4
-        if (it.contentType?.value != "4" && it.contentType?.value != "3") return
-
-        //xác định có là file hay không, lấy đuôi file
-        val extMedia = File(it.body).extension
-
-        if (extMedia.isEmpty()) return
-        val isFile = getConfigExtension()!!.contains(extMedia)
-
-        if (!isFile) return
-
-        val url = it.body
-        //if (url.isEmpty() || !url.startsWith("http")) return
-
-        val fileName = getFileNameFromUrl(url!!)
-        if (isFileExisted(mediaStoragePath, fileName)) {
-            //handle broken path
-            if (it.body != "$mediaStoragePath/$fileName") {
-                it.body = "$mediaStoragePath/$fileName"
-                coroutineScope.launch {
-                    saveItemsToFile(broadcastList)
-                }
+    private suspend fun prDownloadOnce(
+        url: String, dirPath: String, fileName: String
+    ): Boolean = suspendCancellableCoroutine { cont ->
+        val request = PRDownloader.download(url, dirPath, fileName).build()
+        Log.e(TAG, "start download $url")
+        // Bắt đầu tải và lấy downloadId để có thể cancel
+        val downloadId = request.start(object : OnDownloadListener {
+            override fun onDownloadComplete() {
+                Log.e(TAG, "download $url success")
+                if (cont.isActive) cont.resume(true)
             }
 
-            return
-        }
-
-        Log.d("download item", url)
-
-        downloadHelper.addToQueue(DownloadItem().apply {
-            itDownloadUrl = url
-            itStoragePath = mediaStoragePath
-            itFileName = fileName
-            priority = 0
-            downloadListener = object : OnDownloadListener {
-                override fun onDownloadComplete() {
-                    it.pathBackup = it.body!!
-                    it.body = "$mediaStoragePath/$fileName"
-
-                    coroutineScope.launch {
-                        saveItemsToFile(broadcastList)
-                    }
-
-                    Log.d("downloadcomplete", it.body!!)
+            override fun onError(error: Error?) {
+                Log.e(TAG, "start download $url fail")
+                // Xoá file hỏng nếu có
+                try {
+                    File(dirPath, fileName).takeIf { it.exists() }?.delete()
+                } catch (_: Throwable) {
                 }
-
-                override fun onError(error: com.downloader.Error?) {
-                    Log.d("downloaderror", it.body!!)
-                }
-
+                if (cont.isActive) cont.resume(false)
             }
         })
+
+        // Cho phép huỷ khi coroutine bị cancel
+        cont.invokeOnCancellation {
+            try {
+                Log.e(TAG, "start download $url cancel")
+                PRDownloader.cancel(downloadId)
+            } catch (_: Throwable) {
+            }
+        }
+    }
+
+    private suspend fun downloadAndTransform(
+        item: MediaItem,
+        mediaStoragePath: String,
+        isAllowedExt: (String) -> Boolean,
+        fileExists: (String) -> Boolean
+    ): MediaItem {
+        val url = item.body ?: return item
+        if (!URLUtil.isNetworkUrl(url)) return item
+
+        val fileName = URLUtil.guessFileName(url, null, null)
+        val localPath = File(mediaStoragePath, fileName).path
+
+        // Lọc extension
+        val ext = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
+        if (ext.isBlank() || !isAllowedExt(ext)) return item
+
+        val originalBody = item.body // giữ URL gốc để set pathBackup
+
+        // Nếu đã tồn tại file -> coi như tải xong
+        if (fileExists(localPath)) {
+            val newItem = item.copy(body = localPath)
+            if (!originalBody.isNullOrBlank()) newItem.pathBackup =
+                originalBody // setter chỉ nhận http
+            return newItem
+        }
+
+        // Tải bằng PRDownloader (suspend)
+        val ok = prDownloadOnce(url, mediaStoragePath, fileName)
+
+        return if (ok) {
+            val newItem = item.copy(body = localPath)
+            if (!originalBody.isNullOrBlank()) newItem.pathBackup = originalBody
+            newItem
+        } else {
+            item // giữ item gốc khi lỗi
+        }
+    }
+
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    suspend fun downloadAllAndSaveOnce(
+        broadcastList: MutableList<MediaItem>,
+        mediaStoragePath: String,
+        isAllowedExtension: (String) -> Boolean,
+        fileExists: (String) -> Boolean,
+        saveItemsToFile: suspend (List<MediaItem>) -> Unit,
+        parallelism: Int = numberFileDownloadAtOnce
+    ) = withContext(Dispatchers.IO) {
+        val indices = broadcastList.indices.filter { broadcastList[it].shouldDownload() }
+
+        if (indices.isEmpty()) return@withContext
+
+        val sem = kotlinx.coroutines.sync.Semaphore(parallelism)
+
+        // Chụp snapshot (index + item) để không đụng list sau này
+        val toProcess: List<Pair<Int, MediaItem>> = indices.map { it to broadcastList[it] }
+
+        // Xử lý song song và trả về (index, updatedItem)
+        val results: List<Pair<Int, MediaItem>> = toProcess.map { (idx, item) ->
+            async {
+                sem.withPermit {
+                    val updated = downloadAndTransform(
+                        item = item,
+                        mediaStoragePath = mediaStoragePath,
+                        isAllowedExt = isAllowedExtension,
+                        fileExists = fileExists
+                    )
+                    idx to updated
+                }
+            }
+        }.awaitAll()
+
+        // Ghi lại tuần tự để tránh race condition
+        try {
+            for ((idx, updated) in results) {
+                broadcastList[idx] = updated
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "downloadAllAndSaveOnce: ${e.message}")
+        }
+
+        // Chỉ save 1 lần sau khi xong hết
+        saveItemsToFile(broadcastList)
+
+    }
+
+    suspend fun checkPlaylistBroken() {
+        checkPlaylist(broadcastList, { list -> saveItemsToFile(list) })
+    }
+
+    suspend fun checkPlaylist(
+        mediaList: MutableList<MediaItem>,
+        saveItemsToFile: suspend (List<MediaItem>) -> Unit,
+    ) {
+        val needDownload = mediaList.filter { item ->
+            (shouldRedownload(item)) && (item.body != "start" && item.body != "end") && (item.shouldDownload())
+        }.toMutableList()
+        Log.d(TAG, "checkPlaylist media broken: ${needDownload.size}")
+        if (needDownload.isNotEmpty()) {
+            downloadAllAndSaveOnce(
+                broadcastList = needDownload,
+                mediaStoragePath = mediaStoragePath,
+                isAllowedExtension = ::isAllowedExtension,
+                fileExists = ::fileExists,
+                saveItemsToFile = saveItemsToFile, // ghi JSON 1 lần
+                parallelism = numberFileDownloadAtOnce // tùy máy/IO
+            )
+        }
+    }
+
+    private fun shouldRedownload(item: MediaItem): Boolean {
+        val body = item.body.orEmpty()
+        val isUrl = URLUtil.isNetworkUrl(body)
+
+        //body là URL -> cần tải file về (trường hợp file local chưa có)
+        if (isUrl) return true
+        //body là local path nhưng file đã mất -> nếu có pathBackup là URL thì tải lại
+        val missingLocal = body.isNotBlank() && !File(body).exists()
+        if (missingLocal) {
+            item.body = item.pathBackup
+            return true
+        }
+
+        return false
+    }
+
+    fun stopDownloadMedia() {
+        try {
+            Log.e(TAG, "Stop all downloads manually")
+            PRDownloader.cancelAll()
+        } catch (e: Exception) {
+            Log.e(TAG, "Error while stopping downloads: ${e.message}")
+        }
     }
 }

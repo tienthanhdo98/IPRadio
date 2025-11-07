@@ -37,7 +37,7 @@ class PlayersManager(
     private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
 
-    private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
@@ -202,7 +202,7 @@ class PlayersManager(
     }
 
 
-    private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
+    private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
         try {
             Log.d(LOGTAG, "currentPlaylist ${currentPlaylist.size}")
             if (currentPlaylist.isEmpty()) return
@@ -214,7 +214,7 @@ class PlayersManager(
         }
     }
 
-    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = -1) {
+    private fun playMedia(mediaItem: MediaItem, timeStamp: Int = 0) {
         try {
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
@@ -231,12 +231,14 @@ class PlayersManager(
                         currentPlayer = vlcPlayer
                     }
                 }
+
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem, true, timeStamp)
                 }
+
                 MediaType.FM -> {
                     var currentTimeStamp = 0
-                    if (timeStamp != -1) currentTimeStamp = timeStamp
+                    if (timeStamp >= 0) currentTimeStamp = timeStamp
                     mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
                     if (playMode != PLAY_MODE_FORCE) {
@@ -252,6 +254,7 @@ class PlayersManager(
                         )
                     }
                 }
+
                 else -> {
                     Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
