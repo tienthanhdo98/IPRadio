@@ -25,7 +25,8 @@ import java.util.*
 //Mainly for playing m3u8 stream
 class ExoMediaPlayer(
     appContext: Context,
-    private val eventListener: IPlayerEventListener) : IMediaPlayer {
+    private val eventListener: IPlayerEventListener
+) : IMediaPlayer {
 
     private val TAG = "ExoMediaPlayer"
 
@@ -58,16 +59,14 @@ class ExoMediaPlayer(
 
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
-            if(state == Player.STATE_ENDED)
-            {
+            if (state == Player.STATE_ENDED) {
                 Log.i(TAG, "onPlaybackStateChanged: end reach")
             }
             if (state == Player.STATE_BUFFERING) {
                 Log.i(TAG, "onPlaybackStateChanged: Buff")
             }
 
-            if(state == Player.STATE_READY)
-            {
+            if (state == Player.STATE_READY) {
                 Log.i(TAG, "onPlaybackStateChanged: play")
             }
         }
@@ -91,10 +90,8 @@ class ExoMediaPlayer(
                         Log.d(TAG, "Stopping from reconnect")
                         stop()
                     }
-                }
-                else{
-                    if(isStreamInTimeFrame)
-                    {
+                } else {
+                    if (isStreamInTimeFrame) {
                         val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
                         playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
                     }
@@ -122,24 +119,27 @@ class ExoMediaPlayer(
 
     }
 
-    override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
-        if(isPlaying) stop()
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        if (isPlaying) stop()
         try {
-            if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-                if (isInRangeTimePlay()) {
-                    currentPlayingMedia = mediaItem
-                    isForceValue = isForce
-                    Log.e(TAG, "Exoplayer is force $isForceValue")
-                    playHlsExo(mediaItem, timeStamp)
-                }
-            }
-        }
-        catch (e :Exception)
-        {
+//            if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
+//                if (isInRangeTimePlay()) {
+//                    currentPlayingMedia = mediaItem
+//                    isForceValue = isForce
+//                    Log.e(TAG, "Exoplayer is force $isForceValue")
+//                    playHlsExo(mediaItem, timeStamp)
+//                }
+//            }
+            currentPlayingMedia = mediaItem
+            isForceValue = isForce
+            Log.e(TAG, "Exoplayer is force $isForceValue")
+            playHlsExo(mediaItem, timeStamp)
+        } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
         }
     }
+
     private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
@@ -162,13 +162,6 @@ class ExoMediaPlayer(
                 (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
             )
         }
-    }
-
-    override fun reset() {
-//        lifecycleScope.launch(Dispatchers.Main)
-//                    {
-//                        onPlayForce(responseHub)
-//                    }
     }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {

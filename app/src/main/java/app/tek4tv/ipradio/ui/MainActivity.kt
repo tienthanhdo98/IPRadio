@@ -215,10 +215,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-        //viewModel.grantPermissionThoughAdb(baseContext)
+        viewModel.grantPermissionThoughAdb(baseContext)
         Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        if (needGrantPermission()) requestPermissions(permissions, PERMISSION_REQUEST_CODE)
+        //if (needGrantPermission()) requestPermissions(permissions, PERMISSION_REQUEST_CODE)
+
+
+        if (ConfigUtil.isFirstRun(baseContext)) {
+            ConfigUtil.clearAppPreferences(baseContext)
+        }
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart: Int) {
@@ -322,7 +327,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             }
         }
         checkDeleteFileUpdate()
-//        playerManager.resume()
         //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
     }
 
@@ -518,29 +522,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     Log.e("alarmx", "Hub restart")
                     serialPortController.hardRestart()
                 }
-            }
-
-            MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
-//                var found = false
-//                val scheduledList = viewModel.mediaRepo.scheduledList
-//                val now = Calendar.getInstance().timeInMillis
-//                for (i in scheduledList.keys.indices) {
-//                    val period = scheduledList.keys.elementAt(i)
-//                    val t = period.split("-")
-//                    val start = toCalendar(t[0]).timeInMillis - (minuteToTurnOnPA)*60*1000
-//                    val end = toCalendar(t[1]).timeInMillis
-//
-//                    if (now in start..end) {
-//                        found = true
-//                        break
-//                    }
-//                }
-//
-//                if (found) {
-//                    Log.i("alarm", "Turn on Pa")
-//                    serialPortController.turnOnPAVod()
-//                }
-
             }
 
         }
@@ -903,19 +884,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     serialPortController.updateStatus()
                 }
 
-                HubCommand.GET_LOCATION -> {
-//                    val connectionId = responseHub.message
-//                    if (locationTracker.mlocation != null && connectionId != null) {
-//
-//                        val result =
-//                            "${locationTracker.mlocation!!.latitude},${locationTracker.mlocation!!.longitude}"
-//
-//                        hubManager.sendHubDirectMessage(
-//                            connectionId, Utils.DEVICE_LOCATION, result
-//                        )
-//                    } else Log.d("location", "location not found")
-                }
-
                 HubCommand.RESTART -> {
                     serialPortController.hardRestart()
                 }
@@ -1041,7 +1009,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     hubManager.sendHubDirectMessage(
                         connectionId, Utils.GET_RECORD, recordedAudioList
                     )
-
                 }
 
                 HubCommand.UPLOAD_RECORDED -> {
@@ -1056,9 +1023,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     if (itemDelete != "" && itemDelete != null) {
                         deleteAFileInFolder(recordPath, itemDelete)
                     } else {
-
                         appStorageManager.deleteAllRecord()
-
                     }
                 }
 
@@ -1130,7 +1095,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private fun setMaxVolume() {
         try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val audio = getSystemService(AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
         } catch (e: Exception) {

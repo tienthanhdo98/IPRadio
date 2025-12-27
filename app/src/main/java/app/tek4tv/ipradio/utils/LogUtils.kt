@@ -44,7 +44,7 @@ class LogUtils private constructor() {
      private val deviceStatusDb : DatabaseReference
      private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
-
+    
 
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
@@ -164,10 +164,7 @@ class LogUtils private constructor() {
         coroutineScope.launch {
             try {
                 val a = logService?.postMediaInfoStart(reportObj)
-                Log.d(
-                    LOG_TAG,
-                    "Log media start ${a?.body()}"
-                )
+                Log.d("logMediaStart", "logMediaStart: ${a}")
             } catch (e: Exception) {
                 Log.d(LOG_TAG, "Error send log media ${e.message}")
                 e.printStackTrace()

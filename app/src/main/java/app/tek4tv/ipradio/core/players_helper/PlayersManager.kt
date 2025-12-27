@@ -180,24 +180,6 @@ class PlayersManager(
     }
 
     fun resume() {
-//        val now = Calendar.getInstance().timeInMillis
-//        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
-//        val timeEnd = currentPauseTimePlayer + mediaDuration
-//        Log.d("CONTROL_MEDIA", "resume: now $now")
-//        Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
-//        if (now < timeEnd) {
-//            Log.d("CONTROL_MEDIA", "resume: $timeEnd")
-//            if (currentPlayer == vlcPlayer) {
-//                vlcPlayer.resume()
-//            } else {
-//                exoPlayer.resume()
-//            }
-//        } else {
-//            if (currentPauseTimePlayer != 0L) {
-//                Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
-//                startFirstTimeFrame()
-//            }
-//        }
         vlcPlayer.resume()
     }
 

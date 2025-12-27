@@ -130,7 +130,7 @@ class NetworkUtils private constructor() {
             val info = cm.activeNetworkInfo
             if (info == null || !info.isConnected) return "---" // not connected
             if (info.type == ConnectivityManager.TYPE_WIFI) return "WIFI"
-            if (info.type == ConnectivityManager.TYPE_ETHERNET) return "ENET"
+            if (info.type == ConnectivityManager.TYPE_ETHERNET) return "ETHERNET"
             if (info.type == ConnectivityManager.TYPE_MOBILE) {
                 return when (info.subtype) {
                     TelephonyManager.NETWORK_TYPE_GPRS, TelephonyManager.NETWORK_TYPE_EDGE, TelephonyManager.NETWORK_TYPE_CDMA, TelephonyManager.NETWORK_TYPE_1xRTT, TelephonyManager.NETWORK_TYPE_IDEN, TelephonyManager.NETWORK_TYPE_GSM -> "2G"
@@ -250,9 +250,9 @@ class NetworkUtils private constructor() {
             }
         }
 
-        fun setWifiEnable(appContext: Context, enable : Boolean)
-        {
-            val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        fun setWifiEnable(appContext: Context, enable: Boolean) {
+            val wifiManager =
+                appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             wifiManager.isWifiEnabled = enable
         }
     }

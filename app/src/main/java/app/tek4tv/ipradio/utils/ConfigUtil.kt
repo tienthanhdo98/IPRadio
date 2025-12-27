@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
 
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
@@ -36,9 +37,9 @@ object ConfigUtil {
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putString(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putString(key, value)
+        }
     }
 
 //    fun putStringEncrypt(context: Context, key: String?, value: String?) {
@@ -122,5 +123,24 @@ object ConfigUtil {
     fun removeSharef(context: Context, key: String) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         sharedPref.edit().remove(key).apply()
+    }
+
+    fun isFirstRun(context: Context): Boolean {
+        val prefs = context.getSharedPreferences("app_prefs", Context.MODE_PRIVATE)
+        val isFirstRun = prefs.getBoolean("is_first_run", true)
+
+        if (isFirstRun) {
+            // Đánh dấu đã chạy rồi
+            prefs.edit { putBoolean("is_first_run", false) }
+            return true
+        }
+        return false
+    }
+
+    fun clearAppPreferences(context: Context) {
+        context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+            .edit {
+                clear()
+            }
     }
 }

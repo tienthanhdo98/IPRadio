@@ -6,24 +6,25 @@ import retrofit2.http.Body
 import retrofit2.http.POST
 
 interface LogService {
-    //hai phong va cac ban cu hon
+//    //hai phong va cac ban cu hon
 //    @POST("https://datawarehouse-truyenthanh.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id//
 //
-//    // @POST("https://hub-data.tek4tv.vn/IpRadioDataLog/device/log")
+//    //
+////    // @POST("https://hub-data.tek4tv.vn/IpRadioDataLog/device/log")
 //    @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog/device/log")
 //    suspend fun postDeviceLog(@Body dataLogModel: DataLogModel): Response<Any>
 
 
-    //dung cho thai nguyen, can tho,hanam
+    //dung cho thai nguyen, can tho
 //    @POST("https://hub-data.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
-    //binhd dinh, bac giang,binh duong,long an,dong nai,gia lai, tiengiang,phu tho
+    //binhd dinh, bac giang,binh duong,long an,dong nai,gia lai, tiengiang,phu tho (ban can tho 65.4.2.1d)
     @POST("https://provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
     suspend fun postMediaInfoStart(@Body record: MediaRecord): Response<Any>//doi media id
 
-    //quang ngai,hanam v2
+    //quang ngai,hanam, ninh binh v2, nghe an
 //    @POST("https://v2-provider-data-warehouse.tek4tv.vn/IpRadioDataLog")
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord): Response<Any>//doi media id
 

@@ -11,6 +11,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.isInRangeTimePlay
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
@@ -104,15 +105,12 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
-
             playFile(mediaItem, timeStamp)
-
+//            if (isInRangeTimePlay()) {
+//                playFile(mediaItem, timeStamp)
+//            }
         }
         currentMedia = mediaItem
-
-    }
-
-    override fun reset() {
 
     }
 
@@ -208,7 +206,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
         Log.e(TAG, "${now <= liveEndTime}")
         Log.e(TAG, "${stream.state != IMedia.State.Playing}")
-
 
         return check
     }

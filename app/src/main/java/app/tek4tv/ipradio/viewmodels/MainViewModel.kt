@@ -57,7 +57,6 @@ class MainViewModel @Inject constructor(
         checkPlaylistJob = viewModelScope.launch(Dispatchers.IO) {
             while (isActive) {
                 delay(60 * 60_000L) // 60 phút mới kiểm tra lại
-                //delay(10_000L) // 60 phút mới kiểm tra lại
                 clearDatastore(appStorageManager)
                 Log.d("MediaRepo", "Checking media...")
                 mediaRepo.checkPlaylistBroken()
@@ -157,6 +156,13 @@ class MainViewModel @Inject constructor(
             Log.d("PermissionCheck", "READ_PHONE_STATE already granted.")
         }
 
+        if (!isPermissionGranted(context, Manifest.permission.RECORD_AUDIO)) {
+            Log.d("PermissionCheck", "Granting RECORD_AUDIO...")
+            execSu("pm grant $packageName android.permission.RECORD_AUDIO")
+        } else {
+            Log.d("PermissionCheck", "RECORD_AUDIO already granted.")
+        }
+
         if (!isPermissionGranted(context, Manifest.permission.CHANGE_WIFI_STATE)) {
             Log.d("PermissionCheck", "Granting READ_PHONE_STATE...")
             execSu("pm grant $packageName android.permission.CHANGE_WIFI_STATE")
@@ -167,6 +173,7 @@ class MainViewModel @Inject constructor(
         if (!isPermissionGranted(context, Manifest.permission.ACCESS_COARSE_LOCATION)) {
             Log.d("PermissionCheck", "Granting ACCESS_COARSE_LOCATION...")
             execSu("pm grant $packageName android.permission.ACCESS_COARSE_LOCATION")
+            //execSu("appops set $packageName android.permission.ACCESS_COARSE_LOCATION allow")
         } else {
             Log.d("PermissionCheck", "ACCESS_COARSE_LOCATION already granted.")
         }
@@ -174,10 +181,12 @@ class MainViewModel @Inject constructor(
         if (!isPermissionGranted(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
             Log.d("PermissionCheck", "Granting ACCESS_FINE_LOCATION...")
             execSu("pm grant $packageName android.permission.ACCESS_FINE_LOCATION")
+            //execSu("appops set $packageName android.permission.ACCESS_FINE_LOCATION allow")
         } else {
             Log.d("PermissionCheck", "ACCESS_FINE_LOCATION already granted.")
         }
 
     }
+
 
 }

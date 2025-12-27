@@ -40,6 +40,8 @@ class HubManager(
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) {
     private val LOG_TAG = "HubManager"
+
+    //10p
     val CONNECT_COUNTER_LIMIT = 20
     private val PING_DATA_INTERVAL = 30000L
     private val PING_HUB_INTERVAL = 30000L
@@ -74,7 +76,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v63.4.2.1d"
+    var versionName = "v62.4.2.1e"
 
     private var registerOnMessageListener = false
 
@@ -85,6 +87,7 @@ class HubManager(
     private var firstConnect = true
 
     private var privateKeyStr: String
+
 
     private var serverTimeout = 0
     private var keepAliveInterval = 0
@@ -102,7 +105,7 @@ class HubManager(
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-tiengiang.tek4tv.vn/hubServer"
+            "https://hubip-longan.tek4tv.vn/hubServer"
         )!!
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(MyApp.instance!!.packageName)
