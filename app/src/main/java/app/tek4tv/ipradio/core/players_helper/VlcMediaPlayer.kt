@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -15,6 +16,7 @@ import app.tek4tv.ipradio.utils.isInRangeTimePlay
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import java.util.*
 
@@ -47,6 +49,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
                     playerEventListener.onMediaForceEndReached(currentMedia)
                 }
             }
+
             MediaPlayer.Event.EncounteredError -> {
                 Log.e(TAG, "EncounteredError ${currentMedia?.title}")
                 if (currentMedia?.getMediaType() == MediaType.FILE) {
@@ -92,18 +95,8 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
 
-    override fun playMedia(mediaItem: MediaItem, isForce: Boolean,timeStamp: Int) {
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
         if (isPlaying) stop()
-//        if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-//            if (isForce) {
-//                playLiveStream(mediaItem, timeStamp)
-//            } else {
-//                if (isInRangeTimePlay()) {
-//                    playFile(mediaItem, timeStamp)
-//                }
-//            }
-//            currentMedia = mediaItem
-//        }
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
@@ -115,7 +108,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun reset() {
-
     }
 
     override fun pause() {
@@ -124,34 +116,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     override fun resume() {
         vlcPlayer.play()
-
-//        val stream = Media(
-//            mLibVLC,
-//            Uri.parse("http://14.224.130.186:8000/binhdinh")
-//        )
-//        stream.addOption(":rtsp-tcp")
-//        stream.addOption(":network-caching=20")
-//
-//        stream.addOption(":run-time=600")
-//        currentVlcMedia = stream
-//
-//        vlcPlayer.play(stream)
-//        val handler = Handler(Looper.getMainLooper())
-//        handler.postDelayed(
-//            {
-//                vlcPlayer.stop()
-//                playerEventListener.onMediaEndReached(currentMedia)
-//            },
-//            60000
-//        )
-//        val stream = Media(
-//            mLibVLC,
-//            Uri.parse("http://14.224.130.186:8000/binhdinh")
-//        )
-//
-//        currentVlcMedia = stream
-//
-//        vlcPlayer.play(stream)
     }
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
@@ -165,15 +129,14 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
     }
 
-    private fun playLiveStream(mediaItem: MediaItem,timeStamp: Int) {
+    private fun playLiveStream(mediaItem: MediaItem, timeStamp: Int) {
         Log.e(TAG, "vlc play live : time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${getDurationInSecond(mediaItem.duration!!)}")
         val stream = mediaItem.getVlcMedia(mLibVLC)
-//        stream.addOption(":rtsp-tcp")
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
-        if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()) )
+        if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()))
             stream.addOption(":start-time=$timeStamp")
         vlcPlayer.play(stream)
         Log.e(LOGTAG, "Player vlc live start")

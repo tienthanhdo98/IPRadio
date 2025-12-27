@@ -24,25 +24,7 @@ class MainViewModel @Inject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia : MediaItem? = null
-
-//    fun getPlayerContent(listUrl: String, needUpdate: Boolean)
-//    {
-//        viewModelScope.launch {
-//            getContentJob?.join()
-//
-//            //cancel media check here
-//            mediaWatchdog.cancelCheck()
-//
-//            getContentJob = launch {
-//                val mediaList = mediaRepo.getScenario(needUpdate, listUrl)
-//
-//                content.value = Pair(mediaList, listOf())
-//
-//                getContentJob = null
-//            }
-//        }
-//    }
+    var currentMedia: MediaItem? = null
 
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()
@@ -52,31 +34,23 @@ class MainViewModel @Inject constructor(
         mediaRepo.startDownloadMedia()
     }
 
-//    fun updateMonthlyScenario(url : String)
-//    {
-//        viewModelScope.launch {
-//            mediaRepo.updateMonthlyScenario(url)
-//            getPlayerContent("", false)
-//        }
-//    }
-
-    fun rescheduleMonthlyPlaylist()
-    {
-        val jsonMonthlyListData = ConfigUtil.getString(appContext,
-            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
+    fun rescheduleMonthlyPlaylist() {
+        val jsonMonthlyListData = ConfigUtil.getString(
+            appContext,
+            ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, ""
+        ) ?: ""
         updateMonthlyScenarioWss(jsonMonthlyListData)
     }
 
 
-    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String)
-    {
+    fun updateMonthlyScenarioWss(strJsonMonthSchedule: String) {
         viewModelScope.launch {
             mediaRepo.updateMonthlyScenarioWss(strJsonMonthSchedule)
             getPlayerContentWss()
         }
     }
-    fun getPlayerContentWss()
-    {
+
+    fun getPlayerContentWss() {
         viewModelScope.launch {
             getContentJob?.join()
 

@@ -34,7 +34,8 @@ class GlobalProperties {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Demo") ?: "TB Demo"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Thiết bị Demo - TEK4TV")
+            ?: "Thiết bị Demo - TEK4TV"
         //nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã Ba Cung") ?: "TB Xã Ba Cung"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)

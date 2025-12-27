@@ -2,12 +2,16 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
+import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -59,7 +63,7 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.N)
-class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
+class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -112,8 +116,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
     private var user_name_stream = ""
     private var password_stream = ""
 
-    //    var minuteToTurnOnPA = 0
-
     lateinit var micStreamRtsp: RtspOnlyAudioTek
 
 
@@ -124,13 +126,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.currentMediaItem = null
-            //dung cho ban nam dinh(encoder)
-//            Handler(Looper.getMainLooper()).postDelayed({
-//                Log.d("loghub", "onTimeOver: come - turn of pa at second time")
-//                serialPortController.turnOffPA()
-//                Log.d("turnPA", "onTimeOver: come - turn of pa at second time")
-//            }, 10000)
         }
+
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaItem) {
             try {
@@ -190,7 +187,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                 hubManager.sendLogMediaSuccess(mediaItem, paState)
 
                 viewModel.currentMedia = mediaItem
-                if(!hubManager.isConnectSuccess) {
+                if (!hubManager.isConnectSuccess) {
                     lifecycleScope.launch {
                         val tacGia = TacGia(
                             tenDayDu = mediaItem.author?.fullName ?: "",
@@ -199,8 +196,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                         )
                         val mediaLog = MediaLogModel(
                             amLuong = Utils.getDeviceInfo(
-                                StringValue.deviceInfoVolume,
-                                SerialPortController.deviceInfo
+                                StringValue.deviceInfoVolume, SerialPortController.deviceInfo
                             ),
                             thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                             congSuat = paState,
@@ -228,7 +224,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -242,9 +238,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                         serialPortController.hardRestart()
                     }
                     ConfigUtil.putInt(
-                        baseContext,
-                        ConfigUtil.CountForHardReset,
-                        countHardRestart + 1
+                        baseContext, ConfigUtil.CountForHardReset, countHardRestart + 1
                     )
                     Log.d("turnPA", "force reset")
                     delay(3000)
@@ -271,8 +265,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService,baseContext,
-            CoroutineScope(Dispatchers.Main)
+        hubManager = HubManager(
+            authService, baseContext, CoroutineScope(Dispatchers.Main)
         ) { command, message ->
             handleFromCommandServer(command, message)
         }
@@ -290,8 +284,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
-            applicationContext,
-            viewModel.mediaRepo
+            applicationContext, viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
 
@@ -312,10 +305,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
         initEncoder()
 
+
     }
 
-    private fun initEncoder()
-    {
+    private fun initEncoder() {
         if (isEncoder) {
             micStreamRtsp = RtspOnlyAudioTek(this)
             getSteamInfo()
@@ -348,34 +341,22 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getString(
-            this,
-            ConfigUtil.URL_STREAM,
-            ""
+            this, ConfigUtil.URL_STREAM, ""
         )!!
         user_name_stream = ConfigUtil.getString(
-            this,
-            ConfigUtil.USER_NAME_STREAM,
-            ""
+            this, ConfigUtil.USER_NAME_STREAM, ""
         )!!
         password_stream = ConfigUtil.getString(
-            this,
-            ConfigUtil.PASSWORD_STREAM,
-            ""
+            this, ConfigUtil.PASSWORD_STREAM, ""
         )!!
         protocol_stream = ConfigUtil.getString(
-            this,
-            ConfigUtil.PROTOCOL_STREAM,
-            "TCP"
+            this, ConfigUtil.PROTOCOL_STREAM, "TCP"
         )!!
         bitrate_stream = ConfigUtil.getString(
-            this,
-            ConfigUtil.BITRATE_STREAM,
-            "65536"
+            this, ConfigUtil.BITRATE_STREAM, "65536"
         )!!
         samplerate = ConfigUtil.getString(
-            this,
-            ConfigUtil.SAMPLERATE_STREAM,
-            "44100"
+            this, ConfigUtil.SAMPLERATE_STREAM, "44100"
         )!!
     }
 
@@ -404,11 +385,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             micStreamRtsp.setProtocol(Protocol.UDP)
         }
         if (micStreamRtsp.prepareAudio(
-                bitrate_stream.toInt(),
-                samplerate.toInt(),
-                true,
-                true,
-                true
+                bitrate_stream.toInt(), samplerate.toInt(), true, true, true
             )
         ) {
             micStreamRtsp.startStream(urlStream)
@@ -435,13 +412,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         lifecycleScope.launch {
             while (true) {
                 strTimeFrame.clear()
-                val imei = Utils.getDeviceId(baseContext)
-                val timeUpdate =
-                    ConfigUtil.getString(
-                        baseContext,
-                        ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO,
-                        "0"
-                    )!!
+                //val imei = Utils.getDeviceId(baseContext)
+                val imei = "54:78:C9:A9:C5:97"
+                val timeUpdate = ConfigUtil.getString(
+                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
+                )!!
                 var deviceInfo = ""
                 if (hubManager.isMQTT && hubManager.mqttClient?.clientID?.isNotEmpty() == true) {
                     deviceInfo =
@@ -469,14 +444,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                         deviceInfo = deviceInfo
                     )
                 } else {
-                    logDeviceData =
-                        DataValueModel(
-                            idPlaylist = idPlaylist,
-                            updateTime = timeUpdate,
-                            currentDeviceTime = getCurrentTime(),
-                            timeFrame = strTimeFrame,
-                            deviceInfo = deviceInfo
-                        )
+                    logDeviceData = DataValueModel(
+                        idPlaylist = idPlaylist,
+                        updateTime = timeUpdate,
+                        currentDeviceTime = getCurrentTime(),
+                        timeFrame = strTimeFrame,
+                        deviceInfo = deviceInfo
+                    )
                 }
                 logUtils.logDataHub(imei, logDeviceData)
                 delay(300000)
@@ -484,11 +458,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             }
         }
     }
-
-
+    
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-        val imei = Utils.getDeviceId(this)
+        //val imei = Utils.getDeviceId(this)
+        val imei = "54:78:C9:A9:C5:97"
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
     }
 
@@ -548,39 +522,17 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                 }
             }
 
-            MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
-//                var found = false
-//                val scheduledList = viewModel.mediaRepo.scheduledList
-//                val now = Calendar.getInstance().timeInMillis
-//                for (i in scheduledList.keys.indices) {
-//                    val period = scheduledList.keys.elementAt(i)
-//                    val t = period.split("-")
-//                    val start = toCalendar(t[0]).timeInMillis - (minuteToTurnOnPA)*60*1000
-//                    val end = toCalendar(t[1]).timeInMillis
-//
-//                    if (now in start..end) {
-//                        found = true
-//                        break
-//                    }
-//                }
-//
-//                if (found) {
-//                    Log.i("alarm", "Turn on Pa")
-//                    serialPortController.turnOnPAVod()
-//                }
-
-            }
 
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -616,8 +568,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
         /**
          * khi cần
          * **/
-        viewModel.content.observe(this)
-        {
+        viewModel.content.observe(this) {
             Log.d("checkcheck", "registerObservers content")
             cancelAllAlarm()
             viewModel.downloadMedias()
@@ -627,8 +578,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
                 mediaScheduler.scheduleForceMediaAlarm()
                 val forceMedia = ForceMedia.getLocalForceMedia(applicationContext)
-                if (forceMedia != null)
-                    playerManager.playForceMedia(applicationContext, forceMedia, mediaScheduler)
+                if (forceMedia != null) playerManager.playForceMedia(
+                    applicationContext,
+                    forceMedia,
+                    mediaScheduler
+                )
                 return@observe
             }
             //default
@@ -644,8 +598,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
     }
 
     fun startPlayingMedia() {
-        Log.d("checkcheck", "startPlayingMedia: ")
-//        viewModel.getPlayerContent("", false)
         viewModel.getPlayerContentWss()
     }
 
@@ -668,9 +620,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             when (command) {
                 HubCommand.UPDATE_MONTHLY_WSS -> {
                     clearDatastore()
-//                    CoroutineScope(Dispatchers.Main).launch {
-//                        playerManager.stopAllPlayer()
-//                    }
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
@@ -737,6 +686,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                                     }
 
                                 }
+
                                 2 -> {
 
                                     playerManager.pausePlayer()
@@ -764,28 +714,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                         }
                     }
 
-                }
-
-                HubCommand.PLAYLIST_INFO -> {
-                    lifecycleScope.launch(Dispatchers.IO) {
-                        try {
-                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
-                            val dataFromPlaylist: String = readFile(path)
-                            Log.d("readplaylist", "value2 $dataFromPlaylist ")
-                            val connectionId = responseHub.message
-                            Log.d("PLAYLIST_INFO", "Connectid $connectionId ")
-                            if (connectionId != null) {
-//                                hubManager.sendHubDirectMessage(
-//                                    connectionId,
-//                                    HubCommand.PLAYLIST_INFO,
-//                                    dataFromPlaylist
-//                                )
-                            }
-                        } catch (e: IOException) {
-                            Log.e("readplaylist", "error reading playlist!!!")
-                        }
-                    }
-                    sendLogDataHub(true)
                 }
 
                 HubCommand.FM -> {
@@ -846,37 +774,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                         val info = appStorageManager.run {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
-
-//                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
                     }
                 }
 
-                HubCommand.GET_MEDIA_PATH -> {
-              //      val connectionId = responseHub.message
-//                    if (connectionId != null) {
-//                        Log.d("connectionId", connectionId)
-//                        val mediaList = Utils.toJsonList(moshi, appStorageManager.getAllMediaPath())
-//                        hubManager.sendHubDirectMessage(
-//                            connectionId, Utils.GET_MEDIA_PATH, mediaList
-//                        )
-//                    }
-                }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
                     appStorageManager.deleteAllMedia()
                 }
 
                 HubCommand.RECORD -> {
-                    //mess chua user control
-//                    val shouldStart = responseHub.start!! == "1"
-//
-//                    if (shouldStart) {
-//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-//
-//                        mediaCapture.startCaptureAudio()
-//                    } else {
-//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-//                    }
                     val duration = responseHub.message
                     val shouldStart = responseHub.start!! == "1"
 
@@ -893,17 +799,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                             Log.i("kakaka", "stop record.... ")
                         }
                     }, duration!!.toLong() * 60 * 1000)
-                }
-
-                HubCommand.GET_RECORD -> {
-//                    val connectionId = responseHub.message!!
-//                    val recordedAudioList =
-//                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
-//                    hubManager.sendHubDirectMessage(
-//                        connectionId, Utils.GET_RECORD,
-//                        recordedAudioList
-//                    )
-
                 }
 
                 HubCommand.UPLOAD_RECORDED -> {
@@ -942,18 +837,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
                     NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                 }
 
-                HubCommand.GET_ENCRYPTED_STORAGE_INFO -> {
-//                    val connectionId = responseHub.message
-//                    if (connectionId != null) {
-//                        val info = appStorageManager.run {
-//                            "${getTotalRomStorage()},${getUsedRomStorage()}"
-//                        }
-//
-//                        hubManager.sendEncryptedMessage(
-//                            connectionId, Utils.ENCRYPTED_STORAGE_INFO, info
-//                        )
-//                    }
-                }
 
                 HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
@@ -971,9 +854,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
             }
 
-//            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS ) {
-//                logUtils.logHubCommand(command, responseHub.message ?: "")
-//            }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
@@ -990,19 +870,16 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
     }
 
     private fun setMaxVolume() {
-//        try {
-//            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
-//            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-//            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-//        } catch (e: Exception) {
-//            Log.e("Main", "Error setting max volume")
-//        }
+        try {
+            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+        } catch (e: Exception) {
+            Log.e("Main", "Error setting max volume")
+        }
     }
 
     private fun clearDatastore() {
-        //limit free data 1 gb
-//        val limit = 1000000000
-        //limit free data 500 mb
         val limit = 524288000
         val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
@@ -1016,8 +893,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
 
     companion object {
         var alarmListener: AlarmListener? = null
-
-        //using for config app ip or ipencoder
         var isEncoder = false
         var urlStream = ""
         var protocol_stream = ""
@@ -1032,7 +907,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener,IHubObserve {
             else PAStatusOn
         lifecycleScope.launch {
             val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            listMediaLog.forEach{
+            listMediaLog.forEach {
                 hubManager.sendUnsentLogMediaSuccess(it, paState)
                 mediaLogDao.deleteMediaItemById(it.id)
             }

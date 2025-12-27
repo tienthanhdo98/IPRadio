@@ -2,8 +2,6 @@ package app.tek4tv.ipradio.model
 
 import android.net.Uri
 import android.util.Log
-import androidx.room.Entity
-import androidx.room.PrimaryKey
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 import org.videolan.libvlc.LibVLC
@@ -117,14 +115,6 @@ data class MediaItem(
         }
     }
 
-//    fun getMediaType(): MediaType {
-//        if(contentType?.value == "4" || contentType?.value == "3" && type == "VOD") return  MediaType.FILE
-//        if(contentType?.value == "5" || type == "LIVE") return  MediaType.LIVE
-//        if(contentType?.value == "6" || type == "FM") return  MediaType.FM
-//        return if(type == "AM") MediaType.AM
-//        else MediaType.UNKNOWN
-//    }
-
     fun getVlcMedia(mLibVLC: LibVLC): Media {
         if (getMediaType() == MediaType.LIVE) {
             return Media(mLibVLC, Uri.parse(body))
@@ -176,6 +166,7 @@ data class Category(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class ContentType(
     @Json(name = "Id")
     val id: Long? = null,
@@ -183,6 +174,7 @@ data class ContentType(
     @Json(name = "Value")
     val value: String? = null
 )
+
 data class Priority(
     @Json(name = "Id")
     val id: Long? = null,

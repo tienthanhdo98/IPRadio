@@ -12,7 +12,7 @@ import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
@@ -25,7 +25,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_CHECKHUB_RESET
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestResetAndRescheduleAlarms, intent, FLAG_IMMUTABLE)
+            PendingIntent.getBroadcast(
+                appContext,
+                requestResetAndRescheduleAlarms,
+                intent,
+                FLAG_IMMUTABLE
+            )
 
         val cal_alarm = Calendar.getInstance()
 
@@ -171,9 +176,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(mediaEndTimeInMillis + 1000, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
-        Log.d("alarmx", "set force ${mediaEndTimeInMillis+1000}")
+        Log.d("alarmx", "set force ${mediaEndTimeInMillis + 1000}")
     }
-    fun turnOnPAAlarms(mediaRepo : MediaRepo,alarmValue : Int) {
+
+    fun turnOnPAAlarms(mediaRepo: MediaRepo, alarmValue: Int) {
 
         Log.i("alarm", "turnOnPAAlarms: start")
         val scheduledList = mediaRepo.scheduledList
@@ -183,7 +189,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
-            val start = toCalendar(t[0]).timeInMillis - (alarmValue*60*1000)
+            val start = toCalendar(t[0]).timeInMillis - (alarmValue * 60 * 1000)
 
             val alarmIntent =
                 PendingIntent.getBroadcast(appContext, i, intent, FLAG_IMMUTABLE)
@@ -222,8 +228,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         if (ForceMedia.hasValidForceMedia(appContext)) {
             Log.d("alarmx", "Cancel cancelForceMediaAlarm")
             cancelForceMediaAlarm()
-        }
-        else {
+        } else {
             Log.d("alarmx", "Cancel cancelAllScheduledListAlarm")
             cancelAllScheduledListAlarm()
         }

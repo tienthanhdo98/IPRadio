@@ -69,9 +69,9 @@ class PlayersManager(
     var handlerFMPlayer: Handler? = null
 
     override fun onPlayerError(e: Exception?, mediaItem: MediaItem) {
-            //To log stream played duration
-            onMediaStopPlaying()
-            playerManagerListener?.onLiveError(mediaItem)
+        //To log stream played duration
+        onMediaStopPlaying()
+        playerManagerListener?.onLiveError(mediaItem)
 
     }
 
@@ -222,9 +222,11 @@ class PlayersManager(
                         currentPlayer = vlcPlayer
                     }
                 }
+
                 MediaType.LIVE -> {
                     playLiveStream(mediaItem, true, timeStamp)
                 }
+
                 MediaType.FM -> {
                     var currentTimeStamp = 0
                     if (timeStamp != -1) currentTimeStamp = timeStamp
@@ -243,6 +245,7 @@ class PlayersManager(
                         )
                     }
                 }
+
                 else -> {
                     Log.e(LOGTAG, "Player not in live and file")
                     playNextMedia()
@@ -255,14 +258,14 @@ class PlayersManager(
         }
     }
 
-    private fun playLiveStream(mediaItem: MediaItem,isForce : Boolean,timeStamp: Int ) {
-        val resumeLiveTime = if(isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+    private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
             exoPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
             exoPlayer
         } else {
-            vlcPlayer.playMedia(mediaItem,isForce, resumeLiveTime)
+            vlcPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
             vlcPlayer
         }
     }
@@ -341,11 +344,11 @@ class PlayersManager(
         checkTimeOver()
     }
 
-    private fun stopTimeFrame()
-    {
+    private fun stopTimeFrame() {
         playerManagerListener?.onTimeOver()
         Log.d("turnPA", "onTimeOver: stop time frame")
     }
+
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
 
@@ -359,7 +362,7 @@ class PlayersManager(
      * Nhận lệnh phát khẩn cấp từ hub, chuyen json "name" sang media va convert sang force media, tính thời điểm bắt đầu và kết thúc của force media
      * **/
 
-    fun  onPlayForceCommand(
+    fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
         mediaScheduler: MediaScheduler
@@ -441,6 +444,14 @@ class PlayersManager(
 
     fun resetPlayMode() {
         playMode = PLAY_MODE_INIT//"0"
+    }
+
+    fun testPlayer() {
+        vlcPlayer.reset()
+    }
+
+    fun testExoPlayer() {
+        exoPlayer.reset()
     }
 
     companion object {

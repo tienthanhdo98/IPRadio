@@ -13,13 +13,16 @@ import retrofit2.http.Url
 
 interface AuthService {
     @POST
-    //@GET("https://hub.gateway.httt.tek4tv.vn/api/Device/Token")
-    fun getToken(@Body body: Map<String, String>, @Url url: String) : Call<TokenDto>
+    fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
 
     @POST
-    fun getMQTTInfo(@Body mqttModelInfo : MQTTInfoModel, @Header("Authorization") token : String, @Url url: String) : Call<MQTTInfoValueModel>
+    fun getMQTTInfo(
+        @Body mqttModelInfo: MQTTInfoModel,
+        @Header("Authorization") token: String,
+        @Url url: String
+    ): Call<MQTTInfoValueModel>
 
 
     @GET
-    fun getSourceMQTT(@Url url: String)  : Call<SourceMQTT>
+    fun getSourceMQTT(@Url url: String): Call<SourceMQTT>
 }

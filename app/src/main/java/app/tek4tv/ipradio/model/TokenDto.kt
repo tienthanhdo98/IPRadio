@@ -4,21 +4,22 @@ import com.squareup.moshi.Json
 
 data class TokenDto(
     @Json(name = "NoiDung")
-    val noiDung: NoiDung,
+    val noiDung: NoiDung?,
 
     @Json(name = "TrangThaiGui")
-    val trangThaiGUI: Int,
+    val trangThaiGUI: Int? = 0,
 
     @Json(name = "MoTa")
-    val moTa: String
+    val moTa: String? = ""
 )
-data class NoiDung (
+
+data class NoiDung(
     @Json(name = "Token")
-    val token: String,
+    val token: String? = "",
 
     @Json(name = "ExpirationTime")
-    val expirationTime: Long,
+    val expirationTime: Long? = 0,
 
     @Json(name = "Message")
-    val message: String
+    val message: String? = ""
 )

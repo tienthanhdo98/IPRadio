@@ -24,7 +24,8 @@ import java.util.*
 //Mainly for playing m3u8 stream
 class ExoMediaPlayer(
     appContext: Context,
-    private val eventListener: IPlayerEventListener) : IMediaPlayer {
+    private val eventListener: IPlayerEventListener
+) : IMediaPlayer {
 
     private val TAG = "ExoMediaPlayer"
 
@@ -57,16 +58,14 @@ class ExoMediaPlayer(
 
         override fun onPlaybackStateChanged(state: Int) {
             super.onPlaybackStateChanged(state)
-            if(state == Player.STATE_ENDED)
-            {
+            if (state == Player.STATE_ENDED) {
                 Log.i(TAG, "onPlaybackStateChanged: end reach")
             }
             if (state == Player.STATE_BUFFERING) {
                 Log.i(TAG, "onPlaybackStateChanged: Buff")
             }
 
-            if(state == Player.STATE_READY)
-            {
+            if (state == Player.STATE_READY) {
                 Log.i(TAG, "onPlaybackStateChanged: play")
             }
         }
@@ -80,7 +79,7 @@ class ExoMediaPlayer(
                 Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
                 if (isForceValue) {
                     if (isStreamInTimeFrame) {
-                        eventListener.onPlayerError(error,  currentPlayingMedia!!)
+                        eventListener.onPlayerError(error, currentPlayingMedia!!)
                         Handler(Looper.getMainLooper()).postDelayed({
                             countReplayLive++;
                             Log.d(TAG, "onLiveErrorVlc: Chay lai live")
@@ -90,10 +89,8 @@ class ExoMediaPlayer(
                         Log.d(TAG, "Stopping from reconnect")
                         stop()
                     }
-                }
-                else{
-                    if(isStreamInTimeFrame)
-                    {
+                } else {
+                    if (isStreamInTimeFrame) {
                         val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
                         playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
                     }
@@ -121,8 +118,8 @@ class ExoMediaPlayer(
 
     }
 
-    override fun playMedia(mediaItem: MediaItem, isForce : Boolean,timeStamp: Int) {
-        if(isPlaying) stop()
+    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        if (isPlaying) stop()
         try {
             if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
                 if (isInRangeTimePlay()) {
@@ -132,13 +129,12 @@ class ExoMediaPlayer(
                     playHlsExo(mediaItem, timeStamp)
                 }
             }
-        }
-        catch (e :Exception)
-        {
+        } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
         }
     }
+
     private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
@@ -163,6 +159,11 @@ class ExoMediaPlayer(
     }
 
     override fun reset() {
+//        var url = "srt://localhost:8890?streamid=read:mystream"
+//        val em = com.google.android.exoplayer2.MediaItem.fromUri(url)
+//        exoPlayer.setMediaItem(em)
+//        exoPlayer.prepare()
+//        exoPlayer.play()
     }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
