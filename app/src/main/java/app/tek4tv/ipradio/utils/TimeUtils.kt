@@ -1,25 +1,27 @@
 package app.tek4tv.ipradio.utils
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
-import java.time.Instant
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.abs
-
 
 
 //fun unixTimeStampToDateTime(unixTimeStamp: Int): LocalDateTime {
 //    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
 //}
+val sdf = SimpleDateFormat("HH:mm:ss")
 
-fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", timeZone: TimeZone = TimeZone.getDefault()): String {
+fun unixTimeStampToDateTime(
+    epochTime: Long?,
+    pattern: String = "dd-MM-yyyy",
+    timeZone: TimeZone = TimeZone.getDefault()
+): String {
     // Convert epoch time to milliseconds
+    if (epochTime == null) return ""
+    val millis = epochTime * 1000
+
+    // Create a Date object from the)
     val date = Date(epochTime * 1000)
 
     // Define a date formatter
@@ -31,19 +33,19 @@ fun unixTimeStampToDateTime(epochTime: Long, pattern: String = "dd-MM-yyyy", tim
 }
 
 
-fun convertTimeStampToHHMMSS(s: Long): String {
+fun convertTimeStampToHHMMSS(s: Long?): String {
     return try {
-        val sdf = SimpleDateFormat("HH:mm:ss")
-        val netDate = Date(s.toLong() * 1000)
+        if (s == null) return ""
+        val netDate = Date(s * 1000)
         sdf.format(netDate)
     } catch (e: Exception) {
+        Log.d("convertTimeStampToHHMMSS", "convertTimeStampToHHMMSS: ${e.message} - value: : ${s}")
         e.toString()
     }
 }
 
 
-fun isInRangeTimePlay() : Boolean
-{
+fun isInRangeTimePlay(): Boolean {
     val currentTime = Calendar.getInstance()
     //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
     val rangeNightStart = Calendar.getInstance().apply {
@@ -51,7 +53,7 @@ fun isInRangeTimePlay() : Boolean
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
     }
-    val rangeNightEnd= Calendar.getInstance().apply {
+    val rangeNightEnd = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 23)
         set(Calendar.MINUTE, 58)
         set(Calendar.SECOND, 0)
@@ -62,23 +64,22 @@ fun isInRangeTimePlay() : Boolean
         set(Calendar.MINUTE, 1)
         set(Calendar.SECOND, 0)
     }
-    val rangeEveningEnd= Calendar.getInstance().apply {
+    val rangeEveningEnd = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 4)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
     }
-    if(currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return  false
-    if(currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return  false
+    if (currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return false
+    if (currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return false
 
     return true
 }
-fun getCurrentTime() : Long
-{
+
+fun getCurrentTime(): Long {
     return Calendar.getInstance().time.time
 }
 
-fun secToReadable(sec : Long) : String
-{
+fun secToReadable(sec: Long): String {
     val h = sec / 3600
     val m = (sec - h * 3600) / 60
     val s = sec - h * 3600 - m * 60
@@ -87,9 +88,10 @@ fun secToReadable(sec : Long) : String
     val ms = if (m >= 10) "$m" else "0$m"
     val ss = if (s >= 10) "$s" else "0$s"
 
-    return if(h > 0)"$hs:$ms:$ss"
+    return if (h > 0) "$hs:$ms:$ss"
     else "$ms:$ss"
 }
+
 fun toCalendar(time: String): Calendar {
     return try {
         Calendar.getInstance().apply {
@@ -143,21 +145,18 @@ fun setSystemTime(requireTime: String) {
     }
 }
 
-fun checkTime()
-{
-    SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener
-    {
+fun checkTime() {
+    SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener {
         override fun onTimeReceived(rawDate: String?) {
-            if(rawDate == null) return
+            if (rawDate == null) return
 
             try {
                 val receiveFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
                 val receivedDate = receiveFormat.parse(rawDate)
 
-                if(abs(receivedDate.time - Date().time) > 30000)
-                {
+                if (abs(receivedDate.time - Date().time) > 30000) {
 
-                    Log.d("Time","Sync")
+                    Log.d("Time", "Sync")
 
                     val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
                     setSystemTime(dateFormat.format(receivedDate))
@@ -168,9 +167,7 @@ fun checkTime()
 
                     //CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
                 }
-            }
-            catch (e : Exception)
-            {
+            } catch (e: Exception) {
                 e.printStackTrace()
             }
         }

@@ -4,13 +4,13 @@ import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
 
 @JsonClass(generateAdapter = true)
-data class WssStatusModel (
+data class MQTTStatusModel(
     var id: String?,
     var topic: String?,
     var payload: Any,
 )
 
-data class PayloadStatus (
+data class PayloadStatus(
     @Json(name = "NguonID")
     var nguonID: String,
 
@@ -65,9 +65,9 @@ data class PayloadStatus (
     @Json(name = "PhienBanUngDung")
     var phienBanUngDung: String,
 
-)
+    )
 
-data class ThongTinThietBI (
+data class ThongTinThietBI(
     @Json(name = "CongSuat")
     var congSuat: String,
 
@@ -76,7 +76,7 @@ data class ThongTinThietBI (
 
     @Json(name = "DungLuongSuDung")
     var dungLuongSuDung: String,
-    
+
     @Json(name = "DuLieuKhac")
     var duLieuKhac: String
 )

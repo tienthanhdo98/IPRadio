@@ -5,6 +5,7 @@ import android.util.Log
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import java.io.*
+import androidx.core.net.toUri
 
 const val PLAYLIST_FILE_NAME = "playlist.json"
 const val AUDIO_LIST_FILE_NAME = "audio_list.json"
@@ -56,10 +57,9 @@ fun isFolderExisted(storagePath: String): Boolean {
 }
 
 
-
 fun getAllFileNameInFolder(storagePath: String): List<String> {
     return try {
-        Log.d("filex",storagePath)
+        Log.d("filex", storagePath)
         val folder = File(storagePath)
         val audio = listOf("mp3")
         folder.listFiles().filter { file -> file.isFile && audio.any { file.name.endsWith(it) } }
@@ -104,7 +104,8 @@ fun deleteAllFileInFolder(path: String) {
         e.printStackTrace()
     }
 }
-fun deleteAFileInFolder(path: String,filename : String) {
+
+fun deleteAFileInFolder(path: String, filename: String) {
     val folder = File(path)
     try {
         for (f in folder.listFiles()) {
@@ -118,7 +119,7 @@ fun deleteAFileInFolder(path: String,filename : String) {
 }
 
 fun getFileNameFromUrl(url: String): String {
-    var fileName = File(Uri.parse(url).path).name
+    var fileName = File(url.toUri().path).name
     val slash = fileName.lastIndexOf("\\")
 
     if (slash != -1) {

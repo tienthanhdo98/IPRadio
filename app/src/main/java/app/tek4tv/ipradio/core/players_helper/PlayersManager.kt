@@ -361,7 +361,6 @@ class PlayersManager(
     /**
      * Nhận lệnh phát khẩn cấp từ hub, chuyen json "name" sang media va convert sang force media, tính thời điểm bắt đầu và kết thúc của force media
      * **/
-
     fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
@@ -444,14 +443,6 @@ class PlayersManager(
 
     fun resetPlayMode() {
         playMode = PLAY_MODE_INIT//"0"
-    }
-
-    fun testPlayer() {
-        vlcPlayer.reset()
-    }
-
-    fun testExoPlayer() {
-        exoPlayer.reset()
     }
 
     companion object {

@@ -1,7 +1,7 @@
 package app.tek4tv.ipradio.model
 
 
-data class WssMediaLogModel(
+data class MQTTMediaLogModel(
     val nguonID: String? = "",
     val tenNguon: String? = "",
     val dichID: String? = "",
@@ -10,12 +10,12 @@ data class WssMediaLogModel(
     val tenThietBi: String? = "",
     val maNhaCungCap: String? = "",
     val tenNhaCungCap: String? = "",
-    val banTinID: String?= "",
-    val loaiBanTin: String?= "",
-    val mucDoUuTien: String?= "",
-    val tieuDe: String?= "",
+    val banTinID: String? = "",
+    val loaiBanTin: String? = "",
+    val mucDoUuTien: String? = "",
+    val tieuDe: String? = "",
     val loaiLinhVuc: String? = "",
-    val noiDungTomTat: String?= "",
+    val noiDungTomTat: String? = "",
     val thoiGianSanXuat: Long? = 0,
     val thoiLuong: String? = "",
     val tacGia: TacGia?,
@@ -30,7 +30,7 @@ data class WssMediaLogModel(
     var lichPhatID: String? = "",
     var tenLichPhat: String? = "",
     var danhSachDiaBan: List<DanhSachDiaBanNhan>?,
-    var danhSachBanTin:  List<DanhSachBanTin>?,
-    var danhSachThietBi:  List<DanhSachThietBi>?,
+    var danhSachBanTin: List<DanhSachBanTin>?,
+    var danhSachThietBi: List<DanhSachThietBi>?,
 
     )

@@ -9,7 +9,7 @@ open class LogRecord {}
 @JsonClass(generateAdapter = true)
 data class MediaRecord(
     val imei: String? = null,
-    val deviceName : String ?=null,
+    val deviceName: String? = null,
     val mediaID: String? = null,
     val sourceID: String? = null,
     val sourceName: String? = null,
@@ -32,7 +32,7 @@ data class MediaRecord(
     //thuoc tinh cua end
     val endTime: Long? = null,
     val status: String? = null,
-    val sourceReference : String ? = null,
+    val sourceReference: String? = null,
     var provider: String = ""
 
 ) : LogRecord() {
@@ -69,17 +69,4 @@ data class TimeFrameRecord(
     @Json(name = "Provider")
     var provider: String = "VATC"
 
-    companion object {
-        const val STATUS_START = "START"
-        const val STATUS_STOP = "STOP"
-    }
-}
-
-data class FbDeviceStatusReport(
-    var status: String? = null,
-    var time: Long = Date().time
-) {
-    companion object {
-        const val STATUS_ON = "ON"
-    }
 }

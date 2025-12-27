@@ -5,7 +5,6 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
-import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -16,7 +15,7 @@ import java.util.*
 class Utils {
     companion object {
         const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO  = "ENCRYPTED_STORAGE_INFO"
+        const val ENCRYPTED_STORAGE_INFO = "ENCRYPTED_STORAGE_INFO"
         const val ping = "Ping"
         const val heartbeat = "Heartbeat"
         const val DEVICE_ID = "device_id"
@@ -86,58 +85,41 @@ class Utils {
         }
 
         //the loai
-        fun convertContentType(strContentType: String): ContentType {
-//            val contentType: ContentType =  when (strContentType) {
-//                "1" -> {
-//                    ContentType(1, StringValue.contentTypeId1)
-//                }
-//                "2" -> {
-//                     ContentType(2, StringValue.contentTypeId2)
-//                }
-//                "3" -> {
-//                    ContentType(3, StringValue.contentTypeId3)
-//                }
-//                "4" -> {
-//                    ContentType(4, StringValue.contentTypeId4)
-//                }
-//                "5" -> {
-//                    ContentType(5, StringValue.contentTypeId5)
-//                }
-//                "6" -> {
-//                   ContentType(6, StringValue.contentTypeId6)
-//                }
-//                else -> {
-//                   ContentType(1, StringValue.contentTypeId1)
-//                }
-//            }
-            val contentType: ContentType =  when (strContentType) {
+        fun convertContentType(strContentType: String?): ContentType {
+            val contentType: ContentType = when (strContentType) {
                 "1" -> {
                     ContentType(1, "1")
                 }
+
                 "2" -> {
-                    ContentType(2,  "2")
+                    ContentType(2, "2")
                 }
+
                 "3" -> {
-                    ContentType(3,  "3")
+                    ContentType(3, "3")
                 }
+
                 "4" -> {
-                    ContentType(4,  "4")
+                    ContentType(4, "4")
                 }
+
                 "5" -> {
-                    ContentType(5,  "5")
+                    ContentType(5, "5")
                 }
+
                 "6" -> {
-                    ContentType(6,  "6")
+                    ContentType(6, "6")
                 }
+
                 else -> {
-                    ContentType(1,  "1")
+                    ContentType(1, "1")
                 }
             }
             return contentType
         }
 
         //do uu tien
-        fun convertPriority(priorityLevel: String) : Priority{
+        fun convertPriority(priorityLevel: String?): Priority {
 //            val priority : Priority = when (priorityLevel) {
 //                "1" -> {
 //                    Priority(1,StringValue.priority1)
@@ -153,17 +135,20 @@ class Utils {
 //                    Priority(1, StringValue.priority1)
 //                }
 //            }
-            val priority : Priority = when (priorityLevel) {
+            val priority: Priority = when (priorityLevel) {
                 "1" -> {
-                    Priority(1,"1")
+                    Priority(1, "1")
 
                 }
+
                 "2" -> {
-                    Priority(2,"2")
+                    Priority(2, "2")
                 }
+
                 "3" -> {
                     Priority(3, "3")
                 }
+
                 else -> {
                     Priority(1, "1")
                 }
@@ -172,46 +157,53 @@ class Utils {
         }
 
         //linh vuc
-        fun convertFiend(fieldType: String): Category {
+        fun convertFiend(fieldType: String?): Category {
             val category: Category = when (fieldType) {
                 "1" -> {
                     Category(1, "1")
 
                 }
+
                 "2" -> {
                     Category(2, "2")
                 }
+
                 "3" -> {
                     Category(3, "3")
                 }
+
                 "4" -> {
                     Category(3, "4")
                 }
+
                 "5" -> {
                     Category(3, "5")
                 }
+
                 "6" -> {
                     Category(3, "6")
                 }
+
                 "7" -> {
                     Category(3, "7")
                 }
+
                 else -> {
                     Category(1, "3")
                 }
             }
             return category
         }
-        fun convertAuthor(tacGia : TacGia) : Author
-        {
+
+        fun convertAuthor(tacGia: TacGia): Author {
             return Author(
                 fullName = tacGia.tenDayDu,
                 userName = tacGia.butDanh,
                 email = tacGia.email,
-                )
+            )
         }
-        fun getTypeOfMediaItem(contentTypeId : Int) : String
-        {
+
+        fun getTypeOfMediaItem(contentTypeId: Int?): String {
             var type = "VOD"
             if (contentTypeId == 5) {
                 type = "VOD"
@@ -222,7 +214,8 @@ class Utils {
             return type
 
         }
-        fun getDeviceInfo(valueName: String,deviceInfo: String?, ): String? {
+
+        fun getDeviceInfo(valueName: String, deviceInfo: String?): String? {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {
                 Log.d("debugLog", "getDeviceInfo: deviceInfo is null or empty")

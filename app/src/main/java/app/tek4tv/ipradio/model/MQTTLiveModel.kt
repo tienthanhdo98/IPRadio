@@ -2,20 +2,22 @@ package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
+
+
 @JsonClass(generateAdapter = true)
-data class WssModel (
+data class MQTTModel(
     val id: String?,
     val topic: String?
 )
 
 @JsonClass(generateAdapter = true)
-data class WssLiveModel (
+data class MQTTLiveModel(
     val id: String?,
     val topic: String?,
     val payload: PayloadLive?
 )
 
-data class PayloadLive (
+data class PayloadLive(
     @Json(name = "DichID")
     val dichID: String?,
 
@@ -98,129 +100,122 @@ data class itemMedia
     var danhSachBanTin: DanhSachBanTin
 )
 
-data class DanhSachDiaBanNhan (
+data class DanhSachDiaBanNhan(
     @Json(name = "DichID")
-    val dichID: String?,
+    val dichID: String? = "",
 
     @Json(name = "TenDich")
-    val tenDich: String?,
+    val tenDich: String? = "",
 
     @Json(name = "CumLoaID")
-    val cumLoaID: List<String>?
+    val cumLoaID: List<String>? = emptyList()
 )
 
-data class TacGia (
+data class TacGia(
     @Json(name = "TenDayDu")
-    val tenDayDu: String?,
+    val tenDayDu: String? = "",
 
     @Json(name = "ButDanh")
-    val butDanh: String?,
+    val butDanh: String? = "",
 
     @Json(name = "Email")
-    val email: String?
+    val email: String? = ""
 )
 
-//data class ThongTinChiTietBanTin(
-//    @Json(name = "Ten")
-//    val ten: String,
-//
-//    @Json(name = "GiaTri")
-//    val giaTri: String
-//)
 data class ThongTinChiTietBanTin(
     @Json(name = "ThoiGianBatDau")
-    val thoiGianBatDau: Long,
+    val thoiGianBatDau: Long? = 0,
 
     @Json(name = "ThoiGianKetThuc")
-    val thoiGianKetThuc: Long
+    val thoiGianKetThuc: Long? = 0
 )
 
 data class DieuKhienThietBI(
     @Json(name = "MaLenh")
-    val maLenh: String?,
+    val maLenh: String? = "",
 
     @Json(name = "ThamSo")
-    val thamSo: String?
+    val thamSo: String? = ""
 )
 
 data class DanhSachThietBi(
     @Json(name = "CumLoaID")
-    val cumLoaID: String?,
+    val cumLoaID: String? = "",
 
     @Json(name = "MaNhaCungCap")
-    val maNhaCungCap: String?,
+    val maNhaCungCap: String? = "",
     @Json(name = "TenNhaCungCap")
-    val tenNhaCungCap: String?,
+    val tenNhaCungCap: String? = "",
     @Json(name = "TenThietBi")
-    val tenThietBi: String?,
+    val tenThietBi: String? = "",
 )
 
 data class DanhSachBanTin(
     @Json(name = "BanTinID")
-    val banTinID: String,
+    val banTinID: String? = "",
 
     @Json(name = "LoaiBanTin")
-    val loaiBanTin: String,
+    val loaiBanTin: String? = "",
 
     @Json(name = "MucDoUuTien")
-    val mucDoUuTien: String,
+    val mucDoUuTien: String? = "",
 
     @Json(name = "TieuDe")
-    val tieuDe: String,
+    val tieuDe: String? = "",
 
     @Json(name = "LoaiLinhVuc")
-    val loaiLinhVuc: String,
+    val loaiLinhVuc: String? = "",
 
     @Json(name = "NoiDungTomTat")
-    val noiDungTomTat: String,
+    val noiDungTomTat: String? = "",
 
     @Json(name = "ThoiGianSanXuat")
-    val thoiGianSANXuat: Long,
+    val thoiGianSANXuat: Long? = 0,
 
     @Json(name = "ThoiLuong")
-    val thoiLuong: String,
+    val thoiLuong: String? = "",
 
     @Json(name = "TacGia")
     val tacGia: TacGia,
 
     @Json(name = "NoiDung")
-    val noiDung: String,
+    val noiDung: String? = "",
 
     @Json(name = "DiaBanTao")
-    val diaBanTAO: String,
+    val diaBanTAO: String? = "",
 
     @Json(name = "TenDiaBanTao")
-    val tenDiaBanTAO: String,
+    val tenDiaBanTAO: String? = "",
 
     @Json(name = "ThongTinChiTietBanTin")
-    var thongTinChiTietBanTin: List<ThongTinChiTietBanTin>,
+    var thongTinChiTietBanTin: List<ThongTinChiTietBanTin>? = emptyList(),
 
     @Json(name = "NguonTin")
-    val nguonTin: String,
+    val nguonTin: String? = "",
 
     @Json(name = "TiepAm")
-    val tiepAm: Long,
+    val tiepAm: Long? = 0,
 
     @Json(name = "NguonTiepAm")
-    val nguonTiepAm: String,
+    val nguonTiepAm: String? = "",
 
     @Json(name = "DanhSachNgayPhat")
-    val danhSachNgayPhat: List<DanhSachNgayPhat>
+    val danhSachNgayPhat: List<DanhSachNgayPhat>? = emptyList()
 )
 
 data class DanhSachNgayPhat(
     @Json(name = "NgayPhat")
-    val ngayPhat: Long,
+    val ngayPhat: Long? = 0,
 
     @Json(name = "ThoiDiemPhat")
-    val thoiDiemPhat: List<ThoiDiemPhat>
+    val thoiDiemPhat: List<ThoiDiemPhat>? = emptyList()
 )
 
 data class ThoiDiemPhat(
     @Json(name = "ThoiGianBatDau")
-    val thoiGianBatDau: Long,
+    val thoiGianBatDau: Long? = 0,
 
     @Json(name = "ThoiGianKetThuc")
-    val thoiGianKetThuc: Long
+    val thoiGianKetThuc: Long? = 0
 )
 

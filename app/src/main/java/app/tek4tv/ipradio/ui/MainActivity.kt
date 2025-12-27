@@ -10,8 +10,6 @@ import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
@@ -28,27 +26,31 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.libs.rtsp.RtspOnlyAudioTek
-import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.model.local.MediaLogDao
-import app.tek4tv.ipradio.model.local.MediaLogModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
+import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.media.MediaCapture
-import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.*
+import app.tek4tv.ipradio.utils.secToReadable
+import app.tek4tv.ipradio.utils.setMobileDataEnabled
+import app.tek4tv.ipradio.utils.setWifeDataEnabled
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.RECORDED_AUDIO_FOLDER_NAME
+import app.tek4tv.ipradio.utils.storage.deleteAFileInFolder
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.pedro.encoder.input.audio.MicrophoneMode
-import com.pedro.rtsp.rtsp.Protocol
 import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -56,14 +58,15 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.IOException
-import java.util.*
+import java.util.Calendar
+import java.util.Timer
+import java.util.TimerTask
 import javax.inject.Inject
 
 
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.N)
-class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
+class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -86,12 +89,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
     @Inject
     lateinit var authService: AuthService
 
-    @Inject
-    lateinit var logService: LogService
-
-    @Inject
-    lateinit var mediaLogDao: MediaLogDao
-
     private lateinit var hubManager: HubManager
 
     private lateinit var playerManager: PlayersManager
@@ -99,8 +96,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
     private lateinit var serialPortController: SerialPortController
 
     private lateinit var appStorageManager: AppStorageManager
-
-    private lateinit var logUtils: LogUtils
 
     private lateinit var mediaCapture: MediaCapture
 
@@ -110,13 +105,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
     private val globalProperties = GlobalProperties.getInst()
 
-
     private lateinit var binding: ActivityMainBinding
-
-    private var user_name_stream = ""
-    private var password_stream = ""
-
-    lateinit var micStreamRtsp: RtspOnlyAudioTek
 
 
     // event media
@@ -187,32 +176,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                 hubManager.sendLogMediaSuccess(mediaItem, paState)
 
                 viewModel.currentMedia = mediaItem
-                if (!hubManager.isConnectSuccess) {
-                    lifecycleScope.launch {
-                        val tacGia = TacGia(
-                            tenDayDu = mediaItem.author?.fullName ?: "",
-                            butDanh = mediaItem.author?.userName ?: "",
-                            email = mediaItem.author?.email ?: ""
-                        )
-                        val mediaLog = MediaLogModel(
-                            amLuong = Utils.getDeviceInfo(
-                                StringValue.deviceInfoVolume, SerialPortController.deviceInfo
-                            ),
-                            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                            congSuat = paState,
-                            banTinID = mediaItem.projectID,
-                            loaiBanTin = mediaItem.contentType?.value,
-                            mucDoUuTien = mediaItem.priority?.id.toString(),
-                            noiDung = mediaItem.pathBackup,
-                            noiDungTomTat = mediaItem.description,
-                            tacGia = adapterTacGia.toJson(tacGia),
-                            thoiLuong = mediaItem.duration,
-                            tieuDe = mediaItem.title,
-                            loaiLinhVuc = mediaItem.fieldType?.value,
-                        )
-                        mediaLogDao.insertLog(mediaLog)
-                    }
-                }
 
             }
         }
@@ -224,7 +187,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -260,8 +223,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
         }
 
-        logUtils = LogUtils.getInst()
-        logUtils.logService = logService
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
@@ -270,7 +231,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         ) { command, message ->
             handleFromCommandServer(command, message)
         }
-        hubManager.setConnectionListener(this)
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -285,7 +245,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
-        ) //PlayerManager(applicationContext, viewModel, rootLayout)
+        )
         playerManager.playerManagerListener = playerCallback
 
         NetworkUtils.instance.startNetworkListener(this)
@@ -303,61 +263,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
         showMac()
 
-        initEncoder()
 
-
-    }
-
-    private fun initEncoder() {
-        if (isEncoder) {
-            micStreamRtsp = RtspOnlyAudioTek(this)
-            getSteamInfo()
-            lifecycleScope.launch(Dispatchers.Main) {
-                while (true) {
-                    if (hubManager.pingCounter <= 5) {
-                        if (!isStreaming) {
-                            delay(10000)
-                            if (urlStream != "") {
-                                startStream()
-                            }
-                        }
-                        Log.i("pingping:", "micStream.isStreaming:  $isStreaming")
-                    } else {
-                        stopStream()
-                    }
-                    delay(1000)
-                }
-            }
-        }
-        // lay thong so cua thiet bi
-        lifecycleScope.launch(Dispatchers.IO) {
-            while (true) {
-                serialPortController.updateStatus()
-
-                delay(5000)
-            }
-        }
-    }
-
-    private fun getSteamInfo() {
-        urlStream = ConfigUtil.getString(
-            this, ConfigUtil.URL_STREAM, ""
-        )!!
-        user_name_stream = ConfigUtil.getString(
-            this, ConfigUtil.USER_NAME_STREAM, ""
-        )!!
-        password_stream = ConfigUtil.getString(
-            this, ConfigUtil.PASSWORD_STREAM, ""
-        )!!
-        protocol_stream = ConfigUtil.getString(
-            this, ConfigUtil.PROTOCOL_STREAM, "TCP"
-        )!!
-        bitrate_stream = ConfigUtil.getString(
-            this, ConfigUtil.BITRATE_STREAM, "65536"
-        )!!
-        samplerate = ConfigUtil.getString(
-            this, ConfigUtil.SAMPLERATE_STREAM, "44100"
-        )!!
     }
 
     override fun startStopWatch() {
@@ -372,98 +278,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         }
     }
 
-    override fun startStream() {
-        binding.apply {
-            btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
-            txtStatus.text = "End"
-        }
-        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
-        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
-        if (protocol_stream == "TCP") {
-            micStreamRtsp.setProtocol(Protocol.TCP)
-        } else {
-            micStreamRtsp.setProtocol(Protocol.UDP)
-        }
-        if (micStreamRtsp.prepareAudio(
-                bitrate_stream.toInt(), samplerate.toInt(), true, true, true
-            )
-        ) {
-            micStreamRtsp.startStream(urlStream)
-            isStreaming = true
-        } else {
-            Log.d("RTMP", "startStream: micStream not prepare success")
-        }
-    }
 
-    override fun stopStream() {
-        if (isEncoder) {
-            isStreaming = false
-            micStreamRtsp.stopStream()
-            binding.apply {
-                btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
-                txtStatus.text = "Start"
-            }
-        }
-    }
-
-    private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
-        var logDeviceData: DataValueModel
-        val strTimeFrame = mutableListOf<String>()
-        lifecycleScope.launch {
-            while (true) {
-                strTimeFrame.clear()
-                //val imei = Utils.getDeviceId(baseContext)
-                val imei = "54:78:C9:A9:C5:97"
-                val timeUpdate = ConfigUtil.getString(
-                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
-                )!!
-                var deviceInfo = ""
-                if (hubManager.isMQTT && hubManager.mqttClient?.clientID?.isNotEmpty() == true) {
-                    deviceInfo =
-                        "${hubManager.mqttClient!!.clientID},${hubManager.dichId},${hubManager.tenDich},${hubManager.nguonId}.${hubManager.tenDich}"
-                }
-                val idPlaylist =
-                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
-                val scheduledList = viewModel.mediaRepo.timeDividers
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    strTimeFrame.add(period)
-                }
-                if (isSendPlaylistData) {
-                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
-                    var strPlaylist = ""
-                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
-                        strPlaylist = readFile(fileStoragePath)
-                    }
-                    logDeviceData = DataValueModel(
-                        idPlaylist = idPlaylist,
-                        updateTime = timeUpdate,
-                        currentDeviceTime = getCurrentTime(),
-                        timeFrame = strTimeFrame,
-                        currentPlaylistData = strPlaylist,
-                        deviceInfo = deviceInfo
-                    )
-                } else {
-                    logDeviceData = DataValueModel(
-                        idPlaylist = idPlaylist,
-                        updateTime = timeUpdate,
-                        currentDeviceTime = getCurrentTime(),
-                        timeFrame = strTimeFrame,
-                        deviceInfo = deviceInfo
-                    )
-                }
-                logUtils.logDataHub(imei, logDeviceData)
-                delay(300000)
-
-            }
-        }
-    }
-    
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-        //val imei = Utils.getDeviceId(this)
-        val imei = "54:78:C9:A9:C5:97"
+        val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+        tvMacAdress.setOnClickListener {
+            hubManager.publishTestDvToMqtt("dv002");
+        }
     }
 
 
@@ -526,13 +348,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -589,7 +411,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
             mediaScheduler.scheduleAllAlarms()
 
             playerManager.startFirstTimeFrame()
-            sendLogDataHub()
+
             //all load done, check
             viewModel.checkPlaylist()
 
@@ -768,16 +590,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                     serialPortController.readDeviceInfo()
                 }
 
-                HubCommand.STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-                    }
-                }
-
-
                 HubCommand.DELETE_ALL_MEDIA -> {
                     appStorageManager.deleteAllMedia()
                 }
@@ -801,10 +613,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                     }, duration!!.toLong() * 60 * 1000)
                 }
 
-                HubCommand.UPLOAD_RECORDED -> {
-                    val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
-                }
 
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
@@ -818,19 +626,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                     }
                 }
 
-                HubCommand.DELETE_ALL_LOG -> {
-                    appStorageManager.deleteAllLog()
-                }
-
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"
@@ -874,7 +669,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
             val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Log.e("Main", "Error setting max volume")
         }
     }
@@ -893,30 +688,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        var isEncoder = false
-        var urlStream = ""
-        var protocol_stream = ""
-        var bitrate_stream = ""
-        var samplerate = ""
 
     }
 
-    override fun onHubConnected() {
-        val paState =
-            if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-            else PAStatusOn
-        lifecycleScope.launch {
-            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            listMediaLog.forEach {
-                hubManager.sendUnsentLogMediaSuccess(it, paState)
-                mediaLogDao.deleteMediaItemById(it.id)
-            }
-        }
-        Log.d("HubObverse", "onHubConnected")
-
-    }
-
-    override fun onHubDisConnected() {
-        Log.d("HubObverse", "onHubDisConnected")
-    }
 }

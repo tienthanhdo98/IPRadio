@@ -10,20 +10,47 @@ import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMediaItemAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaItemMoshiAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.wssLiveAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.wssStatusAdapter
-import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
-import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.model.local.MediaLogModel
+import app.tek4tv.ipradio.model.Author
+import app.tek4tv.ipradio.model.Category
+import app.tek4tv.ipradio.model.ContentType
+import app.tek4tv.ipradio.model.DanhSachDiaBanNhan
+import app.tek4tv.ipradio.model.DanhSachNgayPhat
+import app.tek4tv.ipradio.model.DanhSachThietBi
+import app.tek4tv.ipradio.model.MQTTInfoModel
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.NoiDungMQTT
+import app.tek4tv.ipradio.model.PayloadLive
+import app.tek4tv.ipradio.model.PayloadStatus
+import app.tek4tv.ipradio.model.Priority
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.TacGia
+import app.tek4tv.ipradio.model.ThongTinChiTietBanTin
+import app.tek4tv.ipradio.model.ThongTinThietBI
+import app.tek4tv.ipradio.model.MQTTMediaLogModel
+import app.tek4tv.ipradio.model.MQTTStatusModel
+import app.tek4tv.ipradio.model.itemMedia
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.StringValue
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
+import app.tek4tv.ipradio.utils.convertTimeStampToHHMMSS
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
-import kotlinx.coroutines.*
-import java.util.*
+import app.tek4tv.ipradio.utils.unixTimeStampToDateTime
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @RequiresApi(Build.VERSION_CODES.N)
 class HubManager(
@@ -35,14 +62,13 @@ class HubManager(
     private val TAG = "HubManager"
 
     private val CONNECT_COUNTER_LIMIT = 120
-    private val PING_HUB_INTERVAL = 30000L
-    private val API_CALL_INTERVAL = 30000L
+    private val PING_HUB_INTERVAL = 60000L
+    private val API_CALL_INTERVAL = 60000L
 
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
     val deviceImei = Utils.getDeviceId(appContext)
-    //val deviceImei = "54:78:C9:A9:C5:97"
 
     var pingCounter = 0
 
@@ -54,26 +80,22 @@ class HubManager(
 
     private var hubToken: String? = null
 
-    private var connectionListener: IHubObserve? = null
+
     var isConnectSuccess = false
 
     private var wssManager: WssManager? = null
 
-    var nguonId = "H41.126"
+    var nguonId = ""
 
-    var tenNguon = "Phường Hoàng Mai"
-    var dichId = "H41"
-    var tenDich = "Nghệ An"
+    var tenNguon = ""
+    var dichId = ""
+    var tenDich = ""
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
     val isMQTT = true
     private var getMQTTInfoJob: Job? = null
 
     var mqttClient: MQTTManager? = null
 
-
-    fun setConnectionListener(listener: IHubObserve) {
-        connectionListener = listener
-    }
 
     private fun getHubToken() {
         try {
@@ -130,7 +152,6 @@ class HubManager(
             if (it.topic?.contains("tinh") == true) {
                 nguonId = it.topic.substringAfter("/").uppercase()
                 dichId = it.topic.substringAfter("/").uppercase()
-                getSourceMQTT(nguonId, false)
             }
             if (it.topic?.contains("huyen") == true) {
                 nguonId = it.topic.substringAfter("/").uppercase()
@@ -139,32 +160,8 @@ class HubManager(
                 nguonId = it.topic.substringAfter("/").uppercase()
             }
         }
-        getSourceMQTT(nguonId, true)
-    }
-
-    private fun getSourceMQTT(id: String, timNguon: Boolean) {
-
-        val url = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.URL_MQTT_SOURCE)
-        try {
-            val call = authService.getSourceMQTT("${url}$id")
-            val response = call.execute()
-            if (response.isSuccessful) {
-                val mqttSource: SourceMQTT = response.body()!!
-                if (timNguon) {
-                    tenNguon = mqttSource.name ?: ""
-                    if (tenNguon == "") {
-                        tenNguon = mqttSource.code?.uppercase() ?: ""
-                    }
-                } else {
-                    tenDich = mqttSource.name ?: ""
-                    if (tenDich == "") {
-                        tenDich = mqttSource.code?.uppercase() ?: ""
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.d(TAG, "getSourceMQTT: ${e.message}")
-        }
+        tenNguon = nguonId
+        tenDich = dichId
     }
 
     @RequiresApi(Build.VERSION_CODES.N)
@@ -224,13 +221,11 @@ class HubManager(
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
-        connectionListener?.onHubConnected()
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
         isConnectSuccess = false
-        connectionListener?.onHubDisConnected()
     }
 
     override fun onReceiveMessageSuccess(message: String) {
@@ -246,11 +241,10 @@ class HubManager(
         }
     }
 
-
     private fun sendPing() {
         pingCounter++
-        var trangThaiHoatDong = "1"
-        var noiDungPhat = ""
+        var trangThaiHoatDong: String
+        var noiDungPhat: String
         if (currentMediaItem != null) {
             noiDungPhat = currentMediaItem!!.pathBackup
             trangThaiHoatDong = "0"
@@ -258,7 +252,7 @@ class HubManager(
             noiDungPhat = ""
             trangThaiHoatDong = "2"
         }
-        val request = WssStatusModel(
+        val request = MQTTStatusModel(
             id = "", topic = HubCommand.DV008, payload = PayloadStatus(
                 dichID = dichId,
                 tenDich = tenDich,
@@ -277,6 +271,7 @@ class HubManager(
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
                 viDo = GlobalProperties.getInst().lat,
                 kinhDo = GlobalProperties.getInst().lng,
+                //dang ko co truong nay
                 thongTinThietBI = ThongTinThietBI(
                     congSuat = getDeviceInfo(
                         StringValue.deviceInfoPA,
@@ -298,6 +293,237 @@ class HubManager(
         sendMessage(wssStatusAdapter.toJson(request))
     }
 
+    fun publishTestDvToMqtt(dv: String) {
+        var json = "";
+        when (dv) {
+            "dv002" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv002\",\n" +
+                        "  \"payload\": {\n" +
+                        "    \"NguonID\": \"H24.00.00.000\",\n" +
+                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
+                        "    \"DichID\": \"H24.00.00.000\",\n" +
+                        "    \"TenDich\": \"H24.00.00.000\",\n" +
+                        "    \"DanhSachDiaBanNhan\": [\n" +
+                        "      {\n" +
+                        "        \"DichID\": \"H24.00.00.000\",\n" +
+                        "        \"TenDich\": \"Phường Hoàng Liệt\"\n" +
+                        "      }\n" +
+                        "    ],\n" +
+                        "    \"LichPhatID\": \"b573872c-9c98-4fc7-8672-40c97355fde0\",\n" +
+                        "    \"TenLichPhat\": \"Test bản tin thông thường 08-12-2025\",\n" +
+                        "    \"DanhSachBanTin\": [\n" +
+                        "      {\n" +
+                        "        \"BanTinID\": \"27284b55-829a-46f4-95aa-2a48814fc13\",\n" +
+                        "        \"LoaiBanTin\": \"3\",\n" +
+                        "        \"MucDoUuTien\": \"3\",\n" +
+                        "        \"TieuDe\": \"Test bản tin thông thường 08-12-202\",\n" +
+                        "        \"LoaiLinhVuc\": \"1\",\n" +
+                        "        \"NoiDungTomTat\": \"Test bản tin thông thường 08-12-202\",\n" +
+                        "        \"ThoiGianSanXuat\": 1765175210,\n" +
+                        "        \"ThoiLuong\": \"00:04:15\",\n" +
+                        "        \"TacGia\": {\n" +
+                        "          \"TenDayDu\": \"BytechTester\",\n" +
+                        "          \"ButDanh\": \"bytech.tester\",\n" +
+                        "          \"Email\": \"tester@bytech.vn\"\n" +
+                        "        },\n" +
+                        "        \"NoiDung\": \"https://dev-data.devbt.com/media/2025/12/03/0ac561c5-3378-47cd-9d98-db2b63242e35639003273720624585_639003273719364232.mp3\",\n" +
+                        "        \"DiaBanTao\": \"H24.00.00.000\",\n" +
+                        "        \"TenDiaBanTao\": \"H24.00.00.000\",\n" +
+                        "        \"ThongTinChiTietBanTin\": null,\n" +
+                        "        \"NguonTin\": \"H24.00.00.000\",\n" +
+                        "        \"TiepAm\": 1,\n" +
+                        "        \"NguonTiepAm\": \"\",\n" +
+                        "        \"DanhSachNgayPhat\": [\n" +
+                        "          {\n" +
+                        "            \"NgayPhat\": 1765152000,\n" +
+                        "            \"ThoiDiemPhat\": [\n" +
+                        "              {\n" +
+                        "                \"ThoiGianBatDau\": 1765179000,\n" +
+                        "                \"ThoiGianKetThuc\": 1765179240\n" +
+                        "              }\n" +
+                        "            ]\n" +
+                        "          }\n" +
+                        "        ]\n" +
+                        "      }\n" +
+                        "    ]\n" +
+                        "  }\n" +
+                        "}";
+            }
+
+            "dv003" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv003\",\n" +
+                        "  \"payload\": {\n" +
+                        "    \"NguonID\": \"H24.00.00.000\",\n" +
+                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
+                        "    \"DanhSachDiaBanNhan\": [\n" +
+                        "      {\n" +
+                        "        \"DichID\": \"H24.00.00.000\",\n" +
+                        "        \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "        \"CumLoaID\": null\n" +
+                        "      }\n" +
+                        "    ],\n" +
+                        "    \"BanTinID\": \"63ca061b-2271-4d95-9ce2-c85765c37a67\",\n" +
+                        "    \"LoaiBanTin\": \"3\",\n" +
+                        "    \"MucDoUuTien\": \"1\",\n" +
+                        "    \"TieuDe\": \"Test Bản tin khẩn cấp 08-12-2025\",\n" +
+                        "    \"LoaiLinhVuc\": \"1\",\n" +
+                        "    \"NoiDungTomTat\": \"Test Bản tin khẩn cấp 08-12-2025\",\n" +
+                        "    \"ThoiGianSanXuat\": 1765175210,\n" +
+                        "    \"ThoiLuong\": \"00:02:30\",\n" +
+                        "    \"TacGia\": {\n" +
+                        "      \"TenDayDu\": \"BytechTester\",\n" +
+                        "      \"ButDanh\": \"bytech.tester\",\n" +
+                        "      \"Email\": \"tester@bytech.vn\"\n" +
+                        "    },\n" +
+                        "    \"NoiDung\": \"https://dev-data.devbt.com/media/2025/11/07/63f8f7b7-de80-4545-b4e6-8479d90f32a8638981211004688910_638981211003778612.mp3\",\n" +
+                        "    \"DiaBanTao\": \"H24.00.00.000\",\n" +
+                        "    \"TenDiaBanTao\": \"H24.00.00.000\",\n" +
+                        "    \"ThongTinChiTietBanTin\": null,\n" +
+                        "    \"NguonTin\": \"H24.00.00.000\"\n" +
+                        "  }\n" +
+                        "}"
+            }
+
+            "dv004" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv004\",\n" +
+                        "  \"payload\": {\n" +
+                        "    \"NguonID\": \"H24.00.00.000\",\n" +
+                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
+                        "    \"LichPhatID\": \"63ca061b-2271-4d95-9ce2-c85765c37a67\",\n" +
+                        "    \"TenLichPhat\": \"Test hủy lịch phát lặp lại nhiều lần\",\n" +
+                        "    \"DanhSachDiaBanNhan\": [\n" +
+                        "      {\n" +
+                        "        \"DichID\": \"H24.00.00.000\",\n" +
+                        "        \"TenDich\": \"Phường Hoàng Liệt\"\n" +
+                        "      }\n" +
+                        "    ]\n" +
+                        "  }\n" +
+                        "}"
+            }
+
+            "dv009-0" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv009\",\n" +
+                        "  \"payload\": {\n" +
+                        "\t  \"NguonID\": \"H26.00.00\",\n" +
+                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
+                        "\t  \"DanhSachDiaBanNhan\": [\n" +
+                        "\t\t{\n" +
+                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
+                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "\t\t  \"CumLoaID\": null\n" +
+                        "\t\t}\n" +
+                        "\t  ],\n" +
+                        "\t  \"DanhSachThietBi\": null,\n" +
+                        "\t  \"DieuKhienThietBi\": {\n" +
+                        "\t\t\"MaLenh\": \"0\",\n" +
+                        "\t\t\"ThamSo\": \"67\"\n" +
+                        "\t  }\n" +
+                        "\t}\n" +
+                        "}"
+            }
+
+            "dv009-1-0" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv009\",\n" +
+                        "  \"payload\": {\n" +
+                        "\t  \"NguonID\": \"H26.00.00\",\n" +
+                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
+                        "\t  \"DanhSachDiaBanNhan\": [\n" +
+                        "\t\t{\n" +
+                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
+                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "\t\t  \"CumLoaID\": null\n" +
+                        "\t\t}\n" +
+                        "\t  ],\n" +
+                        "\t  \"DanhSachThietBi\": null,\n" +
+                        "\t  \"DieuKhienThietBi\": {\n" +
+                        "\t\t\"MaLenh\": \"1\",\n" +
+                        "\t\t\"ThamSo\": \"0\"\n" +
+                        "\t  }\n" +
+                        "\t}\n" +
+                        "}"
+            }
+
+            "dv009-1-1" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv009\",\n" +
+                        "  \"payload\": {\n" +
+                        "\t  \"NguonID\": \"H26.00.00\",\n" +
+                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
+                        "\t  \"DanhSachDiaBanNhan\": [\n" +
+                        "\t\t{\n" +
+                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
+                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "\t\t  \"CumLoaID\": null\n" +
+                        "\t\t}\n" +
+                        "\t  ],\n" +
+                        "\t  \"DanhSachThietBi\": null,\n" +
+                        "\t  \"DieuKhienThietBi\": {\n" +
+                        "\t\t\"MaLenh\": \"1\",\n" +
+                        "\t\t\"ThamSo\": \"1\"\n" +
+                        "\t  }\n" +
+                        "\t}\n" +
+                        "}"
+            }
+
+            "dv009-3" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv009\",\n" +
+                        "  \"payload\": {\n" +
+                        "\t  \"NguonID\": \"H26.00.00\",\n" +
+                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
+                        "\t  \"DanhSachDiaBanNhan\": [\n" +
+                        "\t\t{\n" +
+                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
+                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "\t\t  \"CumLoaID\": null\n" +
+                        "\t\t}\n" +
+                        "\t  ],\n" +
+                        "\t  \"DanhSachThietBi\": null,\n" +
+                        "\t  \"DieuKhienThietBi\": {\n" +
+                        "\t\t\"MaLenh\": \"3\",\n" +
+                        "\t\t\"ThamSo\": \"3\"\n" +
+                        "\t  }\n" +
+                        "\t}\n" +
+                        "}"
+            }
+
+            "dv009-4" -> {
+                json = "{\n" +
+                        "  \"id\": \"\",\n" +
+                        "  \"topic\": \"dv009\",\n" +
+                        "  \"payload\": {\n" +
+                        "\t  \"NguonID\": \"H26.00.00\",\n" +
+                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
+                        "\t  \"DanhSachDiaBanNhan\": [\n" +
+                        "\t\t{\n" +
+                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
+                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
+                        "\t\t  \"CumLoaID\": null\n" +
+                        "\t\t}\n" +
+                        "\t  ],\n" +
+                        "\t  \"DanhSachThietBi\": null,\n" +
+                        "\t  \"DieuKhienThietBi\": {\n" +
+                        "\t\t\"MaLenh\": \"4\",\n" +
+                        "\t\t\"ThamSo\": \"https://dev-data.devbt.com/data/ota/loathongminh_20251127_1.0.7b31.apk\"\n" +
+                        "\t  }\n" +
+                        "\t}\n" +
+                        "}"
+            }
+        }
+        convertToHubCommand(json);
+    }
 
     private fun convertToHubCommand(jsonMessage: String) {
         val wssData = wssLiveAdapter.fromJson(jsonMessage)
@@ -307,14 +533,19 @@ class HubManager(
                 val body = wssData.payload
                 Log.d("TestLogrun", "run---")
                 if (body != null) {
-                    val mapMonthSchedule = convertWssMessToPlaylist(body)
-                    Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
-                    val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
-                    hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                    coroutineScope.launch(Dispatchers.Main) {
-                        onMessageListener.invoke(hubCommand, jsonMess)
-                        sendLogSchedule(HubCommand.DV006, body)
+                    try {
+                        val mapMonthSchedule = convertWssMessToPlaylist(body)
+                        Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
+                        val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
+                        hubCommand = HubCommand.UPDATE_MONTHLY_WSS
+                        coroutineScope.launch(Dispatchers.Main) {
+                            onMessageListener.invoke(hubCommand, jsonMess)
+                            sendLogSchedule(HubCommand.DV006, body)
+                        }
+                    } catch (e: Exception) {
+                        Log.d("TestLog", "convertToHubCommand: ${e.message}")
                     }
+
                 }
             }
 
@@ -382,9 +613,9 @@ class HubManager(
             HubCommand.DV009 -> {
                 val body = wssData.payload
                 if (body != null) {
-
                     val maLenh = body.dieuKhienThietBI?.maLenh
                     val giaTri = body.dieuKhienThietBI?.thamSo
+                    Log.d("wss", "convertWssToHubCommad: ${maLenh}-${giaTri}")
 
                     when (maLenh) {
                         //0 - Điều khiển volume
@@ -397,8 +628,9 @@ class HubManager(
                         //1 - Điều khiển công suất
                         "1" -> {
                             hubCommand = HubCommand.TURN_ON_PA
-                            //0 - bật
-                            //1 - tắt
+                            //update theo 2455, ngược vs bản cũa
+                            //0 - tắt
+                            //1 - bật
                             if (giaTri == "0") {
                                 responseHub = ResponseHub().apply {
                                     message = "0"
@@ -449,7 +681,6 @@ class HubManager(
                                 }
                             }
                         }
-
                     }
                     onMessageListener.invoke(hubCommand, jsonMessage)
 
@@ -459,51 +690,15 @@ class HubManager(
         }
     }
 
-    fun sendUnsentLogMediaSuccess(mediaItem: MediaLogModel, paState: String) {
-        val request = WssStatusModel(
-            id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
-                nguonID = nguonId,
-                tenNguon = tenNguon,
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ),
-                thoiDiemBatDau = mediaItem.thoiDiemBatDau,
-                congSuat = paState,
-                banTinID = mediaItem.banTinID,
-                loaiBanTin = mediaItem.loaiBanTin,
-                mucDoUuTien = mediaItem.mucDoUuTien,
-                noiDung = mediaItem.noiDung,
-                noiDungTomTat = mediaItem.noiDungTomTat,
-                tacGia = adapterTacGia.fromJson(mediaItem.tacGia),
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-                thoiLuong = mediaItem.thoiLuong,
-                tieuDe = mediaItem.tieuDe,
-                danhSachBanTin = listOf(),
-                danhSachDiaBan = listOf(),
-                danhSachThietBi = listOf(),
-                loaiLinhVuc = mediaItem.loaiLinhVuc,
-            )
-        )
-        Log.d(TAG, "sendLogMedia unseen Success: dv005")
-        sendMessage(wssStatusAdapter.toJson(request))
-    }
-
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
-
         val tacGia = TacGia(
             tenDayDu = mediaItem.author?.fullName ?: "",
             butDanh = mediaItem.author?.userName ?: "",
             email = mediaItem.author?.email ?: ""
         )
 
-        val request = WssStatusModel(
-            id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
+        val request = MQTTStatusModel(
+            id = "", topic = HubCommand.DV005, payload = MQTTMediaLogModel(
                 nguonID = nguonId,
                 tenNguon = tenNguon,
                 dichID = dichId,
@@ -554,8 +749,8 @@ class HubManager(
                 tenThietBi = GlobalProperties.getInst().nameDevice,
             )
         )
-        val request = WssStatusModel(
-            id = "", topic = commanDV, payload = WssMediaLogModel(
+        val request = MQTTStatusModel(
+            id = "", topic = commanDV, payload = MQTTMediaLogModel(
                 nguonID = nguonId,
                 tenNguon = tenNguon,
                 dichID = dichId,
@@ -582,7 +777,9 @@ class HubManager(
     }
 
     private val listDate = mutableListOf<String>()
-    private fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>) {
+    private fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>?) {
+        if (danhSachNgayPhat == null) return
+        listDate.clear()
         danhSachNgayPhat.forEach {
             listDate.add(unixTimeStampToDateTime(it.ngayPhat))
         }
@@ -619,9 +816,9 @@ class HubManager(
         val listItemMedia = mutableListOf<itemMedia>()
         //tim nhung ban tin co ngay la date
         for (item in danhSachBanTin!!) {
-            item.danhSachNgayPhat.forEach {
+            item.danhSachNgayPhat?.forEach {
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
-                    it.thoiDiemPhat.forEach { thoiDiemPhat ->
+                    it.thoiDiemPhat?.forEach { thoiDiemPhat ->
                         val time = ThongTinChiTietBanTin(
                             thoiDiemPhat.thoiGianBatDau,
                             thoiDiemPhat.thoiGianKetThuc
@@ -639,7 +836,7 @@ class HubManager(
             var checkCountStart = 0
             for (item in listItemMedia) {
                 val tObjStartTime: String = if (checkCountStart > 0) {
-                    convertTimeStampToHHMMSS(item.time.thoiGianBatDau - 0)
+                    convertTimeStampToHHMMSS(item.time.thoiGianBatDau?.minus(0))
                 } else {
                     convertTimeStampToHHMMSS(item.time.thoiGianBatDau)
                 }
@@ -665,7 +862,7 @@ class HubManager(
                     author = convertAuthor(item.danhSachBanTin.tacGia),
                     body = item.danhSachBanTin.noiDung,
                     sourceReference = item.danhSachBanTin.tenDiaBanTAO,
-                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin.toInt()),
+                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin?.toInt()),
                     createDate = item.danhSachBanTin.thoiGianSANXuat.toString(),
                     metadata = mutableListOf(),
                     tag = mutableListOf(),
