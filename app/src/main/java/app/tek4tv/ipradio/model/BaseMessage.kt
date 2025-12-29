@@ -6,6 +6,6 @@ import com.squareup.moshi.JsonClass
 @JsonClass(generateAdapter = true)
 data class BaseMqttMessage(
     @Json(name = "payload") val payload: Any?,
-    @Json(name = "id") val id: String,
-    @Json(name = "topic") val topic: String
+    @Json(name = "id") val id: String?,
+    @Json(name = "topic") val topic: String?
 )

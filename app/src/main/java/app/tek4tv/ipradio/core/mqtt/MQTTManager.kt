@@ -63,7 +63,7 @@ class MQTTManager(
 
             override fun connectionLost(cause: Throwable?) {
                 Log.d(TAG, "Connection lost ${cause}")
-                cause?.printStackTrace();
+                cause?.printStackTrace()
             }
 
             override fun deliveryComplete(token: IMqttDeliveryToken?) {

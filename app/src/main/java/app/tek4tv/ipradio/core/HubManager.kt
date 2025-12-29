@@ -282,7 +282,6 @@ class HubManager(
                             val payload = schedulePayloadAdapter.fromJsonValue(body)
                             if (payload == null) return
                             val mapMonthSchedule = convertWssMessToPlaylist(payload)
-                            Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
                             val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
                             hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                             onMessageListener.invoke(hubCommand, jsonMess)
@@ -291,7 +290,7 @@ class HubManager(
                                 sendLogSchedule(body)
                             }
                         } catch (e: Exception) {
-                            Log.d("TestLog", "convertToHubCommand: ${e.message}")
+                            Log.d(TAG, "dv002 fail: ${e.message}")
                         }
 
                     }
@@ -353,7 +352,7 @@ class HubManager(
                                 onMessageListener.invoke(hubCommand, jsonMessage)
                             }
                         } catch (e: Exception) {
-                            Log.d("TestLog", "convertToHubCommand: ${e.message}")
+                            Log.d(TAG, "dv003 fail: ${e.message}")
                         }
 
                     }
@@ -477,7 +476,7 @@ class HubManager(
                     )
                 ),
 
-                  
+
                 )
             val baseMqttMessage = BaseMqttMessage(
                 id = "", topic = HubCommand.DV007, payload = payload
