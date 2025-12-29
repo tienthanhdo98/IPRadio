@@ -283,9 +283,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.setOnClickListener {
-            hubManager.publishTestDvToMqtt("dv002");
-        }
+//        tvMacAdress.setOnClickListener {
+//            hubManager.publishTestDvToMqtt("dv004");
+//        }
     }
 
 
@@ -543,7 +543,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.RESTART -> {
-                    serialPortController.hardRestart()
+                    lifecycleScope.launch {
+                        val seconds = responseHub.message?.trim()?.toLongOrNull() ?: 0L
+                        delay(seconds * 1000L)
+                        Log.d("RESTART", "handleFromCommandServer: reset")
+                        serialPortController.hardRestart()
+                    }
+
                 }
 
                 HubCommand.SWITCH_MODE_FM -> {

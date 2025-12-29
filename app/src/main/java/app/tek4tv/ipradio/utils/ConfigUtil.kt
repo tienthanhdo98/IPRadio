@@ -26,12 +26,14 @@ object ConfigUtil {
     const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
     const val ServerTimeout = "ServerTimeout"
     const val KeepAliveInterval = "KeepAliveInterval"
+
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
     const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
     const val MONTHLY_SCENARIO_DATA = "MONTHLY_SCENARIO_DATA"
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
+
     //Token
     const val USERNAME = "USERNAME"
     const val PASSWORD = "PASSWORD"
@@ -59,11 +61,15 @@ object ConfigUtil {
 
     fun getStringEncrypt(context: Context, key: String): String {
 
-        return getEncryptedSharedPreferences(context).getString(key,"") ?: ""
+        return getEncryptedSharedPreferences(context).getString(key, "") ?: ""
     }
+
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(
-            context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            context,
+            PREFERENCE_FILE_NAME,
+            getKey(context),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
@@ -73,12 +79,14 @@ object ConfigUtil {
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
     }
+
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
         editor.putInt(key, value)
         editor.apply()
     }
+
     fun getInt(context: Context, key: String, defaultValue: Int): Int {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getInt(key, defaultValue)
@@ -113,6 +121,7 @@ object ConfigUtil {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getFloat(key, defaultValue)
     }
+
 
     fun checkSharef(context: Context, key: String): Boolean {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

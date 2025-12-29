@@ -50,7 +50,5 @@ abstract class BaseRepo<T>(
         return result
     }
 
-    fun cancelAllJob() {
-        coroutineScope.cancel()
-    }
+
 }

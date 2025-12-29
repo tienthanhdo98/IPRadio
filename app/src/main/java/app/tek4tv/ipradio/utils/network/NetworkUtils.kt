@@ -196,7 +196,8 @@ class NetworkUtils private constructor() {
             )
             return mode == AppOpsManager.MODE_ALLOWED
         }
-        fun getTotalDataNetworkUsed(appContext: Context) : String{
+
+        fun getTotalDataNetworkUsed(appContext: Context): String {
             val netStatManager =
                 appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
             val helper = NetworkStatsHelper(netStatManager)
@@ -213,8 +214,9 @@ class NetworkUtils private constructor() {
             val allTxByte =
                 helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
 
-            return  ((allRxByte + allTxByte) / 1024).toString()
+            return ((allRxByte + allTxByte) / 1024).toString()
         }
+
         fun getNetworkUsage(appContext: Context): String {
             return try {
                 val netStatManager =
@@ -229,9 +231,17 @@ class NetworkUtils private constructor() {
                     add(Calendar.DAY_OF_MONTH, -1)
                 }
                 val allRxByte =
-                    helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)/1024
+                    helper.getAllRxByte(
+                        appContext,
+                        startTime.timeInMillis,
+                        endTime.timeInMillis
+                    ) / 1024
                 val allTxByte =
-                    helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)/1024
+                    helper.getAllTxByte(
+                        appContext,
+                        startTime.timeInMillis,
+                        endTime.timeInMillis
+                    ) / 1024
                 //data nhận, data gửi
                 "$allRxByte,$allTxByte"
             } catch (e: Exception) {
@@ -243,33 +253,31 @@ class NetworkUtils private constructor() {
         fun getNetworkInfo(appContext: Context): String {
             return try {
                 val networkClass = getNetworkClass(appContext)
-//                val dataUsage = getNetworkUsage(appContext)
-
                 val level = when (networkClass) {
-                    "WIFI" -> "${getWifiSignalStrength(appContext)}dbm"
+                    "Wifi" -> "${getWifiSignalStrength(appContext)}dbm"
                     "---" -> ""
-                    "ENET" -> ""
+                    "Ethernet" -> ""
                     else -> {
                         val cellStrength = getCellSignalStrengthInDbm(appContext)
                         if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
                             "${cellStrength}dbm"
                         else
-                            "NONE_OR_UNKNOWN"
+                            ""
                     }
                 }
 
 //                return "$networkClass,$dataUsage,$level"
                 //theo 2455 khong gui datausage o day
-                return "$networkClass,$level"
+                if (level.isBlank()) networkClass else "$networkClass,$level"
             } catch (e: Exception) {
                 e.printStackTrace()
                 "error"
             }
         }
 
-        fun setWifiEnable(appContext: Context, enable : Boolean)
-        {
-            val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        fun setWifiEnable(appContext: Context, enable: Boolean) {
+            val wifiManager =
+                appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             wifiManager.isWifiEnabled = enable
         }
     }

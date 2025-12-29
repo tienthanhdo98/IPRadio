@@ -17,33 +17,32 @@ fun unixTimeStampToDateTime(
     pattern: String = "dd-MM-yyyy",
     timeZone: TimeZone = TimeZone.getDefault()
 ): String {
-    // Convert epoch time to milliseconds
     if (epochTime == null) return ""
-    val millis = epochTime * 1000
 
-    // Create a Date object from the)
-    val date = Date(epochTime * 1000)
+    // nếu > 10^12 thì coi là milliseconds, còn lại là seconds
+    val millis = if (epochTime >= 1_000_000_000_000L) epochTime else epochTime * 1000L
 
-    // Define a date formatter
-    val formatter = SimpleDateFormat(pattern)
-    formatter.timeZone = timeZone // Set the formatter's time zone
-
-    // Format the date
-    return formatter.format(date)
+    val formatter = SimpleDateFormat(pattern, Locale.getDefault()).apply {
+        this.timeZone = timeZone
+    }
+    return formatter.format(Date(millis))
 }
 
 
 fun convertTimeStampToHHMMSS(s: Long?): String {
     return try {
         if (s == null) return ""
-        val netDate = Date(s * 1000)
-        sdf.format(netDate)
+
+        val millis = if (s >= 1_000_000_000_000L) s else s * 1000L
+        val date = Date(millis)
+
+        // nếu sdf là biến global, nhớ set timezone/locale khi khởi tạo
+        sdf.format(date)
     } catch (e: Exception) {
-        Log.d("convertTimeStampToHHMMSS", "convertTimeStampToHHMMSS: ${e.message} - value: : ${s}")
-        e.toString()
+        Log.d("convertTimeStampToHHMMSS", "Error: ${e.message} - value: $s")
+        ""
     }
 }
-
 
 fun isInRangeTimePlay(): Boolean {
     val currentTime = Calendar.getInstance()

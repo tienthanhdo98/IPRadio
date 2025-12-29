@@ -76,21 +76,22 @@ data class MediaItem(
     val type: String? = null,
 
     @Json(name = "CreateDate")
-    val createDate: String? = null,
+    val createDate: Long? = null,
 
     @Json(name = "Metadata")
     val metadata: List<Any?>? = null,
 
-    @Json(name = "Tag")
-    val tag: List<Any?>? = null,
-
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
-    ) : Serializable {
+    @Json(name = "ExternalSource")
+    var isExternalSource: Int? = 1
+
+) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
+
 
     var pathBackup: String = ""
 //        set(value) {
@@ -102,8 +103,6 @@ data class MediaItem(
         pathBackup = body!!
     }
 
-    fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
-    else File("file://$body").name
 
     fun getMediaType(): MediaType {
         return when (type) {

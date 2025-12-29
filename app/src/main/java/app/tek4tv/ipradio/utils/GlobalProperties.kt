@@ -25,8 +25,8 @@ class GlobalProperties {
     var psName = "AAA"
     var nameDevice = ""
     var resumeFromStart = false
-    var lat: Float = 0F
-    var lng: Float = 0F
+    var lat: String = "0.0"
+    var lng: String = "0.0"
     var providerValue: String = "TEK4TV"
 
     init {
@@ -38,8 +38,8 @@ class GlobalProperties {
             ?: "Thiết bị Demo - TEK4TV"
         //nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã Ba Cung") ?: "TB Xã Ba Cung"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
+        lat = ConfigUtil.getString(appContext, LATITUDE, "0.0") ?: "0.0"
+        lng = ConfigUtil.getString(appContext, LONGTITUDE, "0.0") ?: "0.0"
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
         providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
     }
@@ -72,12 +72,12 @@ class GlobalProperties {
             resumeFromStart = responseHub.resumeFromStart!!
         }
         if (responseHub.lat != null) {
-            ConfigUtil.putFloat(appContext, LATITUDE, responseHub.lat!!)
-            lat = responseHub.lat ?: 0F
+            ConfigUtil.putString(appContext, LATITUDE, responseHub.lat!!.toString())
+            lat = responseHub.lat ?: "0.0"
         }
         if (responseHub.lng != null) {
-            ConfigUtil.putFloat(appContext, LONGTITUDE, responseHub.lng!!)
-            lng = responseHub.lng ?: 0F
+            ConfigUtil.putString(appContext, LONGTITUDE, responseHub.lng!!.toString())
+            lng = responseHub.lng ?: "0.0"
         }
     }
 

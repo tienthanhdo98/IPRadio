@@ -5,30 +5,32 @@ import android.os.Build
 import android.util.Log
 import androidx.annotation.RequiresApi
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
-import app.tek4tv.ipradio.core.websocket.WssManager
+import app.tek4tv.ipradio.di.JsonAdapterProvider.baseMqttMessageAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.cancelPayloadAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.controllerPayloadAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.livePayloadAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaItemMoshiAdapter
-import app.tek4tv.ipradio.di.JsonAdapterProvider.wssLiveAdapter
-import app.tek4tv.ipradio.di.JsonAdapterProvider.wssStatusAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.schedulePayloadAdapter
 import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
 import app.tek4tv.ipradio.model.Author
+import app.tek4tv.ipradio.model.BaseMqttMessage
 import app.tek4tv.ipradio.model.Category
 import app.tek4tv.ipradio.model.ContentType
-import app.tek4tv.ipradio.model.DanhSachDiaBanNhan
-import app.tek4tv.ipradio.model.DanhSachNgayPhat
-import app.tek4tv.ipradio.model.DanhSachThietBi
+import app.tek4tv.ipradio.model.LogAddSchedulePayload
+import app.tek4tv.ipradio.model.LogCancelSchedulePayload
 import app.tek4tv.ipradio.model.MQTTInfoModel
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.NoiDungMQTT
-import app.tek4tv.ipradio.model.PayloadLive
-import app.tek4tv.ipradio.model.PayloadStatus
-import app.tek4tv.ipradio.model.Priority
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.TacGia
-import app.tek4tv.ipradio.model.ThongTinChiTietBanTin
-import app.tek4tv.ipradio.model.ThongTinThietBI
-import app.tek4tv.ipradio.model.MQTTMediaLogModel
-import app.tek4tv.ipradio.model.MQTTStatusModel
+import app.tek4tv.ipradio.model.NgayPhat
+import app.tek4tv.ipradio.model.Priority
+import app.tek4tv.ipradio.model.SchedulePayload
+import app.tek4tv.ipradio.model.LogMediaSuccessPayload
+import app.tek4tv.ipradio.model.StatusPayload
+import app.tek4tv.ipradio.model.ThietBi
+import app.tek4tv.ipradio.model.ThoiDiemPhat
 import app.tek4tv.ipradio.model.itemMedia
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.ConfigUtil
@@ -41,7 +43,6 @@ import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
 import app.tek4tv.ipradio.utils.convertTimeStampToHHMMSS
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
 import app.tek4tv.ipradio.utils.unixTimeStampToDateTime
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
@@ -68,7 +69,8 @@ class HubManager(
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
-    val deviceImei = Utils.getDeviceId(appContext)
+    //val deviceImei = Utils.getDeviceId(appContext)
+    val deviceImei = "54:78:C9:B8:10:0E"
 
     var pingCounter = 0
 
@@ -76,22 +78,18 @@ class HubManager(
 
     var currentMediaItem: MediaItem? = null
 
-    var versionName = "W62.4.2c"
+    var versionName = "M62.4.2c"
 
     private var hubToken: String? = null
 
 
     var isConnectSuccess = false
 
-    private var wssManager: WssManager? = null
-
     var nguonId = ""
-
     var tenNguon = ""
     var dichId = ""
     var tenDich = ""
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
-    val isMQTT = true
     private var getMQTTInfoJob: Job? = null
 
     var mqttClient: MQTTManager? = null
@@ -182,38 +180,30 @@ class HubManager(
                     continue
                 }
                 // Cancel and start a new MQTT info retrieval job
-                if (isMQTT) {
-                    getMQTTInfoJob?.cancel()
-                    getMQTTInfoJob = launch {
-                        while (listMQTTInfo.isEmpty()) {
-                            getMqttInfo()
-                            if (listMQTTInfo.isEmpty()) {
-                                pingCounter++
-                                delay(API_CALL_INTERVAL)
-                            }
+                getMQTTInfoJob?.cancel()
+                getMQTTInfoJob = launch {
+                    while (listMQTTInfo.isEmpty()) {
+                        getMqttInfo()
+                        if (listMQTTInfo.isEmpty()) {
+                            pingCounter++
+                            delay(API_CALL_INTERVAL)
                         }
-                        mqttClient =
-                            MQTTManager(
-                                hubToken,
-                                appContext,
-                                this@HubManager,
-                                listMQTTInfo,
-                                destinationId = dichId
-                            )
-                        while (!isConnectSuccess) {
-                            mqttClient?.connectToMQTT()
-                            delay(5000)
-                        }
-
                     }
-                } else {
-                    wssManager = WssManager(hubToken, appContext, this@HubManager)
+                    mqttClient =
+                        MQTTManager(
+                            hubToken,
+                            appContext,
+                            this@HubManager,
+                            listMQTTInfo,
+                            destinationId = dichId
+                        )
                     while (!isConnectSuccess) {
-                        wssManager!!.connectToWss()
+                        mqttClient?.connectToMQTT()
                         delay(5000)
                     }
 
                 }
+
             }
         }
     }
@@ -234,10 +224,8 @@ class HubManager(
     }
 
     private fun sendMessage(message: String) {
-        if (isMQTT && mqttClient != null) {
+        if (mqttClient != null) {
             mqttClient?.publishToMQTT(message)
-        } else {
-            wssManager?.sendMessage(message)
         }
     }
 
@@ -252,532 +240,338 @@ class HubManager(
             noiDungPhat = ""
             trangThaiHoatDong = "2"
         }
-        val request = MQTTStatusModel(
-            id = "", topic = HubCommand.DV008, payload = PayloadStatus(
-                dichID = dichId,
-                tenDich = tenDich,
-                nguonID = nguonId,
-                tenNguon = tenNguon,
-                cumLoaID = deviceImei,
-                tenThietBI = GlobalProperties.getInst().nameDevice,
-                tenLoaiThietBI = "Cụm loa truyền thanh",
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ) ?: "0",
-                trangThaiHoatDong = trangThaiHoatDong,
-                trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
-                viDo = GlobalProperties.getInst().lat,
-                kinhDo = GlobalProperties.getInst().lng,
-                //dang ko co truong nay
-                thongTinThietBI = ThongTinThietBI(
-                    congSuat = getDeviceInfo(
-                        StringValue.deviceInfoPA,
-                        SerialPortController.deviceInfo
-                    ) ?: "0",
-                    nhietDo = getDeviceInfo(
-                        StringValue.deviceInfoTemperature,
-                        SerialPortController.deviceInfo
-                    ) ?: "0",
-                    dungLuongSuDung = getTotalDataNetworkUsed(appContext),
-                    duLieuKhac = SerialPortController.deviceInfo
-                ),
-                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                noiDungPhat = noiDungPhat,
-                phienBanUngDung = versionName,
-            )
+        val payload = StatusPayload(
+            amLuong = getDeviceInfo(
+                StringValue.deviceInfoVolume,
+                SerialPortController.deviceInfo
+            ) ?: "0",
+            cumLoaId = deviceImei,
+            dichId = dichId,
+            viDo = GlobalProperties.getInst().lat.toDouble(),
+            kinhDo = GlobalProperties.getInst().lng.toDouble(),
+            maNhaCungCap = GlobalProperties.getInst().providerValue,
+            nguonId = nguonId,
+            noiDungPhat = noiDungPhat,
+            phienBanUngDung = versionName,
+            tenDich = tenDich,
+            tenLoaiThietBi = "Cụm loa truyền thanh",
+            tenNguon = tenNguon,
+            tenNhaCungCap = GlobalProperties.getInst().providerValue,
+            tenThietBi = GlobalProperties.getInst().nameDevice,
+            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+            trangThaiHoatDong = trangThaiHoatDong,
+            trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
         )
-        Log.d(TAG, "sendPing: $request")
-        sendMessage(wssStatusAdapter.toJson(request))
-    }
-
-    fun publishTestDvToMqtt(dv: String) {
-        var json = "";
-        when (dv) {
-            "dv002" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv002\",\n" +
-                        "  \"payload\": {\n" +
-                        "    \"NguonID\": \"H24.00.00.000\",\n" +
-                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
-                        "    \"DichID\": \"H24.00.00.000\",\n" +
-                        "    \"TenDich\": \"H24.00.00.000\",\n" +
-                        "    \"DanhSachDiaBanNhan\": [\n" +
-                        "      {\n" +
-                        "        \"DichID\": \"H24.00.00.000\",\n" +
-                        "        \"TenDich\": \"Phường Hoàng Liệt\"\n" +
-                        "      }\n" +
-                        "    ],\n" +
-                        "    \"LichPhatID\": \"b573872c-9c98-4fc7-8672-40c97355fde0\",\n" +
-                        "    \"TenLichPhat\": \"Test bản tin thông thường 08-12-2025\",\n" +
-                        "    \"DanhSachBanTin\": [\n" +
-                        "      {\n" +
-                        "        \"BanTinID\": \"27284b55-829a-46f4-95aa-2a48814fc13\",\n" +
-                        "        \"LoaiBanTin\": \"3\",\n" +
-                        "        \"MucDoUuTien\": \"3\",\n" +
-                        "        \"TieuDe\": \"Test bản tin thông thường 08-12-202\",\n" +
-                        "        \"LoaiLinhVuc\": \"1\",\n" +
-                        "        \"NoiDungTomTat\": \"Test bản tin thông thường 08-12-202\",\n" +
-                        "        \"ThoiGianSanXuat\": 1765175210,\n" +
-                        "        \"ThoiLuong\": \"00:04:15\",\n" +
-                        "        \"TacGia\": {\n" +
-                        "          \"TenDayDu\": \"BytechTester\",\n" +
-                        "          \"ButDanh\": \"bytech.tester\",\n" +
-                        "          \"Email\": \"tester@bytech.vn\"\n" +
-                        "        },\n" +
-                        "        \"NoiDung\": \"https://dev-data.devbt.com/media/2025/12/03/0ac561c5-3378-47cd-9d98-db2b63242e35639003273720624585_639003273719364232.mp3\",\n" +
-                        "        \"DiaBanTao\": \"H24.00.00.000\",\n" +
-                        "        \"TenDiaBanTao\": \"H24.00.00.000\",\n" +
-                        "        \"ThongTinChiTietBanTin\": null,\n" +
-                        "        \"NguonTin\": \"H24.00.00.000\",\n" +
-                        "        \"TiepAm\": 1,\n" +
-                        "        \"NguonTiepAm\": \"\",\n" +
-                        "        \"DanhSachNgayPhat\": [\n" +
-                        "          {\n" +
-                        "            \"NgayPhat\": 1765152000,\n" +
-                        "            \"ThoiDiemPhat\": [\n" +
-                        "              {\n" +
-                        "                \"ThoiGianBatDau\": 1765179000,\n" +
-                        "                \"ThoiGianKetThuc\": 1765179240\n" +
-                        "              }\n" +
-                        "            ]\n" +
-                        "          }\n" +
-                        "        ]\n" +
-                        "      }\n" +
-                        "    ]\n" +
-                        "  }\n" +
-                        "}";
-            }
-
-            "dv003" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv003\",\n" +
-                        "  \"payload\": {\n" +
-                        "    \"NguonID\": \"H24.00.00.000\",\n" +
-                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
-                        "    \"DanhSachDiaBanNhan\": [\n" +
-                        "      {\n" +
-                        "        \"DichID\": \"H24.00.00.000\",\n" +
-                        "        \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "        \"CumLoaID\": null\n" +
-                        "      }\n" +
-                        "    ],\n" +
-                        "    \"BanTinID\": \"63ca061b-2271-4d95-9ce2-c85765c37a67\",\n" +
-                        "    \"LoaiBanTin\": \"3\",\n" +
-                        "    \"MucDoUuTien\": \"1\",\n" +
-                        "    \"TieuDe\": \"Test Bản tin khẩn cấp 08-12-2025\",\n" +
-                        "    \"LoaiLinhVuc\": \"1\",\n" +
-                        "    \"NoiDungTomTat\": \"Test Bản tin khẩn cấp 08-12-2025\",\n" +
-                        "    \"ThoiGianSanXuat\": 1765175210,\n" +
-                        "    \"ThoiLuong\": \"00:02:30\",\n" +
-                        "    \"TacGia\": {\n" +
-                        "      \"TenDayDu\": \"BytechTester\",\n" +
-                        "      \"ButDanh\": \"bytech.tester\",\n" +
-                        "      \"Email\": \"tester@bytech.vn\"\n" +
-                        "    },\n" +
-                        "    \"NoiDung\": \"https://dev-data.devbt.com/media/2025/11/07/63f8f7b7-de80-4545-b4e6-8479d90f32a8638981211004688910_638981211003778612.mp3\",\n" +
-                        "    \"DiaBanTao\": \"H24.00.00.000\",\n" +
-                        "    \"TenDiaBanTao\": \"H24.00.00.000\",\n" +
-                        "    \"ThongTinChiTietBanTin\": null,\n" +
-                        "    \"NguonTin\": \"H24.00.00.000\"\n" +
-                        "  }\n" +
-                        "}"
-            }
-
-            "dv004" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv004\",\n" +
-                        "  \"payload\": {\n" +
-                        "    \"NguonID\": \"H24.00.00.000\",\n" +
-                        "    \"TenNguon\": \"H24.00.00.000\",\n" +
-                        "    \"LichPhatID\": \"63ca061b-2271-4d95-9ce2-c85765c37a67\",\n" +
-                        "    \"TenLichPhat\": \"Test hủy lịch phát lặp lại nhiều lần\",\n" +
-                        "    \"DanhSachDiaBanNhan\": [\n" +
-                        "      {\n" +
-                        "        \"DichID\": \"H24.00.00.000\",\n" +
-                        "        \"TenDich\": \"Phường Hoàng Liệt\"\n" +
-                        "      }\n" +
-                        "    ]\n" +
-                        "  }\n" +
-                        "}"
-            }
-
-            "dv009-0" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv009\",\n" +
-                        "  \"payload\": {\n" +
-                        "\t  \"NguonID\": \"H26.00.00\",\n" +
-                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
-                        "\t  \"DanhSachDiaBanNhan\": [\n" +
-                        "\t\t{\n" +
-                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
-                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "\t\t  \"CumLoaID\": null\n" +
-                        "\t\t}\n" +
-                        "\t  ],\n" +
-                        "\t  \"DanhSachThietBi\": null,\n" +
-                        "\t  \"DieuKhienThietBi\": {\n" +
-                        "\t\t\"MaLenh\": \"0\",\n" +
-                        "\t\t\"ThamSo\": \"67\"\n" +
-                        "\t  }\n" +
-                        "\t}\n" +
-                        "}"
-            }
-
-            "dv009-1-0" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv009\",\n" +
-                        "  \"payload\": {\n" +
-                        "\t  \"NguonID\": \"H26.00.00\",\n" +
-                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
-                        "\t  \"DanhSachDiaBanNhan\": [\n" +
-                        "\t\t{\n" +
-                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
-                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "\t\t  \"CumLoaID\": null\n" +
-                        "\t\t}\n" +
-                        "\t  ],\n" +
-                        "\t  \"DanhSachThietBi\": null,\n" +
-                        "\t  \"DieuKhienThietBi\": {\n" +
-                        "\t\t\"MaLenh\": \"1\",\n" +
-                        "\t\t\"ThamSo\": \"0\"\n" +
-                        "\t  }\n" +
-                        "\t}\n" +
-                        "}"
-            }
-
-            "dv009-1-1" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv009\",\n" +
-                        "  \"payload\": {\n" +
-                        "\t  \"NguonID\": \"H26.00.00\",\n" +
-                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
-                        "\t  \"DanhSachDiaBanNhan\": [\n" +
-                        "\t\t{\n" +
-                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
-                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "\t\t  \"CumLoaID\": null\n" +
-                        "\t\t}\n" +
-                        "\t  ],\n" +
-                        "\t  \"DanhSachThietBi\": null,\n" +
-                        "\t  \"DieuKhienThietBi\": {\n" +
-                        "\t\t\"MaLenh\": \"1\",\n" +
-                        "\t\t\"ThamSo\": \"1\"\n" +
-                        "\t  }\n" +
-                        "\t}\n" +
-                        "}"
-            }
-
-            "dv009-3" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv009\",\n" +
-                        "  \"payload\": {\n" +
-                        "\t  \"NguonID\": \"H26.00.00\",\n" +
-                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
-                        "\t  \"DanhSachDiaBanNhan\": [\n" +
-                        "\t\t{\n" +
-                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
-                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "\t\t  \"CumLoaID\": null\n" +
-                        "\t\t}\n" +
-                        "\t  ],\n" +
-                        "\t  \"DanhSachThietBi\": null,\n" +
-                        "\t  \"DieuKhienThietBi\": {\n" +
-                        "\t\t\"MaLenh\": \"3\",\n" +
-                        "\t\t\"ThamSo\": \"3\"\n" +
-                        "\t  }\n" +
-                        "\t}\n" +
-                        "}"
-            }
-
-            "dv009-4" -> {
-                json = "{\n" +
-                        "  \"id\": \"\",\n" +
-                        "  \"topic\": \"dv009\",\n" +
-                        "  \"payload\": {\n" +
-                        "\t  \"NguonID\": \"H26.00.00\",\n" +
-                        "\t  \"TenNguon\": \"TP Hà Nội\",\n" +
-                        "\t  \"DanhSachDiaBanNhan\": [\n" +
-                        "\t\t{\n" +
-                        "\t\t  \"DichID\": \"H26.00.00.000\",\n" +
-                        "\t\t  \"TenDich\": \"Phường Hoàng Liệt\",\n" +
-                        "\t\t  \"CumLoaID\": null\n" +
-                        "\t\t}\n" +
-                        "\t  ],\n" +
-                        "\t  \"DanhSachThietBi\": null,\n" +
-                        "\t  \"DieuKhienThietBi\": {\n" +
-                        "\t\t\"MaLenh\": \"4\",\n" +
-                        "\t\t\"ThamSo\": \"https://dev-data.devbt.com/data/ota/loathongminh_20251127_1.0.7b31.apk\"\n" +
-                        "\t  }\n" +
-                        "\t}\n" +
-                        "}"
-            }
-        }
-        convertToHubCommand(json);
+        val message = BaseMqttMessage(
+            id = "",
+            topic = HubCommand.DV008,
+            payload = payload
+        )
+        sendMessage(baseMqttMessageAdapter.toJson(message))
     }
 
     private fun convertToHubCommand(jsonMessage: String) {
-        val wssData = wssLiveAdapter.fromJson(jsonMessage)
-        var hubCommand = ""
-        when (wssData!!.topic) {
-            HubCommand.DV002 -> {
-                val body = wssData.payload
-                Log.d("TestLogrun", "run---")
-                if (body != null) {
-                    try {
-                        val mapMonthSchedule = convertWssMessToPlaylist(body)
-                        Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
-                        val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
-                        hubCommand = HubCommand.UPDATE_MONTHLY_WSS
-                        coroutineScope.launch(Dispatchers.Main) {
+        try {
+            val mqttMessage = baseMqttMessageAdapter.fromJson(jsonMessage)
+            var hubCommand = ""
+            when (mqttMessage!!.topic) {
+                HubCommand.DV002 -> {
+                    val body = mqttMessage.payload
+                    if (body != null) {
+                        try {
+                            val payload = schedulePayloadAdapter.fromJsonValue(body)
+                            if (payload == null) return
+                            val mapMonthSchedule = convertWssMessToPlaylist(payload)
+                            Log.d("TestLog", "convertToHubCommand: body $mapMonthSchedule")
+                            val jsonMess = jsonMapAdapter.toJson(mapMonthSchedule)
+                            hubCommand = HubCommand.UPDATE_MONTHLY_WSS
                             onMessageListener.invoke(hubCommand, jsonMess)
-                            sendLogSchedule(HubCommand.DV006, body)
+                            coroutineScope.launch(Dispatchers.Main) {
+                                onMessageListener.invoke(hubCommand, jsonMess)
+                                sendLogSchedule(body)
+                            }
+                        } catch (e: Exception) {
+                            Log.d("TestLog", "convertToHubCommand: ${e.message}")
                         }
-                    } catch (e: Exception) {
-                        Log.d("TestLog", "convertToHubCommand: ${e.message}")
+
                     }
-
-                }
-            }
-
-            HubCommand.DV003 -> {
-                val body = wssData.payload
-                hubCommand = HubCommand.LIVE
-                responseHub = ResponseHub().apply {
-                    type = HubCommand.LIVE
-                    level = body?.mucDoUuTien!!.toInt()
-                    duration = body.thoiLuong.toString()
-                    message = body.noiDung
-                    userNameControl = ""
-                    name = mediaItemMoshiAdapter.toJson(
-                        MediaItem(
-                            projectID = body.banTinID!!,
-                            mediaID = body.banTinID,
-                            id = 0,
-                            sourceID = body.nguonID,
-                            sourceName = body.tenNguon,
-                            destinationID = body.danhSachDiaBanNhan!!.firstOrNull()?.dichID,
-                            destinationName = body.danhSachDiaBanNhan.firstOrNull()?.tenDich,
-                            title = body.tieuDe,
-                            description = body.noiDungTomTat,
-                            duration = body.thoiLuong,
-                            body = body.noiDung,
-                            sourceReference = body.nguonID!!.split(".").firstOrNull(),
-                            startTime = "00:00:00",
-                            fieldType = Category(
-                                id = body.loaiLinhVuc?.toLong(),
-                                value = body.loaiLinhVuc
-                            ),
-                            type = "LIVE",
-                            fixTime = "00:00:00",
-                            createDate = "",
-                            contentType = ContentType(
-                                id = body.loaiBanTin!!.toLong(),
-                                value = body.loaiBanTin
-                            ),
-                            priority = Priority(
-                                id = body.mucDoUuTien.toLong(),
-                                value = body.mucDoUuTien
-                            ),
-                            author = Author(),
-                        )
-                    )
-                }
-                Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
-                coroutineScope.launch(Dispatchers.Main) {
-                    onMessageListener.invoke(hubCommand, jsonMessage)
                 }
 
-            }
-            //Hủy lịch
-            HubCommand.DV004 -> {
-                val body = wssData.payload
-                if (body != null) {
-                    hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
-                    coroutineScope.launch(Dispatchers.Main) {
-                        onMessageListener.invoke(hubCommand, "null")
-                    }
-                    sendLogSchedule(HubCommand.DV007, body)
-                }
-            }
-            //dieu khien volume, pa
-            HubCommand.DV009 -> {
-                val body = wssData.payload
-                if (body != null) {
-                    val maLenh = body.dieuKhienThietBI?.maLenh
-                    val giaTri = body.dieuKhienThietBI?.thamSo
-                    Log.d("wss", "convertWssToHubCommad: ${maLenh}-${giaTri}")
-
-                    when (maLenh) {
-                        //0 - Điều khiển volume
-                        "0" -> {
-                            hubCommand = HubCommand.SET_VOLUME_DEVICE
+                HubCommand.DV003 -> {
+                    val body = mqttMessage.payload
+                    if (body != null) {
+                        try {
+                            val payload = livePayloadAdapter.fromJsonValue(body)
+                            hubCommand = HubCommand.LIVE
                             responseHub = ResponseHub().apply {
-                                message = giaTri
+                                type = HubCommand.LIVE
+                                level = payload?.mucDoUuTien!!.toInt()
+                                duration = payload.thoiLuong
+                                message = payload.noiDung
+                                userNameControl = ""
+                                name = mediaItemMoshiAdapter.toJson(
+                                    MediaItem(
+                                        projectID = payload.banTinID,
+                                        mediaID = payload.banTinID,
+                                        id = 0,
+                                        sourceID = payload.nguonID,
+                                        sourceName = payload.tenNguon,
+                                        destinationID = payload.danhSachDiaBanNhan.firstOrNull()?.dichID,
+                                        destinationName = payload.danhSachDiaBanNhan.firstOrNull()?.tenDich,
+                                        title = payload.tieuDe,
+                                        description = payload.noiDungTomTat,
+                                        duration = payload.thoiLuong,
+                                        body = payload.noiDung,
+                                        sourceReference = payload.nguonID.split(".")
+                                            .firstOrNull(),
+                                        startTime = "00:00:00",
+                                        fieldType = Category(
+                                            id = payload.loaiLinhVuc.toLong(),
+                                            value = payload.loaiLinhVuc
+                                        ),
+                                        type = "LIVE",
+                                        fixTime = "00:00:00",
+                                        createDate = payload.thoiGianSANXuat,
+                                        contentType = ContentType(
+                                            id = payload.loaiBanTin.toLong(),
+                                            value = payload.loaiBanTin
+                                        ),
+                                        priority = Priority(
+                                            id = payload.mucDoUuTien.toLong(),
+                                            value = payload.mucDoUuTien
+                                        ),
+                                        author = Author(
+                                            userName = payload.tacGia.butDanh,
+                                            email = payload.tacGia.email,
+                                            fullName = payload.tacGia.tenDayDu
+                                        ),
+                                    )
+                                )
                             }
+                            Log.d("wss", "convertWssToHubCommad: ${hubCommand}-${jsonMessage}")
+                            coroutineScope.launch(Dispatchers.Main) {
+                                onMessageListener.invoke(hubCommand, jsonMessage)
+                            }
+                        } catch (e: Exception) {
+                            Log.d("TestLog", "convertToHubCommand: ${e.message}")
                         }
-                        //1 - Điều khiển công suất
-                        "1" -> {
-                            hubCommand = HubCommand.TURN_ON_PA
-                            //update theo 2455, ngược vs bản cũa
-                            //0 - tắt
-                            //1 - bật
-                            if (giaTri == "0") {
-                                responseHub = ResponseHub().apply {
-                                    message = "0"
-                                }
-                            } else {
-                                responseHub = ResponseHub().apply {
-                                    message = "1"
-                                }
-                            }
+
+                    }
+
+                }
+//            //Hủy lịch
+                HubCommand.DV004 -> {
+                    val body = mqttMessage.payload
+                    if (body != null) {
+                        hubCommand = HubCommand.DELETE_MONTHLY_LIST_WSS
+                        coroutineScope.launch(Dispatchers.Main) {
+                            onMessageListener.invoke(hubCommand, "null")
                         }
-                        /*  Dừng phát nội dung
-                        1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
-                        2 - Dừng phát
-                        3 - Phát tiếp nội dụng đã dừng*/
-                        "2" -> {
-                            hubCommand = HubCommand.CONTROL_MEDIA
-                            if (giaTri == "0") {
-                                responseHub = ResponseHub().apply {
-                                    message = "0"
-                                }
-                            }
-                            if (giaTri == "1") {
-                                responseHub = ResponseHub().apply {
-                                    message = "1"
-                                }
-                            }
-                            if (giaTri == "2") {
-                                responseHub = ResponseHub().apply {
-                                    message = "2"
-                                }
-                            }
-                            if (giaTri == "3") {
-                                responseHub = ResponseHub().apply {
-                                    message = "3"
-                                }
-                            }
-                        }
-                        //Reset - Tham số (số giây khởi động lại)
-                        "3" -> {
-                            hubCommand = HubCommand.RESTART
-                        }
-                        //update thiet bi
-                        "4" -> {
-                            hubCommand = HubCommand.UPDATE_VERSION
-                            if (giaTri != "") {
+                        sendCancelScheduleLogSchedule(body)
+                    }
+                }
+                //dieu khien volume, pa
+                HubCommand.DV009 -> {
+                    val body = mqttMessage.payload
+                    if (body != null) {
+                        val payload = controllerPayloadAdapter.fromJsonValue(body)
+                        val maLenh = payload?.dieuKhienThietBi?.maLenh
+                        val giaTri = payload?.dieuKhienThietBi?.thamSo
+
+                        when (maLenh) {
+                            //0 - Điều khiển volume
+                            "0" -> {
+                                hubCommand = HubCommand.SET_VOLUME_DEVICE
                                 responseHub = ResponseHub().apply {
                                     message = giaTri
                                 }
                             }
+                            //1 - Điều khiển công suất
+                            "1" -> {
+                                hubCommand = HubCommand.TURN_ON_PA
+                                //update theo 2455, ngược vs bản cũa
+                                //0 - tắt
+                                //1 - bật
+                                if (giaTri == "0") {
+                                    responseHub = ResponseHub().apply {
+                                        message = "0"
+                                    }
+                                } else {
+                                    responseHub = ResponseHub().apply {
+                                        message = "1"
+                                    }
+                                }
+                            }
+                            /*  Dừng phát nội dung
+                            1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
+                            2 - Dừng phát
+                            3 - Phát tiếp nội dụng đã dừng*/
+                            "2" -> {
+                                hubCommand = HubCommand.CONTROL_MEDIA
+                                if (giaTri == "0") {
+                                    responseHub = ResponseHub().apply {
+                                        message = "0"
+                                    }
+                                }
+                                if (giaTri == "1") {
+                                    responseHub = ResponseHub().apply {
+                                        message = "1"
+                                    }
+                                }
+                                if (giaTri == "2") {
+                                    responseHub = ResponseHub().apply {
+                                        message = "2"
+                                    }
+                                }
+                                if (giaTri == "3") {
+                                    responseHub = ResponseHub().apply {
+                                        message = "3"
+                                    }
+                                }
+                            }
+                            //Reset - Tham số (số giây khởi động lại)
+                            "3" -> {
+                                hubCommand = HubCommand.RESTART
+                                responseHub = ResponseHub().apply {
+                                    message = (giaTri?.toIntOrNull() ?: 0).toString()
+                                }
+                            }
+                            //update thiet bi
+                            "4" -> {
+                                hubCommand = HubCommand.UPDATE_VERSION
+                                if (giaTri != "") {
+                                    responseHub = ResponseHub().apply {
+                                        message = giaTri
+                                    }
+                                }
+                            }
                         }
+                        onMessageListener.invoke(hubCommand, jsonMessage)
+
                     }
-                    onMessageListener.invoke(hubCommand, jsonMessage)
-
                 }
-            }
 
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "convertToHubCommand: ${e.message}")
+        }
+
+    }
+
+    private fun sendCancelScheduleLogSchedule(body: Any) {
+        try {
+            val receivedPayload = cancelPayloadAdapter.fromJsonValue(body)
+            val payload = LogCancelSchedulePayload(
+                dichID = receivedPayload?.nguonID,
+                tenDich = receivedPayload?.tenNguon,
+                lichPhatID = receivedPayload?.lichPhatID,
+                nguonID = receivedPayload?.nguonID,
+                tenNguon = receivedPayload?.tenNguon,
+                tenLichPhat = receivedPayload?.tenLichPhat,
+                danhSachThietBi = listOf(
+                    ThietBi(
+                        cumLoaId = deviceImei,
+                        maNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenThietBi = GlobalProperties.getInst().nameDevice,
+                    )
+                ),
+
+                  
+                )
+            val baseMqttMessage = BaseMqttMessage(
+                id = "", topic = HubCommand.DV007, payload = payload
+            )
+            sendMessage(baseMqttMessageAdapter.toJson(baseMqttMessage))
+
+        } catch (e: Exception) {
+            Log.d(TAG, "sendLogSchedule: ${e.message}")
+        }
+
+
+    }
+
+    private fun sendLogSchedule(body: Any) {
+        try {
+            val receivedPayload = schedulePayloadAdapter.fromJsonValue(body)
+            val payload = LogAddSchedulePayload(
+                danhSachBanTin = receivedPayload?.danhSachBanTin,
+                danhSachDiaBan = receivedPayload?.danhSachDiaBanNhan,
+                danhSachThietBi = listOf(
+                    ThietBi(
+                        cumLoaId = deviceImei,
+                        maNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                        tenThietBi = GlobalProperties.getInst().nameDevice,
+                    )
+                ),
+                dichId = receivedPayload?.dichID,
+                lichPhatId = receivedPayload?.lichPhatID,
+                nguonId = receivedPayload?.nguonID,
+                tenDich = receivedPayload?.tenDich,
+                tenLichPhat = receivedPayload?.tenLichPhat,
+                tenNguon = receivedPayload?.tenNguon
+            )
+            val baseMqttMessage = BaseMqttMessage(
+                id = "", topic = HubCommand.DV006, payload = payload
+            )
+            sendMessage(baseMqttMessageAdapter.toJson(baseMqttMessage))
+        } catch (e: Exception) {
+            Log.d(TAG, "sendLogSchedule: ${e.message}")
         }
     }
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
-        val tacGia = TacGia(
-            tenDayDu = mediaItem.author?.fullName ?: "",
-            butDanh = mediaItem.author?.userName ?: "",
-            email = mediaItem.author?.email ?: ""
-        )
+        try {
+            val tacGia = TacGia(
+                tenDayDu = mediaItem.author?.fullName ?: "",
+                butDanh = mediaItem.author?.userName ?: "",
+                email = mediaItem.author?.email ?: ""
+            )
 
-        val request = MQTTStatusModel(
-            id = "", topic = HubCommand.DV005, payload = MQTTMediaLogModel(
-                nguonID = nguonId,
-                tenNguon = tenNguon,
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+            val payload = LogMediaSuccessPayload(
                 amLuong = getDeviceInfo(
                     StringValue.deviceInfoVolume,
                     SerialPortController.deviceInfo
                 ),
-                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                banTinId = mediaItem.projectID,
                 congSuat = paState,
-                banTinID = mediaItem.projectID,
+                cumLoaId = deviceImei,
+                dichId = dichId,
                 loaiBanTin = mediaItem.contentType?.value,
+                loaiLinhVuc = mediaItem.fieldType?.value,
+                maNhaCungCap = GlobalProperties.getInst().providerValue,
                 mucDoUuTien = mediaItem.priority?.id.toString(),
+                nguonId = nguonId,
+                nguonTin = mediaItem.sourceName,
+                tacGia = tacGia,
+                tenDich = tenDich,
+                tenNhaCungCap = GlobalProperties.getInst().providerValue,
+                tenThietBi = GlobalProperties.getInst().nameDevice,
+                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
+                thoiGianSanXuat = mediaItem.createDate,
+                thoiLuong = mediaItem.duration,
+                tiepAm = mediaItem.isExternalSource,
+                tieuDe = mediaItem.title,
                 noiDung = mediaItem.pathBackup,
                 noiDungTomTat = mediaItem.description,
-                tacGia = tacGia,
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-                thoiLuong = mediaItem.duration,
-                tieuDe = mediaItem.title,
-                danhSachBanTin = listOf(),
-                danhSachDiaBan = listOf(),
-                danhSachThietBi = listOf(),
-                loaiLinhVuc = mediaItem.fieldType?.value,
             )
-        )
-        Log.d(TAG, "sendLogMediaSuccess: dv005")
-        sendMessage(wssStatusAdapter.toJson(request))
+
+            val baseMqttMessage = BaseMqttMessage(
+                id = "", topic = HubCommand.DV005, payload = payload
+            )
+            sendMessage(baseMqttMessageAdapter.toJson(baseMqttMessage))
+        } catch (e: Exception) {
+
+            Log.d(TAG, "sendLogMediaSuccess: ${mediaItem.createDate}")
+            Log.d(TAG, "sendLogMediaSuccess: ${e.message}")
+        }
+
     }
 
-    private fun sendLogSchedule(commanDV: String, body: PayloadLive) {
-        val danhSachDiaBanNhan = listOf(
-            DanhSachDiaBanNhan(
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = listOf(
-                    deviceImei
-                )
-            )
-        )
-        val danhSachThietBi = listOf(
-            DanhSachThietBi(
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-            )
-        )
-        val request = MQTTStatusModel(
-            id = "", topic = commanDV, payload = MQTTMediaLogModel(
-                nguonID = nguonId,
-                tenNguon = tenNguon,
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ),
-                thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-                lichPhatID = body.lichPhatID,
-                tenLichPhat = body.tenLichPhat,
-                tacGia = body.tacGia,
-                danhSachBanTin = body.danhSachBanTin,
-                danhSachDiaBan = danhSachDiaBanNhan,
-                danhSachThietBi = danhSachThietBi,
-            )
-        )
-        Log.d("WebsocketLog", "sendLogSchedule: $commanDV - $request")
-        sendMessage(wssStatusAdapter.toJson(request))
-    }
 
     private val listDate = mutableListOf<String>()
-    private fun findDate(danhSachNgayPhat: List<DanhSachNgayPhat>?) {
+    private fun findDate(danhSachNgayPhat: List<NgayPhat>?) {
         if (danhSachNgayPhat == null) return
         listDate.clear()
         danhSachNgayPhat.forEach {
@@ -786,11 +580,11 @@ class HubManager(
         listDate.sort()
     }
 
-    private fun convertWssMessToPlaylist(payload: PayloadLive): Map<String, String> {
+    private fun convertWssMessToPlaylist(payload: SchedulePayload): Map<String, String> {
         listDate.clear()
         val danhSachBanTin = payload.danhSachBanTin
         val mapData: MutableMap<String, String> = mutableMapOf()
-        if (danhSachBanTin?.isNotEmpty() == true) {
+        if (danhSachBanTin.isNotEmpty()) {
             for (item in danhSachBanTin) {
                 findDate(item.danhSachNgayPhat)
             }
@@ -810,16 +604,16 @@ class HubManager(
     }
 
 
-    private fun findScheduleByDate(payload: PayloadLive, ngayPhat: String): String {
+    private fun findScheduleByDate(payload: SchedulePayload, ngayPhat: String): String {
         val danhSachBanTin = payload.danhSachBanTin
         val listBanTinPhatTheoNgay = mutableListOf<MediaItem>()
         val listItemMedia = mutableListOf<itemMedia>()
         //tim nhung ban tin co ngay la date
-        for (item in danhSachBanTin!!) {
-            item.danhSachNgayPhat?.forEach {
+        for (item in danhSachBanTin) {
+            item.danhSachNgayPhat.forEach {
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
-                    it.thoiDiemPhat?.forEach { thoiDiemPhat ->
-                        val time = ThongTinChiTietBanTin(
+                    it.thoiDiemPhat.forEach { thoiDiemPhat ->
+                        val time = ThoiDiemPhat(
                             thoiDiemPhat.thoiGianBatDau,
                             thoiDiemPhat.thoiGianKetThuc
                         )
@@ -861,15 +655,15 @@ class HubManager(
                     category = Utils.convertFiend(item.danhSachBanTin.loaiLinhVuc),
                     author = convertAuthor(item.danhSachBanTin.tacGia),
                     body = item.danhSachBanTin.noiDung,
-                    sourceReference = item.danhSachBanTin.tenDiaBanTAO,
+                    sourceReference = item.danhSachBanTin.tenDiaBanTao,
                     type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin?.toInt()),
-                    createDate = item.danhSachBanTin.thoiGianSANXuat.toString(),
+                    createDate = item.danhSachBanTin.thoiGianSanXuat,
                     metadata = mutableListOf(),
-                    tag = mutableListOf(),
                     fixTime = tObjEndTime,
                     startTime = tObjStartTime,
                     start = tObjStartTime,
                     end = tObjEndTime,
+                    isExternalSource = item.danhSachBanTin.tiepAm
                 )
                 count++
                 listBanTinPhatTheoNgay.add(obj)
@@ -905,7 +699,7 @@ class HubManager(
             }
         }
         //Chỉ có 1 khung
-        if (starts.size == 0) {
+        if (starts.isEmpty()) {
             val firstId: Int = listItem.first().id?.minus(1) ?: 0
             Log.d("wssTImeFrame", "convertToTimeFrame: 1 khung")
             val tObjStart = MediaItem(
@@ -985,7 +779,7 @@ class HubManager(
                     Log.d(TAG, "ping: $pingCounter")
                     delay(PING_HUB_INTERVAL)
                     checkConnection()
-                } catch (e: CancellationException) {
+                } catch (_: CancellationException) {
                     break
                 } catch (e: Exception) {
                     Log.d(TAG, "startPingTimer: ${e.message}")

@@ -195,11 +195,11 @@ class Utils {
             return category
         }
 
-        fun convertAuthor(tacGia: TacGia): Author {
+        fun convertAuthor(tacGia: TacGia?): Author {
             return Author(
-                fullName = tacGia.tenDayDu,
-                userName = tacGia.butDanh,
-                email = tacGia.email,
+                fullName = tacGia?.tenDayDu,
+                userName = tacGia?.butDanh,
+                email = tacGia?.email,
             )
         }
 
@@ -232,9 +232,9 @@ class Utils {
                 }
 
                 val result = when (valueName) {
-                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: ""
-                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: ""
-                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: ""
+                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: "0"
+                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: "0"
+                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: "0"
                     else -> null
                 }
                 Log.d("debugLog", "getDeviceInfo: Extracted result -> $result")

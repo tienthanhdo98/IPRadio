@@ -12,7 +12,7 @@ data class ForceMedia(
     @Json(name = "Message")
     var path: String = "",
     @Json(name = "Duration")
-    var duration: String ? = null,
+    var duration: String? = null,
 
     @Json(name = "Type")
     var type: String = "",
@@ -20,7 +20,7 @@ data class ForceMedia(
     @Json(name = "Level")
     var level: Int = 0,
 
-    var mediaItem : MediaItem ? = null
+    var mediaItem: MediaItem? = null
 ) {
     //Thời điểm kết thúc
     @Json(name = "EndTime")
@@ -60,8 +60,10 @@ data class ForceMedia(
             createDate = mediaItem!!.createDate,
             id = mediaItem!!.id,
             projectID = mediaItem!!.mediaID,
-            fieldType = mediaItem!!.fieldType
-        ).also { it.level = level }
+            fieldType = mediaItem!!.fieldType,
+            isExternalSource = mediaItem!!.isExternalSource,
+
+            ).also { it.level = level }
     }
 
     fun saveItemToPref(appContext: Context) {
@@ -102,8 +104,8 @@ data class ForceMedia(
                 putString(appContext, FORCE_MEDIA, "")
             }
         }
-        fun clearMonthlyData(appContext: Context)
-        {
+
+        fun clearMonthlyData(appContext: Context) {
             ConfigUtil.putString(appContext, ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "")
         }
     }
