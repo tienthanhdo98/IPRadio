@@ -30,11 +30,7 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
     var isUart1 = false
-    fun disConnect()
-    {
-        serialPort?.close()
-        Log.d(LOG_TAG, "disconnect to serialport")
-    }
+
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)
@@ -50,6 +46,13 @@ class SerialPortController(
 
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
+
+        coroutineScope.launch(Dispatchers.IO) {
+            while (true) {
+                updateStatus()
+                delay(5000)
+            }
+        }
 
 
         if (serialPort != null && inputStream != null && outputStream != null) {
@@ -90,6 +93,7 @@ class SerialPortController(
                             "${cellStrength}dbm"
                         else "undefine"
                     }
+
                     "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
                     else -> "---"
                 }
@@ -118,7 +122,7 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-       coroutineScope.launch(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             while (!Thread.currentThread().isInterrupted) {
                 var size: Int
                 try {
@@ -131,9 +135,12 @@ class SerialPortController(
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
+                            Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
+                            val list = s.replace("$$,", "").replace("\r\n", "").split(",")
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
+                                volume = if (list.size > 5) list[5] else ""
                             }
                             dataFinal = StringBuffer()
                         }
@@ -150,7 +157,7 @@ class SerialPortController(
     private fun onDataReceived(data: String?) {
         // read data
         if (data == null) return
-        Log.d(LOG_TAG, "dataFinal: $data")
+        //Log.d(LOG_TAG, "dataFinal: $data")
         if (data.endsWith("\r\n")) {
             if (data.isNotEmpty() && data.startsWith("$$,")) {
                 if (isRead) {
@@ -192,7 +199,6 @@ class SerialPortController(
     fun turnOnPAVod() {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
         playMode = MODE_VOD_LIVE
-
         Log.e("PA", "ON")
     }
 
@@ -250,6 +256,7 @@ class SerialPortController(
         const val MODE_TUNER = "MODE_TUNER"
         const val MODE_NONE = "MODE_NONE"
         const val LOG_TAG = "SerialPortController"
+        var volume: String = ""
         var deviceInfo: String = ""
     }
 }

@@ -18,8 +18,8 @@ class MyApp : Application() {
             ConfigUtil.PASSWORD,
             "123433232323"
         )
-        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME_KEY, "Username")
-        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY, "Password")
+        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME_KEY, "USERNAME")
+        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
         ConfigUtil.putStringEncrypt(
             appContext,
             ConfigUtil.URL_TOKEN,

@@ -69,7 +69,7 @@ class HubManager(
     private var pingHubJob: Job? = null
     private var getTokenJob: Job? = null
 
-    //val deviceImei = Utils.getDeviceId(appContext)
+    //    val deviceImei = Utils.getDeviceId(appContext)
     val deviceImei = "54:78:C9:B8:10:0E"
 
     var pingCounter = 0
@@ -241,10 +241,7 @@ class HubManager(
             trangThaiHoatDong = "2"
         }
         val payload = StatusPayload(
-            amLuong = getDeviceInfo(
-                StringValue.deviceInfoVolume,
-                SerialPortController.deviceInfo
-            ) ?: "0",
+            amLuong = SerialPortController.volume,
             cumLoaId = deviceImei,
             dichId = dichId,
             viDo = GlobalProperties.getInst().lat.toDouble(),
@@ -529,10 +526,7 @@ class HubManager(
             )
 
             val payload = LogMediaSuccessPayload(
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ),
+                amLuong = SerialPortController.volume,
                 banTinId = mediaItem.projectID,
                 congSuat = paState,
                 cumLoaId = deviceImei,

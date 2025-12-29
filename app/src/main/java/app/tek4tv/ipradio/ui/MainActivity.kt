@@ -26,7 +26,6 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.libs.rtsp.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
@@ -281,11 +280,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-        val imei = Utils.getDeviceId(this)
+        val imei = hubManager.deviceImei
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-//        tvMacAdress.setOnClickListener {
-//            hubManager.publishTestDvToMqtt("dv004");
-//        }
     }
 
 
@@ -293,7 +289,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onStop()
         playerManager.onActivityStop()
         stopStream()
-        serialPortController.disConnect()
+//        serialPortController.disConnect()
         cancelAllAlarm()
 
     }
