@@ -10,6 +10,7 @@ object JsonAdapterProvider {
 
     val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
         MoshiInst.moshi.adapter(MediaItem::class.java)
+
     val typeListMediaItem = Types.newParameterizedType(List::class.java, MediaItem::class.java)
     val jsonListMediaItemAdapter = MoshiInst.moshi.adapter<List<MediaItem>>(typeListMediaItem)
     val typeMap =
@@ -23,4 +24,9 @@ object JsonAdapterProvider {
     val adapterListString: JsonAdapter<List<String>> =
         moshi.adapter<List<String>>(List::class.java)
 
+    val videoAdapter = moshi.adapter(Video::class.java)
+
+    val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
+
+    val responseAdapter = moshi.adapter(ResponseHub::class.java)
 }

@@ -50,11 +50,8 @@ class MediaRepo @Inject constructor(
 
     val mediaStoragePath: String = appContext.filesDir.path
 
-    var isRescheduleSuccess = false
-
 
     suspend fun getMonthlyScenario(url: String) {
-        isRescheduleSuccess = false
         try {
             val fetchResult =
                 retryWithBackoff { playlistService.getMonthlyPlaylist(url) }
@@ -80,7 +77,6 @@ class MediaRepo @Inject constructor(
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(emptyList())
-                isRescheduleSuccess = true
             }
 
         } catch (e: Exception) {
@@ -93,20 +89,16 @@ class MediaRepo @Inject constructor(
         try {
             val res = retryWithBackoff { playlistService.getPlaylist(urlDatSchedule) }
             if (res == null || !res.isSuccessful) {
-                isRescheduleSuccess = false
                 Log.e(TAG, "API request failed after retries")
                 return emptyList()
             }
             val resBody = res.body()
             if (resBody != null) {
                 saveItemsToFile(resBody, "getDayScenario")
-                isRescheduleSuccess = true
             } else {
-                isRescheduleSuccess = false
                 Log.e(TAG, "Lịch rỗng rồi")
             }
         } catch (e: Exception) {
-            isRescheduleSuccess = false
             Log.e(TAG, e.toString())
         }
 

@@ -8,24 +8,40 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.core.constants.AppConstants.PROVIDER_DEFAULT_NAME
 import app.tek4tv.ipradio.di.JsonAdapterProvider.adapterListString
+import app.tek4tv.ipradio.di.JsonAdapterProvider.pingRequestAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.responseAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.videoAdapter
 import app.tek4tv.ipradio.di.MoshiInst
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DirectMessage
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.PingHubRequest
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.Video
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.xorString
-import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import io.reactivex.Single
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -33,12 +49,12 @@ import java.util.*
  * **/
 class HubManager(
     private val appContext: Context,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val appScope: CoroutineScope
 ) {
     private val TAG = "HubManager"
-    var mediaCapture: MediaCapture? = null
     lateinit var hubComm: HubComm
-    lateinit var hubObverse: IHubObserve
+    var hubObverse: IHubObserve? = null
     lateinit var logUtils: LogUtils
     private val CONNECT_COUNTER_LIMIT = 15
     private val PING_INTERVAL = 10000L
@@ -46,15 +62,10 @@ class HubManager(
     private val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
     private var pingHubJob: Job? = null
     private var openNewConnectionJob: Job? = null
-    private var coroutineScope = CoroutineScope(Dispatchers.Main)
 
-    private val videoAdapter = moshi.adapter(Video::class.java)
-
-    private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
 
     val deviceImei = Utils.getDeviceId(appContext)
 
-    private val responseAdapter = moshi.adapter(ResponseHub::class.java)
 
     var pingCounter = 69
 
@@ -69,7 +80,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    private var versionName = "D90.4.2.1d"
+    private var versionName = "D20.4.2.2b-v1"
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -81,7 +92,6 @@ class HubManager(
 
     private var firstConnect = true
 
-
     private var hubUrl = ""
 
 
@@ -91,7 +101,6 @@ class HubManager(
     private suspend fun receiveMessage(command: String?, message: String?) {
         _messageStateFlow.emit(Pair(command, message)) // Update StateFlow
     }
-
 
     init {
         providerValue = ConfigUtil.getString(
@@ -150,7 +159,6 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
-            logUtils.logException(e.message!!)
             e.printStackTrace()
 
             null
@@ -182,7 +190,6 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
-            logUtils.logException(e.message!!)
             e.printStackTrace()
             null
         }
@@ -213,7 +220,7 @@ class HubManager(
         if (!firstConnect) return
 
         openNewConnectionJob?.cancel()
-        openNewConnectionJob = coroutineScope.launch {
+        openNewConnectionJob = appScope.launch {
             var connectionId = openConnection()
 
             var i = 0
@@ -221,7 +228,7 @@ class HubManager(
             while (connectionId == null) {
                 //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) {
-                    hubComm.forceRestartApp()
+                    //hubComm.forceRestartApp()
                 }
                 i++
                 delay(PING_INTERVAL)
@@ -244,7 +251,6 @@ class HubManager(
                 hubConnection.start().blockingAwait()
                 hubConnection.connectionId
             } catch (e: Exception) {
-                logUtils.logException(e.message!!)
                 hubToken = null
                 e.printStackTrace()
                 Log.e(TAG, "error connecting to hub: ${e.message ?: ""}")
@@ -277,7 +283,7 @@ class HubManager(
 
                                 if (firstConnect) {
                                     firstConnect = false
-                                    hubObverse.onHubConnected()
+                                    hubObverse?.onHubConnected()
                                 }
 
                                 pingCounter = 0
@@ -295,7 +301,7 @@ class HubManager(
                         }
                     }
                     //Handle command from server in MainActivity
-                    coroutineScope.launch {
+                    appScope.launch {
                         if (messDe != "") {
                             parseHubResponse(messDe)
                         } else {
@@ -385,8 +391,6 @@ class HubManager(
 
             val currentTime = Calendar.getInstance().time
 
-            val isRecording = if (mediaCapture?.isRecordingAudio == true) "1" else "0"
-
             val request = PingHubRequest().apply {
                 imei = deviceImei
                 status = "START"
@@ -406,7 +410,7 @@ class HubManager(
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = (currentTime.time / 1000)
                 userNameControl = GlobalProperties.getInst().userNameController
-                isRecord = isRecording
+                isRecord = "0"
                 deviceInfo = SerialPortController.deviceInfo
             }
             sendMessage(pingRequestAdapter.toJson(request))
@@ -419,7 +423,7 @@ class HubManager(
 
     private fun startPingTimer() {
         pingHubJob?.cancel()
-        pingHubJob = coroutineScope.launch(Dispatchers.Default) {
+        pingHubJob = appScope.launch(Dispatchers.Default) {
             while (true) {
                 sendPing()
                 Log.d(TAG, "ping: $pingCounter")
@@ -434,7 +438,7 @@ class HubManager(
 //            hubComm.forceRestartApp()
 //        }
         if (pingCounter >= 2) {
-            hubObverse.onHubDisConnected()
+            hubObverse?.onHubDisConnected()
             isConnectSuccess = false
             firstConnect = true
             Log.e(TAG, "Lose hub connection")

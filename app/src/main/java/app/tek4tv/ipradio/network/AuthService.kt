@@ -11,6 +11,4 @@ interface AuthService {
     @POST
     fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
 
-    @POST
-    fun getTokenLog(@Url url: String, @Body body: Map<String, String>): Call<LogToken>
 }

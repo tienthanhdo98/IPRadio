@@ -29,6 +29,7 @@ class MediaScheduleReceiver : BroadcastReceiver() {
 
         //Cap nhat lai lich va reset lai thiet bi
         const val ACTION_CHECKHUB_RESET = "ACTION_CHECKHUB_RESET"
+        const val ACTION_TURN_ON_PA = "ACTION_TURN_ON_PA"
     }
 }
 

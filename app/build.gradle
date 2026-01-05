@@ -34,6 +34,10 @@ android {
                 cppFlags ""
             }
         }
+        lintOptions {
+            checkReleaseBuilds false
+        }
+
     }
 
     buildTypes {

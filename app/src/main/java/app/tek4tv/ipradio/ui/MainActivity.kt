@@ -1,12 +1,11 @@
 package app.tek4tv.ipradio.ui
 
-import BandwidthManager
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
+import android.graphics.Bitmap
 import android.media.AudioManager
-import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -37,25 +36,30 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE
 import app.tek4tv.ipradio.core.scheduler.AlarmListener
 import app.tek4tv.ipradio.core.scheduler.MediaScheduleReceiver
 import app.tek4tv.ipradio.core.scheduler.MediaScheduler
-import app.tek4tv.ipradio.model.DataValueModel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ResponseHub
-import app.tek4tv.ipradio.model.local.MediaLogDao
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.IHubObserve
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
+import app.tek4tv.ipradio.utils.CrashHandler
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
-import app.tek4tv.ipradio.utils.media.MediaCapture
-import app.tek4tv.ipradio.utils.network.FtpUtils
+import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
@@ -66,14 +70,12 @@ import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.launch
-import java.io.File
-import java.io.RandomAccessFile
-import java.util.*
+import java.util.Calendar
 import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
+class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -87,7 +89,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         Manifest.permission.ACCESS_FINE_LOCATION,
         Manifest.permission.ACCESS_COARSE_LOCATION,
         Manifest.permission.ACCESS_WIFI_STATE,
-        Manifest.permission.RECORD_AUDIO,
     )
 
     private val viewModel by viewModels<MainViewModel>()
@@ -101,8 +102,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     @Inject
     lateinit var logService: LogService
 
-    @Inject
-    lateinit var mediaLogDao: MediaLogDao
 
     private lateinit var playerManager: PlayersManager
 
@@ -110,8 +109,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private lateinit var appStorageManager: AppStorageManager
 
     private lateinit var logUtils: LogUtils
-
-    private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
@@ -124,36 +121,109 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private lateinit var adapter: AutoScrollAdapter
     private val handler = Handler(Looper.getMainLooper())
     private var scrollRunnable: Runnable? = null
-    var logToken = ""
+
+    private fun isCurrentlyInAnyTimeFrame(): Boolean {
+        val scheduledList = viewModel.mediaRepo.scheduledList
+        val now = Calendar.getInstance().timeInMillis
+
+        return scheduledList.keys.any { period ->
+            val t = period.split("-")
+            val start = toCalendar(t[0])
+            val end = toCalendar(t[1])
+
+            // ✅ SỬA: Dùng until
+            now in start.timeInMillis until end.timeInMillis
+        }
+    }
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
-            serialPortController.turnOffPA()
+//            serialPortController.turnOffPA()
+//            hubManager.curMediaName = ""
+//            hubManager.currentMediaItem = null
+//            val scheduledList = viewModel.mediaRepo.scheduledList
+//            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule ${scheduledList.size}")
+//
+//            val now = Calendar.getInstance().timeInMillis
+//
+//            val isHaveSchedule = scheduledList.keys.any { period ->
+//                val t = period.split("-")
+//                val start = toCalendar(t[0])
+//                val end = toCalendar(t[1])
+//                now in start.timeInMillis..end.timeInMillis
+//            }
+//
+//            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule $isHaveSchedule")
+//
+//            if (!isHaveSchedule) {
+//                exoVideoLayout.visibility = View.INVISIBLE
+//                imgHolder.visibility = View.VISIBLE
+//                val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
+//                initPhotoHolder(url)
+//            }
+//
+//            Log.d("PlayersManager", "onTimeOver")
+
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
+
             val scheduledList = viewModel.mediaRepo.scheduledList
-            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule ${scheduledList.size}")
+            Log.d("PlayersManager", "onTimeOver: scheduledList size ${scheduledList.size}")
 
-            val now = Calendar.getInstance().timeInMillis
+            val now = Calendar.getInstance()
+            val nowMillis = now.timeInMillis
+            val twoMinutesLater = Calendar.getInstance().apply {
+                add(Calendar.MINUTE, 2)
+            }.timeInMillis
 
-            val isHaveSchedule = scheduledList.keys.any { period ->
+            // 1. Check xem hiện tại có đang trong time frame nào không
+            val isInCurrentTimeFrame = scheduledList.keys.any { period ->
                 val t = period.split("-")
                 val start = toCalendar(t[0])
                 val end = toCalendar(t[1])
-                now in start.timeInMillis..end.timeInMillis
+
+                nowMillis in start.timeInMillis until end.timeInMillis
             }
-
-            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule $isHaveSchedule")
-
-            if (!isHaveSchedule) {
+            if (!isInCurrentTimeFrame) {
                 exoVideoLayout.visibility = View.INVISIBLE
                 imgHolder.visibility = View.VISIBLE
                 val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
                 initPhotoHolder(url)
             }
 
-            Log.d("PlayersManager", "onTimeOver")
+            // 2. Check xem có time frame nào sắp bắt đầu trong 2 phút tới không
+            val hasUpcomingTimeFrame = scheduledList.keys.any { period ->
+                val t = period.split("-")
+                val start = toCalendar(t[0])
+
+                // Nếu start time đã qua trong ngày hôm nay, chuyển sang ngày mai
+                if (start.timeInMillis < nowMillis) {
+                    start.add(Calendar.DATE, 1)
+                }
+
+                // Check xem time frame có bắt đầu trong vòng 2 phút tới không
+                start.timeInMillis in nowMillis..twoMinutesLater
+            }
+
+            Log.d("PlayersManager", "isInCurrentTimeFrame: $isInCurrentTimeFrame")
+            Log.d("PlayersManager", "hasUpcomingTimeFrame: $hasUpcomingTimeFrame")
+
+            // 3. Quyết định có tắt PA không
+            if (!isInCurrentTimeFrame && !hasUpcomingTimeFrame) {
+                Log.d("PlayersManager", "Schedule turn off PA in 2 minutes")
+                Handler(Looper.getMainLooper()).postDelayed({
+                    val stillNoTimeFrame = !isCurrentlyInAnyTimeFrame()
+                    if (stillNoTimeFrame) {
+                        Log.d("PlayersManager", "Turn off PA after 2 minutes delay")
+                        serialPortController.turnOffPA()
+                    } else {
+                        Log.d("PlayersManager", "Cancel turn off PA - new time frame started")
+                    }
+                }, 2 * 60 * 1000)
+            } else {
+                Log.d("PlayersManager", "Keep PA on - time frame active or upcoming")
+            }
         }
 
         //Dừng phát khẩn cấp
@@ -176,7 +246,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
 
         override fun onMediaError(error: String, mediaItem: MediaItem) {
-            logUtils.logException(error)
             exoVideoLayout.visibility = View.INVISIBLE
             imgHolder.visibility = View.VISIBLE
         }
@@ -210,12 +279,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             logUtils.logMediaStart(
                 mediaItem, globalProperties.volume, paState, typeScreen
             )
-            if (!hubManager.isConnectSuccess) {
-                lifecycleScope.launch {
-
-                    mediaLogDao.insertLog(mediaItem)
-                }
-            }
 
         }
 
@@ -237,14 +300,27 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
-    //need for android 11, it couldn`t auto open after reboot
-    private fun requestPermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && !Settings.canDrawOverlays(this)) {
-            val intent = Intent(
-                Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:$packageName")
-            )
-            startActivityForResult(intent, 5926)
+    private val hubCallBack = object : IHubObserve {
+        override fun onHubConnected() {
+            Log.d("HubObverse", "onHubConnected")
+            if (playerManager.playMode == PLAY_MODE_FORCE) {
+                if (ForceMedia.hasValidForceMedia(applicationContext)) {
+                    val listForceMedia = getLocalForceMedia(applicationContext)
+                    Log.i("Changelayout", "Mess: local ${listForceMedia?.size}")
+                    if (listForceMedia != null) playerManager.playForceMedia(
+                        listForceMedia, mediaScheduler
+                    )
+                }
+            } else {
+                startPlayingMedia()
+            }
         }
+
+        override fun onHubDisConnected() {
+            Log.d("HubObverse", "onHubDisConnected")
+
+        }
+
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -257,7 +333,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        viewModel.hideSystemUI(this)
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -282,13 +359,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
-        logUtils.authService = authService
 
-        mediaCapture = MediaCapture(applicationContext, lifecycleScope)
+
 
         hubManager.hubComm = hubComm
-        hubManager.hubObverse = this
-        hubManager.mediaCapture = mediaCapture
+        hubManager.hubObverse = hubCallBack
 
         lifecycleScope.launch {
             hubManager.messageStateFlow.collectLatest { messagePair ->
@@ -301,7 +376,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             }
         }
         exoVideoLayout = findViewById(R.id.exo_player)
-
         imgHolder = findViewById(R.id.img_holder)
         playerManager = PlayersManager(
             applicationContext, imgHolder, viewModel.mediaRepo, exoVideoLayout
@@ -318,60 +392,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         setMaxVolume()
 
-        viewModel.hideSystemUI(this)
-
-        sendLogDataHub()
-
         initDataByScreen()
 
         registerObservers()
 
-        lifecycleScope.launch {
-            repeat(Int.MAX_VALUE) {
-                viewModel.capture(
-                    playerView = exoVideoLayout,
-                    logService = logService,
-                )
-                delay(300000)
-            }
-        }
     }
 
-    private fun getCpuUsage(): String {
-        try {
-            val reader = RandomAccessFile("/proc/stat", "r")
-
-            // Đọc lần 1
-            val load1 = reader.readLine()
-            val toks1 = load1.split(" +".toRegex()).drop(1)
-            val idle1 = toks1[3].toLong()
-            val total1 = toks1.take(7).sumOf { it.toLong() }
-
-            // Chờ 360ms để lấy mẫu tiếp theo
-            Thread.sleep(2000)
-
-            // Đọc lại từ đầu file
-            reader.seek(0)
-            val load2 = reader.readLine()
-            val toks2 = load2.split(" +".toRegex()).drop(1)
-            val idle2 = toks2[3].toLong()
-            val total2 = toks2.take(7).sumOf { it.toLong() }
-
-            reader.close()
-
-            val totalDiff = total2 - total1
-            val idleDiff = idle2 - idle1
-            val usedCpu = (totalDiff - idleDiff).toFloat() / totalDiff.toFloat() * 100f
-            val res = String.format("%.2f%%/100%%", usedCpu)
-            // Format thành chuỗi như yêu cầu
-            Log.d("LOGDEVICEINFO", "CpuInfo: $res")
-            return res
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return "N/A"
-    }
 
     private fun initDataByScreen() {
         val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
@@ -379,32 +405,15 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
-            //val info = Utils.getDeviceId(this).takeLast(5)
-            // tvMacAddress.text = info
-            val totalRam: Float = appStorageManager.getTotalRam() / (1024f * 1024f * 1024f)
-            val sampler = BandwidthManager()
-            sampler.start()
+            val info = Utils.getDeviceId(this).takeLast(5)
+            tvMacAddress.text = info
             lifecycleScope.launch {
-                while (true) {
-                    val usedRam: Float = appStorageManager.getUsedRam() / (1024f * 1024f * 1024f)
-                    val cpu = getCpuUsage()
-                    val deviceInfo = "Ram: ${
-                        String.format(
-                            "%.2f GB", usedRam
-                        )
-                    }/${
-                        String.format(
-                            "%.2f GB", totalRam
-                        )
-                    }_Cpu: ${cpu}"
-                    tvMacAddress.text = "$deviceInfo"
-
-                    delay(5000)
-                }
+                delay(20000)
+                tvMacAddress.visibility = View.GONE
             }
             lifecycleScope.launch {
                 while (true) {
-                    if (hubManager.pingCounter <= 1) {
+                    if (hubManager.isConnectSuccess) {
                         tvCheckInternet.setTextColor(getColor(R.color.white))
                         tvCheckInternet.setBackgroundColor(getColor(R.color.green_online))
                         tvCheckInternet.text = resources.getString(R.string.online)
@@ -422,23 +431,33 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun initPhotoHolder(url: String?) {
+        val dm = Resources.getSystem().displayMetrics
+        val maxW = dm.widthPixels
+        val maxH = dm.heightPixels
         if (url != "") {
             val fileName = getFileNameFromUrl(url!!)
             if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
                 val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
-                Picasso.get().load(urlLocal).into(imgHolder)
+                Picasso.get().load(urlLocal)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imgHolder)
                 Log.d("PhotoHolder", "initPhotoHolder: Local")
             } else {
-                Picasso.get().load(url).into(imgHolder)
+                Picasso.get().load(url)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imgHolder)
                 Log.d("PhotoHolder", "initPhotoHolder: Online")
             }
         } else {
-            imgHolder.setImageResource(R.drawable.quangngai)
+            imgHolder.setImageResource(R.drawable.img_bg)
         }
     }
 
     private fun startAutoScroll() {
-
         val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
         val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
 
@@ -478,10 +497,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
-
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
-//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
         super.onDestroy()
 
@@ -506,11 +523,20 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 Log.d("alarmx", "end: $listKey")
 
                 playerManager.stopPlaylist(listKey!!)
+                if (typeScreen == MULTIPLE_AREA) {
+                    Log.d("alarmx", "start left: $listKey")
+                    playerManager.stopLeftPlaylist()
+                }
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
                 playerManager.stopForceMedia()
                 Log.d("alarmx", "stop force")
+            }
+
+            MediaScheduleReceiver.ACTION_TURN_ON_PA -> {
+                serialPortController.turnOnPAVod()
+                Log.d("alarmx", "turn on pa")
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -519,16 +545,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     mediaScheduler.cancelAllScheduledListAlarm()
                     ConfigUtil.getString(
                         applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, ""
-                    )?.takeIf { it.isNotBlank() }?.let { url ->
-                        lifecycleScope.launch {
-                            repeat(10) { // Try 10 times before giving up
-                                if (viewModel.mediaRepo.isRescheduleSuccess) return@launch
-                                viewModel.updateMonthlyScenarioAndGetContent(url)
-                                delay(15000)
-                            }
-                            Log.e("alarmx", "Failed to reschedule after 10 attempts")
-                        }
+                    )?.let { url ->
+                        Log.d("alarmx", "reschedule all $url")
+                        viewModel.updateMonthlyScenarioAndGetContent(url)
                     } ?: Log.e("alarmx", "MONTHLY_SCENARIO_URL is empty or null")
+
                     serialPortController.turnOffPA()
                     delay(120000)
                     Log.e("alarmx", "Hub restart")
@@ -609,16 +630,15 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             when (command) {
 
                 HubCommand.UPDATE_MONTHLY_LIST -> {
-                    viewModel.clearDatastore(appStorageManager)
                     val mess = responseHub.message!!
+//                    playerManager.stopForceMedia()
+                    ForceMedia.deleteForeMediaPref(applicationContext)
                     playerManager.stopTimeFrame()
                     playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
                     viewModel.updateMonthlyScenario(mess)
                     ConfigUtil.putString(applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess)
-                    playerManager.stopForceMedia()
                     Handler(Looper.getMainLooper()).postDelayed({
                         recreate()
                     }, 1000)
@@ -631,7 +651,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (newTypeScreen != typeScreen) {
                         ConfigUtil.putInt(baseContext, TYPE_SCREEN_KEY, newTypeScreen)
                         ConfigUtil.putInt(baseContext, TYPE_PRE_SCREEN_KEY, typeScreen)
-
                         //onPlayForce(responseHub)
                         Handler(Looper.getMainLooper()).postDelayed({
                             onPlayForce(responseHub, true)
@@ -642,6 +661,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     }
 
                 }
+
                 HubCommand.UPDATE_PHOTO_HOLDER -> {
                     val mess = responseHub.message!!
                     ConfigUtil.putString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, mess)
@@ -678,6 +698,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             applicationContext, ConfigUtil.PROVIDER, listInfoConfig[6]
                         )
                         hubManager.providerValue = listInfoConfig[6]
+                    }
+                    if (listInfoConfig.size >= 8 && listInfoConfig[7] != "null") {
+                        ConfigUtil.putInt(
+                            applicationContext,
+                            ConfigUtil.TIME_TURN_ON_PA,
+                            listInfoConfig[7].toIntOrNull() ?: 120
+                        )
                     }
                     globalProperties.saveProperties(resposnHub)
                 }
@@ -822,9 +849,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                 HubCommand.SET_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
+                        Log.d(
+                            "SET_VOLUME_DEVICE",
+                            "handleFromCommandServer: ${roundToNearestNumber(responseHub.message!!.toInt())}"
+                        )
                         changeVolume(roundToNearestNumber(responseHub.message!!.toInt()))
+                        serialPortController.writeForceSetVolume(responseHub.message!!)
                         globalProperties.setAndroidPreVolume(roundToNearestNumber(responseHub.message!!.toInt()).toString())
-                        globalProperties.saveVolume(responseHub.message!!.toString())
+                        globalProperties.saveVolume(responseHub.message!!)
                     }
                 }
 
@@ -835,98 +867,18 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     }
                 }
 
-                HubCommand.SET_TIME_OVER -> {
-                    serialPortController.setTimeOver()
-                }
-
                 HubCommand.READ_DEVICE_INFO -> {
                     serialPortController.readDeviceInfo()
                 }
 
-                HubCommand.NETWORK_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val result = NetworkUtils.getNetworkInfo(applicationContext)
-                        hubManager.sendHubDirectMessage(connectionId, Utils.NETWORK_INFO, result)
-                    }
-                }
-
-                HubCommand.STORAGE_INFO -> {
-                    val connectionId = responseHub.message
-                    if (connectionId != null) {
-                        val info = appStorageManager.run {
-                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
-                        }
-                        hubManager.sendHubDirectMessage(connectionId, Utils.STORAGE_INFO, info)
-                    }
-                }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
                     appStorageManager.deleteAllMedia()
                 }
 
-                HubCommand.RECORD -> {
-                    val duration = responseHub.message
-                    val shouldStart = responseHub.start!! == "1"
-
-                    if (shouldStart) {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                        mediaCapture.startCaptureAudio()
-                        Log.i("kakaka", "record.... ")
-                    } else {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                    }
-                    Timer().schedule(object : TimerTask() {
-                        override fun run() {
-                            mediaCapture.stopAudioCapture()
-                            Log.i("kakaka", "stop record.... ")
-                        }
-                    }, duration!!.toLong() * 60 * 1000)
-                }
-
-                HubCommand.GET_RECORD -> {
-                    val connectionId = responseHub.message!!
-                    val recordedAudioList =
-                        Utils.toJsonList(moshi, appStorageManager.getAllRecordedAudioPath())
-                    hubManager.sendHubDirectMessage(
-                        connectionId, Utils.GET_RECORD, recordedAudioList
-                    )
-                }
-
-                HubCommand.UPLOAD_RECORDED -> {
-                    val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
-                }
-
-                HubCommand.DELETE_RECORD -> {
-                    val fileDirPath = this.filesDir.path
-                    val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
-                    val itemDelete = responseHub.message
-                    if (itemDelete != "" && itemDelete != null) {
-                        deleteAFileInFolder(recordPath, itemDelete)
-                    } else {
-                        appStorageManager.deleteAllRecord()
-
-                    }
-                }
 
                 HubCommand.DELETE_ALL_LOG -> {
                     appStorageManager.deleteAllLog()
-                }
-
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
-
-                HubCommand.CONTROL_WIFI_STATE -> {
-                    val wifiEnable = responseHub.message!! == "1"
-                    NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                 }
 
 
@@ -936,10 +888,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     }
                 }
 
-                HubCommand.GET_LOG_FILE -> {
-                    //val data = responseHub.message?.split('-') ?: return
-//                   logUtils.sendLogFile(data[0], data[1])
-                }
             }
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
                 logUtils.logHubCommand(command, responseHub.message ?: "")
@@ -968,83 +916,20 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private fun setMaxVolume() {
         Log.d("UpdateVolume", "set max: ${GlobalProperties.getInst().androidVolume}")
-        changeVolume(GlobalProperties.getInst().androidVolume.toInt())
-    }
-
-
-    private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
-        var logDeviceData: DataValueModel
-        val strTimeFrame = mutableListOf<String>()
-        lifecycleScope.launch {
-            while (true) {
-                strTimeFrame.clear()
-                val imei = Utils.getDeviceId(baseContext)
-                val timeUpdate = ConfigUtil.getString(
-                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
-                )!!
-                val idPlaylist =
-                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
-                val scheduledList = viewModel.mediaRepo.timeDividers
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    strTimeFrame.add(period)
-                }
-                if (isSendPlaylistData) {
-                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
-                    var strPlaylist = ""
-                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
-                        strPlaylist = readFile(fileStoragePath)
-                    }
-                    logDeviceData = DataValueModel(
-                        idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame, strPlaylist
-                    )
-                } else {
-                    logDeviceData =
-                        DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
-                }
-                logUtils.logDataHub(imei, logDeviceData)
-                delay(300000)
-
-            }
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+        val currenVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC)
+        Log.d("changeVolume", "changeVolume: currentVolume: $currenVolume")
+        for (i in 0 until 10) {
+            audioManager.adjustVolume(AudioManager.ADJUST_RAISE, AudioManager.FLAG_PLAY_SOUND)
         }
+        serialPortController.writeForceSetVolume(globalProperties.volume)
+        Log.d("changeVolume", "changeVolume: currentVolume: $currenVolume")
     }
+
 
     companion object {
         var alarmListener: AlarmListener? = null
     }
 
-    override fun onHubConnected() {
-        Log.d("HubObverse", "onHubConnected")
-        lifecycleScope.launch {
-            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-            else "0"
-            listMediaLog.forEach {
-                logUtils.logMediaStart(
-                    it, globalProperties.volume, paState, typeScreen
-                )
-                mediaLogDao.deleteMediaItemById(it.id!!)
-            }
-        }
-        //
-        if (playerManager.playMode == PLAY_MODE_FORCE) {
-            if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                val listForceMedia = getLocalForceMedia(applicationContext)
-                Log.i("Changelayout", "Mess: local ${listForceMedia?.size}")
-                if (listForceMedia != null) playerManager.playForceMedia(
-                    listForceMedia, mediaScheduler
-                )
-            }
-        } else {
-            playerManager.startFirstTimeFrame()
-        }
-
-    }
-
-    override fun onHubDisConnected() {
-        playerManager.stopAllPlayer()
-        Log.d("HubObverse", "onHubDisConnected")
-
-    }
 
 }

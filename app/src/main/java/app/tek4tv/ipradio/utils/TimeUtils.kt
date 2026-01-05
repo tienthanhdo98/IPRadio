@@ -1,8 +1,13 @@
 package app.tek4tv.ipradio.utils
 
+import android.os.Build
 import android.util.Log
+import androidx.annotation.RequiresApi
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
+import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 import java.util.*
 import kotlin.math.abs
 
@@ -62,6 +67,19 @@ fun setSystemTime(requireTime: String) {
     } catch (e: Exception) {
         Log.e("timesync", e.message ?: "")
         e.printStackTrace()
+    }
+}
+
+@RequiresApi(Build.VERSION_CODES.O)
+fun strFormatToCalendar(end: String, zoneId: ZoneId = ZoneId.systemDefault()): Calendar {
+    return try {
+        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
+        val ldt = LocalDateTime.parse(end, fmt)              // "2025-09-27 14:21:40"
+        val zdt = ldt.atZone(zoneId)
+        GregorianCalendar.from(zdt)
+    } catch (e: Exception) {
+        e.message?.let { Log.d("strFormatToCalendar", it) }
+        Calendar.getInstance()
     }
 }
 

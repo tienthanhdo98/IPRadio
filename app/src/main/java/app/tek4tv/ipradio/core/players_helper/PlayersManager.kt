@@ -10,16 +10,19 @@ import app.tek4tv.ipradio.core.constants.AppConstants.LEFT_AREA
 import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.core.scheduler.MediaScheduler
 import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
+import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaItemMoshiAdapter
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.saveListForceToPref
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import com.squareup.moshi.JsonDataException
+import com.squareup.moshi.JsonEncodingException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -90,6 +93,10 @@ class PlayersManager(
     override fun onMediaForceEndReached(mediaItem: MediaItem?) {
         Log.d(TAG, "onMediaForceEndReached")
         playNextMedia()
+    }
+
+    fun stopLeftPlaylist() {
+        playerManagerListener?.onEndLeftMediaPlaying()
     }
 
 
@@ -208,6 +215,7 @@ class PlayersManager(
                                 imagePlayer.playMedia(mediaItem, timeStamp)
 
                             }
+
                             else -> {
                                 exoPlayer.playMedia(mediaItem, timeStamp)
 
@@ -245,7 +253,6 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         imagePlayer.stop()
-//        vlcPlayer.stop()
         exoPlayer.stop()
 
     }
@@ -329,7 +336,10 @@ class PlayersManager(
         isLayoutChange: Boolean? = false
     ) {
         try {
-            val listMediaItem = responseHub.name?.let { jsonListMediaItemAdapter.fromJson(it) }
+            Log.d("onPlayForceCommand", "onPlayForceCommand: ${responseHub.name}")
+            //val listMediaItem = responseHub.name?.let { jsonListMediaItemAdapter.fromJson(it) }
+            val mediaItem = responseHub.name?.let { mediaItemMoshiAdapter.fromJson(it) }
+            val listMediaItem = listOf(mediaItem!!)
             val listForceMedia = mutableListOf<MediaItem>()
             //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
             //Nếu có thì bỏ qua không phát
@@ -342,12 +352,9 @@ class PlayersManager(
             }
             val currentTime = Calendar.getInstance()
 
-            listMediaItem?.forEach {
+            listMediaItem.forEach {
                 val forceMedia = ForceMedia(
-                    duration = it.duration!!,
-                    type = it.type!!,
-                    level = it.level,
-                    mediaItem = it
+                    duration = it.duration!!, type = it.type!!, level = it.level, mediaItem = it
                 ).apply {
                     val listDur = duration!!.split(":")
                     val h = listDur[0].toInt()
@@ -371,6 +378,7 @@ class PlayersManager(
         }
     }
 
+
     fun playForceMedia(
         listForceMedia: List<MediaItem>, mediaScheduler: MediaScheduler
     ) {
@@ -386,8 +394,11 @@ class PlayersManager(
 
             playerManagerListener?.onLeftMediaPlaying(currentTextPlaylist)
 
-            currentPlaylist =
-                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA.toInt() || it.broadcastRegion?.value == FULL_SCREEN }
+//            currentPlaylist =
+//                listForceMedia.filter { it.broadcastRegion?.value == RIGHT_AREA.toInt() || it.broadcastRegion?.value == FULL_SCREEN }
+
+            currentPlaylist = listForceMedia
+
             playlistIndex = 0
 
             playMediaByIndex(playlistIndex, 0)
@@ -410,6 +421,7 @@ class PlayersManager(
 
     fun onActivityDestroy() {
         //vlcPlayer.release()
+        imagePlayer.release()
         exoPlayer.release()
     }
 

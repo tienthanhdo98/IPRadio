@@ -22,6 +22,7 @@ object ConfigUtil {
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val PHOTO_HOLDER_URL = "PHOTO_HOLDER_URL"
+    const val TIME_TURN_ON_PA = "TIME_TURN_ON_PA"
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

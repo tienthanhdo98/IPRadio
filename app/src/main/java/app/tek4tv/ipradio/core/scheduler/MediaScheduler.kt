@@ -19,8 +19,8 @@ import java.util.*
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
     private val alarmManager = appContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-    private val requestResetAndRescheduleAlarms = 1929
-    private val requestEndForce = 1989
+    private val requestResetAndRescheduleAlarms = 2056
+    private val requestEndForce = 2036
 
     private fun scheduleListAlarms() {
         val scheduledList = mediaRepo.scheduledList
@@ -30,18 +30,33 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             val requestCode = mediaRepo.timeDividers[period]!![0].id
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 
+            val turnOnPaRequestCode = requestCode!! + 20000
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1]) //end time
 
             val now = Calendar.getInstance().timeInMillis
 
-            if (now in start.timeInMillis..end.timeInMillis) {
-                setAlarmForList(period, endRequestCode!!, end, true)
-            } else if (now < start.timeInMillis) {
-                setAlarmForList(period, requestCode!!, start)
-                setAlarmForList(period, endRequestCode!!, end, true)
+            when {
+                // Đang trong time frame
+                now in start.timeInMillis..end.timeInMillis -> {
+                    setAlarmForList(period, endRequestCode!!, end, true)
+                }
+                // Chưa đến time frame
+                now < start.timeInMillis -> {
+                    setAlarmForList(period, requestCode, start)
+                    setAlarmForList(period, endRequestCode!!, end, true)
+
+                    // Schedule Turn On PA cho time frame này
+                    val turnOnTime = ConfigUtil.getInt(
+                        context = appContext,
+                        key = ConfigUtil.TIME_TURN_ON_PA,
+                        defaultValue = 120
+                    )
+                    scheduleTurnOnPA(turnOnPaRequestCode, start, turnOnTime)
+                }
             }
+
         }
 
     }
@@ -59,9 +74,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             "alarmx",
             "Set Alarm ${if (shouldEndPlaying) "End" else "Start"} : $listKey - $requestCode"
         )
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
+        val alarmIntent =
+            getScheduleListIntent(listKey, requestCode, FLAG_IMMUTABLE, shouldEndPlaying)
 
-        val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)
+        val alarmClockInfo = AlarmClockInfo(time.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent!!)
 
     }
@@ -75,9 +91,11 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
             val requestCode = mediaRepo.timeDividers[period]!![0].id
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
+            val turnOnPaRequestCode = requestCode!! + 20000
 
             cancelListAlarm(period, requestCode!!)
             cancelListAlarm(period, endRequestCode!!, true)
+            cancelTurnOnPaAlarm(turnOnPaRequestCode)
         }
     }
 
@@ -93,7 +111,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         if (!isAlarmWorking) return
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
+        val alarmIntent =
+            getScheduleListIntent(listKey, requestCode, FLAG_IMMUTABLE, shouldEndPlaying)
         alarmManager.cancel(alarmIntent!!)
         alarmIntent.cancel()
     }
@@ -142,6 +161,52 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "scheduleHardResetAlarmsAndReschedule")
         val alarmClockInfo = AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+    }
+
+    private fun scheduleTurnOnPA(requestCode: Int, startTimeFrame: Calendar, timeTurnOn: Int) {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_TURN_ON_PA
+        }
+        val alarmIntent =
+            PendingIntent.getBroadcast(
+                appContext,
+                requestCode,
+                intent,
+                FLAG_IMMUTABLE
+            )
+
+        val cal_alarm = startTimeFrame.clone() as Calendar
+        // Trừ đi timeTurnOn giây để alarm chạy trước startTimeFrame
+        cal_alarm.add(Calendar.SECOND, -timeTurnOn)
+
+        // Kiểm tra nếu thời gian alarm đã qua (trong quá khứ)
+        val currentTime = Calendar.getInstance()
+        if (cal_alarm.before(currentTime)) {
+            // Nếu đã qua, chuyển sang ngày hôm sau
+            cal_alarm.add(Calendar.DATE, 1)
+        }
+        Log.d("alarmx", "scheduleTurnOnPA $requestCode")
+        Log.d("alarmx", "scheduleTurnOnPA at: ${cal_alarm.time}")
+        val alarmClockInfo = AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+    }
+
+    private fun cancelTurnOnPaAlarm(requestCode: Int) {
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_TURN_ON_PA
+        }
+        val alarmIntent = PendingIntent.getBroadcast(
+            appContext,
+            requestCode,
+            intent,
+            PendingIntent.FLAG_NO_CREATE
+        )
+
+        if (alarmIntent != null) {
+            Log.d("alarmx", "Cancel Turn On PA - $requestCode")
+            alarmManager.cancel(alarmIntent)
+            alarmIntent.cancel()
+        }
     }
 
     fun scheduleForceMediaAlarm(forceMedia: MediaItem) {
