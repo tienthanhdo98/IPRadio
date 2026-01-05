@@ -35,7 +35,6 @@ import java.io.File
 import java.util.Calendar
 
 @androidx.media3.common.util.UnstableApi
-@RequiresApi(Build.VERSION_CODES.O)
 class ExoMediaPlayer(
     appContext: Context,
     private val playerEventListener: IPlayerEventListener,
@@ -211,15 +210,15 @@ class ExoMediaPlayer(
                 {
                     Log.e(TAG, "Player exo stop")
                     stop()
-                    if (currentMedia?.getMediaType() == MediaType.FILE) {
+                    if (mediaItem.getMediaType() == MediaType.FILE) {
 
-                        playerEventListener.onMediaEndReached(currentMedia)
+                        playerEventListener.onMediaEndReached(mediaItem)
                     } else {
-                        val isStreamTimeFrame = checkMediaIsInTimeFrame(currentMedia!!)
+                        val isStreamTimeFrame = checkMediaIsInTimeFrame(mediaItem)
                         if (!isStreamTimeFrame) {
-                            playerEventListener.onMediaEndReached(currentMedia)
+                            playerEventListener.onMediaEndReached(mediaItem)
                         } else {
-                            checkMediaIsInTimeFrame(currentMedia!!)
+                            checkMediaIsInTimeFrame(mediaItem)
                         }
 //                        playerEventListener.onMediaForceEndReached(currentMedia)
                     }

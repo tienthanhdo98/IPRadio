@@ -110,9 +110,8 @@ class PlayersManager(
      * **/
 
     fun startFirstTimeFrame() {
-        var found = false
         val scheduledList = mediaRepo.scheduledList
-        Log.d(TAG, "startFirstTimeFrame: list: ${scheduledList.size}")
+        Log.d(TAG, "startFirstTimeFrame: scheduledList size: ${scheduledList.size}")
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             val t = period.split("-")
@@ -123,14 +122,9 @@ class PlayersManager(
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 startLeftTimeFrame(timeFrame = period)
-                found = true
                 Log.d(TAG, "startFirstTimeFrame: found, start $resumePoint")
                 break
             }
-        }
-        if (!found) {
-            Log.d(TAG, "startFirstTimeFrame: not found")
-            playerManagerListener?.onTimeOver()
         }
     }
 
@@ -208,12 +202,11 @@ class PlayersManager(
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     if (mediaItem.body!!.contains("m3u8")) {
-                        playLiveStream(mediaItem)
+                        playLiveStream(mediaItem, false, timeStamp)
                     } else {
                         when (mediaItem.contentType?.id) {
                             2 -> {
                                 imagePlayer.playMedia(mediaItem, timeStamp)
-
                             }
 
                             else -> {
@@ -226,9 +219,8 @@ class PlayersManager(
                 MediaType.LIVE -> {
                     if (mediaItem.contentType?.id == 2) {
                         imagePlayer.playMedia(mediaItem, timeStamp)
-
                     } else {
-                        playLiveStream(mediaItem)
+                        playLiveStream(mediaItem, true, timeStamp)
                     }
                 }
 
@@ -243,11 +235,20 @@ class PlayersManager(
         }
     }
 
-    private fun playLiveStream(mediaItem: MediaItem) {
-        //vlcPlayer.playMedia(mediaItem, 0)
-        exoPlayer.playMedia(mediaItem, 0)
+    private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+        val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+        Log.d(TAG, "playLiveStream resume time startTime: ${mediaItem.startTime}")
+        Log.d(TAG, "playLiveStream resume time fixTime: ${mediaItem.fixTime}")
+        Log.d(TAG, "playLiveStream resume time: $resumeLiveTime")
+        exoPlayer.playMedia(mediaItem, resumeLiveTime)
     }
 
+    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
+        val startTimeOfMedia = toCalendar(mediaItem.startTime!!)
+        val now = Calendar.getInstance()
+        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+
+    }
 
     fun stopAllPlayer() {
         imagePlayer.stop()

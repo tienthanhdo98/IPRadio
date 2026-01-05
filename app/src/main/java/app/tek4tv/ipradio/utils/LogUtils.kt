@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.di.AppScope
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.model.logmodel.ExceptionLogModel
@@ -17,6 +18,7 @@ import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 const val LOG_FOLDER_NAME = "app_logs"
 const val HUB_LOG_FOLDER_NAME = "hub_logs"
@@ -24,7 +26,9 @@ const val PLAYER_LOG_FOLDER_NAME = "player_logs"
 const val TIMEFRAME_LOG_FOLDER_NAME = "timerframe_logs"
 const val COMMAND_LOG_FOLDER_NAME = "commands_logs"
 
-class LogUtils private constructor() {
+class LogUtils @Inject constructor(
+    private val logService: LogService
+) {
     private val appContext: Context = MyApp.instance!!.applicationContext
     val LOG_TAG = "LogUtils"
 
@@ -44,7 +48,6 @@ class LogUtils private constructor() {
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
-    var logService: LogService? = null
 
     val destinationId = GlobalProperties.getInst().destinationId
     val destinationName = GlobalProperties.getInst().destinationName
@@ -172,54 +175,5 @@ class LogUtils private constructor() {
         return "$folderPath/$logFileName"
     }
 
-    private fun getRecordStr(record: LogRecord): String? {
-        return when (record) {
-            is MediaRecord -> mediaReportAdapter.toJson(record)
-            is TimeFrameRecord -> timeframeReportAdapter.toJson(record)
-            is HubStateRecord -> hubStateReportAdapter.toJson(record)
 
-            else -> null
-        }
-    }
-
-//    fun sendLogFile(type: String, name: String) {
-//        coroutineScope.launch {
-//            try {
-//                val path = when (type) {
-//                    "media" -> "$playerLogFolderPath/$name.txt"
-//                    "timeframe" -> "$timeframeLogFolderPath/$name.txt"
-//                    "connection" -> "$hubLogFolderPath/$name.txt"
-//                    else -> ""
-//                }
-//                val data = b64Encode(readFile(path))
-//                val start = fileNameFormat.parse(name).time
-//                val record =
-//                    GetLogFile(
-//                        name,
-//                        imei,
-//                        "Tek4tv",
-//                        data = data,
-//                        start = start,
-//                        destinationID = destinationId,
-//                        destinationName = destinationName,
-//                        appName = "IPRadio"
-//                    )
-//                logService?.postLogFile(record)
-//                Log.e(LOG_TAG, "uploading log file success")
-//            } catch (e: Exception) {
-//                Log.e(LOG_TAG, "Error uploading log file: ${e.message}")
-//            }
-//
-//        }
-//    }
-
-    companion object {
-        private var instance: LogUtils? = null
-
-        @Synchronized
-        fun getInst(): LogUtils {
-            if (instance == null) instance = LogUtils()
-            return instance!!
-        }
-    }
 }

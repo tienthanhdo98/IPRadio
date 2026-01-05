@@ -5,6 +5,8 @@ import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonListMediaItemAdapter
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.utils.ConfigUtil
 import com.squareup.moshi.Json
+import java.text.SimpleDateFormat
+import java.util.Date
 
 data class ForceMedia(
     @Json(name = "Message")
@@ -55,7 +57,7 @@ data class ForceMedia(
             sourceID = mediaItem!!.sourceID,
             sourceName = mediaItem!!.sourceName,
             sourceReference = mediaItem!!.sourceReference,
-            startTime = mediaItem!!.startTime,
+            startTime = SimpleDateFormat("HH:mm:ss").format(Date()),
             createDate = mediaItem!!.createDate,
             projectID = mediaItem!!.projectID,
             broadcastRegion = mediaItem!!.broadcastRegion,

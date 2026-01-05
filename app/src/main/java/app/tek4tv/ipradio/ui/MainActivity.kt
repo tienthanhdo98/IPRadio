@@ -40,9 +40,7 @@ import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ResponseHub
-import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
@@ -64,7 +62,6 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.google.android.material.card.MaterialCardView
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
-import com.squareup.moshi.Moshi
 import com.squareup.picasso.Picasso
 import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
@@ -96,13 +93,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private val viewModel by viewModels<MainViewModel>()
 
     @Inject
-    lateinit var moshi: Moshi
-
-    @Inject
-    lateinit var authService: AuthService
-
-    @Inject
-    lateinit var logService: LogService
+    lateinit var logUtils: LogUtils
 
 
     private lateinit var playerManager: PlayersManager
@@ -110,7 +101,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var appStorageManager: AppStorageManager
 
-    private lateinit var logUtils: LogUtils
 
     private lateinit var mediaScheduler: MediaScheduler
 
@@ -330,11 +320,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        logUtils = LogUtils.getInst()
-        logUtils.logService = logService
-
-
-
         hubManager.hubComm = hubComm
         hubManager.hubObverse = hubCallBack
 
@@ -405,20 +390,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
     }
 
-    fun View.fadeIn(duration: Long = 500, end: (() -> Unit)? = null) {
-        if (visibility != View.VISIBLE) {
-            alpha = 0f
-            visibility = View.VISIBLE
-        }
-        animate().alpha(1f).setDuration(duration).withEndAction { end?.invoke() }.start()
-    }
-
-    fun View.fadeOut(duration: Long = 500, end: (() -> Unit)? = null) {
-        animate().alpha(0f).setDuration(duration).withEndAction {
-            visibility = View.INVISIBLE // hoặc GONE nếu muốn bỏ chiếm chỗ
-            end?.invoke()
-        }.start()
-    }
 
     private fun initPhotoHolder(url: String?) {
         val dm = Resources.getSystem().displayMetrics
@@ -482,7 +453,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStart() {
         super.onStart()
-//        startPlayingMedia()
+        startPlayingMedia()
     }
 
     override fun onDestroy() {
@@ -914,6 +885,21 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
         serialPortController.writeForceSetVolume(globalProperties.volume)
         Log.d("changeVolume", "changeVolume: currentVolume: $currenVolume")
+    }
+
+    fun View.fadeIn(duration: Long = 500, end: (() -> Unit)? = null) {
+        if (visibility != View.VISIBLE) {
+            alpha = 0f
+            visibility = View.VISIBLE
+        }
+        animate().alpha(1f).setDuration(duration).withEndAction { end?.invoke() }.start()
+    }
+
+    fun View.fadeOut(duration: Long = 500, end: (() -> Unit)? = null) {
+        animate().alpha(0f).setDuration(duration).withEndAction {
+            visibility = View.INVISIBLE // hoặc GONE nếu muốn bỏ chiếm chỗ
+            end?.invoke()
+        }.start()
     }
 
 

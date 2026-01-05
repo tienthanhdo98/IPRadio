@@ -1,21 +1,10 @@
 package app.tek4tv.ipradio.utils
 
-import android.os.Build
 import android.util.Log
-import androidx.annotation.RequiresApi
-import java.io.DataOutputStream
 import java.text.SimpleDateFormat
-import java.time.LocalDateTime
-import java.time.ZoneId
-import java.time.format.DateTimeFormatter
-import java.util.*
-import kotlin.math.abs
+import java.util.Calendar
+import java.util.Locale
 
-
-fun convertTimeInMillisToHHmmss(timeInMillis: Long): String {
-    val dateFormat = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
-    return dateFormat.format(Date(timeInMillis))
-}
 
 fun toCalendar(time: String): Calendar {
     return try {
@@ -47,40 +36,68 @@ fun getDurationInSecond(duration: String): Int {
     }
 }
 
+//fun strFormatToCalendar(end: String): Calendar {
+//    return try {
+//        val sdf = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+//        val date = sdf.parse(end)
+//
+//        Calendar.getInstance().apply {
+//            if (date != null) {
+//                time = date
+//            }
+//        }
+//    } catch (e: Exception) {
+//        Log.d("strFormatToCalendar", "Error parsing date: ${e.message}")
+//        Calendar.getInstance()
+//    }
+//}
+fun strFormatToCalendar(end: String): Calendar {
+    val calendar = Calendar.getInstance()
 
-fun setSystemTime(requireTime: String) {
     try {
-        val process = Runtime.getRuntime().exec("su")
-        val os = DataOutputStream(process.outputStream)
+        val trimmed = end.trim()
 
-        val t = requireTime.split(" ")
-        val date = t[0].split("/")
-        val time = t[1].split(":")
+        val sdf = when {
+            // Full datetime: "2026-01-05 16:46:24"
+            trimmed.matches(Regex("\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            }
+            // Time only: "16:30:05"
+            trimmed.matches(Regex("\\d{2}:\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            }
+            // Time without seconds: "16:30"
+            trimmed.matches(Regex("\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("HH:mm", Locale.getDefault())
+            }
 
-        val command = "date ${date[1]}${date[0]}${time[0]}${time[1]}${date[2]}.${time[2]} \n"
-        os.writeBytes(command)
-        os.flush()
-        os.writeBytes("exit\n")
-        os.flush()
-        process.waitFor()
-        os.close()
+            else -> {
+                Log.w("strFormatToCalendar", "Unknown format: $end")
+                return calendar
+            }
+        }
+
+        val date = sdf.parse(trimmed)
+        if (date != null) {
+            if (trimmed.contains("-")) {
+                // Full date-time: set toàn bộ
+                calendar.time = date
+            } else {
+                // Time only: chỉ set time, giữ nguyên date hiện tại
+                val tempCal = Calendar.getInstance()
+                tempCal.time = date
+
+                calendar.set(Calendar.HOUR_OF_DAY, tempCal.get(Calendar.HOUR_OF_DAY))
+                calendar.set(Calendar.MINUTE, tempCal.get(Calendar.MINUTE))
+                calendar.set(Calendar.SECOND, tempCal.get(Calendar.SECOND))
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+        }
     } catch (e: Exception) {
-        Log.e("timesync", e.message ?: "")
-        e.printStackTrace()
+        Log.e("strFormatToCalendar", "Error parsing: $end", e)
     }
-}
 
-@RequiresApi(Build.VERSION_CODES.O)
-fun strFormatToCalendar(end: String, zoneId: ZoneId = ZoneId.systemDefault()): Calendar {
-    return try {
-        val fmt = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-        val ldt = LocalDateTime.parse(end, fmt)              // "2025-09-27 14:21:40"
-        val zdt = ldt.atZone(zoneId)
-        GregorianCalendar.from(zdt)
-    } catch (e: Exception) {
-        e.message?.let { Log.d("strFormatToCalendar", it) }
-        Calendar.getInstance()
-    }
+    return calendar
 }
 
 fun getCurrentTime(): Long {
