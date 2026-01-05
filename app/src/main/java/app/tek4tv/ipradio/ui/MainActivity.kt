@@ -61,6 +61,7 @@ import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.material.card.MaterialCardView
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
@@ -69,6 +70,7 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import javax.inject.Inject
@@ -130,8 +132,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
-
-            // ✅ SỬA: Dùng until
             now in start.timeInMillis until end.timeInMillis
         }
     }
@@ -139,31 +139,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
-//            serialPortController.turnOffPA()
-//            hubManager.curMediaName = ""
-//            hubManager.currentMediaItem = null
-//            val scheduledList = viewModel.mediaRepo.scheduledList
-//            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule ${scheduledList.size}")
-//
-//            val now = Calendar.getInstance().timeInMillis
-//
-//            val isHaveSchedule = scheduledList.keys.any { period ->
-//                val t = period.split("-")
-//                val start = toCalendar(t[0])
-//                val end = toCalendar(t[1])
-//                now in start.timeInMillis..end.timeInMillis
-//            }
-//
-//            Log.d("PlayersManager", "startFirstTimeFrame: isHaveSchedule $isHaveSchedule")
-//
-//            if (!isHaveSchedule) {
-//                exoVideoLayout.visibility = View.INVISIBLE
-//                imgHolder.visibility = View.VISIBLE
-//                val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
-//                initPhotoHolder(url)
-//            }
-//
-//            Log.d("PlayersManager", "onTimeOver")
 
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
@@ -217,8 +192,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (stillNoTimeFrame) {
                         Log.d("PlayersManager", "Turn off PA after 2 minutes delay")
                         serialPortController.turnOffPA()
-                    } else {
-                        Log.d("PlayersManager", "Cancel turn off PA - new time frame started")
                     }
                 }, 2 * 60 * 1000)
             } else {
@@ -404,30 +377,47 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         initPhotoHolder(url)
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+            val cardStatus = findViewById<MaterialCardView>(R.id.card_status)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
             val info = Utils.getDeviceId(this).takeLast(5)
             tvMacAddress.text = info
+
             lifecycleScope.launch {
-                delay(20000)
-                tvMacAddress.visibility = View.GONE
-            }
-            lifecycleScope.launch {
-                while (true) {
+                while (isActive) {
                     if (hubManager.isConnectSuccess) {
                         tvCheckInternet.setTextColor(getColor(R.color.white))
                         tvCheckInternet.setBackgroundColor(getColor(R.color.green_online))
                         tvCheckInternet.text = resources.getString(R.string.online)
+                        cardStatus.fadeOut()
+                        tvMacAddress.fadeOut()
                     } else {
                         tvCheckInternet.setTextColor(getColor(R.color.white))
                         tvCheckInternet.setBackgroundColor(getColor(R.color.red_offline))
                         tvCheckInternet.text = resources.getString(R.string.offine)
+                        cardStatus.fadeIn()
+                        tvMacAddress.fadeIn()
                     }
-                    delay(10000)
+                    delay(15000)
                 }
             }
         } else if (typeScreen == MULTIPLE_AREA) {
             initDefaultTopAndLeftArea()
         }
+    }
+
+    fun View.fadeIn(duration: Long = 500, end: (() -> Unit)? = null) {
+        if (visibility != View.VISIBLE) {
+            alpha = 0f
+            visibility = View.VISIBLE
+        }
+        animate().alpha(1f).setDuration(duration).withEndAction { end?.invoke() }.start()
+    }
+
+    fun View.fadeOut(duration: Long = 500, end: (() -> Unit)? = null) {
+        animate().alpha(0f).setDuration(duration).withEndAction {
+            visibility = View.INVISIBLE // hoặc GONE nếu muốn bỏ chiếm chỗ
+            end?.invoke()
+        }.start()
     }
 
     private fun initPhotoHolder(url: String?) {
@@ -492,7 +482,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     override fun onStart() {
         super.onStart()
-        startPlayingMedia()
+//        startPlayingMedia()
     }
 
     override fun onDestroy() {
@@ -633,8 +623,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mess = responseHub.message!!
 //                    playerManager.stopForceMedia()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    playerManager.stopTimeFrame()
-                    playerManager.stopAllPlayer()
+////                    playerManager.stopTimeFrame()
+//                    playerManager.stopAllPlayer()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     viewModel.updateMonthlyScenario(mess)

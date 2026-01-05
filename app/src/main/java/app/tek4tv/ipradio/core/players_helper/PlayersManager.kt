@@ -218,7 +218,6 @@ class PlayersManager(
 
                             else -> {
                                 exoPlayer.playMedia(mediaItem, timeStamp)
-
                             }
                         }
                     }
@@ -230,7 +229,6 @@ class PlayersManager(
 
                     } else {
                         playLiveStream(mediaItem)
-
                     }
                 }
 

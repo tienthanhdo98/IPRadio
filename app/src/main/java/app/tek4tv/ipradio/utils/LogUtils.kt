@@ -97,7 +97,7 @@ class LogUtils private constructor() {
             paState = paState,
             duration = mediaItem.duration,
             startTime = (currentTime.time / 1000),
-            body = mediaItem.body,
+            body = mediaItem.pathBackup,
             author = mediaItem.author,
             category = mediaItem.category,
             priority = mediaItem.priority,

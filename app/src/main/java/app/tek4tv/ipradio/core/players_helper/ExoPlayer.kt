@@ -200,6 +200,10 @@ class ExoMediaPlayer(
         exoPlayer.playWhenReady = true
         exoPlayer.play()
         Log.e(TAG, "Player exo start")
+        Log.e(TAG, "Player exo ${mediaItem.title}")
+        Log.e(TAG, "Player exo ${timeStamp}")
+        Log.e(TAG, "Player exo ${mediaItem.duration}")
+        Log.e(TAG, "Player exo ${mediaItem.end}")
         if (mediaItem.contentType?.id == 5) {
             handler?.removeCallbacksAndMessages(null)
             handler = Handler(Looper.getMainLooper())
@@ -208,15 +212,16 @@ class ExoMediaPlayer(
                     Log.e(TAG, "Player exo stop")
                     stop()
                     if (currentMedia?.getMediaType() == MediaType.FILE) {
-//                        val isStreamTimeFrame = checkMediaIsInTimeFrame(currentMedia!!)
-//                        if (!isStreamTimeFrame) {
-//                            playerEventListener.onMediaEndReached(currentMedia)
-//                        } else {
-//                            checkMediaIsInTimeFrame(currentMedia!!)
-//                        }
+
                         playerEventListener.onMediaEndReached(currentMedia)
                     } else {
-                        playerEventListener.onMediaForceEndReached(currentMedia)
+                        val isStreamTimeFrame = checkMediaIsInTimeFrame(currentMedia!!)
+                        if (!isStreamTimeFrame) {
+                            playerEventListener.onMediaEndReached(currentMedia)
+                        } else {
+                            checkMediaIsInTimeFrame(currentMedia!!)
+                        }
+//                        playerEventListener.onMediaForceEndReached(currentMedia)
                     }
                 },
                 (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
