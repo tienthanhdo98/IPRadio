@@ -12,7 +12,7 @@ data class ForceMedia(
     @Json(name = "Message")
     var path: String = "",
     @Json(name = "Duration")
-    var duration: String ? = null,
+    var duration: String? = null,
 
     @Json(name = "Type")
     var type: String = "",
@@ -20,7 +20,7 @@ data class ForceMedia(
     @Json(name = "Level")
     var level: Int = 0,
 
-    var mediaItem : MediaItem ? = null
+    var mediaItem: MediaItem? = null
 ) {
     //Thời điểm kết thúc
     @Json(name = "EndTime")
@@ -91,9 +91,7 @@ data class ForceMedia(
 
             val fm = jsonAdapter.fromJson(value) ?: return false
 
-            if (SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime) <= Date()) return false
-
-            return true
+            return SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime) > Date()
         }
 
         fun deleteForeMediaPref(appContext: Context) {
@@ -102,8 +100,8 @@ data class ForceMedia(
                 putString(appContext, FORCE_MEDIA, "")
             }
         }
-        fun clearMonthlyData(appContext: Context)
-        {
+
+        fun clearMonthlyData(appContext: Context) {
             ConfigUtil.putString(appContext, ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "")
         }
     }

@@ -19,48 +19,23 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
         val appInstance = MyApp.instance
 
         // TODO : add crash handler to app when building for customer
-        if (appInstance != null) {
-            logToFile(thread, ex)
 
-           // restartApp(appInstance, activity)
-        }
         if (appInstance != null) {
             restartApp(appInstance, activity)
         }
     }
 
-    private fun logToFile(thread: Thread, ex: Throwable) {
-        try {
-            val logPath = "${activity.applicationContext.filesDir.path}/$LOG_FOLDER_NAME/logerror.txt"
-            val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
-            val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
-
-            out.println("------------------------")
-
-            out.println("${df.format(Calendar.getInstance().time)}\n")
-            out.println("Thread name: ${thread.name}")
-            out.println("Message: ${ex.message}")
-            out.println("Cause: ${ex.cause}")
-            out.println("Stack trace: ")
-            ex.printStackTrace(out)
-
-            out.println("------------------------")
-
-
-            out.close()
-        } catch (e: Exception) {
-
-        }
-    }
 
     companion object {
         fun restartApp(appInstance: MyApp, activity: Activity) {
             val intent = Intent(activity, MainActivity::class.java)
             intent.putExtra("crash", true)
             intent.addFlags(
-                Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK)
+                Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_CLEAR_TASK or Intent.FLAG_ACTIVITY_NEW_TASK
+            )
             val pendingIntent = PendingIntent.getActivity(
-                appInstance.baseContext, 0, intent, PendingIntent.FLAG_IMMUTABLE)
+                appInstance.baseContext, 0, intent, PendingIntent.FLAG_IMMUTABLE
+            )
             val mgr =
                 appInstance.baseContext.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             mgr[AlarmManager.RTC, System.currentTimeMillis() + 100] = pendingIntent

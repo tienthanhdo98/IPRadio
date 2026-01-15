@@ -30,11 +30,12 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
     var isUart1 = false
-    fun disConnect()
-    {
-        serialPort?.close()
-        Log.d(LOG_TAG, "disconnect to serialport")
-    }
+
+    //    fun disConnect()
+//    {
+//        serialPort?.close()
+//        Log.d(LOG_TAG, "disconnect to serialport")
+//    }
     fun connectToSerialPort(uart: String) {
         try {
             initSerialPort(uart)
@@ -90,6 +91,7 @@ class SerialPortController(
                             "${cellStrength}dbm"
                         else "undefine"
                     }
+
                     "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
                     else -> "---"
                 }
@@ -118,7 +120,7 @@ class SerialPortController(
     }
 
     private fun readDevice() {
-       coroutineScope.launch(Dispatchers.IO) {
+        coroutineScope.launch(Dispatchers.IO) {
             while (!Thread.currentThread().isInterrupted) {
                 var size: Int
                 try {

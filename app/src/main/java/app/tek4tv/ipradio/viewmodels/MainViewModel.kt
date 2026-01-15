@@ -1,22 +1,24 @@
 package app.tek4tv.ipradio.viewmodels
 
 
+import android.content.Context
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import app.tek4tv.ipradio.MyApp.Companion.appContext
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.media.MediaWatchDog
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
-    internal val mediaRepo: MediaRepo
+    internal val mediaRepo: MediaRepo,
+    @ApplicationContext private val context: Context,
 ) : ViewModel() {
     val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
 
@@ -36,7 +38,7 @@ class MainViewModel @Inject constructor(
 
     fun rescheduleMonthlyPlaylist() {
         val jsonMonthlyListData = ConfigUtil.getString(
-            appContext,
+            context,
             ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, ""
         ) ?: ""
         updateMonthlyScenarioWss(jsonMonthlyListData)

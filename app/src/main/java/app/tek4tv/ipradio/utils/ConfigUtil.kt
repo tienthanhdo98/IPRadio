@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
 
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
@@ -26,12 +27,14 @@ object ConfigUtil {
     const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
     const val ServerTimeout = "ServerTimeout"
     const val KeepAliveInterval = "KeepAliveInterval"
+
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
     const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
     const val MONTHLY_SCENARIO_DATA = "MONTHLY_SCENARIO_DATA"
     const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
+
     //Token
     const val USERNAME = "USERNAME"
     const val PASSWORD = "PASSWORD"
@@ -46,24 +49,28 @@ object ConfigUtil {
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putString(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putString(key, value)
+        }
     }
 
     fun putStringEncrypt(context: Context, key: String?, value: String?) {
-        val editor = getEncryptedSharedPreferences(context).edit()
-        editor.putString(key, value)
-        editor.apply()
+        getEncryptedSharedPreferences(context).edit {
+            putString(key, value)
+        }
     }
 
     fun getStringEncrypt(context: Context, key: String): String {
 
-        return getEncryptedSharedPreferences(context).getString(key,"") ?: ""
+        return getEncryptedSharedPreferences(context).getString(key, "") ?: ""
     }
+
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
         return EncryptedSharedPreferences.create(
-            context, PREFERENCE_FILE_NAME,getKey(context), EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            context,
+            PREFERENCE_FILE_NAME,
+            getKey(context),
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
             EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
         )
     }
@@ -73,12 +80,14 @@ object ConfigUtil {
             .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
             .build()
     }
+
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putInt(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putInt(key, value)
+        }
     }
+
     fun getInt(context: Context, key: String, defaultValue: Int): Int {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getInt(key, defaultValue)
@@ -92,9 +101,9 @@ object ConfigUtil {
 
     fun putBool(context: Context, key: String, value: Boolean) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putBoolean(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putBoolean(key, value)
+        }
     }
 
     fun getBool(context: Context, key: String, defaultValue: Boolean): Boolean {
@@ -104,9 +113,9 @@ object ConfigUtil {
 
     fun putFloat(context: Context, key: String?, value: Float) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putFloat(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putFloat(key, value)
+        }
     }
 
     fun getFloat(context: Context, key: String, defaultValue: Float): Float {
@@ -125,6 +134,6 @@ object ConfigUtil {
 
     fun removeSharef(context: Context, key: String) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        sharedPref.edit().remove(key).apply()
+        sharedPref.edit { remove(key) }
     }
 }

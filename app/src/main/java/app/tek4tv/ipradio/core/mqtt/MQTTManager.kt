@@ -51,7 +51,7 @@ class MQTTManager(
                 clientID = it.topic.substringAfter("/")
             }
         }
-        publishTopicTinh = "thietbi/$clientID"
+        publishTopicTinh = "tinh/$clientID"
         Log.d(TAG, "clientID ${clientID}")
         val serverURI = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_MQTT)
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
@@ -88,9 +88,8 @@ class MQTTManager(
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        Log.d(TAG, "Connection failure ${exception!!}")
-                        exception.printStackTrace()
-                        connectEventListener.onConnectFailure(exception.message)
+                        Log.d(TAG, "Connection failure ${exception}")
+                        connectEventListener.onConnectFailure(exception?.message)
                     }
                 })
             }

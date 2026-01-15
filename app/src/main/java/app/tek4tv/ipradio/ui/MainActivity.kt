@@ -28,14 +28,9 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.libs.rtsp.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.model.local.MediaLogDao
-import app.tek4tv.ipradio.model.local.MediaLogModel
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
@@ -56,14 +51,13 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.IOException
 import java.util.*
 import javax.inject.Inject
 
 
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.N)
-class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
+class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -86,12 +80,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
     @Inject
     lateinit var authService: AuthService
 
-    @Inject
-    lateinit var logService: LogService
-
-    @Inject
-    lateinit var mediaLogDao: MediaLogDao
-
     private lateinit var hubManager: HubManager
 
     private lateinit var playerManager: PlayersManager
@@ -99,8 +87,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
     private lateinit var serialPortController: SerialPortController
 
     private lateinit var appStorageManager: AppStorageManager
-
-    private lateinit var logUtils: LogUtils
 
     private lateinit var mediaCapture: MediaCapture
 
@@ -187,32 +173,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                 hubManager.sendLogMediaSuccess(mediaItem, paState)
 
                 viewModel.currentMedia = mediaItem
-                if (!hubManager.isConnectSuccess) {
-                    lifecycleScope.launch {
-                        val tacGia = TacGia(
-                            tenDayDu = mediaItem.author?.fullName ?: "",
-                            butDanh = mediaItem.author?.userName ?: "",
-                            email = mediaItem.author?.email ?: ""
-                        )
-                        val mediaLog = MediaLogModel(
-                            amLuong = Utils.getDeviceInfo(
-                                StringValue.deviceInfoVolume, SerialPortController.deviceInfo
-                            ),
-                            thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
-                            congSuat = paState,
-                            banTinID = mediaItem.projectID,
-                            loaiBanTin = mediaItem.contentType?.value,
-                            mucDoUuTien = mediaItem.priority?.id.toString(),
-                            noiDung = mediaItem.pathBackup,
-                            noiDungTomTat = mediaItem.description,
-                            tacGia = adapterTacGia.toJson(tacGia),
-                            thoiLuong = mediaItem.duration,
-                            tieuDe = mediaItem.title,
-                            loaiLinhVuc = mediaItem.fieldType?.value,
-                        )
-                        mediaLogDao.insertLog(mediaLog)
-                    }
-                }
+
 
             }
         }
@@ -260,8 +221,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
         }
 
-        logUtils = LogUtils.getInst()
-        logUtils.logService = logService
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
@@ -270,7 +229,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         ) { command, message ->
             handleFromCommandServer(command, message)
         }
-        hubManager.setConnectionListener(this)
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S1_NAME)
@@ -406,64 +364,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         }
     }
 
-    private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
-        var logDeviceData: DataValueModel
-        val strTimeFrame = mutableListOf<String>()
-        lifecycleScope.launch {
-            while (true) {
-                strTimeFrame.clear()
-                //val imei = Utils.getDeviceId(baseContext)
-                val imei = "54:78:C9:A9:C5:97"
-                val timeUpdate = ConfigUtil.getString(
-                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
-                )!!
-                var deviceInfo = ""
-                if (hubManager.isMQTT && hubManager.mqttClient?.clientID?.isNotEmpty() == true) {
-                    deviceInfo =
-                        "${hubManager.mqttClient!!.clientID},${hubManager.dichId},${hubManager.tenDich},${hubManager.nguonId}.${hubManager.tenDich}"
-                }
-                val idPlaylist =
-                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
-                val scheduledList = viewModel.mediaRepo.timeDividers
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    strTimeFrame.add(period)
-                }
-                if (isSendPlaylistData) {
-                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
-                    var strPlaylist = ""
-                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
-                        strPlaylist = readFile(fileStoragePath)
-                    }
-                    logDeviceData = DataValueModel(
-                        idPlaylist = idPlaylist,
-                        updateTime = timeUpdate,
-                        currentDeviceTime = getCurrentTime(),
-                        timeFrame = strTimeFrame,
-                        currentPlaylistData = strPlaylist,
-                        deviceInfo = deviceInfo
-                    )
-                } else {
-                    logDeviceData = DataValueModel(
-                        idPlaylist = idPlaylist,
-                        updateTime = timeUpdate,
-                        currentDeviceTime = getCurrentTime(),
-                        timeFrame = strTimeFrame,
-                        deviceInfo = deviceInfo
-                    )
-                }
-                logUtils.logDataHub(imei, logDeviceData)
-                delay(300000)
-
-            }
-        }
-    }
-    
     private fun showMac() {
-        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
-        //val imei = Utils.getDeviceId(this)
-        val imei = "54:78:C9:A9:C5:97"
-        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
+        val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+        val imei = Utils.getDeviceId(this)
+        tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
     }
 
 
@@ -471,7 +375,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
         super.onStop()
         playerManager.onActivityStop()
         stopStream()
-        serialPortController.disConnect()
+//        serialPortController.disConnect()
         cancelAllAlarm()
 
     }
@@ -589,7 +493,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
             mediaScheduler.scheduleAllAlarms()
 
             playerManager.startFirstTimeFrame()
-            sendLogDataHub()
             //all load done, check
             viewModel.checkPlaylist()
 
@@ -818,19 +721,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
                     }
                 }
 
-                HubCommand.DELETE_ALL_LOG -> {
-                    appStorageManager.deleteAllLog()
-                }
-
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"
@@ -901,22 +791,5 @@ class MainActivity : StreamBaseFrag(), AlarmListener, IHubObserve {
 
     }
 
-    override fun onHubConnected() {
-        val paState =
-            if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-            else PAStatusOn
-        lifecycleScope.launch {
-            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            listMediaLog.forEach {
-                hubManager.sendUnsentLogMediaSuccess(it, paState)
-                mediaLogDao.deleteMediaItemById(it.id)
-            }
-        }
-        Log.d("HubObverse", "onHubConnected")
 
-    }
-
-    override fun onHubDisConnected() {
-        Log.d("HubObverse", "onHubDisConnected")
-    }
 }

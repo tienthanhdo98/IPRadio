@@ -121,14 +121,18 @@ class ExoMediaPlayer(
     override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
         if (isPlaying) stop()
         try {
-            if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-                if (isInRangeTimePlay()) {
-                    currentPlayingMedia = mediaItem
-                    isForceValue = isForce
-                    Log.e(TAG, "Exoplayer is force $isForceValue")
-                    playHlsExo(mediaItem, timeStamp)
-                }
-            }
+//            if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
+//                if (isInRangeTimePlay()) {
+//                    currentPlayingMedia = mediaItem
+//                    isForceValue = isForce
+//                    Log.e(TAG, "Exoplayer is force $isForceValue")
+//                    playHlsExo(mediaItem, timeStamp)
+//                }
+//            }
+            currentPlayingMedia = mediaItem
+            isForceValue = isForce
+            Log.e(TAG, "Exoplayer is force $isForceValue")
+            playHlsExo(mediaItem, timeStamp)
         } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
@@ -159,11 +163,6 @@ class ExoMediaPlayer(
     }
 
     override fun reset() {
-//        var url = "srt://localhost:8890?streamid=read:mystream"
-//        val em = com.google.android.exoplayer2.MediaItem.fromUri(url)
-//        exoPlayer.setMediaItem(em)
-//        exoPlayer.prepare()
-//        exoPlayer.play()
     }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {

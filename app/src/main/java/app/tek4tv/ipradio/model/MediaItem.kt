@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import android.net.Uri
 import android.util.Log
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -8,6 +7,7 @@ import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.Media
 import java.io.File
 import java.io.Serializable
+import androidx.core.net.toUri
 
 @JsonClass(generateAdapter = true)
 data class MediaItem(
@@ -102,8 +102,6 @@ data class MediaItem(
         pathBackup = body!!
     }
 
-    fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
-    else File("file://$body").name
 
     fun getMediaType(): MediaType {
         return when (type) {
@@ -117,21 +115,18 @@ data class MediaItem(
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
         if (getMediaType() == MediaType.LIVE) {
-            return Media(mLibVLC, Uri.parse(body))
+            return Media(mLibVLC, body?.toUri())
         }
         return if (body!!.isNotEmpty() && File(body!!).exists()) {
             Log.d("player", "local: $body")
-            Media(mLibVLC, Uri.parse("file://$body"))
+            Media(mLibVLC, "file://$body".toUri())
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, Uri.parse(pathBackup))
+            Media(mLibVLC, pathBackup.toUri())
 
         }
     }
 
-    companion object {
-        const val TUNER_REG = "^\\d,\\d+,\\d+,\\d+,[ -~]++\$"
-    }
 }
 
 enum class MediaType {
@@ -181,11 +176,6 @@ data class Priority(
 
     @Json(name = "Value")
     val value: String? = null
-)
-
-data class Tag(
-    val destinationID: String,
-    val destinationName: String
 )
 
 

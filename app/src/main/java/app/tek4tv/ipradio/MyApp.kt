@@ -10,81 +10,36 @@ class MyApp : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        appContext = applicationContext
+
         instance = this
-        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME, "123433232323")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "nghean_tek4tv")
         ConfigUtil.putStringEncrypt(
-            appContext,
+            applicationContext,
             ConfigUtil.PASSWORD,
-            "123433232323"
+            "5ca8ecc0-ed98-4413-95c2-b5646155b490"
         )
-        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME_KEY, "Username")
-        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY, "Password")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "USERNAME")
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
         ConfigUtil.putStringEncrypt(
-            appContext,
+            applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://thongtinnguon.mobifone.vn/cmsapi/api/oauth/token"
+            "https://gateway-thongtinnguon.nghean.gov.vn/api/v2/oauth/token"
         )
         ConfigUtil.putStringEncrypt(
-            appContext,
+            applicationContext,
             ConfigUtil.URL_MQTT,
-            "tcp://thongtinnguon.mobifone.vn:8883"
+            "tcp://mqtt-thongtinnguon.nghean.gov.vn:1883"
         )
         ConfigUtil.putStringEncrypt(
-            appContext,
+            applicationContext,
             ConfigUtil.URL_MQTT_INFO,
-            "https://thongtinnguon.mobifone.vn/cmsapi/api/mqtt/dangkythietbi"
-        )
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_MQTT_SOURCE,
-//            "https://v2-provider-data-warehouse.tek4tv.vn/Source/"
-//        )
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_WSS,
-//            "wss://websocket-thongtinnguon.quangngai.gov.vn/ws/ipradio"
-//        )
-//
-//        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME, "nghean_tek4tv")
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.PASSWORD,
-//            "5ca8ecc0-ed98-4413-95c2-b5646155b490"
-//        )
-//        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.USERNAME_KEY, "USERNAME")
-//        ConfigUtil.putStringEncrypt(appContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_TOKEN,
-//            "https://gateway-thongtinnguon.nghean.gov.vn/api/v2/oauth/token"
-//        )
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_MQTT,
-//            "tcp://thongtinnguon.mobifone.vn:8883"
-//        )
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_MQTT_INFO,
-//            "https://thongtinnguon.mobifone.vn/cmsapi/api/mqtt/dangkythietbi"
-//        )
-//        ConfigUtil.putStringEncrypt(
-//            appContext,
-//            ConfigUtil.URL_MQTT_SOURCE,
-//            "https://v2-provider-data-warehouse.tek4tv.vn/Source/"
-//        )
-        ConfigUtil.putStringEncrypt(
-            appContext,
-            ConfigUtil.URL_WSS,
-            "wss://websocket-thongtinnguon.nghean.gov.vn/ws/ipradio"
+            "https://gateway-thongtinnguon.nghean.gov.vn/v2/mqtt-ipradio/Ipradio/mqtt/dangkythietbi"
         )
 
 
     }
 
     companion object {
-        lateinit var appContext: Context
         var instance: MyApp? = null
     }
 }

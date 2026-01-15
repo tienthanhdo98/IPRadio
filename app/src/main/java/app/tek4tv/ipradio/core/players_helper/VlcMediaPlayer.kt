@@ -1,11 +1,9 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItem
@@ -13,12 +11,10 @@ import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.isInRangeTimePlay
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import java.util.*
+import java.util.Calendar
 
 class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
     IMediaPlayer {

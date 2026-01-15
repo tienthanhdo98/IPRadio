@@ -10,20 +10,48 @@ import app.tek4tv.ipradio.di.JsonAdapterProvider.jsonMediaItemAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaItemMoshiAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.wssLiveAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.wssStatusAdapter
-import app.tek4tv.ipradio.di.MoshiInst.adapterTacGia
 import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
-import app.tek4tv.ipradio.model.*
-import app.tek4tv.ipradio.model.local.MediaLogModel
+import app.tek4tv.ipradio.model.Author
+import app.tek4tv.ipradio.model.Category
+import app.tek4tv.ipradio.model.ContentType
+import app.tek4tv.ipradio.model.DanhSachDiaBanNhan
+import app.tek4tv.ipradio.model.DanhSachNgayPhat
+import app.tek4tv.ipradio.model.DanhSachThietBi
+import app.tek4tv.ipradio.model.MQTTInfoModel
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.NoiDungMQTT
+import app.tek4tv.ipradio.model.PayloadLive
+import app.tek4tv.ipradio.model.PayloadStatus
+import app.tek4tv.ipradio.model.Priority
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.SourceMQTT
+import app.tek4tv.ipradio.model.TacGia
+import app.tek4tv.ipradio.model.ThongTinChiTietBanTin
+import app.tek4tv.ipradio.model.ThongTinThietBI
+import app.tek4tv.ipradio.model.WssMediaLogModel
+import app.tek4tv.ipradio.model.WssStatusModel
+import app.tek4tv.ipradio.model.itemMedia
 import app.tek4tv.ipradio.network.AuthService
-import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.StringValue
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.convertAuthor
 import app.tek4tv.ipradio.utils.Utils.Companion.getDeviceInfo
 import app.tek4tv.ipradio.utils.Utils.Companion.getTypeOfMediaItem
+import app.tek4tv.ipradio.utils.convertTimeStampToHHMMSS
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getTotalDataNetworkUsed
-import kotlinx.coroutines.*
-import java.util.*
+import app.tek4tv.ipradio.utils.unixTimeStampToDateTime
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
+import java.util.Calendar
 
 @RequiresApi(Build.VERSION_CODES.N)
 class HubManager(
@@ -42,7 +70,6 @@ class HubManager(
     private var getTokenJob: Job? = null
 
     val deviceImei = Utils.getDeviceId(appContext)
-    //val deviceImei = "54:78:C9:A9:C5:97"
 
     var pingCounter = 0
 
@@ -50,11 +77,10 @@ class HubManager(
 
     var currentMediaItem: MediaItem? = null
 
-    var versionName = "W62.4.2c"
+    var versionName = "M37.4.2c"
 
     private var hubToken: String? = null
 
-    private var connectionListener: IHubObserve? = null
     var isConnectSuccess = false
 
     private var wssManager: WssManager? = null
@@ -70,10 +96,6 @@ class HubManager(
 
     var mqttClient: MQTTManager? = null
 
-
-    fun setConnectionListener(listener: IHubObserve) {
-        connectionListener = listener
-    }
 
     private fun getHubToken() {
         try {
@@ -224,13 +246,11 @@ class HubManager(
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
-        connectionListener?.onHubConnected()
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
         isConnectSuccess = false
-        connectionListener?.onHubDisConnected()
     }
 
     override fun onReceiveMessageSuccess(message: String) {
@@ -249,8 +269,8 @@ class HubManager(
 
     private fun sendPing() {
         pingCounter++
-        var trangThaiHoatDong = "1"
-        var noiDungPhat = ""
+        var trangThaiHoatDong: String
+        var noiDungPhat: String
         if (currentMediaItem != null) {
             noiDungPhat = currentMediaItem!!.pathBackup
             trangThaiHoatDong = "0"
@@ -260,10 +280,10 @@ class HubManager(
         }
         val request = WssStatusModel(
             id = "", topic = HubCommand.DV008, payload = PayloadStatus(
-                dichID = dichId,
-                tenDich = tenDich,
                 nguonID = nguonId,
                 tenNguon = tenNguon,
+                dichID = dichId,
+                tenDich = tenDich,
                 cumLoaID = deviceImei,
                 tenThietBI = GlobalProperties.getInst().nameDevice,
                 tenLoaiThietBI = "Cụm loa truyền thanh",
@@ -365,7 +385,6 @@ class HubManager(
                 coroutineScope.launch(Dispatchers.Main) {
                     onMessageListener.invoke(hubCommand, jsonMessage)
                 }
-
             }
             //Hủy lịch
             HubCommand.DV004 -> {
@@ -459,40 +478,6 @@ class HubManager(
         }
     }
 
-    fun sendUnsentLogMediaSuccess(mediaItem: MediaLogModel, paState: String) {
-        val request = WssStatusModel(
-            id = "", topic = HubCommand.DV005, payload = WssMediaLogModel(
-                nguonID = nguonId,
-                tenNguon = tenNguon,
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = deviceImei,
-                maNhaCungCap = GlobalProperties.getInst().providerValue,
-                tenNhaCungCap = GlobalProperties.getInst().providerValue,
-                amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
-                ),
-                thoiDiemBatDau = mediaItem.thoiDiemBatDau,
-                congSuat = paState,
-                banTinID = mediaItem.banTinID,
-                loaiBanTin = mediaItem.loaiBanTin,
-                mucDoUuTien = mediaItem.mucDoUuTien,
-                noiDung = mediaItem.noiDung,
-                noiDungTomTat = mediaItem.noiDungTomTat,
-                tacGia = adapterTacGia.fromJson(mediaItem.tacGia),
-                tenThietBi = GlobalProperties.getInst().nameDevice,
-                thoiLuong = mediaItem.thoiLuong,
-                tieuDe = mediaItem.tieuDe,
-                danhSachBanTin = listOf(),
-                danhSachDiaBan = listOf(),
-                danhSachThietBi = listOf(),
-                loaiLinhVuc = mediaItem.loaiLinhVuc,
-            )
-        )
-        Log.d(TAG, "sendLogMedia unseen Success: dv005")
-        sendMessage(wssStatusAdapter.toJson(request))
-    }
 
     fun sendLogMediaSuccess(mediaItem: MediaItem, paState: String) {
 
