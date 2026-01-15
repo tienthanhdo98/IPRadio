@@ -2,20 +2,15 @@ package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-@JsonClass(generateAdapter = true)
-data class WssModel (
-    val id: String?,
-    val topic: String?
-)
 
 @JsonClass(generateAdapter = true)
-data class WssLiveModel (
+data class WssLiveModel(
     val id: String?,
     val topic: String?,
     val payload: PayloadLive?
 )
 
-data class PayloadLive (
+data class PayloadLive(
     @Json(name = "DichID")
     val dichID: String?,
 
@@ -98,7 +93,7 @@ data class itemMedia
     var danhSachBanTin: DanhSachBanTin
 )
 
-data class DanhSachDiaBanNhan (
+data class DanhSachDiaBanNhan(
     @Json(name = "DichID")
     val dichID: String?,
 
@@ -109,7 +104,7 @@ data class DanhSachDiaBanNhan (
     val cumLoaID: List<String>?
 )
 
-data class TacGia (
+data class TacGia(
     @Json(name = "TenDayDu")
     val tenDayDu: String?,
 
@@ -157,25 +152,25 @@ data class DanhSachThietBi(
 
 data class DanhSachBanTin(
     @Json(name = "BanTinID")
-    val banTinID: String,
+    val banTinID: String?,
 
     @Json(name = "LoaiBanTin")
-    val loaiBanTin: String,
+    val loaiBanTin: String?,
 
     @Json(name = "MucDoUuTien")
-    val mucDoUuTien: String,
+    val mucDoUuTien: String?,
 
     @Json(name = "TieuDe")
-    val tieuDe: String,
+    val tieuDe: String?,
 
     @Json(name = "LoaiLinhVuc")
-    val loaiLinhVuc: String,
+    val loaiLinhVuc: String?,
 
     @Json(name = "NoiDungTomTat")
-    val noiDungTomTat: String,
+    val noiDungTomTat: String?,
 
     @Json(name = "ThoiGianSanXuat")
-    val thoiGianSANXuat: Long,
+    val thoiGianSANXuat: Long?,
 
     @Json(name = "ThoiLuong")
     val thoiLuong: String,

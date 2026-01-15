@@ -650,7 +650,7 @@ class HubManager(
                     author = convertAuthor(item.danhSachBanTin.tacGia),
                     body = item.danhSachBanTin.noiDung,
                     sourceReference = item.danhSachBanTin.tenDiaBanTAO,
-                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin.toInt()),
+                    type = getTypeOfMediaItem(item.danhSachBanTin.loaiBanTin?.toInt()),
                     createDate = item.danhSachBanTin.thoiGianSANXuat.toString(),
                     metadata = mutableListOf(),
                     tag = mutableListOf(),
