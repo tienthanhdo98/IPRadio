@@ -2,7 +2,6 @@ package app.tek4tv.ipradio.ui
 
 
 import android.Manifest
-import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
@@ -101,7 +100,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var rootLayout: FrameLayout
 
     private val globalProperties = GlobalProperties.getInst()
 
@@ -179,7 +177,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         }
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
-            logUtils.logMediaEnd(mediaItem)
         }
 
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
@@ -258,7 +255,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
-        hubManager = HubManager(hubComm, authService) { command, message ->
+        hubManager = HubManager(baseContext, hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
@@ -275,7 +272,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             handleFromCommandServer(command, message)
         }
 
-        rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
@@ -420,38 +416,39 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     }
 
     private fun sendLogDataHub(isSendPlaylistData: Boolean = false) {
-        var logDeviceData: DataValueModel
-        val strTimeFrame = mutableListOf<String>()
-        lifecycleScope.launch {
-            while (true) {
-                strTimeFrame.clear()
-                val imei = Utils.getDeviceId(baseContext)
-                val timeUpdate = ConfigUtil.getString(
-                    baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
-                )!!
-                val idPlaylist =
-                    ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
-                val scheduledList = viewModel.mediaRepo.timeDividers
-                for (i in scheduledList.keys.indices) {
-                    val period = scheduledList.keys.elementAt(i)
-                    strTimeFrame.add(period)
-                }
-                if (isSendPlaylistData) {
-                    val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
-                    var strPlaylist = ""
-                    if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
-                        strPlaylist = readFile(fileStoragePath)
+        if (NetworkUtils.isNetworkConnected(baseContext)) {
+            var logDeviceData: DataValueModel
+            val strTimeFrame = mutableListOf<String>()
+            lifecycleScope.launch {
+                while (true) {
+                    strTimeFrame.clear()
+                    val imei = Utils.getDeviceId(baseContext)
+                    val timeUpdate = ConfigUtil.getString(
+                        baseContext, ConfigUtil.TIME_UPDATE_MONTHLY_SCENARIO, "0"
+                    )!!
+                    val idPlaylist =
+                        ConfigUtil.getString(baseContext, ConfigUtil.MONTHLY_SCENARIO_URL, "")!!
+                    val scheduledList = viewModel.mediaRepo.timeDividers
+                    for (i in scheduledList.keys.indices) {
+                        val period = scheduledList.keys.elementAt(i)
+                        strTimeFrame.add(period)
                     }
-                    logDeviceData = DataValueModel(
-                        idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame, strPlaylist
-                    )
-                } else {
-                    logDeviceData =
-                        DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
+                    if (isSendPlaylistData) {
+                        val fileStoragePath = "${baseContext.filesDir.path}/$PLAYLIST_FILE_NAME"
+                        var strPlaylist = ""
+                        if (isFileExisted(baseContext.filesDir.path, PLAYLIST_FILE_NAME)) {
+                            strPlaylist = readFile(fileStoragePath)
+                        }
+                        logDeviceData = DataValueModel(
+                            idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame, strPlaylist
+                        )
+                    } else {
+                        logDeviceData =
+                            DataValueModel(idPlaylist, timeUpdate, getCurrentTime(), strTimeFrame)
+                    }
+                    logUtils.logDataHub(imei, logDeviceData)
+                    delay(300000)
                 }
-                logUtils.logDataHub(imei, logDeviceData)
-                delay(300000)
-
             }
         }
     }
@@ -534,6 +531,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
         return true
     }
+
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -624,9 +622,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     val newResponseHub = ResponseHub().apply {
                         listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
                             volume = it
-//                            serialPortController.writeForceSetVolume(mess)
                             serialPortController.writeForceSetVolume(it)
-                            globalProperties.setTempVolume(responseHub.message!!)
+                            globalProperties.setTempVolume(it)
                         }
                         listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
                             lat = it.toFloat()
@@ -1012,7 +1009,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                         connectionId, Utils.GET_RECORD, recordedAudioList
                     )
                 }
-                
+
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"

@@ -5,7 +5,6 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
@@ -35,6 +34,7 @@ import java.util.*
  * receive command, ping
  * **/
 class HubManager(
+    private val appContext: Context,
     private val hubComm: HubComm,
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
@@ -52,7 +52,6 @@ class HubManager(
     private var openNewConnectionJob: Job? = null
 
     private var coroutineScope = CoroutineScope(Dispatchers.IO)
-    val appContext: Context = MyApp.instance!!.applicationContext
 
     private val videoAdapter = moshi.adapter(Video::class.java)
     private val pingRequestAdapter = moshi.adapter(PingHubRequest::class.java)
@@ -76,7 +75,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v38.4.2.1f"
+    var versionName = "v75.4.2.1f"
 
     private var registerOnMessageListener = false
 
@@ -96,9 +95,11 @@ class HubManager(
     private var hubUrl = ""
     private var tokenUrl = ""
     var providerValue = ""
+    var packageName = ""
 
 
     init {
+        packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
             appContext, ConfigUtil.PROVIDER, "TEK4TV"
         )!!
@@ -108,7 +109,7 @@ class HubManager(
             "https://hubip-hue.tek4tv.vn/hubServer"
         )!!
         tokenUrl = ConfigUtil.getString(
-            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(MyApp.instance!!.packageName)
+            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
         )!!
         serverTimeout = ConfigUtil.getInt(
             appContext, ConfigUtil.ServerTimeout, 60000
@@ -130,7 +131,7 @@ class HubManager(
         hubConnection.serverTimeout = serverTimeout.toLong()
         hubConnection.keepAliveInterval = keepAliveInterval.toLong()
 
-        privateKeyStr = Secrets().getHubPrivateKey(MyApp.instance!!.packageName)
+        privateKeyStr = Secrets().getHubPrivateKey(packageName)
     }
 
     //lấy token từ hub
@@ -141,11 +142,11 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
 
             val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+                String(xorString(u, packageName.reversed())) to authInfo[0],
+                String(xorString(p, packageName.reversed())) to authInfo[1]
             )
 
 
@@ -171,11 +172,11 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
 
             val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+                String(xorString(u, packageName.reversed())) to authInfo[0],
+                String(xorString(p, packageName.reversed())) to authInfo[1]
             )
 
             val call = authService.getToken(body, tokenUrl)

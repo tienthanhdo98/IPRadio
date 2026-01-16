@@ -4,9 +4,17 @@ import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.MoshiInst
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DataLogModel
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.HubStateRecord
+import app.tek4tv.ipradio.model.LogRecord
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaRecord
+import app.tek4tv.ipradio.model.TimeFrameRecord
+import app.tek4tv.ipradio.model.toJson
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.storage.*
+import app.tek4tv.ipradio.utils.storage.createFolder
+import app.tek4tv.ipradio.utils.storage.isFolderExisted
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -15,7 +23,8 @@ import java.io.BufferedWriter
 import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
 
 const val LOG_FOLDER_NAME = "app_logs"
 const val HUB_LOG_FOLDER_NAME = "hub_logs"
@@ -44,7 +53,7 @@ class LogUtils private constructor() {
      private val deviceStatusDb : DatabaseReference
      private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
-    
+
 
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
@@ -81,24 +90,6 @@ class LogUtils private constructor() {
         writeLogToFile(filePath, "$command : $message", true)
     }
 
-    fun logHubError(error: String) {
-        try {
-            val logPath = "logFolderPath/${fileNameFormat.format(Date())}.txt"
-            val out = PrintWriter(BufferedWriter(FileWriter(logPath, true)))
-            val df = SimpleDateFormat("yyyy.MM.dd 'at' HH:mm:ss")
-
-            out.println("------------------------")
-
-            out.println("${df.format(Calendar.getInstance().time)}\n")
-
-            out.println("Error  ${error}")
-            out.println("------------------------")
-
-            out.close()
-        } catch (e: Exception) {
-
-        }
-    }
 
     fun logMediaStart(mediaItem: MediaItem, duration: Long, volume: String, paState: String) {
         val filePath = getLogFilePath(playerLogFolderPath)
@@ -172,78 +163,6 @@ class LogUtils private constructor() {
         }
     }
 
-    fun logMediaEnd(
-        mediaItem: MediaItem
-    ) {
-        val filePath = getLogFilePath(playerLogFolderPath)
-        var sourceId = ""
-        var sourceName = ""
-        if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
-            sourceId = mediaItem.sourceID
-            sourceName = mediaItem.sourceName
-        } else {
-            sourceId = destinationId
-            sourceName = destinationName
-        }
-        val externalSource: String
-        val isExternalSource: Int
-        if (mediaItem.type != "VOD") {
-            externalSource = mediaItem.pathBackup
-            isExternalSource = 1
-        } else {
-            externalSource = ""
-            isExternalSource = 0
-        }
-
-        val currentTime = Calendar.getInstance().time
-        // remove at 4.1.3b
-        //        var link = ""
-//        link = if (link.startsWith("rtsp")) {
-//            "live"
-//        } else {
-//            mediaItem.pathBackup
-//        }
-        val reportObj = MediaRecord(
-            imei = imei,
-            title = mediaItem.title ?: "",
-            sourceID = sourceId,
-            sourceName = sourceName,
-            destinationId = destinationId,
-            destinationName = destinationName,
-            mediaID = mediaItem.mediaID.toString(),
-            body = mediaItem.pathBackup,
-            endTime = currentTime.time,
-            status = "1",
-            duration = mediaItem.duration,
-            author = mediaItem.author,
-            category = mediaItem.category,
-            priority = mediaItem.priority,
-            contentType = mediaItem.contentType,
-            description = mediaItem.description,
-            externalSource = externalSource,
-            isExternal = isExternalSource,
-            deviceName = GlobalProperties.getInst().nameDevice,
-            sourceReference = mediaItem.sourceReference,
-            provider = providerValue
-        )
-        val str = getRecordStr(reportObj)
-
-        if (str != null)
-            writeLogToFile(filePath, str)
-
-//        coroutineScope.launch {
-//            try {
-//                logService?.postMediaInfoEnd(reportObj)
-//                Log.d(
-//                    LOG_TAG,
-//                    "Log media stop ${reportObj.title} $sourceId : $sourceName : status ${reportObj.status}"
-//                )
-//            } catch (e: Exception) {
-//                Log.d(LOG_TAG, "Error send log media ${e.message}")
-//                e.printStackTrace()
-//            }
-//        }
-    }
 
     private fun writeLogToFile(filePath: String, line: String, logTime: Boolean = false) {
         coroutineScope.launch {
