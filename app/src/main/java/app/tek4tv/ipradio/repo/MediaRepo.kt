@@ -283,8 +283,8 @@ class MediaRepo @Inject constructor(
 //            }
 //        })
 //    }
-
-    ///
+//
+//    /
 
 
     private val allowedExt by lazy {
@@ -300,57 +300,80 @@ class MediaRepo @Inject constructor(
     private fun isAllowedExtension(ext: String) =
         allowedExt.any { it.equals(ext, ignoreCase = true) }
 
-    private fun fileExists(path: String) = File(path).exists()
 
     suspend fun startDownloadMedia() {
+        Log.d(TAG, "startDownloadMedia: ${broadcastList.size} items")
         downloadAllAndSaveOnce(
             broadcastList = broadcastList,
             mediaStoragePath = mediaStoragePath,
             isAllowedExtension = ::isAllowedExtension,
-            fileExists = ::fileExists,
-            saveItemsToFile = { list -> saveItemsToFile(list) }, // ghi JSON 1 lần
-            parallelism = numberFileDownloadAtOnce // tùy máy/IO
+            saveItemsToFile = { list -> saveItemsToFile(list) },
+            parallelism = numberFileDownloadAtOnce
         )
     }
 
-    private suspend fun prDownloadOnce(
-        url: String, dirPath: String, fileName: String
-    ): Boolean = suspendCancellableCoroutine { cont ->
-        val request = PRDownloader.download(url, dirPath, fileName).build()
-        Log.e(TAG, "start download $url")
-        // Bắt đầu tải và lấy downloadId để có thể cancel
-        val downloadId = request.start(object : OnDownloadListener {
-            override fun onDownloadComplete() {
-                Log.e(TAG, "download $url success")
-                if (cont.isActive) cont.resume(true)
-            }
+    suspend fun downloadAllAndSaveOnce(
+        broadcastList: MutableList<MediaItem>,
+        mediaStoragePath: String,
+        isAllowedExtension: (String) -> Boolean,
+        saveItemsToFile: suspend (List<MediaItem>) -> Unit,
+        parallelism: Int = numberFileDownloadAtOnce
+    ) = withContext(Dispatchers.IO) {
+        val indices = broadcastList.indices.filter { broadcastList[it].shouldDownload() }
 
-            override fun onError(error: Error?) {
-                Log.e(TAG, "start download $url fail")
-                // Xoá file hỏng nếu có
-                try {
-                    File(dirPath, fileName).takeIf { it.exists() }?.delete()
-                } catch (_: Throwable) {
-                }
-                if (cont.isActive) cont.resume(false)
-            }
-        })
+        if (indices.isEmpty()) return@withContext
 
-        // Cho phép huỷ khi coroutine bị cancel
-        cont.invokeOnCancellation {
-            try {
-                Log.e(TAG, "start download $url cancel")
-                PRDownloader.cancel(downloadId)
-            } catch (_: Throwable) {
+        //Group by filename để tránh download trùng
+        val indicesByFilename = indices.groupBy { idx ->
+            val url = broadcastList[idx].body ?: ""
+            URLUtil.guessFileName(url, null, null)
+        }
+        // Log warning nếu có duplicate
+        indicesByFilename.forEach { (filename, idxList) ->
+            if (idxList.size > 1) {
+                Log.w(TAG, "Duplicate filename detected: $filename (${idxList.size} items)")
             }
         }
+
+        val sem = kotlinx.coroutines.sync.Semaphore(parallelism)
+
+        // Chỉ download MỖI FILE MỘT LẦN, sau đó apply cho tất cả items trùng
+        val resultsByFilename = indicesByFilename.map { (filename, idxList) ->
+            async {
+                sem.withPermit {
+                    // Lấy item đầu tiên để download
+                    val firstIdx = idxList.first()
+                    val item = broadcastList[firstIdx]
+
+                    val updated = downloadAndTransform(
+                        item = item,
+                        mediaStoragePath = mediaStoragePath,
+                        isAllowedExt = isAllowedExtension,
+                    )
+                    // Trả về tất cả indices với cùng kết quả
+                    idxList.map { it to updated }
+                }
+            }
+        }.awaitAll().flatten()
+
+        // Ghi lại tuần tự để tránh race condition
+        try {
+            for ((idx, updated) in resultsByFilename) {
+                broadcastList[idx] = updated
+            }
+        } catch (e: Exception) {
+            Log.d(TAG, "downloadAllAndSaveOnce: ${e.message}")
+        }
+
+        // Chỉ save 1 lần sau khi xong hết
+        saveItemsToFile(broadcastList)
+
     }
 
     private suspend fun downloadAndTransform(
         item: MediaItem,
         mediaStoragePath: String,
         isAllowedExt: (String) -> Boolean,
-        fileExists: (String) -> Boolean
     ): MediaItem {
         val url = item.body ?: return item
         if (!URLUtil.isNetworkUrl(url)) return item
@@ -363,19 +386,34 @@ class MediaRepo @Inject constructor(
         if (ext.isBlank() || !isAllowedExt(ext)) return item
 
         val originalBody = item.body // giữ URL gốc để set pathBackup
+        val file = File(localPath)
 
-        // Nếu đã tồn tại file -> coi như tải xong
-        if (fileExists(localPath)) {
+        // 2. Kiểm tra file tồn tại + kích thước hợp lệ
+        if (file.exists() && file.length() > 100) {
             val newItem = item.copy(body = localPath)
             if (!originalBody.isNullOrBlank()) newItem.pathBackup =
                 originalBody // setter chỉ nhận http
             return newItem
         }
+        // 3. Xóa file rác/corrupt
+        if (file.exists()) {
+            try {
+                file.delete()
+            } catch (_: Throwable) {
+            }
+        }
 
-        // Tải bằng PRDownloader (suspend)
+        // 4. Tải file
         val ok = prDownloadOnce(url, mediaStoragePath, fileName)
 
-        return if (ok) {
+        // 5. Đợi một chút để file được flush (workaround PRDownloader timing issue)
+        if (ok) {
+            delay(200) // 100ms buffer
+        }
+        // 6. Verify file sau khi tải
+        val isValid = file.exists() && file.length() > 100
+
+        return if (ok && isValid) {
             val newItem = item.copy(body = localPath)
             if (!originalBody.isNullOrBlank()) newItem.pathBackup = originalBody
             newItem
@@ -384,52 +422,55 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
-    suspend fun downloadAllAndSaveOnce(
-        broadcastList: MutableList<MediaItem>,
-        mediaStoragePath: String,
-        isAllowedExtension: (String) -> Boolean,
-        fileExists: (String) -> Boolean,
-        saveItemsToFile: suspend (List<MediaItem>) -> Unit,
-        parallelism: Int = numberFileDownloadAtOnce
-    ) = withContext(Dispatchers.IO) {
-        val indices = broadcastList.indices.filter { broadcastList[it].shouldDownload() }
+    private suspend fun prDownloadOnce(
+        url: String, dirPath: String, fileName: String
+    ): Boolean = suspendCancellableCoroutine { cont ->
+        val request = PRDownloader.download(url, dirPath, fileName).build()
+        val targetFile = File(dirPath, fileName)
+        Log.e(TAG, "start download $url")
+        // Bắt đầu tải và lấy downloadId để có thể cancel
+        val downloadId = request.start(object : OnDownloadListener {
+            override fun onDownloadComplete() {
+                Log.e(TAG, "download $url success")
+                if (cont.isActive) cont.resume(true)
+            }
 
-        if (indices.isEmpty()) return@withContext
+            override fun onError(error: Error?) {
+                Log.e(
+                    TAG,
+                    "download error $url: ${error?.connectionException?.message ?: error?.serverErrorMessage ?: "unknown"}"
+                )
 
-        val sem = kotlinx.coroutines.sync.Semaphore(parallelism)
-
-        // Chụp snapshot (index + item) để không đụng list sau này
-        val toProcess: List<Pair<Int, MediaItem>> = indices.map { it to broadcastList[it] }
-
-        // Xử lý song song và trả về (index, updatedItem)
-        val results: List<Pair<Int, MediaItem>> = toProcess.map { (idx, item) ->
-            async {
-                sem.withPermit {
-                    val updated = downloadAndTransform(
-                        item = item,
-                        mediaStoragePath = mediaStoragePath,
-                        isAllowedExt = isAllowedExtension,
-                        fileExists = fileExists
-                    )
-                    idx to updated
+                // Chỉ xóa file nếu là file của download này (check bằng timestamp gần đây)
+                try {
+                    if (targetFile.exists() &&
+                        System.currentTimeMillis() - targetFile.lastModified() < 5000
+                    ) {
+                        targetFile.delete()
+                        Log.e(TAG, "deleted corrupted file: ${targetFile.absolutePath}")
+                    }
+                } catch (e: Throwable) {
+                    Log.e(TAG, "failed to delete file: ${e.message}")
                 }
-            }
-        }.awaitAll()
 
-        // Ghi lại tuần tự để tránh race condition
-        try {
-            for ((idx, updated) in results) {
-                broadcastList[idx] = updated
+                if (cont.isActive) cont.resume(false)
             }
-        } catch (e: Exception) {
-            Log.d(TAG, "downloadAllAndSaveOnce: ${e.message}")
+        })
+
+        // Cho phép huỷ khi coroutine bị cancel
+        cont.invokeOnCancellation {
+            try {
+                Log.e(TAG, "start download $url cancel")
+                PRDownloader.cancel(downloadId)
+                // Xóa file nếu bị cancel
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+            } catch (_: Throwable) {
+            }
         }
-
-        // Chỉ save 1 lần sau khi xong hết
-        saveItemsToFile(broadcastList)
-
     }
+
 
     suspend fun checkPlaylistBroken() {
         checkPlaylist(broadcastList, { list -> saveItemsToFile(list) })
@@ -444,11 +485,13 @@ class MediaRepo @Inject constructor(
         }.toMutableList()
         Log.d(TAG, "checkPlaylist media broken: ${needDownload.size}")
         if (needDownload.isNotEmpty()) {
+            needDownload.forEach {
+                it.body = it.pathBackup
+            }
             downloadAllAndSaveOnce(
-                broadcastList = needDownload,
+                broadcastList = mediaList,
                 mediaStoragePath = mediaStoragePath,
                 isAllowedExtension = ::isAllowedExtension,
-                fileExists = ::fileExists,
                 saveItemsToFile = saveItemsToFile, // ghi JSON 1 lần
                 parallelism = numberFileDownloadAtOnce // tùy máy/IO
             )

@@ -58,7 +58,7 @@ class MainViewModel @Inject constructor(
             while (isActive) {
                 delay(60 * 60_000L) // 60 phút mới kiểm tra lại
                 clearDatastore(appStorageManager)
-                Log.d("MediaRepo", "Checking media...")
+                Log.d("MEDIA_REPO", "Checking media...")
                 mediaRepo.checkPlaylistBroken()
             }
         }

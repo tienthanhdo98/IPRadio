@@ -7,8 +7,7 @@ import java.util.*
 import kotlin.math.abs
 
 
-fun isInRangeTimePlay() : Boolean
-{
+fun isInRangeTimePlay(): Boolean {
     val currentTime = Calendar.getInstance()
     //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
     val rangeNightStart = Calendar.getInstance().apply {
@@ -16,7 +15,7 @@ fun isInRangeTimePlay() : Boolean
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
     }
-    val rangeNightEnd= Calendar.getInstance().apply {
+    val rangeNightEnd = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 23)
         set(Calendar.MINUTE, 58)
         set(Calendar.SECOND, 0)
@@ -27,23 +26,22 @@ fun isInRangeTimePlay() : Boolean
         set(Calendar.MINUTE, 1)
         set(Calendar.SECOND, 0)
     }
-    val rangeEveningEnd= Calendar.getInstance().apply {
+    val rangeEveningEnd = Calendar.getInstance().apply {
         set(Calendar.HOUR_OF_DAY, 4)
         set(Calendar.MINUTE, 0)
         set(Calendar.SECOND, 0)
     }
-    if(currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return  false
-    if(currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return  false
+    if (currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return false
+    if (currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return false
 
     return true
 }
-fun getCurrentTime() : Long
-{
+
+fun getCurrentTime(): Long {
     return Calendar.getInstance().time.time
 }
 
-fun secToReadable(sec : Long) : String
-{
+fun secToReadable(sec: Long): String {
     val h = sec / 3600
     val m = (sec - h * 3600) / 60
     val s = sec - h * 3600 - m * 60
@@ -52,9 +50,10 @@ fun secToReadable(sec : Long) : String
     val ms = if (m >= 10) "$m" else "0$m"
     val ss = if (s >= 10) "$s" else "0$s"
 
-    return if(h > 0)"$hs:$ms:$ss"
+    return if (h > 0) "$hs:$ms:$ss"
     else "$ms:$ss"
 }
+
 fun toCalendar(time: String): Calendar {
     return try {
         Calendar.getInstance().apply {
@@ -108,41 +107,4 @@ fun setSystemTime(requireTime: String) {
     }
 }
 
-fun checkTime()
-{
-    SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener
-    {
-        override fun onTimeReceived(rawDate: String?) {
-            if(rawDate == null) return
-
-            try {
-                val receiveFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
-                val receivedDate = receiveFormat.parse(rawDate)
-
-                if(abs(receivedDate.time - Date().time) > 30000)
-                {
-
-                    Log.d("Time","Sync")
-
-                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
-                    setSystemTime(dateFormat.format(receivedDate))
-
-                    // Uncomment 2 below line be4 use this method
-
-                    //cancelAllAlarm()
-
-                    //CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                }
-            }
-            catch (e : Exception)
-            {
-                e.printStackTrace()
-            }
-        }
-
-        override fun onError(ex: java.lang.Exception?) {
-            ex?.printStackTrace()
-        }
-    })
-}
 

@@ -11,5 +11,6 @@ interface IMediaPlayer {
     fun pause()
     fun resume()
     fun release()
+    fun playTest()
     fun isPlaying(): Boolean
 }

@@ -195,6 +195,9 @@ class ExoMediaPlayer(
         exoPlayer.release()
     }
 
+    override fun playTest() {
+    }
+
     /**
      * Check if a stream is still in time to play
      * **/

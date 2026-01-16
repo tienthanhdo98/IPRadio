@@ -13,7 +13,6 @@ import android.telephony.TelephonyManager
 /**
  * Created by Robert Zagórski on 2016-09-09.
  */
-@TargetApi(Build.VERSION_CODES.M)
 class NetworkStatsHelper {
     var networkStatsManager: NetworkStatsManager
     var packageUid = 0
@@ -82,7 +81,7 @@ class NetworkStatsHelper {
 
     fun getAllRxByte(context: Context, startTime: Long, endTime: Long): Long {
 //        return getAllRxByteWifi(startTime, endTime) + getAllRxBytesMobile(context, startTime, endTime)
-          return getAllRxBytesMobile(context, startTime, endTime)
+        return getAllRxBytesMobile(context, startTime, endTime)
 
     }
 

@@ -36,7 +36,6 @@ import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.*
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.media.MediaCapture
-import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.*
@@ -328,6 +327,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         }
         checkDeleteFileUpdate()
         //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
+
     }
 
     private fun checkDeleteFileUpdate() {
@@ -624,7 +624,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     val newResponseHub = ResponseHub().apply {
                         listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
                             volume = it
-                            serialPortController.writeForceSetVolume(mess)
+//                            serialPortController.writeForceSetVolume(mess)
+                            serialPortController.writeForceSetVolume(it)
+                            globalProperties.setTempVolume(responseHub.message!!)
                         }
                         listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
                             lat = it.toFloat()
@@ -1010,12 +1012,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                         connectionId, Utils.GET_RECORD, recordedAudioList
                     )
                 }
-
-                HubCommand.UPLOAD_RECORDED -> {
-                    val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
-                }
-
+                
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
@@ -1031,15 +1028,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     appStorageManager.deleteAllLog()
                 }
 
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"

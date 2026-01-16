@@ -76,7 +76,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v62.4.2.1e"
+    var versionName = "v38.4.2.1f"
 
     private var registerOnMessageListener = false
 
@@ -105,7 +105,7 @@ class HubManager(
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-longan.tek4tv.vn/hubServer"
+            "https://hubip-hue.tek4tv.vn/hubServer"
         )!!
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(MyApp.instance!!.packageName)
@@ -178,7 +178,7 @@ class HubManager(
                 String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
             )
 
-            val call = authService.getToken(body, tokenUrl!!)
+            val call = authService.getToken(body, tokenUrl)
             val response = call.execute()
             if (response.isSuccessful) {
                 val token = response.body()!!.token
@@ -453,6 +453,7 @@ class HubManager(
                 provider = providerValue
                 lat = GlobalProperties.getInst().lat
                 lng = GlobalProperties.getInst().lng
+//                volume = GlobalProperties.getInst().volume
                 volume = SerialPortController.volume
                 deviceName = GlobalProperties.getInst().nameDevice
                 createDate = (currentTime.time / 1000)

@@ -21,9 +21,9 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import org.json.JSONException
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
 
 
 /**
@@ -39,8 +39,6 @@ class PlayersManager(
 
     private val coroutineScope = CoroutineScope(Dispatchers.IO)
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
-    private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
-    private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaItem? = null
 
     /**
@@ -148,11 +146,7 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        if (currentPlayer == vlcPlayer) {
-            vlcPlayer.stop()
-        } else {
-            exoPlayer.stop()
-        }
+        vlcPlayer.stop()
         playlistIndex++
         try {
             if (playlistIndex < currentPlaylist.size) {
@@ -172,11 +166,7 @@ class PlayersManager(
     var currentPauseTimePlayer: Long = 0L
     fun pausePlayer() {
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
-        if (currentPlayer == vlcPlayer) {
-            vlcPlayer.pause()
-        } else {
-            exoPlayer.pause()
-        }
+        vlcPlayer.pause()
     }
 
     fun resume() {
@@ -210,7 +200,6 @@ class PlayersManager(
                         } else {
                             vlcPlayer.playMedia(mediaItem, false, timeStamp)
                         }
-                        currentPlayer = vlcPlayer
                     }
                 }
 
@@ -250,20 +239,13 @@ class PlayersManager(
     private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
         val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
-        currentPlayer = if (mediaItem.body!!.contains("m3u8")) {
-            exoPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
-            exoPlayer
-        } else {
-            vlcPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
-            vlcPlayer
-        }
+        vlcPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
+        vlcPlayer
     }
 
     fun stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
-//        currentPlayingMedia = null
         vlcPlayer.stop()
-        exoPlayer.stop()
     }
 
 
@@ -426,12 +408,10 @@ class PlayersManager(
 
     fun onActivityDestroy() {
         vlcPlayer.release()
-        exoPlayer.release()
     }
 
     fun stopAndEndTimeFrame() {
         vlcPlayer.stop()
-        exoPlayer.stop()
         isTimeOver = true
         playerManagerListener?.onTimeOver()
     }
@@ -447,4 +427,5 @@ class PlayersManager(
         var currentPlaylist = listOf<MediaItem>()
         var handlerLivePlayer: Handler? = null
     }
+
 }
