@@ -1,6 +1,5 @@
 package app.tek4tv.ipradio.core.players_helper
 
-//import org.videolan.libvlc.util.VLCVideoLayout
 import android.content.Context
 import android.util.Log
 import android.widget.ImageView
@@ -171,7 +170,6 @@ class PlayersManager(
 
     fun pauseMedia() {
         currentPauseTimePlayer = Calendar.getInstance().timeInMillis
-        //vlcPlayer.pause()
         exoPlayer.pause()
     }
 
@@ -184,9 +182,7 @@ class PlayersManager(
         Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
         if (now < timeEnd) {
             Log.d("CONTROL_MEDIA", "resume: $timeEnd")
-            //vlcPlayer.resume()
             exoPlayer.resume()
-
         } else {
             if (currentPauseTimePlayer != 0L) {
                 Log.d("CONTROL_MEDIA", "re play playlist: $timeEnd")
@@ -208,6 +204,7 @@ class PlayersManager(
                                 imagePlayer.playMedia(mediaItem, timeStamp)
 
                             }
+
                             else -> {
                                 exoPlayer.playMedia(mediaItem, timeStamp)
 
@@ -238,14 +235,27 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        //vlcPlayer.playMedia(mediaItem, 0)
+        //Phat theo lst media live nên tính resumeLiveTime
         exoPlayer.playMedia(mediaItem, 0)
     }
 
+//    private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+//        val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
+//        Log.d(TAG, "playLiveStream resume time startTime: ${mediaItem.startTime}")
+//        Log.d(TAG, "playLiveStream resume time fixTime: ${mediaItem.fixTime}")
+//        Log.d(TAG, "playLiveStream resume time: $resumeLiveTime")
+//        exoPlayer.playMedia(mediaItem, resumeLiveTime)
+//    }
+//
+//    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
+//        val startTimeOfMedia = toCalendar(mediaItem.startTime!!)
+//        val now = Calendar.getInstance()
+//        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+//
+//    }
 
     fun stopAllPlayer() {
         imagePlayer.stop()
-//        vlcPlayer.stop()
         exoPlayer.stop()
 
     }

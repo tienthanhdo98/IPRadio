@@ -1,5 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
+import android.content.res.Resources
+import android.graphics.Bitmap
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -11,6 +13,7 @@ import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.isFileExisted
 import com.squareup.picasso.Picasso
+import java.io.File
 
 
 class ImagePlayer(
@@ -19,21 +22,37 @@ class ImagePlayer(
     private val mediaRepo: MediaRepo
 ) : IMediaPlayer {
     val TAG = "ImagePlayer"
-    private val delayTime: Long = 15000
+    private var delayTime: Long = 15000
     private var handler: Handler? = null
     private var currentMedia: MediaItem? = null
 
 
     override fun playMedia(mediaItem: MediaItem, timeStamp: Int) {
-        Log.d(TAG, "ImageMediaDuration: ${getDurationInSecond(mediaItem.duration ?: "").toLong()}")
+        delayTime =
+            if (mediaItem.duration == "" || mediaItem.duration == "00:00:00" || mediaItem.duration == null) {
+                15000
+            } else {
+                getDurationInSecond(mediaItem.duration).toLong() * 1000
+            }
         currentMedia = mediaItem
+        val dm = Resources.getSystem().displayMetrics
+        val maxW = dm.widthPixels
+        val maxH = dm.heightPixels
         if (mediaItem.body != "") {
             val fileName = getFileNameFromUrl(mediaItem.body!!)
+            val file = File(mediaRepo.mediaStoragePath, fileName)
             if (isFileExisted(mediaRepo.mediaStoragePath, fileName)) {
-                val urlLocal = "file://${mediaRepo.mediaStoragePath}/$fileName"
-                Picasso.get().load(urlLocal).into(imageLayout)
+                Picasso.get().load(file)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imageLayout)
             } else {
-                Picasso.get().load(mediaItem.body).into(imageLayout)
+                Picasso.get().load(mediaItem.body)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imageLayout)
             }
             playerEventListener.onPlayMediaSuccess(mediaItem)
             handler?.removeCallbacksAndMessages(null)
@@ -46,8 +65,7 @@ class ImagePlayer(
                             playerEventListener.onMediaForceEndReached(currentMedia)
 
                         }
-                    }, getDurationInSecond(mediaItem.duration ?: "00:00:15").toLong() * 1000
-//                    }, delayTime
+                    }, delayTime
                 )
             }
         }

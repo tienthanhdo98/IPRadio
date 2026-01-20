@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.model.logmodel.ExceptionLogModel
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -17,6 +18,7 @@ import java.io.FileWriter
 import java.io.PrintWriter
 import java.text.SimpleDateFormat
 import java.util.*
+import javax.inject.Inject
 
 const val LOG_FOLDER_NAME = "app_logs"
 const val HUB_LOG_FOLDER_NAME = "hub_logs"
@@ -24,8 +26,11 @@ const val PLAYER_LOG_FOLDER_NAME = "player_logs"
 const val TIMEFRAME_LOG_FOLDER_NAME = "timerframe_logs"
 const val COMMAND_LOG_FOLDER_NAME = "commands_logs"
 
-class LogUtils private constructor() {
-    private val appContext: Context = MyApp.instance!!.applicationContext
+class LogUtils @Inject constructor(
+    private val logService: LogService,
+    @ApplicationContext appContext: Context
+) {
+
     val LOG_TAG = "LogUtils"
 
     private var writeFileJob: Job? = null
@@ -44,7 +49,6 @@ class LogUtils private constructor() {
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
-    var logService: LogService? = null
     var authService: AuthService? = null
 
     val destinationId = GlobalProperties.getInst().destinationId
@@ -135,7 +139,7 @@ class LogUtils private constructor() {
         )
         coroutineScope.launch {
             try {
-                logService?.postMediaInfoStart(reportObj)
+                logService.postMediaInfoStart(reportObj)
                 Log.d(
                     LOG_TAG, "Log media start $reportObj"
                 )
@@ -146,24 +150,6 @@ class LogUtils private constructor() {
         }
     }
 
-    fun logException(data: String) {
-        val body = ExceptionLogModel(
-            deviceId = imei,
-            data = data,
-        )
-        coroutineScope.launch {
-            val bearer = app.tek4tv.ipradio.di.TokenAuth.getOrFetchBearer(getInst())
-            val res = logService?.postExceptionLog(bearer!!, body)
-            Log.d(LOG_TAG, "saveBitmap S: ${res}")
-            if (res?.code() == 401) {
-                app.tek4tv.ipradio.di.TokenAuth.clear()
-                val newBearer = app.tek4tv.ipradio.di.TokenAuth.getOrFetchBearer(getInst())
-                if (newBearer != null) {
-                    logService?.postExceptionLog(bearer!!, body)
-                }
-            }
-        }
-    }
 
     private fun writeLogToFile(filePath: String, line: String, logTime: Boolean = false) {
         coroutineScope.launch {
@@ -223,44 +209,5 @@ class LogUtils private constructor() {
         }
     }
 
-//    fun sendLogFile(type: String, name: String) {
-//        coroutineScope.launch {
-//            try {
-//                val path = when (type) {
-//                    "media" -> "$playerLogFolderPath/$name.txt"
-//                    "timeframe" -> "$timeframeLogFolderPath/$name.txt"
-//                    "connection" -> "$hubLogFolderPath/$name.txt"
-//                    else -> ""
-//                }
-//                val data = b64Encode(readFile(path))
-//                val start = fileNameFormat.parse(name).time
-//                val record =
-//                    GetLogFile(
-//                        name,
-//                        imei,
-//                        "Tek4tv",
-//                        data = data,
-//                        start = start,
-//                        destinationID = destinationId,
-//                        destinationName = destinationName,
-//                        appName = "IPRadio"
-//                    )
-//                logService?.postLogFile(record)
-//                Log.e(LOG_TAG, "uploading log file success")
-//            } catch (e: Exception) {
-//                Log.e(LOG_TAG, "Error uploading log file: ${e.message}")
-//            }
-//
-//        }
-//    }
 
-    companion object {
-        private var instance: LogUtils? = null
-
-        @Synchronized
-        fun getInst(): LogUtils {
-            if (instance == null) instance = LogUtils()
-            return instance!!
-        }
-    }
 }

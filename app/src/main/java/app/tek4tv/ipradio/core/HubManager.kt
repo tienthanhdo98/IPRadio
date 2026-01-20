@@ -69,7 +69,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    private var versionName = "D90.4.2.1d"
+    private var versionName = "D62.4.2.2"
 
     private val mainHandler = Handler(Looper.getMainLooper())
 
@@ -81,8 +81,9 @@ class HubManager(
 
     private var firstConnect = true
 
-
     private var hubUrl = ""
+
+    private var packageName = ""
 
 
     private val _messageStateFlow = MutableSharedFlow<Pair<String?, String?>?>(0)
@@ -94,6 +95,7 @@ class HubManager(
 
 
     init {
+        packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
             appContext,
             ConfigUtil.PROVIDER, PROVIDER_DEFAULT_NAME
@@ -150,7 +152,6 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
-            logUtils.logException(e.message!!)
             e.printStackTrace()
 
             null
@@ -165,11 +166,11 @@ class HubManager(
             val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
 
             //Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(MyApp.instance!!.packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
 
             val body = mapOf(
-                String(xorString(u, MyApp.instance!!.packageName.reversed())) to authInfo[0],
-                String(xorString(p, MyApp.instance!!.packageName.reversed())) to authInfo[1]
+                String(xorString(u, packageName.reversed())) to authInfo[0],
+                String(xorString(p, packageName.reversed())) to authInfo[1]
             )
 
             val call = authService.getToken(body, urlToken)
@@ -182,7 +183,6 @@ class HubManager(
                 null
             }
         } catch (e: Exception) {
-            logUtils.logException(e.message!!)
             e.printStackTrace()
             null
         }
@@ -244,7 +244,6 @@ class HubManager(
                 hubConnection.start().blockingAwait()
                 hubConnection.connectionId
             } catch (e: Exception) {
-                logUtils.logException(e.message!!)
                 hubToken = null
                 e.printStackTrace()
                 Log.e(TAG, "error connecting to hub: ${e.message ?: ""}")

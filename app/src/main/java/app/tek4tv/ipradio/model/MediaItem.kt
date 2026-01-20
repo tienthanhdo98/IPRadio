@@ -139,10 +139,20 @@ data class MediaItem(
 //        }
 //    }
 
-    fun getExoMedia(): androidx.media3.common.MediaItem {
-        return if (body!!.isNotEmpty() && File(body).exists()) {
-            Log.d("player", "local: $body")
-            androidx.media3.common.MediaItem.fromUri(Uri.fromFile(File(body)))
+    //    fun getExoMedia(): androidx.media3.common.MediaItem {
+//        return if (body!!.isNotEmpty() && File(body).exists()) {
+//            Log.d("player", "local: $body")
+//            androidx.media3.common.MediaItem.fromUri(Uri.fromFile(File(body)))
+//        } else {
+//            Log.d("player", "online: $pathBackup")
+//            androidx.media3.common.MediaItem.fromUri(pathBackup)
+//        }
+//    }
+    fun getExoMedia(localPath: String): androidx.media3.common.MediaItem {
+        return if (body!!.isNotEmpty() && File(localPath).exists()) {
+            Log.d("player", "local api: $body")
+            Log.d("player", "local device: $localPath")
+            androidx.media3.common.MediaItem.fromUri(Uri.fromFile(File(localPath)))
         } else {
             Log.d("player", "online: $pathBackup")
             androidx.media3.common.MediaItem.fromUri(pathBackup)

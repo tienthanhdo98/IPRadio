@@ -24,20 +24,8 @@ class MyApp : Application() {
         instance = this
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "device")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD, "Device@123")
-//        ConfigUtil.putStringEncrypt(
-//            applicationContext,
-//            ConfigUtil.USERNAME,
-//            "tek4tv_digitalsignage"
-//        )
-//        ConfigUtil.putStringEncrypt(
-//            applicationContext,
-//            ConfigUtil.PASSWORD,
-//            "d3e15fbc-e506-40cb-af85-0ffc4913c578"
-//        )
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "Username")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "Password")
-        //https://oauth-device.tek4tv.vn/api/auth/login
-        //https://apigatewayhttt.tek4tv.vn/api/Auth/Login
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_TOKEN,
@@ -46,13 +34,8 @@ class MyApp : Application() {
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-ninhbinh.tek4tv.vn/hubServer"
+            "https://hubdi-longan.tek4tv.vn/hubServer"
         )
-//        ConfigUtil.putStringEncrypt(
-//            applicationContext,
-//            ConfigUtil.URL_HUB,
-//            "https://hubdi-digitalsignage.tek4tv.vn/hubServer"
-//        )
         hubManager = HubManager(applicationContext, authService)
         hubManager.connectToHub()
         serialPortController = SerialPortController(applicationContext, appScope, hubManager)
@@ -72,7 +55,6 @@ class MyApp : Application() {
 
     companion object {
         var instance: MyApp? = null
-        var logToken = ""
         lateinit var hubManager: HubManager
         lateinit var serialPortController: SerialPortController
     }

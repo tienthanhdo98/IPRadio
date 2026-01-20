@@ -39,13 +39,16 @@
             app:layout_constraintVertical_bias="0.0" />
     </androidx.constraintlayout.widget.ConstraintLayout>
 
+
     <androidx.constraintlayout.widget.ConstraintLayout
         android:layout_width="0dp"
         android:layout_height="0dp"
         app:layout_constraintBottom_toTopOf="@id/root_layout"
         app:layout_constraintEnd_toStartOf="@id/topArea"
+        app:layout_constraintHorizontal_bias="0.0"
         app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent">
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0">
 
         <androidx.constraintlayout.widget.Guideline
             android:id="@+id/glLogo10"
@@ -65,7 +68,6 @@
             android:id="@+id/ivTop"
             android:layout_width="0dp"
             android:layout_height="0dp"
-            android:src="@drawable/logo_bacgiang"
             android:visibility="gone"
             app:layout_constraintBottom_toBottomOf="@+id/glLogo90"
             app:layout_constraintEnd_toEndOf="parent"
@@ -91,7 +93,6 @@
             app:layout_constraintTop_toBottomOf="@id/ivTop" />
 
     </androidx.constraintlayout.widget.ConstraintLayout>
-
 
     <androidx.constraintlayout.widget.ConstraintLayout
         android:id="@+id/rightArea"
@@ -153,7 +154,9 @@
             android:visibility="gone" />
 
         <androidx.media3.ui.PlayerView
-            android:id="@+id/vlc_video_layout"
+            android:id="@+id/exo_player"
+            app:use_controller="false"
+            android:keepScreenOn="true"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:layout_gravity="center">

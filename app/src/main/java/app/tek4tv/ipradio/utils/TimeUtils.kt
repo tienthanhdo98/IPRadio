@@ -69,5 +69,54 @@ fun getCurrentTime(): Long {
     return Calendar.getInstance().time.time
 }
 
+fun strFormatToCalendar(end: String): Calendar {
+    val calendar = Calendar.getInstance()
+
+    try {
+        val trimmed = end.trim()
+
+        val sdf = when {
+            // Full datetime: "2026-01-05 16:46:24"
+            trimmed.matches(Regex("\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault())
+            }
+            // Time only: "16:30:05"
+            trimmed.matches(Regex("\\d{2}:\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+            }
+            // Time without seconds: "16:30"
+            trimmed.matches(Regex("\\d{2}:\\d{2}")) -> {
+                SimpleDateFormat("HH:mm", Locale.getDefault())
+            }
+
+            else -> {
+                Log.w("strFormatToCalendar", "Unknown format: $end")
+                return calendar
+            }
+        }
+
+        val date = sdf.parse(trimmed)
+        if (date != null) {
+            if (trimmed.contains("-")) {
+                // Full date-time: set toàn bộ
+                calendar.time = date
+            } else {
+                // Time only: chỉ set time, giữ nguyên date hiện tại
+                val tempCal = Calendar.getInstance()
+                tempCal.time = date
+
+                calendar.set(Calendar.HOUR_OF_DAY, tempCal.get(Calendar.HOUR_OF_DAY))
+                calendar.set(Calendar.MINUTE, tempCal.get(Calendar.MINUTE))
+                calendar.set(Calendar.SECOND, tempCal.get(Calendar.SECOND))
+                calendar.set(Calendar.MILLISECOND, 0)
+            }
+        }
+    } catch (e: Exception) {
+        Log.e("strFormatToCalendar", "Error parsing: $end", e)
+    }
+
+    return calendar
+}
+
 
 

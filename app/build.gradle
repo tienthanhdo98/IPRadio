@@ -34,6 +34,9 @@ android {
                 cppFlags ""
             }
         }
+        lintOptions {
+            checkReleaseBuilds false
+        }
     }
 
     buildTypes {
@@ -112,19 +115,10 @@ dependencies {
 
     implementation 'commons-net:commons-net:3.7.2'
 
-//    implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
-//    implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
-//    implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
-
     implementation 'com.intuit.sdp:sdp-android:1.1.0'
     implementation 'com.squareup.picasso:picasso:2.71828'
 
-    //
-//    implementation("com.google.android.exoplayer:exoplayer:2.16.1")
-//    implementation 'com.google.android.exoplayer:exoplayer-core:2.16.1'
-//    implementation 'com.google.android.exoplayer:exoplayer-hls:2.16.1'
-//    implementation 'com.google.android.exoplayer:extension-okhttp:2.16.1'
-    //
+
     def media3_version = "1.4.1" // hoặc 1.5.x nếu muốn mới nhất
 
     implementation "androidx.media3:media3-exoplayer:$media3_version"

@@ -1,9 +1,11 @@
 package app.tek4tv.ipradio.ui
 
-import BandwidthManager
+
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.content.res.Resources
+import android.graphics.Bitmap
 import android.media.AudioManager
 import android.net.Uri
 import android.os.Build
@@ -12,6 +14,8 @@ import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.view.WindowManager
 import android.widget.ImageView
@@ -42,21 +46,33 @@ import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ResponseHub
-import app.tek4tv.ipradio.model.local.MediaLogDao
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.IHubObserve
-import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_ANDROID_VOLUME
 import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
+import app.tek4tv.ipradio.utils.CrashHandler
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_PRE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.RECORDED_AUDIO_FOLDER_NAME
+import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
+import app.tek4tv.ipradio.utils.deleteAFileInFolder
+import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.getCurrentTime
+import app.tek4tv.ipradio.utils.getFileNameFromUrl
+import app.tek4tv.ipradio.utils.isFileExisted
 import app.tek4tv.ipradio.utils.media.MediaCapture
-import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.readFile
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.toCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
+import com.google.android.material.card.MaterialCardView
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import com.squareup.moshi.Moshi
@@ -65,10 +81,12 @@ import dagger.hilt.android.AndroidEntryPoint
 import io.reactivex.Single
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import java.io.File
-import java.io.RandomAccessFile
-import java.util.*
+import java.util.Calendar
+import java.util.Timer
+import java.util.TimerTask
 import javax.inject.Inject
 
 
@@ -95,21 +113,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     @Inject
     lateinit var moshi: Moshi
 
-    @Inject
-    lateinit var authService: AuthService
 
     @Inject
-    lateinit var logService: LogService
+    lateinit var logUtils: LogUtils
 
-    @Inject
-    lateinit var mediaLogDao: MediaLogDao
 
     private lateinit var playerManager: PlayersManager
 
 
     private lateinit var appStorageManager: AppStorageManager
 
-    private lateinit var logUtils: LogUtils
 
     private lateinit var mediaCapture: MediaCapture
 
@@ -124,7 +137,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private lateinit var adapter: AutoScrollAdapter
     private val handler = Handler(Looper.getMainLooper())
     private var scrollRunnable: Runnable? = null
-    var logToken = ""
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -176,7 +188,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
 
         override fun onMediaError(error: String, mediaItem: MediaItem) {
-            logUtils.logException(error)
             exoVideoLayout.visibility = View.INVISIBLE
             imgHolder.visibility = View.VISIBLE
         }
@@ -210,13 +221,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             logUtils.logMediaStart(
                 mediaItem, globalProperties.volume, paState, typeScreen
             )
-            if (!hubManager.isConnectSuccess) {
-                lifecycleScope.launch {
-
-                    mediaLogDao.insertLog(mediaItem)
-                }
-            }
-
         }
 
         override fun onLeftMediaPlaying(listMediaItem: List<MediaItem>) {
@@ -257,7 +261,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         supportActionBar?.hide()
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
@@ -279,10 +283,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 }
             }
         }
-
-        logUtils = LogUtils.getInst()
-        logUtils.logService = logService
-        logUtils.authService = authService
 
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
@@ -326,94 +326,35 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         registerObservers()
 
-        lifecycleScope.launch {
-            repeat(Int.MAX_VALUE) {
-                viewModel.capture(
-                    playerView = exoVideoLayout,
-                    logService = logService,
-                )
-                delay(300000)
-            }
-        }
     }
 
-    private fun getCpuUsage(): String {
-        try {
-            val reader = RandomAccessFile("/proc/stat", "r")
-
-            // Đọc lần 1
-            val load1 = reader.readLine()
-            val toks1 = load1.split(" +".toRegex()).drop(1)
-            val idle1 = toks1[3].toLong()
-            val total1 = toks1.take(7).sumOf { it.toLong() }
-
-            // Chờ 360ms để lấy mẫu tiếp theo
-            Thread.sleep(2000)
-
-            // Đọc lại từ đầu file
-            reader.seek(0)
-            val load2 = reader.readLine()
-            val toks2 = load2.split(" +".toRegex()).drop(1)
-            val idle2 = toks2[3].toLong()
-            val total2 = toks2.take(7).sumOf { it.toLong() }
-
-            reader.close()
-
-            val totalDiff = total2 - total1
-            val idleDiff = idle2 - idle1
-            val usedCpu = (totalDiff - idleDiff).toFloat() / totalDiff.toFloat() * 100f
-            val res = String.format("%.2f%%/100%%", usedCpu)
-            // Format thành chuỗi như yêu cầu
-            Log.d("LOGDEVICEINFO", "CpuInfo: $res")
-            return res
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-
-        return "N/A"
-    }
 
     private fun initDataByScreen() {
         val url = ConfigUtil.getString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, "")
         initPhotoHolder(url)
         if (typeScreen == FULL_SCREEN) {
             val tvMacAddress = findViewById<TextView>(R.id.tvMac)
+            val cardStatus = findViewById<MaterialCardView>(R.id.card_status)
             val tvCheckInternet = findViewById<TextView>(R.id.tvCheckInternet)
-            //val info = Utils.getDeviceId(this).takeLast(5)
-            // tvMacAddress.text = info
-            val totalRam: Float = appStorageManager.getTotalRam() / (1024f * 1024f * 1024f)
-            val sampler = BandwidthManager()
-            sampler.start()
-            lifecycleScope.launch {
-                while (true) {
-                    val usedRam: Float = appStorageManager.getUsedRam() / (1024f * 1024f * 1024f)
-                    val cpu = getCpuUsage()
-                    val deviceInfo = "Ram: ${
-                        String.format(
-                            "%.2f GB", usedRam
-                        )
-                    }/${
-                        String.format(
-                            "%.2f GB", totalRam
-                        )
-                    }_Cpu: ${cpu}"
-                    tvMacAddress.text = "$deviceInfo"
+            val info = Utils.getDeviceId(this).takeLast(5)
+            tvMacAddress.text = info
 
-                    delay(5000)
-                }
-            }
             lifecycleScope.launch {
-                while (true) {
-                    if (hubManager.pingCounter <= 1) {
+                while (isActive) {
+                    if (hubManager.isConnectSuccess) {
                         tvCheckInternet.setTextColor(getColor(R.color.white))
                         tvCheckInternet.setBackgroundColor(getColor(R.color.green_online))
                         tvCheckInternet.text = resources.getString(R.string.online)
+                        cardStatus.fadeOut()
+                        tvMacAddress.fadeOut()
                     } else {
                         tvCheckInternet.setTextColor(getColor(R.color.white))
                         tvCheckInternet.setBackgroundColor(getColor(R.color.red_offline))
                         tvCheckInternet.text = resources.getString(R.string.offine)
+                        cardStatus.fadeIn()
+                        tvMacAddress.fadeIn()
                     }
-                    delay(10000)
+                    delay(15000)
                 }
             }
         } else if (typeScreen == MULTIPLE_AREA) {
@@ -422,18 +363,29 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun initPhotoHolder(url: String?) {
+        val dm = Resources.getSystem().displayMetrics
+        val maxW = dm.widthPixels
+        val maxH = dm.heightPixels
         if (url != "") {
             val fileName = getFileNameFromUrl(url!!)
             if (isFileExisted(viewModel.mediaRepo.mediaStoragePath, fileName)) {
                 val urlLocal = "file://${viewModel.mediaRepo.mediaStoragePath}/$fileName"
-                Picasso.get().load(urlLocal).into(imgHolder)
+                Picasso.get().load(urlLocal)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imgHolder)
                 Log.d("PhotoHolder", "initPhotoHolder: Local")
             } else {
-                Picasso.get().load(url).into(imgHolder)
+                Picasso.get().load(url)
+                    .resize(maxW, maxH)      // giới hạn theo kích thước màn hình
+                    .onlyScaleDown() // chỉ thu nhỏ, không phóng to
+                    .config(Bitmap.Config.RGB_565)// giảm bộ nhớ (từ 4B/px xuống 2B/px), chấp nhận giảm chất lượng
+                    .into(imgHolder)
                 Log.d("PhotoHolder", "initPhotoHolder: Online")
             }
         } else {
-            imgHolder.setImageResource(R.drawable.quangngai)
+            imgHolder.setImageResource(R.drawable.img_bg)
         }
     }
 
@@ -481,7 +433,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
-//        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
         Log.i("ChangeLayout", "Mess: onDestroy")
         super.onDestroy()
 
@@ -538,13 +489,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
 
     private fun needGrantPermission(): Boolean {
@@ -642,6 +593,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     }
 
                 }
+
                 HubCommand.UPDATE_PHOTO_HOLDER -> {
                     val mess = responseHub.message!!
                     ConfigUtil.putString(applicationContext, ConfigUtil.PHOTO_HOLDER_URL, mess)
@@ -914,15 +866,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     appStorageManager.deleteAllLog()
                 }
 
-                HubCommand.GET_LOG_BY_DAY -> {
-                    val logName = responseHub.message
-
-                    if (logName != null) {
-                        val logPath =
-                            "${applicationContext.filesDir.path}/$LOG_FOLDER_NAME/$logName.txt"
-                        FtpUtils.uploadLogFile(applicationContext, logPath)
-                    }
-                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"
@@ -936,10 +879,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     }
                 }
 
-                HubCommand.GET_LOG_FILE -> {
-                    //val data = responseHub.message?.split('-') ?: return
-//                   logUtils.sendLogFile(data[0], data[1])
-                }
             }
             if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
                 logUtils.logHubCommand(command, responseHub.message ?: "")
@@ -1015,17 +954,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     override fun onHubConnected() {
         Log.d("HubObverse", "onHubConnected")
-        lifecycleScope.launch {
-            val listMediaLog = mediaLogDao.getUnsentMediaLogs()
-            val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
-            else "0"
-            listMediaLog.forEach {
-                logUtils.logMediaStart(
-                    it, globalProperties.volume, paState, typeScreen
-                )
-                mediaLogDao.deleteMediaItemById(it.id!!)
-            }
-        }
         //
         if (playerManager.playMode == PLAY_MODE_FORCE) {
             if (ForceMedia.hasValidForceMedia(applicationContext)) {
@@ -1038,13 +966,25 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         } else {
             playerManager.startFirstTimeFrame()
         }
+    }
 
+    fun View.fadeIn(duration: Long = 500, end: (() -> Unit)? = null) {
+        if (visibility != View.VISIBLE) {
+            alpha = 0f
+            visibility = View.VISIBLE
+        }
+        animate().alpha(1f).setDuration(duration).withEndAction { end?.invoke() }.start()
+    }
+
+    fun View.fadeOut(duration: Long = 500, end: (() -> Unit)? = null) {
+        animate().alpha(0f).setDuration(duration).withEndAction {
+            visibility = View.INVISIBLE // hoặc GONE nếu muốn bỏ chiếm chỗ
+            end?.invoke()
+        }.start()
     }
 
     override fun onHubDisConnected() {
-        playerManager.stopAllPlayer()
         Log.d("HubObverse", "onHubDisConnected")
-
     }
 
 }

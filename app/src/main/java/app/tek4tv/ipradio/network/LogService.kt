@@ -45,28 +45,17 @@ interface LogService {
 //    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     //binhd dinh, bac giang,binh duong,long an,dong nai
-//    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")
-//    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")
+    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     //quang ngai api, ninh binh
-    @POST("https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog")
-    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
+//    @POST("https://v2-provider-data-warehouse.tek4tv.vn/DigitalDataLog")
+//    suspend fun postMediaInfoStart(@Body record: MediaRecord)//doi media id
 
     //
     @POST("https://v2-provider-data-warehouse.tek4tv.vn/IpRadioDataLog/device/log")
     suspend fun postDeviceLog(@Body dataLogModel: DataLogModel): Response<Any>
 
-    @POST("https://gateway-digitalsignage.tek4tv.vn/api/v2/log/device/add")
-    suspend fun postExceptionLog(
-        @Header("Authorization") token: String,
-        @Body body: ExceptionLogModel
-    ): Response<Any>
-
-    @POST
-    suspend fun postScreenCapture(
-        @Url url: String,
-        @Body captureScreenModel: CaptureScreenModel,
-    ): Response<Any>
 
     //long an
 //    @POST("https://provider-data-warehouse.tek4tv.vn/DigitalDataLog")

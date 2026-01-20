@@ -12,8 +12,7 @@ object TokenAuth {
     suspend fun getOrFetchBearer(logUtils: LogUtils): String? {
         cachedBearer?.let { return it }
         return withContext(Dispatchers.IO) {
-            logUtils.getLogToken()        // <- trả token thô
-                ?.let { it }    // <- thêm tiền tố Bearer
+            logUtils.getLogToken()    // <- thêm tiền tố Bearer
                 ?.also { cachedBearer = it }
         }
     }
