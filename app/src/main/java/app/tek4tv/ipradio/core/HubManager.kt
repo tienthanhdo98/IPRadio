@@ -208,6 +208,36 @@ class HubManager(
         }
     }
 
+    fun sendTest() {
+
+//         "DanhSachThietBi": [
+//                    {
+//                        "CumLoaID": "54:78:C9:B8:10:0E"
+//                    }
+//                ],
+        var message = """{
+  "id": "",
+  "topic": "dv009",
+  "payload": {
+	  "NguonID": "H26.00.00",
+	  "TenNguon": "TP Hà Nội",
+	  "DanhSachDiaBanNhan": [
+		{
+		  "DichID": "H26.00.00.000",
+		  "TenDich": "Phường Hoàng Liệt",
+		  "CumLoaID": null
+		}
+	  ],
+  "DanhSachThietBi": null,
+	  "DieuKhienThietBi": {
+		"MaLenh": "0",
+		"ThamSo": "50"
+	  }
+	}
+}"""
+
+        convertToHubCommand(message)
+    }
 
     override fun onConnectSuccess() {
         isConnectSuccess = true

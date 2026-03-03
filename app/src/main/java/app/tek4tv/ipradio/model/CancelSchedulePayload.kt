@@ -9,7 +9,7 @@ data class CancelSchedulePayload(
     @Json(name = "TenNguon") val tenNguon: String? = null,
     @Json(name = "LichPhatID") val lichPhatID: String? = null,
     @Json(name = "TenLichPhat") val tenLichPhat: String? = null,
-    @Json(name = "DanhSachDiaBanNhan") val danhSachDiaBanNhan: List<DiaBanNhan> = emptyList()
+    @Json(name = "DanhSachDiaBanNhan") val danhSachDiaBanNhan: List<DiaBanNhan>? = emptyList()
 )
 
 data class LogCancelSchedulePayload(

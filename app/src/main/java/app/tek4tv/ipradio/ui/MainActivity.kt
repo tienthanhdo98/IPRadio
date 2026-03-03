@@ -262,6 +262,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         showMac()
 
+        lifecycleScope.launch {
+            delay(5000)
+            Log.d("NightVol", "onCreate: TEsting vole")
+            hubManager.sendTest()
+        }
+
 
     }
 
@@ -420,7 +426,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     }
 
     private fun initHubConnect() {
-        hubManager.connectToServer()
+//        hubManager.connectToServer()
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
