@@ -4,6 +4,7 @@ import android.content.Context
 import android.content.SharedPreferences
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
 
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
@@ -45,6 +46,9 @@ object ConfigUtil {
     const val URL_MQTT_SOURCE = "URL_MQTT_SOURCE"
     const val URL_WSS = "URL_WSS"
 
+    //MGW
+    const val BOOTSTRAP_INFO = "BOOTSTRAP_INFO"
+    const val SCHEDULE_WEEK = "SCHEDULE_WEEK"
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
@@ -100,9 +104,9 @@ object ConfigUtil {
 
     fun putBool(context: Context, key: String, value: Boolean) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putBoolean(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putBoolean(key, value)
+        }
     }
 
     fun getBool(context: Context, key: String, defaultValue: Boolean): Boolean {
@@ -112,9 +116,9 @@ object ConfigUtil {
 
     fun putFloat(context: Context, key: String?, value: Float) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putFloat(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putFloat(key, value)
+        }
     }
 
     fun getFloat(context: Context, key: String, defaultValue: Float): Float {

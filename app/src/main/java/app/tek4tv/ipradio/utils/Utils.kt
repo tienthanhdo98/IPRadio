@@ -5,6 +5,7 @@ import android.content.Context
 import android.os.Environment
 import android.util.Log
 import androidx.core.content.ContextCompat
+import app.tek4tv.ipradio.di.JsonAdapterProvider.listMediaFileItemAdapter
 import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -27,6 +28,16 @@ class Utils {
         const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
         const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
         const val GET_RECORD = "GET_RECORD"
+
+
+        fun convertSecondsToCalendar(seconds: Int): Calendar {
+            val cal = Calendar.getInstance()
+            cal.set(Calendar.HOUR_OF_DAY, seconds / 3600)
+            cal.set(Calendar.MINUTE, (seconds % 3600) / 60)
+            cal.set(Calendar.SECOND, seconds % 60)
+            cal.set(Calendar.MILLISECOND, 0)
+            return cal
+        }
 
         @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
@@ -195,13 +206,6 @@ class Utils {
             return category
         }
 
-        fun convertAuthor(tacGia: TacGia?): Author {
-            return Author(
-                fullName = tacGia?.tenDayDu,
-                userName = tacGia?.butDanh,
-                email = tacGia?.email,
-            )
-        }
 
         fun getTypeOfMediaItem(contentTypeId: Int?): String {
             var type = "VOD"

@@ -12,7 +12,7 @@ data class ForceMedia(
     @Json(name = "Message")
     var path: String = "",
     @Json(name = "Duration")
-    var duration: String? = null,
+    var duration: Int? = null,
 
     @Json(name = "Type")
     var type: String = "",

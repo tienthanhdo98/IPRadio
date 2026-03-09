@@ -12,6 +12,17 @@ import kotlin.math.abs
 //}
 val sdf = SimpleDateFormat("HH:mm:ss")
 
+fun convertCalendarToString(
+    calendar: Calendar, format: String = "dd/MM/yyyy HH:mm:ss"
+): String {
+    // 1. Khởi tạo công cụ định dạng với múi giờ/ngôn ngữ hệ thống
+    val sdf = SimpleDateFormat(format, Locale.getDefault())
+
+    // 2. Lấy đối tượng Date từ Calendar và chuyển sang String
+    return sdf.format(calendar.time)
+}
+
+
 fun unixTimeStampToDateTime(
     epochTime: Long?,
     pattern: String = "dd-MM-yyyy",

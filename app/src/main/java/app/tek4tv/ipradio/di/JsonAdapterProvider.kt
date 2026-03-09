@@ -1,12 +1,12 @@
 package app.tek4tv.ipradio.di
 
+import app.tek4tv.ipradio.model.AppData
 import app.tek4tv.ipradio.model.BaseMqttMessage
-import app.tek4tv.ipradio.model.CancelSchedulePayload
-import app.tek4tv.ipradio.model.ControllerPayload
-import app.tek4tv.ipradio.model.LivePayload
+import app.tek4tv.ipradio.model.BootstrapResp
+import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.SchedulePayload
 import com.squareup.moshi.JsonAdapter
+import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
 import java.lang.reflect.ParameterizedType
 
@@ -15,15 +15,6 @@ object JsonAdapterProvider {
 
     val baseMqttMessageAdapter: JsonAdapter<BaseMqttMessage> =
         moshi.adapter(BaseMqttMessage::class.java)
-
-    val schedulePayloadAdapter: JsonAdapter<SchedulePayload> =
-        moshi.adapter(SchedulePayload::class.java)
-    val livePayloadAdapter: JsonAdapter<LivePayload> =
-        moshi.adapter(LivePayload::class.java)
-    val cancelPayloadAdapter: JsonAdapter<CancelSchedulePayload> =
-        moshi.adapter(CancelSchedulePayload::class.java)
-    val controllerPayloadAdapter: JsonAdapter<ControllerPayload> =
-        moshi.adapter(ControllerPayload::class.java)
 
 
     val mediaItemAdapter: JsonAdapter<MediaItem> = moshi.adapter(MediaItem::class.java)
@@ -41,4 +32,31 @@ object JsonAdapterProvider {
         MoshiInst.moshi.adapter(MediaItem::class.java)
 
 
+    //MGW
+    val bootstrapAdapter: JsonAdapter<BootstrapResp> = moshi.adapter(BootstrapResp::class.java)
+
+    //    val appDataAdapter: JsonAdapter<AppData> = moshi.adapter(AppData::class.java)
+    val listAppDataItem: ParameterizedType = Types.newParameterizedType(
+        List::class.java,
+        AppData::class.java
+    )
+    val listAppDataItemAdapter: JsonAdapter<List<AppData>> = moshi.adapter(listAppDataItem)
+
+    val listMediaFileDataItem: ParameterizedType = Types.newParameterizedType(
+        List::class.java,
+        MediaFile::class.java
+    )
+    val listMediaFileItemAdapter: JsonAdapter<List<MediaFile>> =
+        moshi.adapter(listMediaFileDataItem)
+
+    val mapSchedulerType = Types.newParameterizedType(
+        Map::class.java,
+        String::class.java,
+        listMediaFileDataItem
+    )
+    val adapterSchedulerList = moshi.adapter<Map<String, List<MediaFile>>>(mapSchedulerType)
+
+
+    inline fun <reified T> Moshi.fromVs(vs: String): T? =
+        this.adapter(T::class.java).fromJson(vs)
 }

@@ -53,11 +53,8 @@ class GlobalProperties {
             ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
             piCode = responseHub.piCode
         }
-        if (responseHub.userNameControl != "" && responseHub.userNameControl != null) {
-            ConfigUtil.putString(appContext, USER_NAME_CONTROLLER, responseHub.userNameControl)
-            userNameController = responseHub.userNameControl ?: ""
-        }
-        if (responseHub.deviceName != "" && responseHub.destinationName != null) {
+
+        if (responseHub.deviceName != "") {
             ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
             nameDevice = responseHub.deviceName ?: ""
         }
@@ -66,19 +63,7 @@ class GlobalProperties {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
             psName = responseHub.psName
         }
-
-        if (responseHub.resumeFromStart != null) {
-            ConfigUtil.putBool(appContext, DEFAULT_RESUME_FROM_START, responseHub.resumeFromStart!!)
-            resumeFromStart = responseHub.resumeFromStart!!
-        }
-        if (responseHub.lat != null) {
-            ConfigUtil.putString(appContext, LATITUDE, responseHub.lat!!.toString())
-            lat = responseHub.lat ?: "0.0"
-        }
-        if (responseHub.lng != null) {
-            ConfigUtil.putString(appContext, LONGTITUDE, responseHub.lng!!.toString())
-            lng = responseHub.lng ?: "0.0"
-        }
+        
     }
 
 

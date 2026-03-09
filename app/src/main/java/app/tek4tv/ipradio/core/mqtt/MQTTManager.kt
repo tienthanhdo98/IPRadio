@@ -3,59 +3,43 @@ package app.tek4tv.ipradio.core.mqtt
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
-import app.tek4tv.ipradio.model.NoiDungMQTT
 import app.tek4tv.ipradio.utils.ConfigUtil
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.IMqttToken
 import org.eclipse.paho.client.mqttv3.MqttCallback
+import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
 
 class MQTTManager(
-    private val hubToken: String?,
     private val context: Context,
     private val connectEventListener: IConnectionServer,
-    private val listMQTTInfo: List<NoiDungMQTT>,
-    val destinationId: String
+    private val thingId: String,
+    private val thingKey: String,
+    private val channels: List<String>
 ) {
     val TAG = "MQTTLOG"
-    var clientID = ""
-    private var publishTopicTinh = ""
+    private val clientID = "mgw-$thingId"
 
 
     private var mqttClient: MqttAndroidClient? = null
 
-    fun getSubscribeTopic(destinationId: String) {
-        subscribe("thietbi/$clientID")
-        val listDesId = destinationId.split(".")
-        Log.d(TAG, "Subscribed: ${listDesId.count()}")
-        if (listDesId.isNotEmpty()) {
-
-            subscribe("tinh/${listDesId[0]}".toLowerCase())
-        }
-        if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
-        }
-        if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
-        } else {
-            subscribe("thon/$destinationId".toLowerCase())
-        }
-    }
 
     fun connectToMQTT() {
-        listMQTTInfo.forEach {
-            if (it.topic?.contains("thietbi") == true) {
-                clientID = it.topic.substringAfter("/")
-            }
-        }
-        publishTopicTinh = "thietbi/$clientID"
         Log.d(TAG, "clientID ${clientID}")
+
+//        val uri = if (mqttSecurity == 1)
+//            "ssl://$mqttServer:$mqttPort"
+//        else
+//            "tcp://$mqttServer:$mqttPort"
+
         val serverURI = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_MQTT)
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
-        mqttClient?.setCallback(object : MqttCallback {
+
+        mqttClient?.setCallback(object : MqttCallbackExtended {
+
             override fun messageArrived(topic: String?, message: MqttMessage?) {
                 Log.d(TAG, "Receive message: ${message.toString()} from topic: $topic")
                 connectEventListener.onReceiveMessageSuccess(message.toString())
@@ -69,21 +53,30 @@ class MQTTManager(
             override fun deliveryComplete(token: IMqttDeliveryToken?) {
 
             }
+
+            //resubscribe sau khi tu reconnect cua thu vien( chua test)
+            override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                Log.d(TAG, "Connection connectComplete")
+                channels.forEach { subscribe(it) } // resubscribe
+            }
         })
         val options = MqttConnectOptions()
-        if (hubToken != null) {
-            options.userName = clientID
-            options.password = hubToken.toCharArray()
-        }
+
+        options.userName = thingId
+        options.password = thingKey.toCharArray()
+        options.isAutomaticReconnect = true
+        options.isCleanSession = true
+        options.connectionTimeout = 60
+        options.keepAliveInterval = 60
+
         try {
             if (mqttClient != null) {
                 mqttClient?.connect(options, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "Connection success")
-                        listMQTTInfo.forEach {
-                            subscribe(it.topic!!)
+                        channels.forEach {
+                            subscribe(it)
                         }
-                        //getSubscribeTopic(destinationId)
                         connectEventListener.onConnectSuccess()
                     }
 
@@ -99,38 +92,55 @@ class MQTTManager(
         }
     }
 
-    fun publishToMQTT(strMessage: String, qos: Int = 1, retained: Boolean = false) {
+    fun publishToMQTT(
+        channelId: String,
+        strMessage: String,
+        qos: Int = 0,
+        retained: Boolean = false
+    ) {
         try {
             val message = MqttMessage()
             message.payload = strMessage.toByteArray()
             message.qos = qos
             message.isRetained = retained
             if (mqttClient != null) {
-                mqttClient?.publish(publishTopicTinh, message, null, object : IMqttActionListener {
-                    override fun onSuccess(asyncActionToken: IMqttToken?) {
-                        Log.d(TAG, "$strMessage = published to $clientID")
-                    }
+                val publishToServerChannel = "channels/$channelId/messages/mirav3/s"
+                mqttClient?.publish(
+                    publishToServerChannel,
+                    message,
+                    null,
+                    object : IMqttActionListener {
+                        override fun onSuccess(asyncActionToken: IMqttToken?) {
+                            Log.d(TAG, "$strMessage = published to $clientID")
+                        }
 
-                    override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        Log.d(TAG, "Failed to publish to $publishTopicTinh - ${exception?.message}")
-                    }
-                })
+                        override fun onFailure(
+                            asyncActionToken: IMqttToken?,
+                            exception: Throwable?
+                        ) {
+                            Log.d(
+                                TAG,
+                                "Failed to publish to $publishToServerChannel - ${exception?.message}"
+                            )
+                        }
+                    })
             }
         } catch (e: Exception) {
             Log.d(TAG, "publishToMQTT: ${e.message}")
         }
     }
 
-    private fun subscribe(subscribeTopic: String, qos: Int = 1) {
+    private fun subscribe(channelId: String, qos: Int = 0) {
         try {
             if (mqttClient != null) {
-                mqttClient?.subscribe(subscribeTopic, qos, null, object : IMqttActionListener {
+                val downTopic = "channels/$channelId/messages/mirav3/d"
+                mqttClient?.subscribe(downTopic, qos, null, object : IMqttActionListener {
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
-                        Log.d(TAG, "Subscribed to $subscribeTopic")
+                        Log.d(TAG, "Subscribed to $downTopic")
                     }
 
                     override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
-                        Log.d(TAG, "Failed to subscribe $subscribeTopic - ${exception?.message}")
+                        Log.d(TAG, "Failed to subscribe $downTopic - ${exception?.message}")
 
                         connectEventListener.onConnectFailure(exception?.message)
 

@@ -1,6 +1,6 @@
 package app.tek4tv.ipradio.di
 
-import app.tek4tv.ipradio.network.AuthService
+import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.jakewharton.retrofit2.adapter.kotlin.coroutines.CoroutineCallAdapterFactory
 import com.squareup.moshi.Moshi
@@ -32,7 +32,7 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    fun provideAuthService(retrofit: Retrofit): AuthService =
-        retrofit.create(AuthService::class.java)
+    fun provideAuthService(retrofit: Retrofit): ApiService =
+        retrofit.create(ApiService::class.java)
 
 }

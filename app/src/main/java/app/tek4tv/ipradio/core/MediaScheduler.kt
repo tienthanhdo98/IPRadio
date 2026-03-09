@@ -10,9 +10,12 @@ import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.Utils.Companion.convertSecondsToCalendar
+import app.tek4tv.ipradio.utils.convertCalendarToString
 import app.tek4tv.ipradio.utils.toCalendar
 import java.text.SimpleDateFormat
 import java.util.Calendar
+import kotlin.time.Duration
 
 class MediaScheduler(private val appContext: Context, private val mediaRepo: MediaRepo) {
 
@@ -77,12 +80,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
             val now = Calendar.getInstance().timeInMillis
 
-            if (now in start.timeInMillis..end.timeInMillis) {
-                setAlarmForList(period, endRequestCode!!, end, true)
-            } else if (now < start.timeInMillis) {
-                setAlarmForList(period, requestCode!!, start)
-                setAlarmForList(period, endRequestCode!!, end, true)
-            }
+//            if (now in start.timeInMillis..end.timeInMillis) {
+//                setAlarmForList(period, endRequestCode!!, end, true)
+//            } else if (now < start.timeInMillis) {
+//                setAlarmForList(period, requestCode!!, start)
+//                setAlarmForList(period, endRequestCode!!, end, true)
+//            }
         }
     }
 
@@ -104,17 +107,17 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     private fun cancelAllListAlarm() {
-        val scheduledList = mediaRepo.scheduledList
-
-        for (i in scheduledList.keys.indices) {
-            val period = scheduledList.keys.elementAt(i)
-
-            val requestCode = mediaRepo.timeDividers[period]!![0].id
-            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
-
-            cancelListAlarm(period, requestCode!!)
-            cancelListAlarm(period, endRequestCode!!, true)
-        }
+//        val scheduledList = mediaRepo.scheduledList
+//
+//        for (i in scheduledList.keys.indices) {
+//            val period = scheduledList.keys.elementAt(i)
+//
+//            val requestCode = mediaRepo.timeDividers[period]!![0].id
+//            val endRequestCode = mediaRepo.timeDividers[period]!![1].id
+//
+//            cancelListAlarm(period, requestCode!!)
+//            cancelListAlarm(period, endRequestCode!!, true)
+//        }
     }
 
     private fun cancelListAlarm(
@@ -159,24 +162,35 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         return PendingIntent.getBroadcast(appContext, requestEndForce, intent, flag)
     }
 
-    fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+    fun scheduleForceMediaAlarm(duration: Int) {
+        //val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+        val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
+            action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
+        }
+        val alarmIntent =
+            PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_IMMUTABLE)
 
-        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+//        val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
+//
+//
+//        if (fmValue == null || fmValue == "") return
+//
+//        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
+//
+//        val mediaEndTimeInMillis = Calendar.getInstance().apply {
+//            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
+//        }.timeInMillis
+//
+//        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
 
-        if (fmValue == null || fmValue == "") return
+        val end = convertSecondsToCalendar(duration).timeInMillis
 
-        val fm = ForceMedia.jsonAdapter.fromJson(fmValue) ?: return
-
-        val mediaEndTimeInMillis = Calendar.getInstance().apply {
-            time = SimpleDateFormat("dd/MM/yyyy HH:mm:ss").parse(fm.endTime)
-        }.timeInMillis
-
-        if (mediaEndTimeInMillis <= Calendar.getInstance().timeInMillis) return
-
-        val alarmClockInfo = AlarmManager.AlarmClockInfo(mediaEndTimeInMillis + 1000, alarmIntent)
+        val alarmClockInfo = AlarmManager.AlarmClockInfo(end + 1000, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
-        Log.d("alarmx", "set force ${mediaEndTimeInMillis + 1000}")
+        Log.d(
+            "MediaInfo",
+            "Live set force end ${convertCalendarToString(convertSecondsToCalendar(duration))}"
+        )
     }
 
     fun turnOnPAAlarms(mediaRepo: MediaRepo, alarmValue: Int) {

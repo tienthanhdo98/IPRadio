@@ -5,6 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.isInRangeTimePlay
@@ -31,7 +32,7 @@ class ExoMediaPlayer(
 
     private val exoPlayer: ExoPlayer
 
-    private var currentPlayingMedia: MediaItem? = null
+    private var currentPlayingMedia: MediaFile? = null
 
     private var isPlaying = false
     private var isForceValue = false
@@ -74,31 +75,31 @@ class ExoMediaPlayer(
             super.onPlayerError(error)
             Log.d(TAG, "exoerror: ${error.message ?: ""}")
             isPlaying = false
-            try {
-                val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
-                Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
-                if (isForceValue) {
-                    if (isStreamInTimeFrame) {
-                        eventListener.onPlayerError(error, currentPlayingMedia!!)
-                        Handler(Looper.getMainLooper()).postDelayed({
-                            countReplayLive++;
-                            Log.d(TAG, "onLiveErrorVlc: Chay lai live")
-                            playMedia(currentPlayingMedia!!, isForceValue)
-                        }, 10000)
-                    } else {
-                        Log.d(TAG, "Stopping from reconnect")
-                        stop()
-                    }
-                } else {
-                    if (isStreamInTimeFrame) {
-                        val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
-                        playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
-                    }
-
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
+//            try {
+//                val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
+//                Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
+//                if (isForceValue) {
+//                    if (isStreamInTimeFrame) {
+//                        eventListener.onPlayerError(error, currentPlayingMedia!!)
+//                        Handler(Looper.getMainLooper()).postDelayed({
+//                            countReplayLive++;
+//                            Log.d(TAG, "onLiveErrorVlc: Chay lai live")
+//                            playMedia(currentPlayingMedia!!, isForceValue)
+//                        }, 10000)
+//                    } else {
+//                        Log.d(TAG, "Stopping from reconnect")
+//                        stop()
+//                    }
+//                } else {
+//                    if (isStreamInTimeFrame) {
+//                        val resumeTime = calculateResumeLivePoint(currentPlayingMedia!!)
+//                        playMedia(currentPlayingMedia!!, isForceValue, resumeTime)
+//                    }
+//
+//                }
+//            } catch (e: Exception) {
+//                e.printStackTrace()
+//            }
         }
     }
 
@@ -118,7 +119,7 @@ class ExoMediaPlayer(
 
     }
 
-    override fun playMedia(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
+    override fun playMedia(mediaItem: MediaFile, isForce: Boolean, timeStamp: Int) {
         if (isPlaying) stop()
         try {
             if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
@@ -135,7 +136,7 @@ class ExoMediaPlayer(
         }
     }
 
-    private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
+    private fun playHlsExo(mediaItem: MediaFile, timeStamp: Int) {
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
@@ -153,7 +154,7 @@ class ExoMediaPlayer(
                     Log.d(TAG, "stop")
                     eventListener.onMediaEndReached(currentPlayingMedia)
                 },
-                (getDurationInSecond(mediaItem.duration!!) * 1000).toLong() - currentTimeStamp * 1000
+                (mediaItem.duration!! * 1000).toLong() - currentTimeStamp * 1000
             )
         }
     }
@@ -207,15 +208,15 @@ class ExoMediaPlayer(
     /**
      * Check if a stream is still in time to play
      * **/
-    private fun checkHls(mediaItem: MediaItem): Boolean {
-        val now = Calendar.getInstance()
-
-        val liveEndTime = toCalendar(mediaItem.end!!)
-
-        val check = (now <= liveEndTime)
-
-        Log.d(TAG, "check hls: $check")
-
-        return check
-    }
+//    private fun checkHls(mediaItem: MediaItem): Boolean {
+//        val now = Calendar.getInstance()
+//
+//        val liveEndTime = toCalendar(mediaItem.end!!)
+//
+//        val check = (now <= liveEndTime)
+//
+//        Log.d(TAG, "check hls: $check")
+//
+//        return check
+//    }
 }

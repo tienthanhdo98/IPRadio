@@ -42,6 +42,12 @@ class MainViewModel @Inject constructor(
         updateMonthlyScenarioWss(jsonMonthlyListData)
     }
 
+    fun updateWeeklyScenario(strJson: String) {
+        viewModelScope.launch {
+            mediaRepo.updateMonthlyScenarioWss(strJson)
+            getPlayerContentWss()
+        }
+    }
 
     fun updateMonthlyScenarioWss(strJsonMonthSchedule: String) {
         viewModelScope.launch {

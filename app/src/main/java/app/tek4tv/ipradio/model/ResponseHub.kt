@@ -19,7 +19,7 @@ class ResponseHub : Serializable {
     var start: String? = null
 
     @Json(name = "Duration")
-    var duration: String = ""
+    var duration: Int = 0
 
     @Json(name = "PI")
     var piCode = ""
@@ -27,37 +27,14 @@ class ResponseHub : Serializable {
     @Json(name = "PS")
     var psName = ""
 
-    @Json(name = "DestinationID")
-    var destinationId: String? = ""
-
-    @Json(name = "DestinationName")
-    var destinationName: String? = ""
-
-    @Json(name = "Log")
-    var logEnabled: Boolean? = null
-
     @Json(name = "Type")
     var type: String = ""
 
     @Json(name = "Level")
     var level: Int = 0
 
-    @Json(name = "Resume")
-    var resumeFromStart: Boolean? = null
-
-    @Json(name = "Name")
-    var name: String = ""
-
     @Json(name = "DeviceName")
     var deviceName: String? = ""
 
-    @Json(name = "Lat")
-    var lat: String? = null
-
-    @Json(name = "Lng")
-    var lng: String? = null
-
-    @Json(name = "UserNameControl")
-    var userNameControl: String? = null
 
 }

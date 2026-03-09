@@ -13,8 +13,8 @@ object HubCommand {
     const val UPDATE_MONTHLY_LIST = "UPDATE_MONTHLY_LIST"
     const val NEXT = "NEXT"
     const val PREVIEW = "PREVIEW"
-    const val TURN_ON_PA= "TURN_ON_PA"
-    const val TURN_OFF_PA= "TURN_OFF_PA"
+    const val TURN_ON_PA = "TURN_ON_PA"
+    const val TURN_OFF_PA = "TURN_OFF_PA"
     const val CONTROL_MEDIA = "CONTROL_MEDIA"
     const val JUMP = "JUMP"
     const val LIVE = "LIVE"
@@ -65,25 +65,47 @@ object HubCommand {
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
 
-    const val WSS = "WSS"
-    //WSS
-    const val DV002 = "dv002"
-    //wss live
-    const val DV003 = "dv003"
-    //wss huy lich
-    const val DV004 = "dv004"
-    //wss gửi log bản tin phát
-    const val DV005 = "dv005"
-    //wss gửi log lịch phát
-    const val DV006 = "dv006"
-    //wss gửi log hủy lịch phát
-    const val DV007 = "dv007"
-    //ping
-    const val DV008 = "dv008"
-    const val DV009 = "dv009"
 
+    //
+    //OPH = Operation from Host → lệnh từ server (Host) xuống thiết bị -> MQTT topic: channels/{channel_id}/messages/mirav3/d
+    const val OPH_SYNC = "1"
+    const val OPH_SETTINGS = "2"
+    const val OPH_SERVER = "3"
+    const val OPH_UDF = "4"
+    const val OPH_REBOOT = "5"
+    const val OPH_TAILSCALE = "7"
+    const val OPH_UDF_GSM = "8"
+    const val OPH_MEDIA_V3 = "16"
+    const val OPH_MEDIA_DELETE_ALL = "17"
+    const val OPH_STREAM_BACK = "18"
+    const val OPH_SERVER_HTTTN = "21"
+    const val OPH_CHECK_BALANCE = "32"
+    const val OPH_CHARGE_MONEY = "33"
+    const val OPH_SETTINGS_V2 = "OPH_SETTINGS_V2"
+    const val OPH_MEDIA_SYNC = "OPH_MEDIA_SYNC"
 
+    //OPU = Operation from Unit → lệnh từ thiết bị (Unit) lên server -> MQTT topic: channels/{channel_id}/messages/mirav3/s
+    const val OPU_GENERIC = "OPU_GENERIC"
+    const val OPU_SETTINGS = "OPU_SETTINGS"
+    const val OPU_STATUS = "OPU_STATUS"
+    const val OPU_LOG = "OPU_LOG"
+    const val OPU_SYNC = "OPU_SYNC"
+    const val OPU_CHECK_BALANCE = "OPU_CHECK_BALANCE"
+    const val OPU_CHARGE_MONEY = "OPU_CHARGE_MONEY"
+    const val OPU_ACK = "OPU_ACK"
 
+    //MGW_CT
+    const val OPH_CT_READ = "OPH_CT_READ"
+    const val OPH_CT_CONFIG = "OPH_CT_CONFIG"
+    const val OPH_CT_CONTROL = "OPH_CT_CONTROL"
+    const val OPH_CT_GET_LOG = "OPH_CT_GET_LOG"
+    const val OPU_CT_STATUS = "OPU_CT_STATUS"
+    const val OPU_CT_CONFIG = "OPU_CT_CONFIG"
+    const val OPU_CT_LOG = "OPU_CT_LOG"
+    const val OPU_CT_ACK = "OPU_CT_ACK"
+
+    //
+    const val UPDATE_WEEKLY_SCHEDULER = "UPDATE_WEEKLY_SCHEDULER"
 
 
 }

@@ -12,7 +12,6 @@ object MoshiInst {
     val moshi = Moshi.Builder()
         .add(KotlinJsonAdapterFactory())
         .build()
-    val adapterTacGia: JsonAdapter<TacGia> = moshi.adapter(TacGia::class.java)
 
 
     val typeListMediaItem: ParameterizedType =
@@ -44,6 +43,7 @@ object MoshiInst {
     fun toCategory(value: String?): Category? {
         return value?.let { moshi.adapter(Category::class.java).fromJson(it) }
     }
+
     @TypeConverter
     fun fromPriority(value: Priority?): String? {
         return value?.let { moshi.adapter(Priority::class.java).toJson(it) }
@@ -63,6 +63,7 @@ object MoshiInst {
     fun toAuthor(value: String?): Author? {
         return value?.let { moshi.adapter(Author::class.java).fromJson(it) }
     }
+
     @TypeConverter
     fun fromMetadataList(metadata: List<Any?>?): String? {
         if (metadata == null) return null

@@ -1,5 +1,6 @@
 package app.tek4tv.ipradio.core.players_helper
 
+import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaItem
 
 /**
@@ -7,10 +8,10 @@ import app.tek4tv.ipradio.model.MediaItem
  * **/
 interface IPlayerManagerListener {
     fun onTimeOver()
-    fun onPlayTuner(mediaItem: MediaItem)
-    fun onLiveError(mediaItem: MediaItem)
+    fun onPlayTuner(mediaItem: MediaFile)
+    fun onLiveError(mediaItem: MediaFile?)
     fun onEndForceMedia()
-    fun onPlayMediaSuccess(mediaItem: MediaItem?)
-    fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long)
+    fun onPlayMediaSuccess(mediaItem: MediaFile?)
+    fun onMediaStopPlaying(mediaItem: MediaFile, duration: Long)
 
 }

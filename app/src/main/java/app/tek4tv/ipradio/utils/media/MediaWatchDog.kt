@@ -36,52 +36,49 @@ class MediaWatchDog(
         }
     }
 
-    private suspend fun checkBrokenPath()
-    {
-        try {
-            var foundBrokenPath = false
-            mediaRepo.broadcastList.forEach {
-                if (it.body == "start" || it.body == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
-
-                val mediaPath = it.body
-                if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
-                    if (it.contentType?.value != "4") it.body = it.pathBackup
-                    foundBrokenPath = true
-                }
-            }
-
-            if (foundBrokenPath)
-                mediaRepo.saveItemsToFile(mediaRepo.broadcastList)
-        }
-        catch (e: Exception)
-        {
-            Log.e(LOG_TAG, "error check path")
-            e.printStackTrace()
-        }
+    private suspend fun checkBrokenPath() {
+//        try {
+//            var foundBrokenPath = false
+//            mediaRepo.broadcastList.forEach {
+//                if (it.body == "start" || it.body == "end" || it.getMediaType()!=MediaType.FILE) return@forEach
+//
+//                val mediaPath = it.body
+//                if (mediaPath!!.isNotEmpty() && !File(mediaPath).exists()) {
+//                    if (it.contentType?.value != "4") it.body = it.pathBackup
+//                    foundBrokenPath = true
+//                }
+//            }
+//
+//            if (foundBrokenPath)
+//                mediaRepo.saveItemsToFile(mediaRepo.broadcastList)
+//        }
+//        catch (e: Exception)
+//        {
+//            Log.e(LOG_TAG, "error check path")
+//            e.printStackTrace()
+//        }
     }
 
-    private fun checkDownload()
-    {
-        try {
-            val needDownload = mediaRepo.broadcastList.filter {
-                 it.contentType?.value != "4"
-            }
-
-            if (needDownload.isNotEmpty()) {
-                needDownload.forEach {
-                    mediaRepo.downloadAMediaItem(it)
-                }
-            }
-        }
-        catch (e : Exception)
-        {
-            Log.e(LOG_TAG, "error check download")
-            e.printStackTrace()
-        }
+    private fun checkDownload() {
+//        try {
+//            val needDownload = mediaRepo.broadcastList.filter {
+//                 it.contentType?.value != "4"
+//            }
+//
+//            if (needDownload.isNotEmpty()) {
+//                needDownload.forEach {
+//                    mediaRepo.downloadAMediaItem(it)
+//                }
+//            }
+//        }
+//        catch (e : Exception)
+//        {
+//            Log.e(LOG_TAG, "error check download")
+//            e.printStackTrace()
+//        }
     }
 
-    fun cancelCheck()
-    {
+    fun cancelCheck() {
         checkPlaylistJob?.cancel()
         checkPlaylistJob = null
     }
