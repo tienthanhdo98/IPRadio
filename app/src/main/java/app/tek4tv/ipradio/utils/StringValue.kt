@@ -101,5 +101,17 @@ class StringValue {
           }
         ]
         """.trimIndent()
+        val live1 = """
+         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoxLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOlsgMzQ5MjJdLCJkcyI6WzE1MzhdLCJjcmVhdGVkIjoxNzczMTI0NzYzLCJzdGFydCI6MTc3MzE5NjY4MCwiZXhwaXJlZCI6MTc3MzIwNzQ4MCwiZmlsZXMiOlt7ImlkIjowLCJpbmRleCI6MCwidHlwZSI6Mywic2l6ZSI6MjAyOTM0LCJjcyI6MjAxMDI1ODgyMSwiZHVyYXRpb24iOjYsInVybCI6Imh0dHBzOi8vdHR0bS5tb2JpZm9uZS52bi91cGxvYWRGaWxlL2hlYWRlci9oZWFkZXIud2F2In0seyJpZCI6MjgzMjA0LCJpbmRleCI6MSwidHlwZSI6MSwic2l6ZSI6MTAzNDE2NTAsImNzIjoyODM3NTYyNTA3LCJkdXJhdGlvbiI6MzIzLCJ1cmwiOiJodHRwczovL3RydXllbnRoYW5odGhvbmdtaW5oLm1vYmlmb25lLmFpL3VwbG9hZEZpbGUvMjAyNjAzMTAvMjAyNjAzMTAxMjAxMDRfxJDGoW5fduG7i19i4bqndV9j4butX3Phu5FfMy5tcDMifV19\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
+        """.trimIndent()
+        val scheduler1 = """
+            [
+              {
+                "n": "6565656565652:d:16",
+                "t": 1773136583.5887241,
+                "vs": "[{\"id\":283211,\"show_id\":283211,\"show_info\":\"eyJtaWQiOjI4MzIxMSwidmVyc2lvbiI6MSwicHJpbyI6OTk2LCJzdW1tYXJ5IjoiQuG6o24gdGluIGLhuqd1IGPhu60iLCJtb2RlIjoxLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOls1Nzk3OCw1OTEzOSw2MDMwMF0sImRzIjpbMTE2MCwxMTYwLDE3NDBdLCJjcmVhdGVkIjoxNzczMTMzNzIyLCJzdGFydCI6MTc3MzA3NTYwMCwiZXhwaXJlZCI6MTc3NDk3NjM5OSwiZmlsZXMiOlt7ImlkIjowLCJpbmRleCI6MCwidHlwZSI6Mywic2l6ZSI6MjAyOTM0LCJjcyI6MjAxMDI1ODgyMSwiZHVyYXRpb24iOjYsInVybCI6Imh0dHBzOi8vdHR0bS5tb2JpZm9uZS52bi91cGxvYWRGaWxlL2hlYWRlci9oZWFkZXIud2F2In0seyJpZCI6MjgzMjExLCJpbmRleCI6MSwidHlwZSI6MSwic2l6ZSI6MTgzOTIzODAsImNzIjo4NDYzNTY0NSwiZHVyYXRpb24iOjU3NCwidXJsIjoiaHR0cHM6Ly90cnV5ZW50aGFuaHRob25nbWluaC5tb2JpZm9uZS5haS91cGxvYWRGaWxlLzIwMjYwMzEwLzIwMjYwMzEwMTYwNDUyX8SQxqFuX3bhu4tfYuG6p3VfY+G7rV9z4buRXzQubXAzIn1dfQ==\",\"action\":1,\"description\":\"283211\",\"version\":1,\"created_at\":\"2026-03-10T16:13:16.171595227+07:00\"}]"
+              }
+            ]
+        """.trimIndent()
     }
 }

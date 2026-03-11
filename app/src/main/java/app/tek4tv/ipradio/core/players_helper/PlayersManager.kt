@@ -139,11 +139,11 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        if (currentPlayer == vlcPlayer) {
-            vlcPlayer.stop()
-        } else {
-            exoPlayer.stop()
-        }
+//        if (currentPlayer == vlcPlayer) {
+//            vlcPlayer.stop()
+//        } else {
+//            exoPlayer.stop()
+//        }
         playlistIndex++
 
         if (playlistIndex < currentPlaylist.size) {
@@ -277,6 +277,7 @@ class PlayersManager(
             vlcPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
             vlcPlayer
         }
+
     }
 
     fun stopAllPlayer() {

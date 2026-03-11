@@ -26,24 +26,22 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.di.JsonAdapterProvider.adapterSchedulerList
 import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
-import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.CrashHandler
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.StringValue.Companion.OPH_MEDIA_V3_samp2
 import app.tek4tv.ipradio.utils.StringValue.Companion.OPH_MEDIA_V3_samp2_2
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
+import app.tek4tv.ipradio.utils.StringValue.Companion.live1
+import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler1
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.media.MediaCapture
@@ -166,22 +164,27 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
 
         override fun onPlayMediaSuccess(mediaItem: MediaFile?) {
-//            if (mediaItem != null) {
-//
-//                hubManager.currentMediaItem = mediaItem
-//
-//                if (mediaItem.getMediaType() != MediaType.FM) {
-//                    serialPortController.turnOnPAVod()
-//                }
-//                val paState =
-//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-//                    else PAStatusOn
-//
-//                hubManager.sendLogMediaSuccess(mediaItem, paState)
-//
-//                viewModel.currentMedia = mediaItem
-//
-//            }
+            if (mediaItem != null) {
+
+                hubManager.currentMediaItem = mediaItem
+
+                val paState =
+                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
+                    else PAStatusOn
+
+                //hubManager.sendLogMediaSuccess(mediaItem, paState)
+                val id = System.currentTimeMillis()
+                val logs = listOf(
+                    McuLogData(
+                        id = id,
+                        time = System.currentTimeMillis() / 1000.0,
+                        type = 3,
+                        detail = """{"m":${mediaItem.id}}"""
+                    ),
+                )
+                //hubManager.sendLog(logs)
+
+            }
         }
     }
 
@@ -270,8 +273,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         lifecycleScope.launch {
             delay(1000)
-            Log.d("NightVol", "onCreate: TEsting vole")
-            hubManager.sendTest(OPH_MEDIA_V3_samp2)
+            hubManager.sendTest(scheduler1)
         }
     }
 
@@ -280,7 +282,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         val imei = hubManager.deviceImei
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAdress.setOnClickListener {
-            hubManager.sendTest(OPH_MEDIA_V3_samp2_2)
+            // hubManager.sendTest(OPH_MEDIA_V3_samp2_2)
+            hubManager.sendOpuSyncEmpty()
         }
     }
 
@@ -433,7 +436,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     }
 
     private fun initHubConnect() {
-        //hubManager.connectToServer()
+        hubManager.connectToServer()
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {

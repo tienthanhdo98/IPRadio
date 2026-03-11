@@ -3,12 +3,11 @@ package app.tek4tv.ipradio.core.mqtt
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
-import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.model.Channel
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
 import org.eclipse.paho.client.mqttv3.IMqttToken
-import org.eclipse.paho.client.mqttv3.MqttCallback
 import org.eclipse.paho.client.mqttv3.MqttCallbackExtended
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions
 import org.eclipse.paho.client.mqttv3.MqttMessage
@@ -18,11 +17,11 @@ class MQTTManager(
     private val connectEventListener: IConnectionServer,
     private val thingId: String,
     private val thingKey: String,
-    private val channels: List<String>
+    private val channels: List<Channel>
 ) {
     val TAG = "MQTTLOG"
-    private val clientID = "mgw-$thingId"
-
+    private val clientID = "$thingId"
+    private val channelId = channels.first().id
 
     private var mqttClient: MqttAndroidClient? = null
 
@@ -30,12 +29,8 @@ class MQTTManager(
     fun connectToMQTT() {
         Log.d(TAG, "clientID ${clientID}")
 
-//        val uri = if (mqttSecurity == 1)
-//            "ssl://$mqttServer:$mqttPort"
-//        else
-//            "tcp://$mqttServer:$mqttPort"
+        val serverURI = "ssl://aiot.mobifone.vn:6668"
 
-        val serverURI = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_MQTT)
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
 
         mqttClient?.setCallback(object : MqttCallbackExtended {
@@ -57,7 +52,7 @@ class MQTTManager(
             //resubscribe sau khi tu reconnect cua thu vien( chua test)
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 Log.d(TAG, "Connection connectComplete")
-                channels.forEach { subscribe(it) } // resubscribe
+                channels.forEach { subscribe(it.id!!) } // resubscribe
             }
         })
         val options = MqttConnectOptions()
@@ -75,7 +70,7 @@ class MQTTManager(
                     override fun onSuccess(asyncActionToken: IMqttToken?) {
                         Log.d(TAG, "Connection success")
                         channels.forEach {
-                            subscribe(it)
+                            subscribe(it.id!!)
                         }
                         connectEventListener.onConnectSuccess()
                     }
@@ -93,7 +88,6 @@ class MQTTManager(
     }
 
     fun publishToMQTT(
-        channelId: String,
         strMessage: String,
         qos: Int = 0,
         retained: Boolean = false

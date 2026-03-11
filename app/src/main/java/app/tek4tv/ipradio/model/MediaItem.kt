@@ -13,7 +13,7 @@ import java.io.Serializable
 data class MediaItem(
 
     @Json(name = "ID")
-    val id: Int? = null,
+    val id: Long? = null,
 
     @Json(name = "Start")
     val start: String? = null,

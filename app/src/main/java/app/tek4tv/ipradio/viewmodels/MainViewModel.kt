@@ -24,7 +24,6 @@ class MainViewModel @Inject constructor(
 
     private var mediaWatchdog = MediaWatchDog(viewModelScope, mediaRepo)
 
-    var currentMedia: MediaItem? = null
 
     fun checkPlaylist() {
         mediaWatchdog.checkPlaylist()

@@ -37,18 +37,24 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
+                Log.d("MediaInfo", "Vlc EndReached")
                 playerEventListener.onMediaEndReached(currentMedia)
             }
 
+            MediaPlayer.Event.Stopped -> {
+                Log.d("MediaInfo", "Vlc Stopped")
+                isPlaying = false
+            }
+
             MediaPlayer.Event.EncounteredError -> {
+                isPlaying = false
+                handlerLivePlayer?.removeCallbacksAndMessages(null)
                 playerEventListener.onPlayerError("Lõi", currentMedia)
             }
 
             MediaPlayer.Event.Playing -> {
-                if (!isPlaying) {
-                    isPlaying = true
-                    playerEventListener.onPlayMediaSuccess(currentMedia)
-                }
+                isPlaying = true
+                playerEventListener.onPlayMediaSuccess(currentMedia)
             }
 
             else -> {
@@ -56,15 +62,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         }
     }
 
-    private fun calculateResumePoint(mediaItem: MediaFile): Int {
-
-//        val startTimeOfMedia = toCalendar(mediaItem.start!!)
-//        val now = Calendar.getInstance()
-//
-//        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-
-        return 0
-    }
 
     init {
         val args = ArrayList<String>()
@@ -78,7 +75,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 
 
     override fun playMedia(mediaItem: MediaFile, isForce: Boolean, timeStamp: Int) {
-        if (isPlaying) stop()
+//        if (isPlaying) stop()
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
@@ -123,28 +120,32 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
 //            stream.addOption(":start-time=$timeStamp")
         vlcPlayer.play(stream)
         Log.e(LOGTAG, "Player vlc live start")
-        handlerLivePlayer?.removeCallbacksAndMessages(null)
-        handlerLivePlayer = Handler(Looper.getMainLooper())
-        handlerLivePlayer?.postDelayed(
-            {
-                vlcPlayer.stop()
-                if (currentMedia?.getMediaType() == MediaFileType.FILE) {
-//                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
-//                    if (!isStreamFailed) {
-//                        Log.d(TAG, "Player vlc live stop file")
+//        val durationMs = (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000
+//        if (durationMs > 0) {
+//            handlerLivePlayer?.removeCallbacksAndMessages(null)
+//            handlerLivePlayer = Handler(Looper.getMainLooper())
+//            handlerLivePlayer?.postDelayed(
+//                {
+//                    vlcPlayer.stop()
+//                    if (currentMedia?.getMediaType() == MediaFileType.FILE) {
+////                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
+////                    if (!isStreamFailed) {
+////                        Log.d(TAG, "Player vlc live stop file")
+////                        playerEventListener.onMediaEndReached(currentMedia)
+////                        isPlaying = false
+////                    } else {
+////                        checkStreamError()
+////                    }
 //                        playerEventListener.onMediaEndReached(currentMedia)
-//                        isPlaying = false
 //                    } else {
-//                        checkStreamError()
+//                        Log.d(TAG, "Player vlc live stop force")
+//                        playerEventListener.onMediaForceEndReached(currentMedia)
 //                    }
-                } else {
-                    Log.d(TAG, "Player vlc live stop force")
-                    playerEventListener.onMediaForceEndReached(currentMedia)
-                }
-
-            },
-            (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000
-        )
+//
+//                },
+//                (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
+//            )
+//        }
 
     }
 

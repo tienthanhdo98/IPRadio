@@ -18,8 +18,5 @@ interface ApiService {
         @Header("Authorization") externalKey: String
     ): Call<BootstrapResp>
 
-    @POST
-    fun getToken(@Body body: Map<String, String>, @Url url: String): Call<TokenDto>
-
 
 }

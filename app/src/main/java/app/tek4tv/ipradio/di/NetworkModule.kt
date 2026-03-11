@@ -16,6 +16,9 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    const val BASE_URL = "https://aiot.mobifone.vn"
+
     @Provides
     @Singleton
     fun provideMoshi(): Moshi = MoshiInst.moshi
@@ -25,7 +28,7 @@ object NetworkModule {
     @Singleton
     fun provideRetrofit(moshi: Moshi): Retrofit =
         Retrofit.Builder()
-            .baseUrl(NetworkUtils.BASE_URL)
+            .baseUrl(BASE_URL)
             .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
             .addCallAdapterFactory(CoroutineCallAdapterFactory())
             .build()
