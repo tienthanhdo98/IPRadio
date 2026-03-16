@@ -49,47 +49,58 @@ class MediaRepo @Inject constructor(
             val days = mediaInfo.days ?: 0
             val start = mediaInfo.start ?: 0L
             val expired = mediaInfo.expired ?: 0L
-            Log.d(
-                "MediaInfo", "Mode: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
-            )
-            Log.d(
-                "MediaInfo", "Mode: Bản tin ${mediaInfo.summary}"
-            )
-            val r1 = decodeRepeatDays(repeat, days)
-            val res = repeatDaysToText(r1)
-            Log.d("MediaInfo", "Chạy vào: $res")
+            val mode = mediaInfo.mode
             listMediaInfoId.add(mid)
-            val isAllowed = isTodayAllowed(now, r1)
-            Log.d("MediaInfo", "Hôm nay có lịch: $isAllowed")
-            if (isAllowed) {
-                val startTime = unixSecondsToCalendar(start)
-                val expiredTime = unixSecondsToCalendar(expired)
-                val timeSlot = mediaInfo.ts
-                val durationSlot = mediaInfo.ds
+            //Chỉ lưu không phát
+            if (mode == 0) {
                 Log.d(
-                    "MediaInfo", "Thời gian phát: ${convertCalendarToString(startTime)}"
+                    "MediaInfo", "Mode: Chỉ lưu - Không phát"
+                )
+            }
+            //Lưu và phát
+            else {
+                Log.d(
+                    "MediaInfo", "Mode: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
                 )
                 Log.d(
-                    "MediaInfo", "Thời gian kết thúc: ${
-                        convertCalendarToString(
-                            expiredTime
-                        )
-                    }"
+                    "MediaInfo", "Mode: Bản tin ${mediaInfo.summary}"
                 )
-                timeSlot!!.forEachIndexed { index, ts ->
-                    if (durationSlot == null || index >= durationSlot.size) return@forEachIndexed
-                    val slotStart = convertSecondsToCalendar(ts.toInt())
-                    val slotEnd = convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
-                    val peStart = convertCalendarToString(slotStart, "HH:mm:ss")
-                    val peEnd = convertCalendarToString(slotEnd, "HH:mm:ss")
-                    val period = "$peStart-$peEnd"
+                val r1 = decodeRepeatDays(repeat, days)
+                val res = repeatDaysToText(r1)
+                Log.d("MediaInfo", "Chạy vào: $res")
+                val isAllowed = isTodayAllowed(now, r1)
+                Log.d("MediaInfo", "Hôm nay có lịch: $isAllowed")
+                if (isAllowed) {
+                    val startTime = unixSecondsToCalendar(start)
+                    val expiredTime = unixSecondsToCalendar(expired)
+                    val timeSlot = mediaInfo.ts
+                    val durationSlot = mediaInfo.ds
                     Log.d(
-                        "MediaInfo", "Khung phát: $period"
+                        "MediaInfo", "Thời gian phát: ${convertCalendarToString(startTime)}"
                     )
-                    scheduledList[period] = mediaInfo.files
-                    mediaInfoWithPeriod[period] = mediaInfo.mid.toString()
-                }
+                    Log.d(
+                        "MediaInfo", "Thời gian kết thúc: ${
+                            convertCalendarToString(
+                                expiredTime
+                            )
+                        }"
+                    )
+                    timeSlot!!.forEachIndexed { index, ts ->
+                        if (durationSlot == null || index >= durationSlot.size) return@forEachIndexed
+                        val slotStart = convertSecondsToCalendar(ts.toInt())
+                        val slotEnd =
+                            convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
+                        val peStart = convertCalendarToString(slotStart, "HH:mm:ss")
+                        val peEnd = convertCalendarToString(slotEnd, "HH:mm:ss")
+                        val period = "$peStart-$peEnd"
+                        Log.d(
+                            "MediaInfo", "Khung phát: $period"
+                        )
+                        scheduledList[period] = mediaInfo.files
+                        mediaInfoWithPeriod[period] = mediaInfo.mid.toString()
+                    }
 
+                }
             }
             broadcastList.addAll(mediaInfo.files)
 

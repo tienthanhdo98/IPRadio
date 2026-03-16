@@ -1,9 +1,5 @@
 package app.tek4tv.ipradio.model
 
-import com.squareup.moshi.Json
-import com.squareup.moshi.JsonClass
-import java.io.Serializable
-
 
 data class ResponseHub(
 
@@ -21,6 +17,8 @@ data class ResponseHub(
     var level: Int = 0,
 
     var mediaInfo: MediaInfo? = null,
+
+    var listMediaInfo: MutableList<MediaInfo>? = null,
 
     var networkConfig: NetworkConfig? = null,
 

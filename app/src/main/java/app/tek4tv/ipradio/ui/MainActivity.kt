@@ -41,6 +41,8 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
+import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler2
+import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler3
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.media.MediaCapture
@@ -278,6 +280,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val imei = hubManager.deviceImei
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAdress.setOnClickListener {
+            hubManager.handlerMessage(scheduler2)
+            lifecycleScope.launch {
+                delay(5000)
+                hubManager.handlerMessage(scheduler3)
+            }
 
         }
     }
@@ -425,18 +432,16 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
             when (command) {
+
                 HubCommand.UPDATE_SCHEDULER -> {
                     clearDatastore()
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
-                    viewModel.updateScheduler(responseHub.mediaInfo)
+                    viewModel.updateScheduler(responseHub.listMediaInfo)
                 }
 
-                HubCommand.DELETE_SCHEDULER -> {
-                    viewModel.deleteLocalScheduler(responseHub.mediaInfo)
-                }
 
                 HubCommand.UPDATE_SETTING_CONFIG -> {
                     if (responseHub.networkConfig != null) {

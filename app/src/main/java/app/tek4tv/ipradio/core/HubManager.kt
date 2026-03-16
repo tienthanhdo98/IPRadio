@@ -3,9 +3,6 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
-import app.tek4tv.ipradio.core.stream.IcecastConfig
-import app.tek4tv.ipradio.core.stream.IcecastPutClient
-import app.tek4tv.ipradio.core.stream.MicAacIcecastStreamer
 import app.tek4tv.ipradio.di.JsonAdapterProvider.bootstrapAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.fromVs
 import app.tek4tv.ipradio.di.JsonAdapterProvider.listAppDataItemAdapter
@@ -85,6 +82,9 @@ class HubManager(
 
     var mqttClient: MQTTManager? = null
 
+    private var lastMessageHash: Int = 0
+
+    private var lastMessageTime: Long = 0
 
     //In BT Mode
     fun getBootstrapInfo() {
@@ -305,6 +305,15 @@ class HubManager(
                 var hubCommand = ""
                 responseHub = ResponseHub()
 
+                val currentHash = data.hashCode()
+                val currentTime = System.currentTimeMillis()
+                if (currentHash == lastMessageHash && (currentTime - lastMessageTime) < 2000) {
+                    Log.d(TAG, "Bỏ qua bản tin trùng lặp trong thời gian ngắn")
+                    return
+                }
+                lastMessageHash = currentHash
+                lastMessageTime = currentTime
+
                 sendAck(cmd.toInt(), appdata.t)
 
                 when (cmd) {
@@ -380,61 +389,75 @@ class HubManager(
                         //Nếu bị trùng khung giờ thì sao?
                         //Tại sao bản tin live vẫn còn khi sync về
                         val records: List<ShowInfo>? = showInfoAdapter.fromJson(data)
+
+                        val listMediaInfo = mutableListOf<MediaInfo>()
+
+
                         if (!records.isNullOrEmpty()) {
                             records.forEach { showInfo ->
                                 val showInfoStr = b64Decode(showInfo.showInfo!!)
                                 val mediaInfo = moshi.fromVs<MediaInfo>(showInfoStr)
-                                Log.d("MGWtest", "Sync: OPH_MEDIA_V3 mediaInfo ${mediaInfo} ")
                                 Log.d(
                                     "MGWtest",
                                     "Test: OPH_MEDIA_V3 showInfo action ${showInfo.action} "
                                 )
-                                mediaInfo!!.files.forEach { it ->
-                                    Log.d("MGWtest", "Test: OPH_MEDIA_V3 MediaFile ${it.url} ")
+
+                                if (mediaInfo != null) {
+                                    mediaInfo.action = showInfo.action
+                                    listMediaInfo.add(mediaInfo)
                                 }
-                                when (showInfo.action) {
-                                    //Tạo
-                                    1 -> {
-                                        when (mediaInfo.mode) {
-                                            //Save Only
-                                            0 -> {
-                                                hubCommand = HubCommand.SAVE_SCHEDULER
-                                                responseHub.mediaInfo = mediaInfo
-                                                onMessageListener.invoke(hubCommand, "")
-                                            }
-                                            //Scheduler
-                                            1 -> {
-                                                hubCommand = HubCommand.UPDATE_SCHEDULER
-                                                responseHub.mediaInfo = mediaInfo
-                                                onMessageListener.invoke(hubCommand, "")
-                                            }
-                                            //Live
-                                            2 -> {
-                                                hubCommand = HubCommand.LIVE
-                                                responseHub.mediaInfo = mediaInfo
-                                                onMessageListener.invoke(hubCommand, "")
-                                            }
-                                        }
-                                    }
-                                    //Sửa
-                                    2 -> {
-
-                                    }
-                                    //Xóa
-                                    4 -> {
-                                        hubCommand = HubCommand.DELETE_SCHEDULER
-                                        responseHub.mediaInfo = mediaInfo
-                                        onMessageListener.invoke(hubCommand, "")
-                                    }
-                                    //Phát
-                                    8 -> {
-
-                                    }
-                                    //Dừng
-                                    16 -> {
-
-                                    }
-                                }
+                            }
+//                            when (showInfo.action) {
+//                                //Tạo
+//                                1 -> {
+//                                    when (mediaInfo?.mode) {
+//                                        //Save Only
+//                                        0 -> {
+//                                            hubCommand = HubCommand.SAVE_SCHEDULER
+//                                            responseHub.mediaInfo = mediaInfo
+//                                            onMessageListener.invoke(hubCommand, "")
+//                                        }
+//                                        //Scheduler
+//                                        1 -> {
+//                                            hubCommand = HubCommand.UPDATE_SCHEDULER
+//                                            responseHub.mediaInfo = mediaInfo
+//                                            onMessageListener.invoke(hubCommand, "")
+//                                        }
+//                                        //Live
+//                                        2 -> {
+//                                            liveMedia = mediaInfo
+//                                        }
+//                                    }
+//                                }
+//                                //Sửa
+//                                2 -> {
+//
+//                                }
+//                                //Xóa
+//                                4 -> {
+//                                    hubCommand = HubCommand.DELETE_SCHEDULER
+//                                    responseHub.mediaInfo = mediaInfo
+//                                    onMessageListener.invoke(hubCommand, "")
+//                                }
+//                                //Phát
+//                                8 -> {
+//
+//                                }
+//                                //Dừng
+//                                16 -> {
+//
+//                                }
+//                            }
+                            if (listMediaInfo.isEmpty()) return
+                            val listLiveMediaInfo = listMediaInfo.filter { it.mode == 2 }.toList()
+                            if (listLiveMediaInfo.isNotEmpty()) {
+                                hubCommand = HubCommand.LIVE
+                                responseHub.mediaInfo = listLiveMediaInfo.first()
+                                onMessageListener.invoke(hubCommand, "")
+                            } else {
+                                hubCommand = HubCommand.UPDATE_SCHEDULER
+                                responseHub.listMediaInfo = listMediaInfo
+                                onMessageListener.invoke(hubCommand, "")
                             }
                         }
                     }

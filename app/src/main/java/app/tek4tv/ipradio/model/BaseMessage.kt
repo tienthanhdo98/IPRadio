@@ -209,7 +209,9 @@ data class MediaInfo(
     @Json(name = "start") val start: Long? = null,
     @Json(name = "expired") val expired: Long? = null,
 
-    @Json(name = "files") val files: List<MediaFile> = emptyList()
+    @Json(name = "files") val files: List<MediaFile> = emptyList(),
+
+    @Json(name = "action") var action: Int? = null,
 )
 
 @JsonClass(generateAdapter = true)
