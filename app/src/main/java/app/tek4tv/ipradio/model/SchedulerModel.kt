@@ -22,6 +22,6 @@ data class SchedulerModel(
 )
 
 data class TimeFrame(
-    val startMinuteOfDay: Int,
-    val endMinuteOfDay: Int
+    val startFrame: Int,
+    val endFrame: Int
 )

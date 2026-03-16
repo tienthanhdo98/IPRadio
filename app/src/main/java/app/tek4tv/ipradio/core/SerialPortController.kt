@@ -59,7 +59,7 @@ class SerialPortController(
             coroutineScope.launch(Dispatchers.IO) {
                 while (true) {
                     onWatchDog()
-                    delay(3000)
+                    delay(5000)
                 }
             }
         }
@@ -256,7 +256,7 @@ class SerialPortController(
         const val MODE_TUNER = "MODE_TUNER"
         const val MODE_NONE = "MODE_NONE"
         const val LOG_TAG = "SerialPortController"
-        var volume: String = ""
+        var volume: String = "50"
         var deviceInfo: String = ""
     }
 }

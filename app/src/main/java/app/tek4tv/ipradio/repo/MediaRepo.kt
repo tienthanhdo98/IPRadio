@@ -2,287 +2,173 @@ package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
-import app.tek4tv.ipradio.di.MoshiInst.jsonListMediaItemAdapter
-import app.tek4tv.ipradio.di.MoshiInst.jsonMapAdapter
+import androidx.core.net.toUri
 import app.tek4tv.ipradio.model.MediaFile
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_WSS_DATA
+import app.tek4tv.ipradio.utils.Utils.Companion.convertSecondsToCalendar
+import app.tek4tv.ipradio.utils.convertCalendarToString
+import app.tek4tv.ipradio.utils.decodeRepeatDays
+import app.tek4tv.ipradio.utils.isTodayAllowed
 import app.tek4tv.ipradio.utils.media.DownloadHelper2
 import app.tek4tv.ipradio.utils.media.DownloadItem
-import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.repeatDaysToText
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
-import app.tek4tv.ipradio.utils.storage.isFileExisted
+import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import com.downloader.OnDownloadListener
-import com.squareup.moshi.JsonAdapter
-import com.squareup.moshi.Moshi
-import com.squareup.moshi.Types
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.launch
-import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Date
+import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class MediaRepo @Inject constructor(
-    moshi: Moshi,
     @ApplicationContext private val appContext: Context
-) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
-
-
-    override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
-        Types.newParameterizedType(List::class.java, MediaItem::class.java)
-    )
-
+) {
 
     val TAG = "MEDIA_REPO"
 
-    var broadcastList = mutableListOf<MediaFile>()
-    var scheduledList = LinkedHashMap<String, List<MediaFile>>()
-    var timeDividers = LinkedHashMap<String, List<MediaFile>>()
-    var unscheduledList = mutableListOf<MediaFile>()
-    var scheduledMediaItems = mutableListOf<MediaFile>()
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
-    private val mediaStoragePath = appContext.filesDir.path
     private var completedDownloads = 0
     private val lock = Any()
 
-    suspend fun updateMonthlyScenarioWss(strListMonthSchedule: String) {
+    //MGW
+    var scheduledList = LinkedHashMap<String, List<MediaFile>>()
+    var mediaInfoWithPeriod = LinkedHashMap<String, String>()
+    var broadcastList = mutableListOf<MediaFile>()
+    var listMediaInfoId = mutableListOf<Long>()
+    private val mediaStoragePath = appContext.filesDir.path
+
+    fun updateScheduler(mediaInfo: MediaInfo) {
         try {
-            Log.e(TAG, "updateMonthlyScenario")
-
-            val listMonthSchedule = jsonMapAdapter.fromJson(strListMonthSchedule)
-
-            ConfigUtil.putString(
-                appContext,
-                MONTHLY_SCENARIO_WSS_DATA,
-                strListMonthSchedule
+            val mid = mediaInfo.mid ?: 0
+            val now = Calendar.getInstance()
+            val repeat = mediaInfo.repeat ?: 0
+            val days = mediaInfo.days ?: 0
+            val start = mediaInfo.start ?: 0L
+            val expired = mediaInfo.expired ?: 0L
+            Log.d(
+                "MediaInfo", "Mode: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
             )
-
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-
-            var dayScenario: String? = null
-
-            if (listMonthSchedule != null) {
-                for (i in listMonthSchedule) {
-                    if (i.key == currentDate) {
-                        Log.e(TAG, "get scenario co data ngay ${i.key}")
-                        dayScenario = i.value
-                        break
-                    } else {
-                        dayScenario = null
-                    }
+            Log.d(
+                "MediaInfo", "Mode: Bản tin ${mediaInfo.summary}"
+            )
+            val r1 = decodeRepeatDays(repeat, days)
+            val res = repeatDaysToText(r1)
+            Log.d("MediaInfo", "Chạy vào: $res")
+            listMediaInfoId.add(mid)
+            val isAllowed = isTodayAllowed(now, r1)
+            Log.d("MediaInfo", "Hôm nay có lịch: $isAllowed")
+            if (isAllowed) {
+                val startTime = unixSecondsToCalendar(start)
+                val expiredTime = unixSecondsToCalendar(expired)
+                val timeSlot = mediaInfo.ts
+                val durationSlot = mediaInfo.ds
+                Log.d(
+                    "MediaInfo", "Thời gian phát: ${convertCalendarToString(startTime)}"
+                )
+                Log.d(
+                    "MediaInfo", "Thời gian kết thúc: ${
+                        convertCalendarToString(
+                            expiredTime
+                        )
+                    }"
+                )
+                timeSlot!!.forEachIndexed { index, ts ->
+                    if (durationSlot == null || index >= durationSlot.size) return@forEachIndexed
+                    val slotStart = convertSecondsToCalendar(ts.toInt())
+                    val slotEnd = convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
+                    val peStart = convertCalendarToString(slotStart, "HH:mm:ss")
+                    val peEnd = convertCalendarToString(slotEnd, "HH:mm:ss")
+                    val period = "$peStart-$peEnd"
+                    Log.d(
+                        "MediaInfo", "Khung phát: $period"
+                    )
+                    scheduledList[period] = mediaInfo.files
+                    mediaInfoWithPeriod[period] = mediaInfo.mid.toString()
                 }
+
             }
-            if (dayScenario != null) {
-                Log.e(TAG, "có lịch trong ngày: update ${dayScenario}")
-                updateScenarioWss(dayScenario)
-            } else {
-                //In case there are no scenario for today, don't play anythings
-                saveItemsToFile(listOf())
-                Log.e(TAG, "Không có lịch trong ngày")
-            }
+            broadcastList.addAll(mediaInfo.files)
 
         } catch (e: Exception) {
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
         }
     }
 
-    private suspend fun updateScenarioWss(jsonListMediaByDay: String): List<MediaItem> {
-        val result = listOf<MediaItem>()
-
-        try {
-            val res = jsonListMediaItemAdapter.fromJson(jsonListMediaByDay)
-            if (res?.isNotEmpty() == true) {
-                Log.e(TAG, "Save ${res.size} to local")
-                saveItemsToFile(res)
-
-            } else {
-                Log.e(TAG, "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, e.toString())
-        }
-
-        return result
+    fun clearAllScheduled() {
+        scheduledList.clear()
+        mediaInfoWithPeriod.clear()
+        broadcastList.clear()
+        listMediaInfoId.clear()
+        Log.d(TAG, "Đã làm sạch toàn bộ lịch phát trong bộ nhớ")
     }
-
-    fun getScenarioWss(): List<MediaItem> {
-//        scheduledList.clear()
-//        unscheduledList.clear()
-//        scheduledMediaItems.clear()
-//        timeDividers.clear()
-//
-//        var res = listOf<MediaItem>()
-//
-//        val jsonMonthlyListData =
-//            ConfigUtil.getString(appContext, MONTHLY_SCENARIO_WSS_DATA, "") ?: ""
-//        Log.e(TAG, "get scenario ${jsonMonthlyListData}")
-//        if (jsonMonthlyListData.isNotEmpty()) {
-//            val monthlyListData = jsonMapAdapter.fromJson(jsonMonthlyListData)
-//
-//            if (monthlyListData?.isNotEmpty() == true) {
-//
-//                val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
-//
-//                var dayScenario: String? = null
-//
-//                for (i in monthlyListData) {
-//                    if (i.key == currentDate) {
-//                        Log.e(TAG, "get scenario co data ngay ${i.key}")
-//                        Log.e(TAG, "get scenario co data ngay $currentDate")
-//                        dayScenario = i.value
-//                        break
-//                    } else {
-//                        dayScenario = null
-//                    }
-//                }
-//                dayScenario?.let {
-//
-//                    res = jsonListMediaItemAdapter.fromJson(dayScenario)!!
-//
-//                } ?: run {
-//                    Log.d(TAG, "Today does not have a playing schedule")
-//                    res = listOf()
-//                }
-//
-//            } else {
-//                Log.d(TAG, "Nothing str list to play")
-//                res = listOf()
-//            }
-//        } else {
-//            Log.d(TAG, "Nothing str list to play")
-//            res = listOf()
-//        }
-//
-//        broadcastList.clear()
-//        broadcastList.addAll(res)
-//        Log.d(TAG, "local ${res.size}")
-//        filterMedia(broadcastList)
-//        return broadcastList
-        return emptyList()
-    }
-
-    private fun filterMedia(mediaList: List<MediaItem>) {
-        //chia ta thanh cac cap [0,4], [5,8]
-//        val dividerIndices = mediaList.indices.filter {
-//            mediaList[it].body == "start" || mediaList[it].body == "end"
-//        }.chunked(2)
-//
-//        val scheduledIndex = mutableListOf<Int>()
-//
-//        dividerIndices.forEach {
-//            if (it.size == 2) {
-//                val startIndex = it[0]
-//                val endIndex = it[1]
-//
-//                val key = "${mediaList[startIndex].fixTime}-${mediaList[endIndex].fixTime}"
-//                scheduledList[key] = mediaList.subList(startIndex + 1, endIndex)
-//
-//                timeDividers[key] = listOf(broadcastList[startIndex], broadcastList[endIndex])
-//
-//                //adding the index of scheduled media
-//                scheduledIndex.addAll((startIndex..endIndex))
-//            }
-//        }
-//
-//        mediaList.indices.filter { !scheduledIndex.contains(it) }.forEach {
-//            unscheduledList.add(mediaList[it])
-//        }
-//
-//        scheduledMediaItems.addAll(mediaList.filter {
-//            it.body != "start" && it.body != "end" && it.fixTime!!.isNotEmpty() && it.fixTime != "00:00:00"
-//        })
-    }
-
 
     private fun getConfigExtension(): String? {
         return ConfigUtil.getString(
-            appContext,
-            ConfigUtil.KEY_EXTEND_FILE,
-            "mp3#aac#wav#wma#ac3"
+            appContext, ConfigUtil.KEY_EXTEND_FILE, "mp3#aac#wav#wma#ac3#wav"
         )
 
     }
 
-    suspend fun clearPlaylist() {
-        saveItemsToFile(listOf())
-    }
 
     fun startDownloadMedia() {
-//        if (broadcastList.isEmpty()) return
-//        broadcastList.forEach {
-//            downloadAMediaItem(it)
-//        }
+        if (broadcastList.isEmpty()) return
+        broadcastList.forEach {
+            downloadAMediaItem(it)
+        }
     }
 
-    fun downloadAMediaItem(it: MediaItem) {
-//        //1 - bản tin ký tự
-//        //2 - bản tin hình ảnh
-//        //3 - bản tin âm thanh
-//        //4 - Bản tin video
-//        //5 - Bản tin trực tiếp
-//        //6 - Bản tin FM
-//        //7 - Bản tin ghi âm trực tiếp
-//        //không phải files thì không tải, chỉ tải type 3 , type 4
-//        Log.d("startDownloadMedia", "type : ${it.contentType?.value}")
+    fun downloadAMediaItem(it: MediaFile) {
+//        0 -> MediaFileType.SILENT
+//        1 -> MediaFileType.FILE
+//        2 -> MediaFileType.FM
+//        3 -> MediaFileType.LIVE
+        Log.d("startDownloadMedia", "type : ${it.type}")
 //        if (it.body == "start" || it.body == "end") return
-//        if (it.contentType?.value != "4" && it.contentType?.value != "3") return
-//
-//        //xác định có là file hay không, lấy đuôi file
-//        val extMedia = File(it.body).extension
-//
-//        if (extMedia.isEmpty()) return
-//        val isFile = getConfigExtension()!!.contains(extMedia)
-//
-//        if (!isFile) return
-//
-//        val url = it.body
-//        //if (url.isEmpty() || !url.startsWith("http")) return
-//
-//        val fileName = getFileNameFromUrl(url!!)
-//        if (isFileExisted(mediaStoragePath, fileName)) {
-//            //handle broken path
-//            if (it.body != "$mediaStoragePath/$fileName") {
-//                it.body = "$mediaStoragePath/$fileName"
-//                coroutineScope.launch {
-//                    saveItemsToFile(broadcastList)
-//                }
-//            }
-//
-//            return
-//        }
-//
-//        Log.d("download item", url)
-//
-//        downloadHelper.addToQueue(DownloadItem().apply {
-//            itDownloadUrl = url
-//            itStoragePath = mediaStoragePath
-//            itFileName = fileName
-//            priority = 0
-//            downloadListener = object : OnDownloadListener {
-//                override fun onDownloadComplete() {
-//                    it.pathBackup = it.body!!
-//                    it.body = "$mediaStoragePath/$fileName"
-//
-//                    coroutineScope.launch {
-//                        saveItemsToFile(broadcastList)
-//                    }
-//
-//                    Log.d("downloadcomplete", it.body!!)
-//                }
-//
-//                override fun onError(error: com.downloader.Error?) {
-//                    Log.d("downloaderror", it.body!!)
-//                }
-//
-//            }
-//        })
+        if (it.type != 1) return
+        val url = it.url
+        if (url.isNullOrBlank()) return
+        if (!url.startsWith("http")) return
+        //xác định có là file hay không, lấy đuôi file
+        val extMedia =
+            url.toUri().lastPathSegment?.substringAfterLast('.', "")?.lowercase().orEmpty()
+
+        if (extMedia.isEmpty()) return
+        val extensions = getConfigExtension().orEmpty()
+        val isFile = extensions.contains(extMedia)
+
+        if (!isFile) return
+
+        val fileName = getFileNameFromUrl(url)
+        if (fileName.isBlank()) return
+
+
+        Log.d("download item", url)
+
+        downloadHelper.addToQueue(DownloadItem().apply {
+            itDownloadUrl = url
+            itStoragePath = mediaStoragePath
+            itFileName = fileName
+            priority = 0
+            downloadListener = object : OnDownloadListener {
+                override fun onDownloadComplete() {
+                    it.pathBackup = url
+                    it.url = "$mediaStoragePath/$fileName"
+
+                    Log.d("downloadcomplete", url)
+                }
+
+                override fun onError(error: com.downloader.Error?) {
+                    Log.d("downloaderror", url)
+                }
+
+            }
+        })
     }
+
 }
 
 

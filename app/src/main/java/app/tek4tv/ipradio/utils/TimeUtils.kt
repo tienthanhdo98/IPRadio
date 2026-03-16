@@ -1,6 +1,8 @@
 package app.tek4tv.ipradio.utils
 
 import android.util.Log
+import app.tek4tv.ipradio.model.MediaInfo
+import app.tek4tv.ipradio.model.RepeatDays
 import java.io.DataOutputStream
 import java.text.SimpleDateFormat
 import java.util.*
@@ -11,6 +13,91 @@ import kotlin.math.abs
 //    return LocalDateTime.ofInstant(Instant.ofEpochSecond(unixTimeStamp.toLong()), ZoneId.systemDefault())
 //}
 val sdf = SimpleDateFormat("HH:mm:ss")
+
+fun unixSecondsToCalendar(
+    unixSeconds: Long, tz: TimeZone = TimeZone.getDefault()
+): Calendar {
+    return Calendar.getInstance(tz).apply {
+        timeInMillis = unixSeconds * 1000L
+    }
+}
+
+fun findHighestPriorityMediaShow(items: List<MediaInfo>): MediaInfo? {
+    // Sử dụng maxByOrNull để tìm item có priority lớn nhất
+    // Nếu danh sách trống, nó sẽ trả về null
+    return items.maxByOrNull { it.prio!! }
+}
+
+fun todayWeeklyIndex(now: Calendar): Int {
+    val dow = now.get(Calendar.DAY_OF_WEEK) // 1..7 (Sun..Sat)
+    return when (dow) {
+        Calendar.MONDAY -> 0
+        Calendar.TUESDAY -> 1
+        Calendar.WEDNESDAY -> 2
+        Calendar.THURSDAY -> 3
+        Calendar.FRIDAY -> 4
+        Calendar.SATURDAY -> 5
+        Calendar.SUNDAY -> 6
+        else -> 0
+    }
+}
+
+fun repeatDaysToText(result: RepeatDays): String = when (result) {
+    is RepeatDays.Weekly -> {
+        val names = listOf("Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "CN")
+        result.weekdays.joinToString(", ") { names[it] }
+    }
+
+    is RepeatDays.Monthly -> {
+        result.daysOfMonth.joinToString(", ") { "Day $it" }
+    }
+}
+
+fun decodeRepeatDays(repeat: Int, daysMask: Int): RepeatDays {
+    return when (repeat) {
+        0 -> { // weekly: bit 0..6
+            val weekdays = (0..6).filter { bit ->
+                (daysMask and (1 shl bit)) != 0
+            }
+            RepeatDays.Weekly(weekdays)
+        }
+
+        1 -> { // monthly: bit 0..30 => day 1..31
+            val dom = (1..31).filter { day ->
+                val bit = day - 1
+                (daysMask and (1 shl bit)) != 0
+            }
+            RepeatDays.Monthly(dom)
+        }
+
+        else -> {
+            // nếu repeat lạ thì coi như không chọn ngày nào
+            RepeatDays.Weekly(emptyList())
+        }
+    }
+}
+
+fun isMonthlyDaySelected(days: Int, dayOfMonth: Int): Boolean {
+    return (days and (1 shl (dayOfMonth - 1))) != 0
+}
+
+fun isWeeklyDaySelected(daysMask: Int, weekdayIndex: Int): Boolean {
+    if (weekdayIndex !in 0..6) return false
+    val mask = 1 shl weekdayIndex
+    return (daysMask and mask) != 0
+}
+
+fun isTodayAllowed(now: Calendar, result: RepeatDays): Boolean = when (result) {
+    is RepeatDays.Weekly -> {
+        val idx = todayWeeklyIndex(now)
+        idx in result.weekdays
+    }
+
+    is RepeatDays.Monthly -> {
+        val dom = now.get(Calendar.DAY_OF_MONTH)
+        dom in result.daysOfMonth
+    }
+}
 
 fun convertCalendarToString(
     calendar: Calendar, format: String = "dd/MM/yyyy HH:mm:ss"
@@ -55,35 +142,6 @@ fun convertTimeStampToHHMMSS(s: Long?): String {
     }
 }
 
-fun isInRangeTimePlay(): Boolean {
-    val currentTime = Calendar.getInstance()
-    //Nếu thời gian nằm trong khoảng từ 21:00 -> 23:59
-    val rangeNightStart = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 21)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-    }
-    val rangeNightEnd = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 23)
-        set(Calendar.MINUTE, 58)
-        set(Calendar.SECOND, 0)
-    }
-    // Nếu thời gian nằm trong khoảng từ 00:01 đến 4:00
-    val rangeEveningStart = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 0)
-        set(Calendar.MINUTE, 1)
-        set(Calendar.SECOND, 0)
-    }
-    val rangeEveningEnd = Calendar.getInstance().apply {
-        set(Calendar.HOUR_OF_DAY, 4)
-        set(Calendar.MINUTE, 0)
-        set(Calendar.SECOND, 0)
-    }
-    if (currentTime.after(rangeNightStart) && currentTime.before(rangeNightEnd)) return false
-    if (currentTime.after(rangeEveningStart) && currentTime.before(rangeEveningEnd)) return false
-
-    return true
-}
 
 fun getCurrentTime(): Long {
     return Calendar.getInstance().time.time

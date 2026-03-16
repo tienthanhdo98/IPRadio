@@ -19,6 +19,13 @@ class GlobalProperties {
     val LONGTITUDE = "LONGTITUDE"
     val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
 
+    //MGW
+    val BOOTSTRAP_SERVER = "BOOTSTRAP_SERVER"
+    val MQTT_SECURITY = "MQTT_SECURITY"
+    val MQTT_SERVER = "MQTT_SERVER"
+    val MQTT_PORT = "MQTT_PORT"
+
+
     var volume = "100"
     var userNameController = ""
     var piCode = "0"
@@ -30,7 +37,6 @@ class GlobalProperties {
     var providerValue: String = "TEK4TV"
 
     init {
-        //Quang ngai
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
@@ -49,21 +55,16 @@ class GlobalProperties {
             saveVolume(responseHub.volume)
         }
 
-        if (responseHub.piCode != "") {
-            ConfigUtil.putString(appContext, DEFAULT_PI_CODE, responseHub.piCode)
-            piCode = responseHub.piCode
-        }
+    }
 
-        if (responseHub.deviceName != "") {
-            ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
-            nameDevice = responseHub.deviceName ?: ""
+    fun saveServerConfig(responseHub: ResponseHub) {
+        val serverConfig = responseHub.serverConfig
+        if (serverConfig != null) {
+            ConfigUtil.putString(appContext, BOOTSTRAP_SERVER, serverConfig.bootstrapServer)
+            ConfigUtil.putInt(appContext, MQTT_SECURITY, serverConfig.mqttSecurity ?: 0)
+            ConfigUtil.putString(appContext, MQTT_SERVER, serverConfig.mqttServer)
+            ConfigUtil.putInt(appContext, MQTT_PORT, serverConfig.mqttPort ?: 6668)
         }
-
-        if (responseHub.psName != "") {
-            ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
-            psName = responseHub.psName
-        }
-        
     }
 
 
@@ -76,6 +77,12 @@ class GlobalProperties {
     companion object {
 
         private var instance: GlobalProperties? = null
+
+        //MGW
+        val BOOTSTRAP_SERVER = "BOOTSTRAP_SERVER"
+        val MQTT_SECURITY = "MQTT_SECURITY"
+        val MQTT_SERVER = "MQTT_SERVER"
+        val MQTT_PORT = "MQTT_PORT"
 
         fun getInst(): GlobalProperties {
             if (instance == null)

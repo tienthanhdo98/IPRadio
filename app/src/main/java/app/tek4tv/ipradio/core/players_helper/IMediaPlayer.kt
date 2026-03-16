@@ -8,7 +8,6 @@ import app.tek4tv.ipradio.model.MediaItem
  * **/
 interface IMediaPlayer {
     fun playMedia(mediaItem: MediaFile, isForce: Boolean, timeStamp: Int = -1)
-    fun reset()
     fun stop()
     fun pause()
     fun resume()

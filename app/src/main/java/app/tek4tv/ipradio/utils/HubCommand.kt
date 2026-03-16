@@ -81,31 +81,36 @@ object HubCommand {
     const val OPH_SERVER_HTTTN = "21"
     const val OPH_CHECK_BALANCE = "32"
     const val OPH_CHARGE_MONEY = "33"
-    const val OPH_SETTINGS_V2 = "OPH_SETTINGS_V2"
-    const val OPH_MEDIA_SYNC = "OPH_MEDIA_SYNC"
+    const val OPH_SETTINGS_V2 = "40"
+    const val OPH_MEDIA_SYNC = "41"
 
     //OPU = Operation from Unit → lệnh từ thiết bị (Unit) lên server -> MQTT topic: channels/{channel_id}/messages/mirav3/s
-    const val OPU_GENERIC = "OPU_GENERIC"
-    const val OPU_SETTINGS = "OPU_SETTINGS"
-    const val OPU_STATUS = "OPU_STATUS"
-    const val OPU_LOG = "OPU_LOG"
-    const val OPU_SYNC = "OPU_SYNC"
-    const val OPU_CHECK_BALANCE = "OPU_CHECK_BALANCE"
-    const val OPU_CHARGE_MONEY = "OPU_CHARGE_MONEY"
-    const val OPU_ACK = "OPU_ACK"
+    const val OPU_GENERIC = "1"
+    const val OPU_SETTINGS = "2"
+    const val OPU_STATUS = "3"
+    const val OPU_LOG = "5"
+    const val OPU_SYNC = "6"
+    const val OPU_CHECK_BALANCE = "7"
+    const val OPU_CHARGE_MONEY = "8"
+    const val OPU_ACK = "15"
 
     //MGW_CT
-    const val OPH_CT_READ = "OPH_CT_READ"
-    const val OPH_CT_CONFIG = "OPH_CT_CONFIG"
-    const val OPH_CT_CONTROL = "OPH_CT_CONTROL"
-    const val OPH_CT_GET_LOG = "OPH_CT_GET_LOG"
-    const val OPU_CT_STATUS = "OPU_CT_STATUS"
-    const val OPU_CT_CONFIG = "OPU_CT_CONFIG"
-    const val OPU_CT_LOG = "OPU_CT_LOG"
-    const val OPU_CT_ACK = "OPU_CT_ACK"
+    const val OPH_CT_READ = "80"
+    const val OPH_CT_CONFIG = "81"
+    const val OPH_CT_CONTROL = "82"
+    const val OPH_CT_GET_LOG = "83"
+    const val OPU_CT_STATUS = "208"
+    const val OPU_CT_CONFIG = "209"
+    const val OPU_CT_LOG = "210"
+    const val OPU_CT_ACK = "223"
 
-    //
-    const val UPDATE_WEEKLY_SCHEDULER = "UPDATE_WEEKLY_SCHEDULER"
+    //Command
+    const val UPDATE_SCHEDULER = "UPDATE_SCHEDULER"
+    const val SAVE_SCHEDULER = "SAVE_SCHEDULER"
+    const val DELETE_SCHEDULER = "SAVE_SCHEDULER"
+    const val STREAM_BACK = "STREAM_BACK"
+    const val UPDATE_SETTING_CONFIG = "UPDATE_SETTING"
+    const val UPDATE_SERVER_CONFIG = "UPDATE_SERVER_CONFIG"
 
 
 }

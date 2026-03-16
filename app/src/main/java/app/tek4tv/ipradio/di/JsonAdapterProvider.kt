@@ -5,6 +5,7 @@ import app.tek4tv.ipradio.model.BaseMqttMessage
 import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
+import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.SenMLItem
 import app.tek4tv.ipradio.model.ShowInfo
@@ -66,6 +67,8 @@ object JsonAdapterProvider {
     val logsAdapter = moshi.adapter<List<McuLogData>>(logsType)
     val senmlType = Types.newParameterizedType(List::class.java, SenMLItem::class.java)
     val senmlAdapter = moshi.adapter<List<SenMLItem>>(senmlType)
+
+    val mediaInfoAdapter: JsonAdapter<MediaInfo> = moshi.adapter(MediaInfo::class.java)
 
     inline fun <reified T> Moshi.fromVs(vs: String): T? =
         this.adapter(T::class.java).fromJson(vs)

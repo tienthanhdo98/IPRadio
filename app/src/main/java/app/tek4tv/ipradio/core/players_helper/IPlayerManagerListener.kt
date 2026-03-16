@@ -12,6 +12,5 @@ interface IPlayerManagerListener {
     fun onLiveError(mediaItem: MediaFile?)
     fun onEndForceMedia()
     fun onPlayMediaSuccess(mediaItem: MediaFile?)
-    fun onMediaStopPlaying(mediaItem: MediaFile, duration: Long)
 
 }

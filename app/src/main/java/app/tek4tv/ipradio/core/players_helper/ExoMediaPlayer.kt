@@ -4,12 +4,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.isInRangeTimePlay
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlayer
@@ -19,7 +15,7 @@ import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import okhttp3.OkHttpClient
-import java.util.*
+import java.util.Calendar
 
 
 //Mainly for playing m3u8 stream
@@ -122,14 +118,10 @@ class ExoMediaPlayer(
     override fun playMedia(mediaItem: MediaFile, isForce: Boolean, timeStamp: Int) {
         if (isPlaying) stop()
         try {
-            if (NetworkUtils.isNetworkConnected(MyApp.appContext)) {
-                if (isInRangeTimePlay()) {
-                    currentPlayingMedia = mediaItem
-                    isForceValue = isForce
-                    Log.e(TAG, "Exoplayer is force $isForceValue")
-                    playHlsExo(mediaItem, timeStamp)
-                }
-            }
+            currentPlayingMedia = mediaItem
+            isForceValue = isForce
+            Log.e(TAG, "Exoplayer is force $isForceValue")
+            playHlsExo(mediaItem, timeStamp)
         } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
             e.printStackTrace()
@@ -159,14 +151,6 @@ class ExoMediaPlayer(
         }
     }
 
-    override fun reset() {
-//        var url = "srt://localhost:8890?streamid=read:mystream"
-//        val em = com.google.android.exoplayer2.MediaItem.fromUri(url)
-//        exoPlayer.setMediaItem(em)
-//        exoPlayer.prepare()
-//        exoPlayer.play()
-    }
-
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
         val startTimeOfMedia = toCalendar(mediaItem.start!!)
         val now = Calendar.getInstance()
@@ -176,7 +160,6 @@ class ExoMediaPlayer(
 
     override fun stop() {
         try {
-
             handler?.removeCallbacksAndMessages(null)
             exoPlayer.stop()
             isPlaying = false
@@ -188,21 +171,15 @@ class ExoMediaPlayer(
     }
 
     override fun pause() {
-
         exoPlayer.pause()
-
-
     }
 
     override fun resume() {
-
         exoPlayer.play()
-
     }
 
     override fun release() {
         exoPlayer.release()
-
     }
 
     /**

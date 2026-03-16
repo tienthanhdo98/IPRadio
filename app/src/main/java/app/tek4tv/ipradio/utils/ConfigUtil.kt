@@ -11,7 +11,8 @@ object ConfigUtil {
 
     //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
-    const val FORCE_MEDIA = "FORCE_MEDIA"
+
+    //    const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
@@ -49,6 +50,8 @@ object ConfigUtil {
     //MGW
     const val BOOTSTRAP_INFO = "BOOTSTRAP_INFO"
     const val SCHEDULE_WEEK = "SCHEDULE_WEEK"
+    const val BASE_ALARM_ID = "BASE_ALARM_ID"
+    const val FORCE_MEDIA_INFO = "FORCE_MEDIA_INFO"
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

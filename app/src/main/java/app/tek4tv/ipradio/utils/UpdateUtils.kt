@@ -12,43 +12,6 @@ import app.tek4tv.ipradio.core.SerialPortController
 import kotlinx.coroutines.*
 import java.io.File
 
-
-/*fun downloadUpdateApk(url: String, context: Context) {
-    var destination: String = Environment.getExternalStoragePublicDirectory(
-        Environment.DIRECTORY_DOWNLOADS
-    ).toString() + "/"
-    val fileName = "ggg.apk"
-    destination += fileName
-    val fileUri = Uri.parse("file://$destination")
-
-    val file = File(destination)
-    if (file.exists()) file.delete()
-
-    val appname = context.getString(R.string.app_name)
-
-    val request = DownloadManager.Request(Uri.parse(url))
-    request.setDescription("Updating $appname")
-    request.setTitle("Updating $appname...")
-
-    request.setDestinationUri(fileUri)
-
-    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    val downloadId = downloadManager.enqueue(request)
-
-    val onComplete: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(ctxt: Context?, intent: Intent?) {
-            Log.d("installx", "begin install")
-            if (!rootInstall(destination)) normalInstall(
-                context, fileUri, downloadManager,
-                downloadId
-            )
-        }
-    }
-    context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-}*/
-
-
-
 fun downloadUpdateApk(
     url: String,
     context: Context,
@@ -114,17 +77,16 @@ fun downloadUpdateApk(
 private fun doRestart(controller: SerialPortController) {
     controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
 }
+
 @OptIn(DelicateCoroutinesApi::class)
-private fun deleteFileAfterUpdate(file:File)
-{
+private fun deleteFileAfterUpdate(file: File) {
     GlobalScope.launch(Dispatchers.IO) {
         delay(20000)
         try {
             if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
                 file.delete()
             Log.d("install", "Delete file success")
-        }catch (e: Exception)
-        {
+        } catch (e: Exception) {
             Log.d("install", "Delete file error ${e.message} ")
         }
 

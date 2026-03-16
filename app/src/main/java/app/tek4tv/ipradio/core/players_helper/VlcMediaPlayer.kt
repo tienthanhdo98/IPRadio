@@ -1,28 +1,21 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
-import android.os.Handler
-import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaFile
-import app.tek4tv.ipradio.model.MediaFileType
 import app.tek4tv.ipradio.model.MediaItem
-import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
-import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.isInRangeTimePlay
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import java.util.*
+import java.util.Calendar
 
-class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlayerEventListener) :
+class VlcMediaPlayer(
+    private val appContext: Context,
+    private val playerEventListener: IPlayerEventListener
+) :
     IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private var mLibVLC: LibVLC
@@ -85,9 +78,6 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         currentMedia = mediaItem
     }
 
-    override fun reset() {
-    }
-
     override fun pause() {
         vlcPlayer.pause()
     }
@@ -99,7 +89,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     private fun playFile(mediaItem: MediaFile, timeStamp: Int) {
         Log.e(TAG, "vlc play file : time stamp $timeStamp")
         Log.e("MediaInfo", "vlc play type file : ${mediaItem.duration}")
-        val media = mediaItem.getVlcMedia(mLibVLC)
+        val media = mediaItem.getVlcMedia(mLibVLC, appContext)
         Log.e(TAG, "vlc play timeStamp $timeStamp")
         if (timeStamp != -1)
             media.addOption(":start-time=$timeStamp")
@@ -112,7 +102,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         Log.e("MediaInfo", "vlc play type stream : ${mediaItem.duration}")
         Log.e(TAG, "vlc play live : time stamp $timeStamp")
         Log.e(TAG, "vlc play time duration ${mediaItem.duration!!}")
-        val stream = mediaItem.getVlcMedia(mLibVLC)
+        val stream = mediaItem.getVlcMedia(mLibVLC, appContext)
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
         //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
