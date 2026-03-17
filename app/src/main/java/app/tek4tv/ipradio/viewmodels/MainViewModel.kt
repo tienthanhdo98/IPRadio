@@ -1,7 +1,11 @@
 package app.tek4tv.ipradio.viewmodels
 
 
+import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.util.Log
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -9,6 +13,7 @@ import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.repo.MediaInfoRepository
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.execSu
 import app.tek4tv.ipradio.utils.toModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -16,6 +21,8 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import javax.inject.Inject
+import android.app.AppOpsManager
+import android.os.Process
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -148,5 +155,94 @@ class MainViewModel @Inject constructor(
         mediaRepo.startDownloadMedia()
     }
 
+    private fun isPermissionGranted(context: Context, permission: String): Boolean {
+        return ContextCompat.checkSelfPermission(
+            context, permission
+        ) == PackageManager.PERMISSION_GRANTED
+    }
+
+    fun isUsageStatsPermissionGranted(context: Context): Boolean {
+        val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+        val mode = appOps.checkOpNoThrow(
+            AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName
+        )
+        return mode == AppOpsManager.MODE_ALLOWED
+    }
+
+    fun grantPermissionThoughAdb(context: Context) {
+        val packageName = "app.tek4tv.ipradio"
+
+        if (!isPermissionGranted(context, Manifest.permission.READ_EXTERNAL_STORAGE)) {
+            Log.d("PermissionCheck", "Granting READ_EXTERNAL_STORAGE...")
+            execSu("pm grant $packageName android.permission.READ_EXTERNAL_STORAGE")
+        } else {
+            Log.d("PermissionCheck", "READ_EXTERNAL_STORAGE already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.WRITE_EXTERNAL_STORAGE)) {
+            Log.d("PermissionCheck", "Granting WRITE_EXTERNAL_STORAGE...")
+            execSu("pm grant $packageName android.permission.WRITE_EXTERNAL_STORAGE")
+        } else {
+            Log.d("PermissionCheck", "WRITE_EXTERNAL_STORAGE already granted.")
+        }
+
+        if (!isUsageStatsPermissionGranted(context)) {
+            Log.d("PermissionCheck", "Granting GET_USAGE_STATS via appops...")
+            execSu("appops set $packageName GET_USAGE_STATS allow")
+        } else {
+            Log.d("PermissionCheck", "GET_USAGE_STATS already allowed.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.READ_PHONE_STATE)) {
+            Log.d("PermissionCheck", "Granting READ_PHONE_STATE...")
+            execSu("pm grant $packageName android.permission.READ_PHONE_STATE")
+        } else {
+            Log.d("PermissionCheck", "READ_PHONE_STATE already granted.")
+        }
+        if (!isPermissionGranted(context, Manifest.permission.ACCESS_NETWORK_STATE)) {
+            Log.d("PermissionCheck", "Granting ACCESS_NETWORK_STATE...")
+            execSu("pm grant $packageName android.permission.ACCESS_NETWORK_STATE")
+        } else {
+            Log.d("PermissionCheck", "ACCESS_NETWORK_STATE already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.ACCESS_WIFI_STATE)) {
+            Log.d("PermissionCheck", "Granting ACCESS_WIFI_STATE...")
+            execSu("pm grant $packageName android.permission.ACCESS_WIFI_STATE")
+        } else {
+            Log.d("PermissionCheck", "READ_PHONE_STATE already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.RECORD_AUDIO)) {
+            Log.d("PermissionCheck", "Granting RECORD_AUDIO...")
+            execSu("pm grant $packageName android.permission.RECORD_AUDIO")
+        } else {
+            Log.d("PermissionCheck", "RECORD_AUDIO already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.CHANGE_WIFI_STATE)) {
+            Log.d("PermissionCheck", "Granting READ_PHONE_STATE...")
+            execSu("pm grant $packageName android.permission.CHANGE_WIFI_STATE")
+        } else {
+            Log.d("PermissionCheck", "CHANGE_WIFI_STATE already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            Log.d("PermissionCheck", "Granting ACCESS_COARSE_LOCATION...")
+            execSu("pm grant $packageName android.permission.ACCESS_COARSE_LOCATION")
+            //execSu("appops set $packageName android.permission.ACCESS_COARSE_LOCATION allow")
+        } else {
+            Log.d("PermissionCheck", "ACCESS_COARSE_LOCATION already granted.")
+        }
+
+        if (!isPermissionGranted(context, Manifest.permission.ACCESS_FINE_LOCATION)) {
+            Log.d("PermissionCheck", "Granting ACCESS_FINE_LOCATION...")
+            execSu("pm grant $packageName android.permission.ACCESS_FINE_LOCATION")
+            //execSu("appops set $packageName android.permission.ACCESS_FINE_LOCATION allow")
+        } else {
+            Log.d("PermissionCheck", "ACCESS_FINE_LOCATION already granted.")
+        }
+
+    }
 
 }

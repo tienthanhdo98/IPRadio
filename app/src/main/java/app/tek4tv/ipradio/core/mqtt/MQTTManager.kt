@@ -68,9 +68,9 @@ class MQTTManager(
         options.password = thingKey.toCharArray()
         options.isAutomaticReconnect =
             true // Thư viện sẽ tự quản lý reconnect bằng cơ chế backoff thông minh
-        options.isCleanSession = true
-        options.connectionTimeout = 60
-        options.keepAliveInterval = 60
+        options.isCleanSession = false
+        options.connectionTimeout = 40
+        options.keepAliveInterval = 45
 
         try {
             mqttClient?.connect(options, null, object : IMqttActionListener {

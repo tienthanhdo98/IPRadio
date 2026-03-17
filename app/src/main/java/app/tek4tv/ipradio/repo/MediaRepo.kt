@@ -17,6 +17,7 @@ import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import com.downloader.OnDownloadListener
 import dagger.hilt.android.qualifiers.ApplicationContext
+import java.io.File
 import java.util.Calendar
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -155,7 +156,11 @@ class MediaRepo @Inject constructor(
 
         val fileName = getFileNameFromUrl(url)
         if (fileName.isBlank()) return
-
+        val localFile = File(appContext.filesDir.path, fileName)
+        if (localFile.exists()) {
+            Log.d("download item", "Item existed")
+            return
+        }
 
         Log.d("download item", url)
 

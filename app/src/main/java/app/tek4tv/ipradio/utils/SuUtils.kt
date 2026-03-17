@@ -4,19 +4,33 @@ import android.util.Log
 import java.io.DataOutputStream
 import java.io.IOException
 
-fun execSu(command: String) {
-    try {
+//fun execSu(command: String) {
+//    try {
+//        val process = Runtime.getRuntime().exec("su")
+//        val os = DataOutputStream(process.outputStream)
+//        os.writeBytes(command)
+//        os.flush()
+//        os.writeBytes("exit\n")
+//        os.flush()
+//        process.waitFor()
+//        os.close()
+//    } catch (e: Exception) {
+//        Log.e("execSu", e.message ?: "")
+//        e.printStackTrace()
+//    }
+//}
+fun execSu(command: String): Int {
+    return try {
         val process = Runtime.getRuntime().exec("su")
-        val os = DataOutputStream(process.outputStream)
-        os.writeBytes(command)
-        os.flush()
-        os.writeBytes("exit\n")
-        os.flush()
+        DataOutputStream(process.outputStream).use { os ->
+            os.writeBytes(command + "\n")  // <-- quan trọng: thêm \n
+            os.writeBytes("exit\n")
+            os.flush()
+        }
         process.waitFor()
-        os.close()
     } catch (e: Exception) {
-        Log.e("execSu", e.message ?: "")
-        e.printStackTrace()
+        Log.e("execSu", "Error: ${e.message}", e)
+        -1
     }
 }
 

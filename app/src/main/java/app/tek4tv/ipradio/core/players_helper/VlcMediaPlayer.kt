@@ -1,10 +1,13 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaFile
+import app.tek4tv.ipradio.model.MediaFileType
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.toCalendar
@@ -105,37 +108,34 @@ class VlcMediaPlayer(
         val stream = mediaItem.getVlcMedia(mLibVLC, appContext)
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
-        //Chỉ phát tiếp bản tin trực tiếp khi bản tin là type: file(3/4)
-//        if (timeStamp != -1 && (mediaItem.contentType?.id == 3.toLong() || mediaItem.contentType?.id == 4.toLong()))
-//            stream.addOption(":start-time=$timeStamp")
         vlcPlayer.play(stream)
         Log.e(LOGTAG, "Player vlc live start")
-//        val durationMs = (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000
-//        if (durationMs > 0) {
-//            handlerLivePlayer?.removeCallbacksAndMessages(null)
-//            handlerLivePlayer = Handler(Looper.getMainLooper())
-//            handlerLivePlayer?.postDelayed(
-//                {
-//                    vlcPlayer.stop()
-//                    if (currentMedia?.getMediaType() == MediaFileType.FILE) {
-////                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
-////                    if (!isStreamFailed) {
-////                        Log.d(TAG, "Player vlc live stop file")
-////                        playerEventListener.onMediaEndReached(currentMedia)
-////                        isPlaying = false
-////                    } else {
-////                        checkStreamError()
-////                    }
+        val durationMs = (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000
+        if (durationMs > 0) {
+            handlerLivePlayer?.removeCallbacksAndMessages(null)
+            handlerLivePlayer = Handler(Looper.getMainLooper())
+            handlerLivePlayer?.postDelayed(
+                {
+                    vlcPlayer.stop()
+                    if (currentMedia?.getMediaType() == MediaFileType.FILE) {
+//                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
+//                    if (!isStreamFailed) {
+//                        Log.d(TAG, "Player vlc live stop file")
 //                        playerEventListener.onMediaEndReached(currentMedia)
+//                        isPlaying = false
 //                    } else {
-//                        Log.d(TAG, "Player vlc live stop force")
-//                        playerEventListener.onMediaForceEndReached(currentMedia)
+//                        checkStreamError()
 //                    }
-//
-//                },
-//                (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
-//            )
-//        }
+                        playerEventListener.onMediaEndReached(currentMedia)
+                    } else {
+                        Log.d(TAG, "Player vlc live stop force")
+                        playerEventListener.onMediaForceEndReached(currentMedia)
+                    }
+
+                },
+                (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
+            )
+        }
 
     }
 

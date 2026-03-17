@@ -3,7 +3,9 @@ package app.tek4tv.ipradio.utils
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
+import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.utils.ConfigUtil.PROVIDER
 
 class GlobalProperties {
@@ -57,13 +59,24 @@ class GlobalProperties {
 
     }
 
-    fun saveServerConfig(responseHub: ResponseHub) {
-        val serverConfig = responseHub.serverConfig
-        if (serverConfig != null) {
-            ConfigUtil.putString(appContext, BOOTSTRAP_SERVER, serverConfig.bootstrapServer)
-            ConfigUtil.putInt(appContext, MQTT_SECURITY, serverConfig.mqttSecurity ?: 0)
-            ConfigUtil.putString(appContext, MQTT_SERVER, serverConfig.mqttServer)
-            ConfigUtil.putInt(appContext, MQTT_PORT, serverConfig.mqttPort ?: 6668)
+    fun saveServerConfig(serverData: ServerData?) {
+        if (serverData != null) {
+            ConfigUtil.putString(appContext, BOOTSTRAP_SERVER, serverData.bootstrapServer)
+            ConfigUtil.putInt(appContext, MQTT_SECURITY, serverData.mqttSecurity ?: 0)
+            ConfigUtil.putString(appContext, MQTT_SERVER, serverData.mqttServer)
+            ConfigUtil.putInt(appContext, MQTT_PORT, serverData.mqttPort ?: 6668)
+        }
+    }
+
+    fun saveConnectionConfig(bootstrapResp: BootstrapResp?) {
+        if (bootstrapResp != null) {
+            ConfigUtil.putString(appContext, THING_ID, bootstrapResp.id)
+            ConfigUtil.putString(appContext, THING_KEY, bootstrapResp.key)
+            ConfigUtil.putString(
+                appContext,
+                CHANNELS,
+                bootstrapResp.channel?.firstOrNull()?.id ?: ""
+            )
         }
     }
 
@@ -83,6 +96,9 @@ class GlobalProperties {
         val MQTT_SECURITY = "MQTT_SECURITY"
         val MQTT_SERVER = "MQTT_SERVER"
         val MQTT_PORT = "MQTT_PORT"
+        val THING_ID = "MQTT_PORT"
+        val THING_KEY = "MQTT_PORT"
+        val CHANNELS = "MQTT_PORT"
 
         fun getInst(): GlobalProperties {
             if (instance == null)

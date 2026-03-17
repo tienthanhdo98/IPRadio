@@ -18,7 +18,7 @@ data class ResponseHub(
 
     var mediaInfo: MediaInfo? = null,
 
-    var listMediaInfo: MutableList<MediaInfo>? = null,
+    var listMediaInfo: List<MediaInfo>? = null,
 
     var networkConfig: NetworkConfig? = null,
 

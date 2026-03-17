@@ -10,19 +10,6 @@ import java.io.File
 import androidx.core.net.toUri
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 
-@JsonClass(generateAdapter = true)
-data class BaseMqttMessage(
-    @Json(name = "payload") val payload: Any?,
-    @Json(name = "id") val id: String?,
-    @Json(name = "topic") val topic: String?
-)
-
-@JsonClass(generateAdapter = true)
-data class AppData(
-    @Json(name = "n") val n: String,
-    @Json(name = "t") val t: Double,
-    @Json(name = "vs") val vs: String
-)
 
 @JsonClass(generateAdapter = true)
 data class OphRebootData(
@@ -57,6 +44,7 @@ data class ServerData(
     @Json(name = "mqtt_port") val mqttPort: Int? = null,
 )
 
+
 @JsonClass(generateAdapter = true)
 data class McuAckData(
     @Json(name = "opcode") val opcode: Int? = null,
@@ -83,30 +71,6 @@ data class SenMLItem(
 
 @JsonClass(generateAdapter = true)
 data class McuStatusData(
-//    @Json(name = "conn") val conn: Int? = null,
-//
-//    @Json(name = "iplan") val ipLan: String? = null,
-//
-//    @Json(name = "ipwan") val ipWan: String? = null,
-//
-//    @Json(name = "csqm") val csqm: Int? = null,
-//
-//    @Json(name = "csqw") val csqw: Int? = null,
-//
-//    @Json(name = "spkerr") val spkErr: Int? = null,
-//
-//    @Json(name = "fmsta") val fmSta: Int? = null,
-//
-//    @Json(name = "sdfree") val sdFree: Long? = null,
-//
-//    @Json(name = "sdtotal") val sdTotal: Long? = null,
-//
-//    @Json(name = "temp") val temp: Int? = null,
-//
-//    @Json(name = "playlist") val playlist: Long? = null,
-//
-//    @Json(name = "mids") val mids: String? = null
-
     //new
     @Json(name = "conn") val conn: Int? = 0,
     @Json(name = "iplan") val ipLan: String? = "",
@@ -245,6 +209,7 @@ data class MediaFile(
     fun getVlcMedia(mLibVLC: LibVLC, appContext: Context): Media {
         return when (getMediaType()) {
             MediaFileType.LIVE -> {
+                Log.d("player", "Live: $pathBackup")
                 Media(mLibVLC, pathBackup.toUri())
             }
 
@@ -256,10 +221,10 @@ data class MediaFile(
                 val localFile = File(appContext.filesDir.path, fileName)
 
                 return if (localFile.exists() && localFile.isFile) {
-                    Log.d("player", "local: ${localFile.absolutePath}")
+                    Log.d("player", "file link local: ${localFile.absolutePath}")
                     Media(mLibVLC, localFile.toUri())
                 } else {
-                    Log.d("player", "online: $pathBackup")
+                    Log.d("player", "file link online: $pathBackup")
                     Media(mLibVLC, pathBackup.toUri())
                 }
             }

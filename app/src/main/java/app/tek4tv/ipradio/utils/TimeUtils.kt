@@ -22,11 +22,6 @@ fun unixSecondsToCalendar(
     }
 }
 
-fun findHighestPriorityMediaShow(items: List<MediaInfo>): MediaInfo? {
-    // Sử dụng maxByOrNull để tìm item có priority lớn nhất
-    // Nếu danh sách trống, nó sẽ trả về null
-    return items.maxByOrNull { it.prio!! }
-}
 
 fun todayWeeklyIndex(now: Calendar): Int {
     val dow = now.get(Calendar.DAY_OF_WEEK) // 1..7 (Sun..Sat)

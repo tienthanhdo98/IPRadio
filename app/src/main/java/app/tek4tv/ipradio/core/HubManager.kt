@@ -5,7 +5,6 @@ import android.util.Log
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
 import app.tek4tv.ipradio.di.JsonAdapterProvider.bootstrapAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.fromVs
-import app.tek4tv.ipradio.di.JsonAdapterProvider.listAppDataItemAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.logsAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.senmlAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.showInfoAdapter
@@ -35,7 +34,9 @@ import app.tek4tv.ipradio.utils.GlobalProperties.Companion.MQTT_SERVER
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.HubCommand.OPU_ACK
 import app.tek4tv.ipradio.utils.HubCommand.OPU_GENERIC
+import app.tek4tv.ipradio.utils.HubCommand.OPU_LOG
 import app.tek4tv.ipradio.utils.HubCommand.OPU_SETTINGS
+import app.tek4tv.ipradio.utils.HubCommand.OPU_STATUS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_SYNC
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import kotlinx.coroutines.CoroutineScope
@@ -54,8 +55,6 @@ class HubManager(
 ) : IConnectionServer {
     private val TAG = "HubManager"
 
-    private val CONNECT_COUNTER_LIMIT = 120
-    private val PING_HUB_INTERVAL = 60000L
     private val API_CALL_INTERVAL = 60000L
 
     private var fastJob: Job? = null
@@ -115,7 +114,6 @@ class HubManager(
         }
     }
 
-
     fun connectToServer() {
         getBootstrapInfoJob?.cancel()
         getBootstrapInfoJob = CoroutineScope(Dispatchers.Default).launch {
@@ -163,7 +161,7 @@ class HubManager(
         val time = System.currentTimeMillis() / 1000.0
 
         val senMlItem = SenMLItem(
-            n = "$deviceImei:s:5", t = time, vs = logsAdapter.toJson(logs)
+            n = "$deviceImei:s:$OPU_LOG", t = time, vs = logsAdapter.toJson(logs)
         )
 
         val payload = senmlAdapter.toJson(listOf(senMlItem))
@@ -283,7 +281,7 @@ class HubManager(
         val statusJsonString = moshi.toVs(status) ?: ""
 
         val senmlItem = SenMLItem(
-            n = "$deviceImei:s:3", t = time, vs = statusJsonString
+            n = "$deviceImei:s:$OPU_STATUS", t = time, vs = statusJsonString
         )
         val finalPayload = moshi.toVs(listOf(senmlItem)) ?: ""
         Log.d("MGWtest", "sendStatus: $finalPayload")
@@ -293,7 +291,7 @@ class HubManager(
     fun handlerMessage(mess: String) {
         try {
             appContext.saveMessageToFile(mess)
-            val appDataList = listAppDataItemAdapter.fromJson(mess) ?: return
+            val appDataList = senmlAdapter.fromJson(mess) ?: return
             if (appDataList.isEmpty()) return
             appDataList.forEach { appdata ->
                 val nameParts = appdata.n.split(":")
@@ -323,19 +321,6 @@ class HubManager(
                         sendStatus()
                     }
 
-                    HubCommand.OPH_STREAM_BACK -> {
-                        val data = moshi.fromVs<McuStreamBackDataData>(data)
-                        if (data?.streamUrl == null) return
-                        val url = data.streamUrl
-                        val cmd = data.cmd
-                        val timeout = data.timeout
-                        hubCommand = HubCommand.STREAM_BACK
-                        responseHub.message = url
-                        responseHub.duration = timeout ?: 10
-                        responseHub.level = cmd ?: 0
-                        onMessageListener.invoke(hubCommand, "")
-                    }
-
                     HubCommand.OPH_SETTINGS_V2 -> {
                         val data = moshi.fromVs<McuSettingsData>(data)
                         if (data?.fmVolume != null || data?.mainVolume != null) {
@@ -354,6 +339,19 @@ class HubManager(
                             onMessageListener.invoke(hubCommand, "")
                         }
 
+                    }
+
+                    HubCommand.OPH_STREAM_BACK -> {
+                        val data = moshi.fromVs<McuStreamBackDataData>(data)
+                        if (data?.streamUrl == null) return
+                        val url = data.streamUrl
+                        val cmd = data.cmd
+                        val timeout = data.timeout
+                        hubCommand = HubCommand.STREAM_BACK
+                        responseHub.message = url
+                        responseHub.duration = timeout ?: 10
+                        responseHub.level = cmd ?: 0
+                        onMessageListener.invoke(hubCommand, "")
                     }
 
                     HubCommand.OPH_UDF -> {
@@ -392,7 +390,6 @@ class HubManager(
 
                         val listMediaInfo = mutableListOf<MediaInfo>()
 
-
                         if (!records.isNullOrEmpty()) {
                             records.forEach { showInfo ->
                                 val showInfoStr = b64Decode(showInfo.showInfo!!)
@@ -407,57 +404,34 @@ class HubManager(
                                     listMediaInfo.add(mediaInfo)
                                 }
                             }
-//                            when (showInfo.action) {
-//                                //Tạo
-//                                1 -> {
-//                                    when (mediaInfo?.mode) {
-//                                        //Save Only
-//                                        0 -> {
-//                                            hubCommand = HubCommand.SAVE_SCHEDULER
-//                                            responseHub.mediaInfo = mediaInfo
-//                                            onMessageListener.invoke(hubCommand, "")
-//                                        }
-//                                        //Scheduler
-//                                        1 -> {
-//                                            hubCommand = HubCommand.UPDATE_SCHEDULER
-//                                            responseHub.mediaInfo = mediaInfo
-//                                            onMessageListener.invoke(hubCommand, "")
-//                                        }
-//                                        //Live
-//                                        2 -> {
-//                                            liveMedia = mediaInfo
-//                                        }
-//                                    }
-//                                }
-//                                //Sửa
-//                                2 -> {
-//
-//                                }
-//                                //Xóa
-//                                4 -> {
-//                                    hubCommand = HubCommand.DELETE_SCHEDULER
-//                                    responseHub.mediaInfo = mediaInfo
-//                                    onMessageListener.invoke(hubCommand, "")
-//                                }
-//                                //Phát
-//                                8 -> {
-//
-//                                }
-//                                //Dừng
-//                                16 -> {
-//
-//                                }
-//                            }
                             if (listMediaInfo.isEmpty()) return
+                            //Case gửi riêng nhưng khi đồng bộ lại gửi cả live cả lịch
+//                            val listLiveMediaInfo = listMediaInfo.filter { it.mode == 2 }.toList()
+//                            if (listLiveMediaInfo.isNotEmpty()) {
+//                                hubCommand = HubCommand.LIVE
+//                                responseHub.mediaInfo = listLiveMediaInfo.first()
+//                                onMessageListener.invoke(hubCommand, "")
+//                            } else {
+//                                hubCommand = HubCommand.UPDATE_SCHEDULER
+//                                responseHub.listMediaInfo = listMediaInfo
+//                                onMessageListener.invoke(hubCommand, "")
+//                            }
                             val listLiveMediaInfo = listMediaInfo.filter { it.mode == 2 }.toList()
+                            val listSchedulerMediaInfo =
+                                listMediaInfo.filter { it.mode == 1 }.toList()
+                            val listSilentInfo = listMediaInfo.filter { it.mode == 0 }.toList()
                             if (listLiveMediaInfo.isNotEmpty()) {
                                 hubCommand = HubCommand.LIVE
                                 responseHub.mediaInfo = listLiveMediaInfo.first()
                                 onMessageListener.invoke(hubCommand, "")
-                            } else {
+                            }
+                            if (listSchedulerMediaInfo.isNotEmpty()) {
                                 hubCommand = HubCommand.UPDATE_SCHEDULER
-                                responseHub.listMediaInfo = listMediaInfo
+                                responseHub.listMediaInfo = listSchedulerMediaInfo
                                 onMessageListener.invoke(hubCommand, "")
+                            }
+                            if (listSilentInfo.isNotEmpty()) {
+
                             }
                         }
                     }
@@ -534,17 +508,9 @@ class HubManager(
         slowJob?.cancel()
     }
 
-
-    //    private fun checkConnection() {
-//        if (pingCounter >= 3) {
-//            //Try to reconnect to hub
-//            isConnectSuccess = false
-//            Log.e(TAG, "Losed hub connection. Try to reconnect Websocket")
-//            reconnectToServer()
-//        }
-//    }
-
-
+    fun disconnect() {
+        mqttClient?.disconnect()
+    }
 }
 
 

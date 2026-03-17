@@ -6,7 +6,6 @@ import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.media.AudioManager
-import android.os.Build
 import android.os.Bundle
 import android.provider.Settings
 import android.util.Log
@@ -14,7 +13,6 @@ import android.view.View
 import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
-import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
@@ -26,12 +24,17 @@ import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.stream.StreamBackManager
+import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
+import app.tek4tv.ipradio.di.MoshiInst
+import app.tek4tv.ipradio.model.BootstrapResp
+import app.tek4tv.ipradio.model.Channel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
+import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
@@ -41,6 +44,7 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
+import app.tek4tv.ipradio.utils.StringValue.Companion.live1
 import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler2
 import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler3
 import app.tek4tv.ipradio.utils.Utils
@@ -62,21 +66,8 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-@RequiresApi(Build.VERSION_CODES.N)
 class MainActivity : AppCompatActivity(), AlarmListener {
 
-    private val UPDATE_PERMISSION_REQUEST_CODE = 1
-
-    private val permissions = arrayOf(
-        Manifest.permission.WRITE_EXTERNAL_STORAGE,
-        Manifest.permission.READ_EXTERNAL_STORAGE,
-        Manifest.permission.REQUEST_INSTALL_PACKAGES,
-        Manifest.permission.INTERNET,
-        Manifest.permission.ACCESS_NETWORK_STATE,
-        Manifest.permission.READ_PHONE_STATE,
-        Manifest.permission.ACCESS_WIFI_STATE,
-        Manifest.permission.RECORD_AUDIO,
-    )
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -93,11 +84,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var appStorageManager: AppStorageManager
 
-    private lateinit var mediaCapture: MediaCapture
-
     private lateinit var mediaScheduler: MediaScheduler
-
-    private lateinit var rootLayout: FrameLayout
 
     private val globalProperties = GlobalProperties.getInst()
 
@@ -157,7 +144,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaFile?) {
 //            hubManager.currentMediaItem = mediaItem
-//            serialPortController.turnOffPA()
+            serialPortController.turnOffPA()
 //            Log.d("turnPA", "live error")
         }
 
@@ -167,11 +154,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 hubManager.currentMediaItem = mediaItem
 
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-                    else PAStatusOn
+//                val paState =
+//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
+//                    else PAStatusOn
 
-                //hubManager.sendLogMediaSuccess(mediaItem, paState)
                 val id = System.currentTimeMillis()
                 val logs = listOf(
                     McuLogData(
@@ -192,10 +178,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
-
+        viewModel.grantPermissionThoughAdb(baseContext)
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
-
-        if (needGrantPermission()) requestPermissions(permissions, UPDATE_PERMISSION_REQUEST_CODE)
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart: Int) {
@@ -230,7 +214,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         appStorageManager = AppStorageManager(applicationContext)
-        mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(
             authService, baseContext, CoroutineScope(Dispatchers.Main)
@@ -248,7 +231,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
         )
@@ -273,6 +255,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         showMac()
 
+        LocalWebConsole.start(
+            onServerUpdate = { serverData ->
+                val serverData = ServerData(
+                    bootstrapServer = serverData.bootstrapServer,
+                    mqttServer = serverData.mqttServer,
+                    mqttPort = serverData.mqttPort,
+                    mqttSecurity = serverData.mqttSecurity
+                )
+                globalProperties.saveServerConfig(serverData)
+                Log.d("webconsole", "Đã cập nhật Server và gửi OPU_SETTINGS")
+            },
+            onConnectionUpdate = { connData ->
+                val bootstrapResp = BootstrapResp(
+                    id = connData.thingId,
+                    key = connData.thingKey,
+                    channel = listOf(Channel(id = connData.channels))
+                )
+                globalProperties.saveConnectionConfig(bootstrapResp)
+
+                Log.d("webconsole", "Đã nhận ThingID mới: ${connData.thingId}, đang Reconnect...")
+            }
+        )
+
     }
 
     private fun showMac() {
@@ -280,12 +285,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val imei = hubManager.deviceImei
         tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAdress.setOnClickListener {
-            hubManager.handlerMessage(scheduler2)
-            lifecycleScope.launch {
-                delay(5000)
-                hubManager.handlerMessage(scheduler3)
-            }
-
+            hubManager.handlerMessage(live1)
         }
     }
 
@@ -293,19 +293,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onStart() {
         super.onStart()
         viewModel.getPlayerContentLocal()
-//        viewModel.getPlayerContent()
     }
 
     override fun onStop() {
         super.onStop()
         playerManager.onActivityStop()
+        LocalWebConsole.stop()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
-        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
     }
 
@@ -370,23 +369,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         decorView.systemUiVisibility = newUiOptions
     }
 
-    private fun needGrantPermission(): Boolean {
-        var needGrantPermission = false
-
-        permissions.forEach {
-            if (checkSelfPermission(it) != PackageManager.PERMISSION_GRANTED) {
-                needGrantPermission = true
-                return@forEach
-            }
-        }
-
-        if (!NetworkUtils.checkForNetworkStatPermission(applicationContext)) {
-            val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS)
-            startActivity(intent)
-        }
-
-        return needGrantPermission
-    }
 
     private fun registerObservers() {
         lifecycleScope.launch {
@@ -441,7 +423,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     Log.d("sds", "handleFromCommandServer: $message ")
                     viewModel.updateScheduler(responseHub.listMediaInfo)
                 }
-
 
                 HubCommand.UPDATE_SETTING_CONFIG -> {
                     if (responseHub.networkConfig != null) {
@@ -500,7 +481,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_SERVER_CONFIG -> {
                     if (responseHub.serverConfig != null) {
-                        globalProperties.saveServerConfig(responseHub)
+                        hubManager.disconnect()
+                        globalProperties.saveServerConfig(responseHub.serverConfig)
+//                        lifecycleScope.launch {
+//                            delay(3000)
+//                            serialPortController.hardRestart()
+//                        }
+
                     }
                 }
 
@@ -509,7 +496,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (responseHub.mediaInfo != null) {
                         onPlayForce(responseHub.mediaInfo!!)
                     }
-
                 }
 
                 HubCommand.TURN_ON_PA -> {

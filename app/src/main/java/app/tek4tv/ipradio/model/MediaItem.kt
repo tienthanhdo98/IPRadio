@@ -11,7 +11,6 @@ import java.io.Serializable
 
 @JsonClass(generateAdapter = true)
 data class MediaItem(
-
     @Json(name = "ID")
     val id: Long? = null,
 

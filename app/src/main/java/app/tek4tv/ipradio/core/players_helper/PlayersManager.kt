@@ -22,13 +22,6 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.util.Calendar
 
-
-/**
- * Manager all media playback
- * 2 Mode: Scheduled and force media
- * Scheduled: Play media in a fixed scheduled
- * Force Media: Play media by command from server
- * **/
 class PlayersManager(
     appContext: Context, private val mediaRepo: MediaRepo
 ) : IPlayerEventListener {
@@ -38,12 +31,6 @@ class PlayersManager(
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaFile? = null
-
-
-    /**
-     * The timestamp when a media begin to play
-     * **/
-    private var mediaStartTime = 0L
 
     /**
      * -2 for force media
@@ -77,7 +64,6 @@ class PlayersManager(
 
     override fun onPlayMediaSuccess(mediaItem: MediaFile?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
-        mediaStartTime = Calendar.getInstance().timeInMillis
     }
 
     override fun onMediaEndReached(mediaItem: MediaFile?) {
@@ -121,9 +107,6 @@ class PlayersManager(
         }
     }
 
-    fun getMediaInfoIdByPeriod(timeFrame: String): String? {
-        return mediaRepo.mediaInfoWithPeriod[timeFrame]
-    }
 
     fun setTimeFrame(timeFrame: String) {
 
@@ -143,13 +126,22 @@ class PlayersManager(
     fun playNextMedia() {
         if (playMode == "") return
         playlistIndex++
-
         if (playlistIndex < currentPlaylist.size) {
             Log.d("MediaInfo", "Play media phat tiep")
             playMediaByIndex(playlistIndex)
         } else {
-            playlistIndex = 0
-            playMediaByIndex(playlistIndex)
+            //Ko phát lại nhạc hiệu. chỉ phát lần đầu. Nhạch hiệu Id = 0/ index = 0
+            if (currentPlayingMedia?.id == 0L) {
+                playlistIndex = 1
+                playMediaByIndex(playlistIndex)
+            }
+            //Ko có nhạc hiệu
+            else {
+                playlistIndex = 0
+                playMediaByIndex(playlistIndex)
+            }
+
+
         }
     }
 
@@ -197,14 +189,18 @@ class PlayersManager(
 
                 MediaFileType.LIVE -> {
                     Log.d("MediaInfo", "playMedia: Live: ${mediaItem.duration}")
-                    playLiveStream(mediaItem, true, timeStamp)
+                    if (mediaItem.id == 0L) {
+                        playLiveStream(mediaItem, false, timeStamp)
+                    } else {
+                        playLiveStream(mediaItem, true, timeStamp)
+                    }
+
                 }
 
                 MediaFileType.FM -> {
                     Log.d("MediaInfo", "playMedia: fm: ${mediaItem.duration}")
                     var currentTimeStamp = 0
                     if (timeStamp != -1) currentTimeStamp = timeStamp
-                    mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
 //                    if (playMode != PLAY_MODE_FORCE) {
                     handlerFMPlayer?.removeCallbacksAndMessages(null)

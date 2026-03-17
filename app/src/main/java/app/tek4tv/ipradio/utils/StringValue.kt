@@ -58,6 +58,21 @@ class StringValue {
             ]
         """.trimIndent()
 
+        //Live cơ bản. nhạc hiệu gốc
+        val live1 = """
+         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOls1NDQyMF0sImRzIjpbMTUzOF0sImNyZWF0ZWQiOjE3NzMxMjQ3NjMsInN0YXJ0IjoxNzczMjQ4NzY2LCJleHBpcmVkIjoxNzc0OTIzMzY1LCJmaWxlcyI6W3siaWQiOjAsImluZGV4IjowLCJ0eXBlIjozLCJzaXplIjoyMDI5MzQsImNzIjoyMDEwMjU4ODIxLCJkdXJhdGlvbiI6NiwidXJsIjoiaHR0cHM6Ly90dHRtLm1vYmlmb25lLnZuL3VwbG9hZEZpbGUvaGVhZGVyL2hlYWRlci53YXYifSx7ImlkIjoyODMyMDQsImluZGV4IjoxLCJ0eXBlIjoxLCJzaXplIjoxMDM0MTY1MCwiY3MiOjI4Mzc1NjI1MDcsImR1cmF0aW9uIjozMjMsInVybCI6Imh0dHBzOi8vdHJ1eWVudGhhbmh0aG9uZ21pbmgubW9iaWZvbmUuYWkvdXBsb2FkRmlsZS8yMDI2MDMxMC8yMDI2MDMxMDEyMDEwNF/EkMahbl924buLX2Lhuqd1X2Phu61fc+G7kV8zLm1wMyJ9XX0=\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
+        """.trimIndent()
+
+        //ko nhac hieu, loop 2
+        val Live2 = """
+            [{"n":"6565656565652:d:16","t":1773723365.776149,"vs":"[{\"id\":283331,\"show_id\":283331,\"show_info\":\"eyJtaWQiOjI4MzMzMSwidmVyc2lvbiI6MSwicHJpbyI6OTk5LCJzdW1tYXJ5IjoiTmjhuqFjIHRy4bq7IDMiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjAsInRzIjpbNDMwMjVdLCJkcyI6WzM3Ml0sImNyZWF0ZWQiOjE3NzM3MjMzNjIsInN0YXJ0IjoxNzczNzIzNDcxLCJleHBpcmVkIjoxNzczNzI3NDQzLCJmaWxlcyI6W3siaWQiOjI4MzMzMSwiaW5kZXgiOjAsInR5cGUiOjEsInNpemUiOjI5ODAxODYsImNzIjoyODYxODUyNjEyLCJkdXJhdGlvbiI6MTg2LCJ1cmwiOiJodHRwczovL3RydXllbnRoYW5odGhvbmdtaW5oLm1vYmlmb25lLmFpL3VwbG9hZEZpbGUvMjAyNjAzMTMvMjAyNjAzMTMxNjQ4MzRfdHQubXAzIn1dfQ==\",\"action\":1,\"description\":\"283331\",\"version\":1,\"created_at\":\"2026-03-17T11:56:05.775801452+07:00\"}]"}]
+        """.trimIndent()
+
+        //Nhac hieu la file upload, loop2,
+        val Live3 = """
+            [{"n":"6565656565652:d:16","t":1773732893.604526,"vs":"[{\"id\":283338,\"show_id\":283338,\"show_info\":\"eyJtaWQiOjI4MzMzOCwidmVyc2lvbiI6MSwicHJpbyI6OTk5LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUgMTcvMyIsIm1vZGUiOjIsInJlcGVhdCI6MCwiZGF5cyI6MCwidHMiOls1MjU1M10sImRzIjpbMjUzXSwiY3JlYXRlZCI6MTc3MzczMjg4OSwic3RhcnQiOjE3NzM3MzI5OTcsImV4cGlyZWQiOjE3NzM3MzY4NTAsImZpbGVzIjpbeyJpZCI6MCwiaW5kZXgiOjAsInR5cGUiOjEsInNpemUiOjU0MjkyOCwiY3MiOjM1MjY2MTAzMjYsImR1cmF0aW9uIjo2NywidXJsIjoiaHR0cHM6Ly90cnV5ZW50aGFuaHRob25nbWluaC5tb2JpZm9uZS5haS91cGxvYWRGaWxlLzIwMjYwMzE3LzIwMjYwMzE3MTQzNDQ0X2Nvbmd0YWNjaHVhbmJpLm1wMyJ9LHsiaWQiOjI4MzMzOCwiaW5kZXgiOjEsInR5cGUiOjEsInNpemUiOjI5ODAxODYsImNzIjoyODYxODUyNjEyLCJkdXJhdGlvbiI6MTg2LCJ1cmwiOiJodHRwczovL3RydXllbnRoYW5odGhvbmdtaW5oLm1vYmlmb25lLmFpL3VwbG9hZEZpbGUvMjAyNjAzMTcvMjAyNjAzMTcxNDMzNTBfdHQubXAzIn1dfQ==\",\"action\":1,\"description\":\"283338\",\"version\":1,\"created_at\":\"2026-03-17T14:34:53.604108587+07:00\"}]"}]
+        """.trimIndent()
+
         //schedule tuần 1 mediainfo
         val OPH_MEDIA_V3_samp2 = """
             [
@@ -101,9 +116,7 @@ class StringValue {
           }
         ]
         """.trimIndent()
-        val live1 = """
-         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOlsgMzk2MDBdLCJkcyI6WzE1MzhdLCJjcmVhdGVkIjoxNzczMTI0NzYzLCJzdGFydCI6MTc3MzI0ODc2NiwiZXhwaXJlZCI6MTc3MzMzMTU2NiwiZmlsZXMiOlt7ImlkIjowLCJpbmRleCI6MCwidHlwZSI6Mywic2l6ZSI6MjAyOTM0LCJjcyI6MjAxMDI1ODgyMSwiZHVyYXRpb24iOjYsInVybCI6Imh0dHBzOi8vdHR0bS5tb2JpZm9uZS52bi91cGxvYWRGaWxlL2hlYWRlci9oZWFkZXIud2F2In0seyJpZCI6MjgzMjA0LCJpbmRleCI6MSwidHlwZSI6MSwic2l6ZSI6MTAzNDE2NTAsImNzIjoyODM3NTYyNTA3LCJkdXJhdGlvbiI6MzIzLCJ1cmwiOiJodHRwczovL3RydXllbnRoYW5odGhvbmdtaW5oLm1vYmlmb25lLmFpL3VwbG9hZEZpbGUvMjAyNjAzMTAvMjAyNjAzMTAxMjAxMDRfxJDGoW5fduG7i19i4bqndV9j4butX3Phu5FfMy5tcDMifV19\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
-        """.trimIndent()
+
         val scheduler1 = """
             [
               {

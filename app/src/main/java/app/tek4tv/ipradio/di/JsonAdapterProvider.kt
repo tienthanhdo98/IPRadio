@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.di
 
-import app.tek4tv.ipradio.model.AppData
-import app.tek4tv.ipradio.model.BaseMqttMessage
+
 import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
@@ -17,9 +16,6 @@ import java.lang.reflect.ParameterizedType
 object JsonAdapterProvider {
     private val moshi = MoshiInst.moshi
 
-    val baseMqttMessageAdapter: JsonAdapter<BaseMqttMessage> =
-        moshi.adapter(BaseMqttMessage::class.java)
-
 
     val mediaItemAdapter: JsonAdapter<MediaItem> = moshi.adapter(MediaItem::class.java)
 
@@ -28,23 +24,10 @@ object JsonAdapterProvider {
         MediaItem::class.java
     )
 
-    val mediaItemListAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
-
-    val jsonMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeMediaItem)
-
-    val mediaItemMoshiAdapter: JsonAdapter<MediaItem> =
-        MoshiInst.moshi.adapter(MediaItem::class.java)
-
 
     //MGW
     val bootstrapAdapter: JsonAdapter<BootstrapResp> = moshi.adapter(BootstrapResp::class.java)
 
-    //    val appDataAdapter: JsonAdapter<AppData> = moshi.adapter(AppData::class.java)
-    val listAppDataItem: ParameterizedType = Types.newParameterizedType(
-        List::class.java,
-        AppData::class.java
-    )
-    val listAppDataItemAdapter: JsonAdapter<List<AppData>> = moshi.adapter(listAppDataItem)
 
     val listMediaFileDataItem: ParameterizedType = Types.newParameterizedType(
         List::class.java,
@@ -52,13 +35,6 @@ object JsonAdapterProvider {
     )
     val listMediaFileItemAdapter: JsonAdapter<List<MediaFile>> =
         moshi.adapter(listMediaFileDataItem)
-
-    val mapSchedulerType = Types.newParameterizedType(
-        Map::class.java,
-        String::class.java,
-        listMediaFileDataItem
-    )
-    val adapterSchedulerList = moshi.adapter<Map<String, List<MediaFile>>>(mapSchedulerType)
 
     val listShowInfoType = Types.newParameterizedType(List::class.java, ShowInfo::class.java)
     val showInfoAdapter = moshi.adapter<List<ShowInfo>>(listShowInfoType)
