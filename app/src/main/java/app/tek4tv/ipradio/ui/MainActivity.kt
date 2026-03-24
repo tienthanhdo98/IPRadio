@@ -1,16 +1,11 @@
 package app.tek4tv.ipradio.ui
 
 
-import android.Manifest
-import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Bundle
-import android.provider.Settings
 import android.util.Log
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AppCompatActivity
@@ -24,9 +19,9 @@ import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.stream.StreamBackManager
+import app.tek4tv.ipradio.core.stream.StreamBackManagerVlc
 import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.Channel
 import app.tek4tv.ipradio.model.ForceMedia
@@ -40,16 +35,12 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
-import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOff
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.live1
-import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler2
-import app.tek4tv.ipradio.utils.StringValue.Companion.scheduler3
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
-import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.setEthernetEnabled
 import app.tek4tv.ipradio.utils.setMobileDataEnabled
@@ -67,7 +58,6 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : AppCompatActivity(), AlarmListener {
-
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -106,9 +96,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                val tunerType = if (mediaItem.getMediaType() == MediaFileType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
                 val tunerData = "1,${mediaItem.url},${globalProperties.volume}"
-                val paState =
-                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-                    else PAStatusOn
+
                 hubManager.currentMediaItem = mediaItem
 
                 if (!serialPortController.isUart1) {
@@ -130,35 +118,37 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     )
                 )
                 hubManager.sendLog(logs)
+                hubManager.sendStatus()
             } catch (e: Exception) {
                 e.printStackTrace()
             }
         }
 
         //Dừng phát khẩn cấp
-        override fun onEndForceMedia() {
+        override fun onEndForceMedia(mediaInfo: MediaInfo?) {
+            if (mediaInfo != null) {
+                viewModel.insertMediaInfoLiveHistory(mediaInfo)
+            }
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
         }
 
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaFile?) {
-//            hubManager.currentMediaItem = mediaItem
+            // hubManager.currentMediaItem = null
             serialPortController.turnOffPA()
-//            Log.d("turnPA", "live error")
         }
 
 
         override fun onPlayMediaSuccess(mediaItem: MediaFile?) {
-            if (mediaItem != null) {
+            if (mediaItem != null && mediaItem.id != 0L) {
 
                 hubManager.currentMediaItem = mediaItem
 
-//                val paState =
-//                    if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
-//                    else PAStatusOn
+                serialPortController.turnOnPAVod()
 
                 val id = System.currentTimeMillis()
+
                 val logs = listOf(
                     McuLogData(
                         id = id,
@@ -168,8 +158,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     )
                 )
                 hubManager.sendLog(logs)
-
+                hubManager.sendStatus()
             }
+        }
+
+        override fun onEndMedia() {
+            hubManager.currentMediaItem = null
         }
     }
 
@@ -223,6 +217,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S1_NAME)
+
         lifecycleScope.launch {
             delay(10000)
             if (!serialPortController.isUart1) {
@@ -248,43 +243,49 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         registerObservers()
 
-
         setMaxVolume()
 
         hideSystemUI()
 
         showMac()
 
-        LocalWebConsole.start(
-            onServerUpdate = { serverData ->
-                val serverData = ServerData(
-                    bootstrapServer = serverData.bootstrapServer,
-                    mqttServer = serverData.mqttServer,
-                    mqttPort = serverData.mqttPort,
-                    mqttSecurity = serverData.mqttSecurity
-                )
-                globalProperties.saveServerConfig(serverData)
-                Log.d("webconsole", "Đã cập nhật Server và gửi OPU_SETTINGS")
-            },
-            onConnectionUpdate = { connData ->
-                val bootstrapResp = BootstrapResp(
-                    id = connData.thingId,
-                    key = connData.thingKey,
-                    channel = listOf(Channel(id = connData.channels))
-                )
-                globalProperties.saveConnectionConfig(bootstrapResp)
-
-                Log.d("webconsole", "Đã nhận ThingID mới: ${connData.thingId}, đang Reconnect...")
+        LocalWebConsole.start(onServerUpdate = { serverData ->
+            val serverData = ServerData(
+                bootstrapServer = serverData.bootstrapServer,
+                mqttServer = serverData.mqttServer,
+                mqttPort = serverData.mqttPort,
+                mqttSecurity = serverData.mqttSecurity
+            )
+            globalProperties.saveServerConfig(serverData)
+            Log.d("webconsole", "Đã cập nhật Server và gửi OPU_SETTINGS")
+            lifecycleScope.launch {
+                delay(5000)
+                Log.e("webconsole", "Rebooting....")
+                serialPortController.hardRestart()
             }
-        )
+        }, onConnectionUpdate = { connData ->
+            val bootstrapResp = BootstrapResp(
+                id = connData.thingId,
+                key = connData.thingKey,
+                channels = listOf(Channel(id = connData.channels))
+            )
+            globalProperties.saveConnectionConfig(bootstrapResp)
+            Log.d("webconsole", "Đã nhận ThingID mới: ${connData.thingId}, đang reboot...")
+            lifecycleScope.launch {
+                delay(5000)
+                Log.e("webconsole", "Rebooting....")
+                serialPortController.hardRestart()
+            }
+        })
 
+        viewModel.clearLocalMediaInfoExpired(applicationContext)
     }
 
     private fun showMac() {
-        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val tvMacAddress = findViewById<TextView>(R.id.tvMac)
         val imei = hubManager.deviceImei
-        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-        tvMacAdress.setOnClickListener {
+        tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
+        tvMacAddress.setOnClickListener {
             hubManager.handlerMessage(live1)
         }
     }
@@ -415,67 +416,90 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             when (command) {
 
+                HubCommand.SAVE_SCHEDULER -> {
+                    viewModel.saveSchedulerToLocal(responseHub.listMediaInfo)
+                }
+
                 HubCommand.UPDATE_SCHEDULER -> {
                     clearDatastore()
                     playerManager.resetPlayMode()
+                    playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
                     viewModel.updateScheduler(responseHub.listMediaInfo)
                 }
+                //Phát khẩn cấp luồng live
+                HubCommand.LIVE -> {
+                    if (responseHub.listLiveMediaInfo != null) {
+                        lifecycleScope.launch {
+                            val listNew = viewModel.getOnlyNewMedia(responseHub.listLiveMediaInfo)
+                            if (listNew.isNotEmpty()) {
+                                onPlayForce(listNew.first())
+                            }
+                        }
+                    }
+                }
 
                 HubCommand.UPDATE_SETTING_CONFIG -> {
-                    if (responseHub.networkConfig != null) {
-                        val networkConfig = responseHub.networkConfig
-                        when (networkConfig?.transport) {
-                            //ETH
-                            0 -> {
-                                setWifiDataEnabled(false)
-                                setMobileDataEnabled(false)
-                                setEthernetEnabled(true)
-                            }
-                            //Mobile
-                            1 -> {
-                                setWifiDataEnabled(false)
-                                setMobileDataEnabled(true)
-                                setEthernetEnabled(false)
-                                val sim = networkConfig.simType
-                                when (sim) {
-                                    0 -> {
-
-                                    }
-
-                                    1 -> {
-
-                                    }
-                                }
-                                val mode = networkConfig.radioMode
-                                when (mode) {
-                                    0 -> {
-                                        setPreferredMode(0)
-                                    }
-
-                                    2 -> {
-                                        setPreferredMode(2)
-                                    }
-
-                                    3 -> {
-                                        setPreferredMode(3)
-                                    }
-
-                                    4 -> {
-                                        setPreferredMode(4)
-                                    }
-                                }
-                            }
-                            //Wifi
-                            2 -> {
-                                setWifiDataEnabled(true)
-                                setMobileDataEnabled(false)
-                                setEthernetEnabled(false)
-                            }
-
+                    if (responseHub.settingConfig != null) {
+                        val data = responseHub.settingConfig
+                        if (data?.fmVolume != null || data?.mainVolume != null) {
+                            serialPortController.writeForceSetVolume(data.fmVolume.toString())
+                            globalProperties.saveVolume(data.fmVolume.toString())
                         }
+                        if (data?.txtype != null) {
+                            when (data.txtype) {
+                                //ETH
+                                0 -> {
+                                    setWifiDataEnabled(false)
+                                    setMobileDataEnabled(false)
+                                    setEthernetEnabled(true)
+                                }
+                                //Mobile
+                                1 -> {
+                                    setWifiDataEnabled(false)
+                                    setMobileDataEnabled(true)
+                                    setEthernetEnabled(false)
+                                    val sim = data.sim
+                                    when (sim) {
+                                        0 -> {
+
+                                        }
+
+                                        1 -> {
+
+                                        }
+                                    }
+                                    val mode = data.mobileMode
+                                    when (mode) {
+                                        0 -> {
+                                            setPreferredMode(0)
+                                        }
+
+                                        2 -> {
+                                            setPreferredMode(2)
+                                        }
+
+                                        3 -> {
+                                            setPreferredMode(3)
+                                        }
+
+                                        4 -> {
+                                            setPreferredMode(4)
+                                        }
+                                    }
+                                }
+                                //Wifi
+                                2 -> {
+                                    setWifiDataEnabled(true)
+                                    setMobileDataEnabled(false)
+                                    setEthernetEnabled(false)
+                                }
+
+                            }
+                        }
+                        globalProperties.saveSettingConfig(responseHub.settingConfig)
                     }
                 }
 
@@ -483,18 +507,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (responseHub.serverConfig != null) {
                         hubManager.disconnect()
                         globalProperties.saveServerConfig(responseHub.serverConfig)
-//                        lifecycleScope.launch {
-//                            delay(3000)
-//                            serialPortController.hardRestart()
-//                        }
-
-                    }
-                }
-
-                //Phát khẩn cấp luồng live
-                HubCommand.LIVE -> {
-                    if (responseHub.mediaInfo != null) {
-                        onPlayForce(responseHub.mediaInfo!!)
+                        lifecycleScope.launch {
+                            delay(5000)
+                            serialPortController.hardRestart()
+                        }
                     }
                 }
 
@@ -527,8 +543,18 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.STREAM_BACK -> {
                     val message = responseHub.message
                     if (message != null) {
+//                        streamBackManager.handleStreamBack(
+//                            url = message, cmd = responseHub.level, timeout = responseHub.duration
+//                        )
+
+                        //vlc
+
+                        val streamBackManager = StreamBackManagerVlc(applicationContext)
+                        streamBackManager.updateCurrentMediaUrl("https://binhdinh-ttn.lcsa.vn/site/get-resource?code=nE4Jq3R9OjoQeZgM6apZVg8lNDM7PA&type=.mp3")
                         streamBackManager.handleStreamBack(
-                            url = message, cmd = responseHub.level, timeout = responseHub.duration
+                            icecastUrl = "icecast://source:hackme@sh.truyenthanhthongminh.vn/6565656565652",
+                            cmd = 0,  // CMD_START13
+                            timeout = 3600  // 1 giờ, hoặc null để không giới hạn
                         )
                     }
                 }
@@ -539,17 +565,27 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-                HubCommand.SET_VOLUME_DEVICE -> {
-                    if (responseHub.message != null && responseHub.message != "") {
-                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
-                        serialPortController.writeForceSetVolume(responseHub.message!!)
-                        globalProperties.saveVolume(responseHub.message!!)
-                    }
-                }
+//                HubCommand.SET_VOLUME_DEVICE -> {
+//                    if (responseHub.message != null && responseHub.message != "") {
+//                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
+//                        serialPortController.writeForceSetVolume(responseHub.message!!)
+//                        globalProperties.saveVolume(responseHub.message!!)
+//                    }
+//                }
 
                 HubCommand.UPDATE_VERSION -> {
-                    Log.d("update", responseHub.message!!)
-                    downloadUpdateApk(responseHub.message!!, this, serialPortController)
+
+                    if (responseHub.updateFirmData != null) {
+                        val updateFirmData = responseHub.updateFirmData
+                        Log.d("update", updateFirmData?.url.toString())
+                        Log.d("update", updateFirmData?.option.toString())
+                        if (updateFirmData?.option == 0) {
+                            downloadUpdateApk(updateFirmData.url, this, serialPortController)
+                        } else if (updateFirmData?.option == 1) {
+                            globalProperties.clearAllLocalConfigData()
+                            downloadUpdateApk(updateFirmData.url, this, serialPortController)
+                        }
+                    }
                 }
 
                 HubCommand.READ_DEVICE_INFO -> {
@@ -579,7 +615,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun setMaxVolume() {
         try {
-            val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
+            val audio = getSystemService(AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
         } catch (_: Exception) {

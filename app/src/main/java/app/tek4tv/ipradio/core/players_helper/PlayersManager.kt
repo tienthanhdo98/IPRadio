@@ -31,6 +31,7 @@ class PlayersManager(
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaFile? = null
+    private var currentPlayingMediaInfo: MediaInfo? = null
 
     /**
      * -2 for force media
@@ -77,9 +78,9 @@ class PlayersManager(
 
 
     private fun onMediaStopPlaying() {
-
+        playerManagerListener?.onEndMedia()
+        currentPlayingMedia = null
     }
-
 
     /**
      * Tìm khung thơi gian hiện tại cần phát
@@ -114,7 +115,7 @@ class PlayersManager(
 
         playMode = timeFrame
 
-        currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        currentPlaylist = mediaRepo.scheduledList[timeFrame]?.files ?: listOf()
 
         playlistIndex = 0
 
@@ -243,6 +244,7 @@ class PlayersManager(
     fun stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
         currentPlayingMedia = null
+        currentPlayingMediaInfo = null
         vlcPlayer.stop()
         exoPlayer.stop()
     }
@@ -266,7 +268,7 @@ class PlayersManager(
      * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
-            val mediaList = mediaRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
+            val mediaList = mediaRepo.scheduledList[timeFrame]?.files ?: return Pair(0, 0)
             val now = Calendar.getInstance()
             val secondFromStart = ((now.timeInMillis - start.timeInMillis) / 1000).toInt()
 
@@ -308,7 +310,6 @@ class PlayersManager(
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-
         //check time over
         isTimeOver = true
         checkTimeOver()
@@ -323,7 +324,7 @@ class PlayersManager(
         if (playMode != PLAY_MODE_FORCE) return
         stopAllPlayer()
         onMediaStopPlaying()
-        playerManagerListener?.onEndForceMedia()
+        playerManagerListener?.onEndForceMedia(currentPlayingMediaInfo)
 //        playerManagerListener?.onTimeOver()
     }
 
@@ -374,7 +375,7 @@ class PlayersManager(
                     if (shouldPlay) return@forEachIndexed
                     //KO check, phat ngay khi nhận
                     shouldPlay = true
-
+                    currentPlayingMediaInfo = mediaInfo
                     saveForceMediaInfoToPref(appContext, mediaInfoAdapter.toJson(mediaInfo))
 
                     val endTime = ts.toInt() + durationSlot[index].toInt()

@@ -15,6 +15,7 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
+import java.net.Inet4Address
 import java.util.*
 
 
@@ -34,7 +35,7 @@ class NetworkUtils private constructor() {
             mNetworkLive.postValue(true)
             isNetworkConnected = true
             for (callback in mCallbacks) {
-                callback?.onChange(true)
+                callback.onChange(true)
             }
         }
 
@@ -103,7 +104,6 @@ class NetworkUtils private constructor() {
 
     companion object {
 
-
         private var INSTANCE: NetworkUtils? = null
         val instance: NetworkUtils
             get() {
@@ -112,6 +112,97 @@ class NetworkUtils private constructor() {
                 }
                 return INSTANCE!!
             }
+
+        fun getEthernetLanIp(context: Context): String? {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+            cm.allNetworks.forEach { network ->
+                val caps = cm.getNetworkCapabilities(network) ?: return@forEach
+                if (caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET)) {
+                    val lp = cm.getLinkProperties(network)
+                    val ip = findIpv4FromLinkProperties(lp)
+                    if (ip != null) return ip
+                }
+            }
+            return null
+        }
+
+        /**
+         * Lấy IPv4 cục bộ của interface Mobile data.
+         * Đây là IP trên interface di động của máy, không chắc là public IP Internet.
+         */
+        fun getMobileLocalIp(context: Context): String? {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+
+            cm.allNetworks.forEach { network ->
+                val caps = cm.getNetworkCapabilities(network) ?: return@forEach
+                if (caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) {
+                    val lp = cm.getLinkProperties(network)
+                    val ip = findIpv4FromLinkProperties(lp)
+                    if (ip != null) return ip
+                }
+            }
+            return null
+        }
+
+        fun getCellularSignalPercent(context: Context): Int? {
+            val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+
+            val allCells = try {
+                tm.allCellInfo
+            } catch (e: SecurityException) {
+                null
+            } catch (e: Exception) {
+                null
+            } ?: return null
+
+            val registeredCell = allCells.firstOrNull { it.isRegistered } ?: return null
+
+            val level0to4 = when (registeredCell) {
+                is CellInfoGsm -> registeredCell.cellSignalStrength.level
+                is CellInfoCdma -> registeredCell.cellSignalStrength.level
+                is CellInfoWcdma -> registeredCell.cellSignalStrength.level
+                is CellInfoLte -> registeredCell.cellSignalStrength.level
+                else -> return null
+            }
+
+            return (level0to4 * 25).coerceIn(0, 100)
+        }
+
+        fun getWifiSignalPercent(context: Context): Int? {
+            val wifiManager =
+                context.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+
+            if (!wifiManager.isWifiEnabled) return null
+
+            val wifiInfo = try {
+                wifiManager.connectionInfo
+            } catch (e: Exception) {
+                null
+            } ?: return null
+
+            val rssi = wifiInfo.rssi
+
+            // INVALID_RSSI là hidden API trong AOSP, giá trị thực tế là -127
+            if (rssi <= -127) return null
+
+            return WifiManager.calculateSignalLevel(rssi, 101).coerceIn(0, 100)
+        }
+
+
+        private fun findIpv4FromLinkProperties(lp: LinkProperties?): String? {
+            if (lp == null) return null
+            for (linkAddress in lp.linkAddresses) {
+                val address = linkAddress.address
+                if (address is Inet4Address &&
+                    !address.isLoopbackAddress &&
+                    !address.isLinkLocalAddress
+                ) {
+                    return address.hostAddress
+                }
+            }
+            return null
+        }
 
         fun isNetworkConnected(context: Context): Boolean {
             val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager

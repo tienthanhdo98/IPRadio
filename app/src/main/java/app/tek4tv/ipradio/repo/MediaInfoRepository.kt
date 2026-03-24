@@ -1,7 +1,7 @@
 package app.tek4tv.ipradio.repo
 
 import app.tek4tv.ipradio.model.MediaInfo
-import app.tek4tv.ipradio.model.local.MediaDao
+import app.tek4tv.ipradio.model.local.MediaInfoDao
 import app.tek4tv.ipradio.model.local.MediaInfoEntity
 import app.tek4tv.ipradio.model.local.MediaWithFiles
 import app.tek4tv.ipradio.utils.toEntity
@@ -13,7 +13,7 @@ import javax.inject.Singleton
 
 @Singleton
 class MediaInfoRepository @Inject constructor(
-    private val mediaDao: MediaDao
+    private val mediaDao: MediaInfoDao,
 ) {
     // Lấy toàn bộ dữ liệu dưới dạng Flow để UI tự động cập nhật
     val allMedia: Flow<List<MediaWithFiles>> = mediaDao.getAllMediaWithFiles()

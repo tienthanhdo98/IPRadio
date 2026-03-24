@@ -32,11 +32,9 @@ class MediaRepo @Inject constructor(
 
     private val downloadHelper = DownloadHelper2.getInstance()
 
-    private var completedDownloads = 0
-    private val lock = Any()
-
     //MGW
-    var scheduledList = LinkedHashMap<String, List<MediaFile>>()
+    //var scheduledList = LinkedHashMap<String, List<MediaFile>>()
+    var scheduledList = LinkedHashMap<String, MediaInfo>()
     var mediaInfoWithPeriod = LinkedHashMap<String, String>()
     var broadcastList = mutableListOf<MediaFile>()
     var listMediaInfoId = mutableListOf<Long>()
@@ -97,7 +95,8 @@ class MediaRepo @Inject constructor(
                         Log.d(
                             "MediaInfo", "Khung phát: $period"
                         )
-                        scheduledList[period] = mediaInfo.files
+                        //scheduledList[period] = mediaInfo.files
+                        scheduledList[period] = mediaInfo
                         mediaInfoWithPeriod[period] = mediaInfo.mid.toString()
                     }
 

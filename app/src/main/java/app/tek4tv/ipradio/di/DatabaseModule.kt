@@ -1,12 +1,10 @@
 package app.tek4tv.ipradio.di
 
 import android.content.Context
-import androidx.room.Database
 import androidx.room.Room
-import androidx.room.RoomDatabase
 import app.tek4tv.ipradio.model.local.AppDatabase
-import app.tek4tv.ipradio.model.local.MediaDao
-import app.tek4tv.ipradio.model.local.MediaFileEntity
+import app.tek4tv.ipradio.model.local.MediaInfoDao
+import app.tek4tv.ipradio.model.local.MediaInfoLiveHistoryDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,8 +25,13 @@ object DatabaseModule {
     }
 
     @Provides
-    fun provideSchedulerDao(db: AppDatabase): MediaDao {
+    fun provideSchedulerDao(db: AppDatabase): MediaInfoDao {
         return db.mediaDao()
+    }
+
+    @Provides
+    fun provideMediaInfoLiveHistoryDao(db: AppDatabase): MediaInfoLiveHistoryDao {
+        return db.mediaLiveInfoHistoryDao()
     }
 }
 

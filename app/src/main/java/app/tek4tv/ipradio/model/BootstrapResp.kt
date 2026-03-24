@@ -9,7 +9,7 @@ data class BootstrapResp(
 
     @Json(name = "mainflux_key") val key: String? = null,
 
-    @Json(name = "mainflux_channels") val channel: List<Channel>? = null
+    @Json(name = "mainflux_channels") val channels: List<Channel>? = null
 )
 
 data class Channel(

@@ -3,7 +3,7 @@ package app.tek4tv.ipradio.core.mqtt
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.IConnectionServer
-import app.tek4tv.ipradio.model.Channel
+import app.tek4tv.ipradio.model.BootstrapResp
 import org.eclipse.paho.android.service.MqttAndroidClient
 import org.eclipse.paho.client.mqttv3.IMqttActionListener
 import org.eclipse.paho.client.mqttv3.IMqttDeliveryToken
@@ -15,15 +15,16 @@ import org.eclipse.paho.client.mqttv3.MqttMessage
 class MQTTManager(
     private val context: Context,
     private val connectEventListener: IConnectionServer,
-    private val thingId: String,
-    private val thingKey: String,
-    private val channels: List<Channel>,
     private val serverURI: String,
-
-    ) {
+    private val bootstrapResp: BootstrapResp,
+) {
+    //    private val thingId: String,
+//    private val thingKey: String,
+//    private val channels: List<Channel>,
     val TAG = "MQTTLOG"
-    private val clientID = "$thingId"
-    private val channelId = channels.first().id
+    private val clientID = "${bootstrapResp.id}"
+    private val channels = bootstrapResp.channels
+    private val channelId = bootstrapResp.channels?.first()?.id
 
     private var mqttClient: MqttAndroidClient? = null
 
@@ -49,7 +50,7 @@ class MQTTManager(
 
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 Log.d(TAG, "Connection connectComplete. Reconnect: $reconnect")
-                channels.forEach { subscribe(it.id!!) } // resubscribe
+                channels?.forEach { subscribe(it.id!!) } // resubscribe
             }
         })
     }
@@ -64,8 +65,8 @@ class MQTTManager(
         Log.d(TAG, "Attempting to connect with clientID: $clientID")
 
         val options = MqttConnectOptions()
-        options.userName = thingId
-        options.password = thingKey.toCharArray()
+        options.userName = bootstrapResp.id
+        options.password = bootstrapResp.key?.toCharArray()
         options.isAutomaticReconnect =
             true // Thư viện sẽ tự quản lý reconnect bằng cơ chế backoff thông minh
         options.isCleanSession = false
@@ -77,7 +78,7 @@ class MQTTManager(
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
                     Log.d(TAG, "Connection success")
                     // Do connectComplete đã xử lý subscribe, nhưng gọi thêm ở đây cho lượt connect đầu cũng không sao
-                    channels.forEach {
+                    channels?.forEach {
                         subscribe(it.id!!)
                     }
                     connectEventListener.onConnectSuccess()

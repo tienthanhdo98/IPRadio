@@ -5,7 +5,6 @@ import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
-import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.SenMLItem
 import app.tek4tv.ipradio.model.ShowInfo
 import com.squareup.moshi.JsonAdapter
@@ -15,14 +14,6 @@ import java.lang.reflect.ParameterizedType
 
 object JsonAdapterProvider {
     private val moshi = MoshiInst.moshi
-
-
-    val mediaItemAdapter: JsonAdapter<MediaItem> = moshi.adapter(MediaItem::class.java)
-
-    val typeMediaItem: ParameterizedType = Types.newParameterizedType(
-        MutableList::class.java,
-        MediaItem::class.java
-    )
 
 
     //MGW

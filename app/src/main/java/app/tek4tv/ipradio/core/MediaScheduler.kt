@@ -7,6 +7,7 @@ import android.content.Context
 import android.content.Intent
 import android.util.Log
 import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.ui.MediaScheduleReceiver
 import app.tek4tv.ipradio.utils.ConfigUtil
@@ -50,35 +51,360 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     //MGW
-    private fun scheduleListAlarms() {
+//    private fun scheduleListAlarms() {
+//        val scheduledList = mediaRepo.scheduledList
+//        val baseTimestamp = (System.currentTimeMillis() % 1000000).toInt()
+//        ConfigUtil.putInt(appContext, BASE_ALARM_ID, baseTimestamp)
+//        for (i in scheduledList.keys.indices) {
+//            val now = Calendar.getInstance().timeInMillis
+//            val period = scheduledList.keys.elementAt(i)
+//            val t = period.split("-")
+//            if (t.size != 2) continue
+//            val start = toCalendar(t[0]) //start time
+//            val end = toCalendar(t[1]) //end time
+//            val startReqCode = baseTimestamp + (i * 2)
+//            val endReqCode = baseTimestamp + (i * 2) + 1
+//
+//            if (now in start.timeInMillis..end.timeInMillis) {
+//                setAlarmForList(period, endReqCode, end, true)
+//            } else if (now < start.timeInMillis) {
+//                setAlarmForList(period, startReqCode, start)
+//                setAlarmForList(period, endReqCode, end, true)
+//            }
+//        }
+//    }
+
+    private fun buildFinalSegments(): List<Triple<Long, Long, String>> {
         val scheduledList = mediaRepo.scheduledList
-        val baseTimestamp = (System.currentTimeMillis() % 1000000).toInt()
-        ConfigUtil.putInt(appContext, BASE_ALARM_ID, baseTimestamp)
-        for (i in scheduledList.keys.indices) {
-            val now = Calendar.getInstance().timeInMillis
-            val period = scheduledList.keys.elementAt(i)
+        if (scheduledList.isEmpty()) return emptyList()
+
+        val timePoints = mutableSetOf<Long>()
+        for (period in scheduledList.keys) {
             val t = period.split("-")
             if (t.size != 2) continue
-            val start = toCalendar(t[0]) //start time
-            val end = toCalendar(t[1]) //end time
-            val startReqCode = baseTimestamp + (i * 2)
-            val endReqCode = baseTimestamp + (i * 2) + 1
+            timePoints.add(toCalendar(t[0]).timeInMillis)
+            timePoints.add(toCalendar(t[1]).timeInMillis)
+        }
 
-            if (now in start.timeInMillis..end.timeInMillis) {
-                setAlarmForList(period, endReqCode, end, true)
-            } else if (now < start.timeInMillis) {
-                setAlarmForList(period, startReqCode, start)
-                setAlarmForList(period, endReqCode, end, true)
+        val sortedPoints = timePoints.toList().sorted()
+        if (sortedPoints.size < 2) return emptyList()
+
+        val rawSegments = mutableListOf<Pair<LongRange, String>>()
+
+        for (i in 0 until sortedPoints.size - 1) {
+            val segStart = sortedPoints[i]
+            val segEnd = sortedPoints[i + 1]
+
+            var bestMedia: MediaInfo? = null
+            var bestPeriodKey: String? = null
+
+            for ((period, mediaInfo) in scheduledList) {
+                val t = period.split("-")
+                if (t.size != 2) continue
+
+                val originalStart = toCalendar(t[0]).timeInMillis
+                val originalEnd = toCalendar(t[1]).timeInMillis
+
+                if (segStart >= originalStart && segEnd <= originalEnd) {
+                    if (bestMedia == null) {
+                        bestMedia = mediaInfo
+                        bestPeriodKey = period
+                    } else {
+                        val currentPrio = mediaInfo.prio ?: 0
+                        val bestPrio = bestMedia.prio ?: 0
+
+                        val currentVer = mediaInfo.version ?: 0
+                        val bestVer = bestMedia.version ?: 0
+
+                        val currentStart = mediaInfo.start ?: 0L
+                        val bestStart = bestMedia.start ?: 0L
+
+                        val currentCreated = mediaInfo.created ?: 0L
+                        val bestCreated = bestMedia.created ?: 0L
+
+                        val isBetter = when {
+                            currentPrio > bestPrio -> true
+                            currentPrio < bestPrio -> false
+
+                            currentVer > bestVer -> true
+                            currentVer < bestVer -> false
+
+                            currentStart > bestStart -> true
+                            currentStart < bestStart -> false
+
+                            currentCreated > bestCreated -> true
+                            currentCreated < bestCreated -> false
+                            //neu bang nhau thi cai sau thang
+                            else -> true
+                        }
+
+                        if (isBetter) {
+                            bestMedia = mediaInfo
+                            bestPeriodKey = period
+                        }
+                    }
+                }
+            }
+
+            bestPeriodKey?.let {
+                rawSegments.add((segStart..segEnd) to it)
+            }
+        }
+
+        val finalSegments = mutableListOf<Triple<Long, Long, String>>()
+        if (rawSegments.isNotEmpty()) {
+            var currentStart = rawSegments[0].first.first
+            var currentEnd = rawSegments[0].first.last
+            var currentKey = rawSegments[0].second
+
+            for (i in 1 until rawSegments.size) {
+                val nextStart = rawSegments[i].first.first
+                val nextEnd = rawSegments[i].first.last
+                val nextKey = rawSegments[i].second
+
+                if (nextKey == currentKey && nextStart == currentEnd) {
+                    currentEnd = nextEnd
+                } else {
+                    finalSegments.add(Triple(currentStart, currentEnd, currentKey))
+                    currentStart = nextStart
+                    currentEnd = nextEnd
+                    currentKey = nextKey
+                }
+            }
+            finalSegments.add(Triple(currentStart, currentEnd, currentKey))
+        }
+
+        return finalSegments
+    }
+
+    private fun cancelAllListAlarm() {
+        val baseTimestamp = ConfigUtil.getInt(appContext, BASE_ALARM_ID, -1)
+        if (baseTimestamp == -1) return
+
+        val finalSegments = buildFinalSegments()
+
+        finalSegments.forEachIndexed { index, segment ->
+            val periodKey = segment.third
+            val startReqCode = baseTimestamp + (index * 2)
+            val endReqCode = baseTimestamp + (index * 2) + 1
+
+            cancelListAlarm(periodKey, startReqCode)
+            cancelListAlarm(periodKey, endReqCode, true)
+        }
+
+        ConfigUtil.putInt(appContext, BASE_ALARM_ID, -1)
+    }
+
+    private fun cancelListAlarm(
+        listKey: String,
+        requestCode: Int,
+        shouldEndPlaying: Boolean = false
+    ) {
+        val alarmIntent = getScheduleListIntent(
+            listKey,
+            requestCode,
+            PendingIntent.FLAG_NO_CREATE,
+            shouldEndPlaying
+        ) ?: return
+
+        Log.d("MediaInfo", "Cancel alarm $listKey - $requestCode")
+        alarmManager.cancel(alarmIntent)
+        alarmIntent.cancel()
+    }
+
+    private fun scheduleListAlarms() {
+        cancelAllListAlarm()
+
+        val finalSegments = buildFinalSegments()
+        if (finalSegments.isEmpty()) return
+
+        val baseTimestamp = (System.currentTimeMillis() % 1000000).toInt()
+        val now = Calendar.getInstance().timeInMillis
+        ConfigUtil.putInt(appContext, BASE_ALARM_ID, baseTimestamp)
+
+        finalSegments.forEachIndexed { index, segment ->
+            val segStart = segment.first
+            val segEnd = segment.second
+            val periodKey = segment.third
+
+            val startCal = Calendar.getInstance().apply { timeInMillis = segStart }
+            val endCal = Calendar.getInstance().apply { timeInMillis = segEnd }
+
+            val startReqCode = baseTimestamp + (index * 2)
+            val endReqCode = baseTimestamp + (index * 2) + 1
+
+            if (now in segStart until segEnd) {
+                setAlarmForList(periodKey, endReqCode, endCal, true)
+            } else if (now < segStart) {
+                setAlarmForList(periodKey, startReqCode, startCal)
+                setAlarmForList(periodKey, endReqCode, endCal, true)
             }
         }
     }
 
+//    private fun scheduleListAlarms() {
+//        val scheduledList = mediaRepo.scheduledList
+//        if (scheduledList.isEmpty()) return
+//
+//        // 1. Thu thập tất cả mốc thời gian (bắt đầu & kết thúc) và sắp xếp tăng dần
+//        val timePoints = mutableSetOf<Long>()
+//        for (period in scheduledList.keys) {
+//            val t = period.split("-")
+//            if (t.size != 2) continue
+//            timePoints.add(toCalendar(t[0]).timeInMillis)
+//            timePoints.add(toCalendar(t[1]).timeInMillis)
+//        }
+//        val sortedPoints = timePoints.toList().sorted()
+//
+//        // 2. Chia thành các đoạn nhỏ và tìm bản tin "thắng cuộc" cho mỗi đoạn
+//        val rawSegments = mutableListOf<Pair<LongRange, String>>() // <Khoảng thời gian, PeriodKey>
+//
+//        for (i in 0 until sortedPoints.size - 1) {
+//            val segStart = sortedPoints[i]
+//            val segEnd = sortedPoints[i + 1]
+//
+//            var bestMedia: MediaInfo? = null
+//            var bestPeriodKey: String? = null
+//
+//            for ((period, mediaInfo) in scheduledList) {
+//                val t = period.split("-")
+//                val originalStart = toCalendar(t[0]).timeInMillis
+//                val originalEnd = toCalendar(t[1]).timeInMillis
+//
+//                // Kiểm tra xem đoạn [segStart, segEnd] có nằm trong khung giờ gốc không
+//                if (segStart >= originalStart && segEnd <= originalEnd) {
+//                    if (bestMedia == null) {
+//                        bestMedia = mediaInfo
+//                        bestPeriodKey = period
+//                    } else {
+//                        // --- LOGIC SO SÁNH ƯU TIÊN ---
+//                        val currentPrio = mediaInfo.prio ?: 0
+//                        val bestPrio = bestMedia.prio ?: 0
+//
+//                        val currentVer = mediaInfo.version ?: 0
+//                        val bestVer = bestMedia.version ?: 0
+//
+//                        val currentStart = mediaInfo.start ?: 0L
+//                        val bestStart = bestMedia.start ?: 0L
+//
+//                        val currentCreated = mediaInfo.created ?: 0L
+//                        val bestCreated = bestMedia.created ?: 0L
+//
+//                        // Ưu tiên: Prio > Version > Start Time
+////                        val isBetter = when {
+////                            currentPrio > bestPrio -> true
+////                            currentPrio < bestPrio -> false
+////                            currentVer > bestVer -> true
+////                            currentVer < bestVer -> false
+////                            currentStart > bestStart -> true
+////                            else -> false
+////                        }
+////                        val isBetter = when {
+////                            currentPrio > bestPrio -> true
+////                            currentPrio < bestPrio -> false
+////                            currentVer > bestVer -> true
+////                            currentVer < bestVer -> false
+////                            currentStart > bestStart -> true
+////                            currentStart < bestStart -> false
+////                            else -> false // tất cả bằng nhau -> cái sau đè cái trước
+////                        }
+//                        val isBetter = when {
+//                            currentPrio > bestPrio -> true
+//                            currentPrio < bestPrio -> false
+//
+//                            currentVer > bestVer -> true
+//                            currentVer < bestVer -> false
+//
+//                            currentStart > bestStart -> true
+//                            currentStart < bestStart -> false
+//
+//                            currentCreated > bestCreated -> true
+//                            currentCreated < bestCreated -> false
+//
+//                            else -> true // bằng sạch thì cái duyệt sau thắng
+//                        }
+//
+//
+//                        if (isBetter) {
+//                            bestMedia = mediaInfo
+//                            bestPeriodKey = period
+//                        }
+//                    }
+//                }
+//            }
+//
+//            bestPeriodKey?.let {
+//                rawSegments.add(Pair(segStart..segEnd, it))
+//            }
+//        }
+//
+//        // 3. GỘP CÁC ĐOẠN LIÊN TIẾP (Nếu cùng 1 PeriodKey thì gộp lại cho mượt)
+//        val finalSegments = mutableListOf<Triple<Long, Long, String>>() // <Start, End, PeriodKey>
+//        if (rawSegments.isNotEmpty()) {
+//            var currentStart = rawSegments[0].first.first
+//            var currentEnd = rawSegments[0].first.last
+//            var currentKey = rawSegments[0].second
+//
+//            for (i in 1 until rawSegments.size) {
+//                val nextStart = rawSegments[i].first.first
+//                val nextEnd = rawSegments[i].first.last
+//                val nextKey = rawSegments[i].second
+//
+//                if (nextKey == currentKey && nextStart == currentEnd) {
+//                    // Nếu cùng bản tin và nối tiếp nhau -> Kéo dài thời gian End
+//                    currentEnd = nextEnd
+//                } else {
+//                    // Khác bản tin -> Lưu đoạn cũ, bắt đầu đoạn mới
+//                    finalSegments.add(Triple(currentStart, currentEnd, currentKey))
+//                    currentStart = nextStart
+//                    currentEnd = nextEnd
+//                    currentKey = nextKey
+//                }
+//            }
+//            finalSegments.add(Triple(currentStart, currentEnd, currentKey))
+//        }
+//
+//        // 4. ĐẶT ALARM DỰA TRÊN DANH SÁCH ĐÃ GỘP
+//        val baseTimestamp = (System.currentTimeMillis() % 1000000).toInt()
+//        val now = Calendar.getInstance().timeInMillis
+//        ConfigUtil.putInt(appContext, BASE_ALARM_ID, baseTimestamp)
+//
+//        finalSegments.forEachIndexed { index, segment ->
+//            val segStart = segment.first
+//            val segEnd = segment.second
+//            val periodKey = segment.third
+//
+//            val startCal = Calendar.getInstance().apply { timeInMillis = segStart }
+//            val endCal = Calendar.getInstance().apply { timeInMillis = segEnd }
+//
+//            val startReqCode = baseTimestamp + (index * 2)
+//            val endReqCode = baseTimestamp + (index * 2) + 1
+//
+//            if (now in segStart until segEnd) {
+//                // Đang trong giờ phát: Đặt báo thức kết thúc
+//                setAlarmForList(periodKey, endReqCode, endCal, true)
+//            } else if (now < segStart) {
+//                // Tương lai: Đặt cả báo thức bắt đầu và kết thúc
+//                setAlarmForList(periodKey, startReqCode, startCal)
+//                setAlarmForList(periodKey, endReqCode, endCal, true)
+//            }
+//        }
+//    }
+
     private fun setAlarmForList(
-        listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
+        listKey: String,
+        requestCode: Int,
+        time: Calendar,
+        shouldEndPlaying: Boolean = false
     ) {
         val isAlarmWorking = getScheduleListIntent(
             listKey, requestCode, PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
         )
+
+//        Log.d(
+//            "MediaInfo",
+//            "check alarm ${if (shouldEndPlaying) "End" else "Start"} $listKey - $requestCode, existed=${isAlarmWorking != null}, trigger=${time.timeInMillis}"
+//        )
 
         if (isAlarmWorking != null) return
 
@@ -86,8 +412,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             "MediaInfo",
             "Alarm Set ${if (shouldEndPlaying) "End" else "Start"} $listKey - $requestCode"
         )
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
 
+        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
         val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
     }
@@ -107,34 +433,34 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
     }
 
-    private fun cancelAllListAlarm() {
-        val scheduledList = mediaRepo.scheduledList
-        val baseTimestamp = ConfigUtil.getInt(appContext, "BASE_ALARM_ID", -1)
-        if (baseTimestamp == -1) return // Không có alarm nào để hủy
-        for (i in scheduledList.keys.indices) {
+//    private fun cancelAllListAlarm() {
+//        val scheduledList = mediaRepo.scheduledList
+//        val baseTimestamp = ConfigUtil.getInt(appContext, "BASE_ALARM_ID", -1)
+//        if (baseTimestamp == -1) return // Không có alarm nào để hủy
+//        for (i in scheduledList.keys.indices) {
+//
+//            val period = scheduledList.keys.elementAt(i)
+//            val startReqCode = baseTimestamp + (i * 2)
+//            val endReqCode = baseTimestamp + (i * 2) + 1
+//            cancelListAlarm(period, startReqCode)
+//            cancelListAlarm(period, endReqCode, true)
+//        }
+//    }
 
-            val period = scheduledList.keys.elementAt(i)
-            val startReqCode = baseTimestamp + (i * 2)
-            val endReqCode = baseTimestamp + (i * 2) + 1
-            cancelListAlarm(period, startReqCode)
-            cancelListAlarm(period, endReqCode, true)
-        }
-    }
-
-    private fun cancelListAlarm(
-        listKey: String, requestCode: Int, shouldEndPlaying: Boolean = false
-    ) {
-        val isAlarmWorking = getScheduleListIntent(
-            listKey, requestCode, PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-        ) != null
-
-        if (!isAlarmWorking) return
-
-        Log.d("MediaInfo", "Cancel alarm $listKey - $requestCode")
-        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.cancel(alarmIntent)
-        alarmIntent?.cancel()
-    }
+//    private fun cancelListAlarm(
+//        listKey: String, requestCode: Int, shouldEndPlaying: Boolean = false
+//    ) {
+//        val isAlarmWorking = getScheduleListIntent(
+//            listKey, requestCode, PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
+//        ) != null
+//
+//        if (!isAlarmWorking) return
+//
+//        Log.d("MediaInfo", "Cancel alarm $listKey - $requestCode")
+//        val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
+//        alarmManager.cancel(alarmIntent)
+//        alarmIntent?.cancel()
+//    }
     ///
 
     private fun getScheduleForceMediaIntent(flag: Int): PendingIntent? {

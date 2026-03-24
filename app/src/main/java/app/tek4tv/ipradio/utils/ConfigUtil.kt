@@ -9,7 +9,6 @@ import androidx.core.content.edit
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
 
-    //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
 
     //    const val FORCE_MEDIA = "FORCE_MEDIA"
@@ -17,39 +16,13 @@ object ConfigUtil {
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
     const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
-    const val URL_HUB = "URL_HUB"
-    const val PROVIDER = "PROVIDER"
-    const val URL_STREAM = "URL_STREAM"
-    const val USER_NAME_STREAM = "USER_NAME_STREAM"
-    const val PASSWORD_STREAM = "PASSWORD_STREAM"
-    const val PROTOCOL_STREAM = "PROTOCOL_STREAM"
-    const val BITRATE_STREAM = "BITRATE_STREAM"
-    const val SAMPLERATE_STREAM = "SAMPLERATE_STREAM"
     const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
-    const val ServerTimeout = "ServerTimeout"
-    const val KeepAliveInterval = "KeepAliveInterval"
 
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
-    const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
-    const val MONTHLY_SCENARIO_DATA = "MONTHLY_SCENARIO_DATA"
-    const val MONTHLY_SCENARIO_WSS_DATA = "MONTHLY_SCENARIO_WSS_DATA"
-
-    //Token
-    const val USERNAME = "USERNAME"
-    const val PASSWORD = "PASSWORD"
-    const val USERNAME_KEY = "USERNAME_KEY"
-    const val PASSWORD_KEY = "PASSWORD_KEY"
-    const val URL_TOKEN = "URL_TOKEN"
-    const val URL_MQTT = "URL_MQTT"
-    const val URL_MQTT_INFO = "URL_MQTT_INFO"
-    const val URL_MQTT_SOURCE = "URL_MQTT_SOURCE"
-    const val URL_WSS = "URL_WSS"
 
     //MGW
-    const val BOOTSTRAP_INFO = "BOOTSTRAP_INFO"
-    const val SCHEDULE_WEEK = "SCHEDULE_WEEK"
     const val BASE_ALARM_ID = "BASE_ALARM_ID"
     const val FORCE_MEDIA_INFO = "FORCE_MEDIA_INFO"
 
@@ -66,9 +39,9 @@ object ConfigUtil {
         editor.apply()
     }
 
-    fun getStringEncrypt(context: Context, key: String): String {
+    fun getStringEncrypt(context: Context, key: String, defaultValue: String?): String? {
 
-        return getEncryptedSharedPreferences(context).getString(key, "") ?: ""
+        return getEncryptedSharedPreferences(context).getString(key, defaultValue)
     }
 
     private fun getEncryptedSharedPreferences(context: Context): SharedPreferences {
@@ -82,16 +55,14 @@ object ConfigUtil {
     }
 
     private fun getKey(context: Context): MasterKey {
-        return MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
+        return MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
     }
 
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putInt(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putInt(key, value)
+        }
     }
 
     fun getInt(context: Context, key: String, defaultValue: Int): Int {
@@ -141,6 +112,12 @@ object ConfigUtil {
 
     fun removeSharef(context: Context, key: String) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        sharedPref.edit().remove(key).apply()
+        sharedPref.edit { remove(key) }
+    }
+
+    fun clearAllPrefs(context: Context) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        sharedPref.edit { clear() }
     }
 }
+

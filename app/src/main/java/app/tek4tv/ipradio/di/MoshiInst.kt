@@ -1,7 +1,6 @@
 package app.tek4tv.ipradio.di
 
 import androidx.room.TypeConverter
-import app.tek4tv.ipradio.model.*
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -14,9 +13,9 @@ object MoshiInst {
         .build()
 
 
-    val typeListMediaItem: ParameterizedType =
-        Types.newParameterizedType(List::class.java, MediaItem::class.java)
-    val jsonListMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeListMediaItem)
+//    val typeListMediaItem: ParameterizedType =
+//        Types.newParameterizedType(List::class.java, MediaItem::class.java)
+//    val jsonListMediaItemAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(typeListMediaItem)
 
     val typeMap: ParameterizedType =
         Types.newParameterizedType(Map::class.java, String::class.java, String::class.java)
@@ -24,45 +23,6 @@ object MoshiInst {
         moshi.adapter(typeMap)
 
     //
-    @TypeConverter
-    fun fromContentType(value: ContentType?): String? {
-        return value?.let { moshi.adapter(ContentType::class.java).toJson(it) }
-    }
-
-    @TypeConverter
-    fun toContentType(value: String?): ContentType? {
-        return value?.let { moshi.adapter(ContentType::class.java).fromJson(it) }
-    }
-
-    @TypeConverter
-    fun fromCategory(value: Category?): String? {
-        return value?.let { moshi.adapter(Category::class.java).toJson(it) }
-    }
-
-    @TypeConverter
-    fun toCategory(value: String?): Category? {
-        return value?.let { moshi.adapter(Category::class.java).fromJson(it) }
-    }
-
-    @TypeConverter
-    fun fromPriority(value: Priority?): String? {
-        return value?.let { moshi.adapter(Priority::class.java).toJson(it) }
-    }
-
-    @TypeConverter
-    fun toPriority(value: String?): Priority? {
-        return value?.let { moshi.adapter(Priority::class.java).fromJson(it) }
-    }
-
-    @TypeConverter
-    fun fromAuthor(value: Author?): String? {
-        return value?.let { moshi.adapter(Author::class.java).toJson(it) }
-    }
-
-    @TypeConverter
-    fun toAuthor(value: String?): Author? {
-        return value?.let { moshi.adapter(Author::class.java).fromJson(it) }
-    }
 
     @TypeConverter
     fun fromMetadataList(metadata: List<Any?>?): String? {

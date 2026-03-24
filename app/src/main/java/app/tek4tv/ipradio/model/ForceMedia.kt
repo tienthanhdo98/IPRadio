@@ -17,8 +17,7 @@ data class ForceMedia(
     @Json(name = "Level")
     var level: Int = 0,
 
-    var mediaItem: MediaItem? = null
-) {
+    ) {
     //Thời điểm kết thúc
     @Json(name = "EndTime")
     var endTime = ""
@@ -30,43 +29,9 @@ data class ForceMedia(
     @Json(name = "Name")
     var name = ""
 
-    fun toMediaItem(): MediaItem {
-//        val h = duration / 60
-//        val m = duration - h * 60
-//
-//        val hs = if (h >= 10) "$h" else "0$h"
-//        val ms = if (m >= 10) "$m" else "0$m"
-
-        return MediaItem(
-            body = path,
-            title = mediaItem!!.title,
-            type = type,
-            fixTime = fixTime,
-            end = endTime,
-            duration = mediaItem!!.duration,
-            author = mediaItem!!.author,
-            mediaID = mediaItem!!.mediaID,
-            category = mediaItem!!.category,
-            priority = mediaItem!!.priority,
-            contentType = mediaItem!!.contentType,
-            description = mediaItem!!.description,
-            sourceID = mediaItem!!.sourceID,
-            sourceName = mediaItem!!.sourceName,
-            sourceReference = mediaItem!!.sourceReference,
-            startTime = mediaItem!!.startTime,
-            createDate = mediaItem!!.createDate,
-            id = mediaItem!!.id,
-            projectID = mediaItem!!.mediaID,
-            fieldType = mediaItem!!.fieldType,
-            isExternalSource = mediaItem!!.isExternalSource,
-
-            ).also { it.level = level }
-    }
-
     //duration = "$hs:$ms:00",
 
     companion object {
-//        val jsonAdapter = MoshiInst.moshi.adapter(ForceMedia::class.java)
 
         fun getLocalForceMedia(appContext: Context): MediaInfo? {
             val value = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA_INFO, "")
@@ -101,9 +66,7 @@ data class ForceMedia(
             }
         }
 
-        fun clearMonthlyData(appContext: Context) {
-            ConfigUtil.putString(appContext, ConfigUtil.MONTHLY_SCENARIO_WSS_DATA, "")
-        }
+
     }
 }
 

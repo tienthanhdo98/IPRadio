@@ -2,9 +2,9 @@ package app.tek4tv.ipradio.utils
 
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
-import app.tek4tv.ipradio.model.SchedulerModel
 import app.tek4tv.ipradio.model.local.MediaFileEntity
 import app.tek4tv.ipradio.model.local.MediaInfoEntity
+import app.tek4tv.ipradio.model.local.MediaInfoLiveHistoryEntity
 import app.tek4tv.ipradio.model.local.MediaWithFiles
 
 fun MediaInfo.toEntity(): MediaInfoEntity {
@@ -20,7 +20,26 @@ fun MediaInfo.toEntity(): MediaInfoEntity {
         ds = this.ds,
         created = this.created,
         start = this.start,
-        expired = this.expired
+        expired = this.expired,
+        action = this.action
+    )
+}
+
+fun MediaInfo.toLiveEntity(): MediaInfoLiveHistoryEntity {
+    return MediaInfoLiveHistoryEntity(
+        mid = this.mid ?: 0L,
+        version = this.version,
+        prio = this.prio,
+        summary = this.summary,
+        mode = this.mode,
+        repeat = this.repeat,
+        days = this.days,
+        ts = this.ts,
+        ds = this.ds,
+        created = this.created,
+        start = this.start,
+        expired = this.expired,
+        action = this.action
     )
 }
 

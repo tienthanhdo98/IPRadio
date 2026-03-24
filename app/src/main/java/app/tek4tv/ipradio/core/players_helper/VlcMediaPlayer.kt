@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
@@ -8,12 +9,10 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaFileType
-import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.ui.CustomPlayer
-import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
-import java.util.Calendar
 
 class VlcMediaPlayer(
     private val appContext: Context,
@@ -24,11 +23,8 @@ class VlcMediaPlayer(
     private var mLibVLC: LibVLC
     private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaFile? = null
-    private var isPlaying = false
     var countReplayLive = 0
 
-
-    override fun isPlaying(): Boolean = isPlaying
 
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
@@ -39,17 +35,15 @@ class VlcMediaPlayer(
 
             MediaPlayer.Event.Stopped -> {
                 Log.d("MediaInfo", "Vlc Stopped")
-                isPlaying = false
+                playerEventListener.onMediaEndReached(currentMedia)
             }
 
             MediaPlayer.Event.EncounteredError -> {
-                isPlaying = false
                 handlerLivePlayer?.removeCallbacksAndMessages(null)
                 playerEventListener.onPlayerError("Lõi", currentMedia)
             }
 
             MediaPlayer.Event.Playing -> {
-                isPlaying = true
                 playerEventListener.onPlayMediaSuccess(currentMedia)
             }
 
@@ -140,20 +134,20 @@ class VlcMediaPlayer(
     }
 
     //check xem có đang trong giờ phát luồng live
-    private fun checkLiveStream(mediaItem: MediaItem): Boolean {
-        if (currentMedia!!.url != mediaItem.body) return false
-
-        val now = Calendar.getInstance()
-
-        val liveEndTime = toCalendar(mediaItem.end!!)
-
-        val check = (now <= liveEndTime)
-
-        Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
-        Log.d(TAG, "checkLiveStream isPlaying${check}")
-
-        return check
-    }
+//    private fun checkLiveStream(mediaItem: MediaFile): Boolean {
+//        if (currentMedia!!.url != mediaItem.url) return false
+//
+//        val now = Calendar.getInstance()
+//
+//        val liveEndTime = toCalendar(mediaItem.du!!)
+//
+//        val check = (now <= liveEndTime)
+//
+//        Log.d(TAG, "checkLiveStream isStillTimeFrame ${now <= liveEndTime}")
+//        Log.d(TAG, "checkLiveStream isPlaying${check}")
+//
+//        return check
+//    }
 //
 //    private fun checkTimeFramePlaying(mediaItem: MediaFile): Boolean {
 //        if (currentMedia != null && currentMedia!!.url != mediaItem.url) return false
@@ -243,11 +237,10 @@ class VlcMediaPlayer(
         try {
             handlerLivePlayer?.removeCallbacksAndMessages(null)
             vlcPlayer.stop()
-            isPlaying = false
+
             currentMedia = null
         } catch (e: Exception) {
             Log.d(TAG, "stop error :$e ")
-            isPlaying = false
             currentMedia = null
         }
 

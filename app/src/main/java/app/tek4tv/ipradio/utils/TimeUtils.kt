@@ -14,6 +14,15 @@ import kotlin.math.abs
 //}
 val sdf = SimpleDateFormat("HH:mm:ss")
 
+
+fun isOverlapping(
+    startA: Calendar, endA: Calendar,
+    startB: Calendar, endB: Calendar
+): Boolean {
+    // A bắt đầu trước khi B kết thúc VÀ B bắt đầu trước khi A kết thúc
+    return startA.before(endB) && startB.before(endA)
+}
+
 fun unixSecondsToCalendar(
     unixSeconds: Long, tz: TimeZone = TimeZone.getDefault()
 ): Calendar {
@@ -162,6 +171,7 @@ fun toCalendar(time: String): Calendar {
             set(Calendar.HOUR_OF_DAY, t[0])
             set(Calendar.MINUTE, t[1])
             set(Calendar.SECOND, t[2])
+            set(Calendar.MILLISECOND, 0)
         }
     } catch (e: Exception) {
         Log.d("toCalendar()", e.message!!)
@@ -208,36 +218,4 @@ fun setSystemTime(requireTime: String) {
     }
 }
 
-fun checkTime() {
-    SNTPClient.getDate(Calendar.getInstance().timeZone, object : SNTPClient.Listener {
-        override fun onTimeReceived(rawDate: String?) {
-            if (rawDate == null) return
-
-            try {
-                val receiveFormat = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZ")
-                val receivedDate = receiveFormat.parse(rawDate)
-
-                if (abs(receivedDate.time - Date().time) > 30000) {
-
-                    Log.d("Time", "Sync")
-
-                    val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
-                    setSystemTime(dateFormat.format(receivedDate))
-
-                    // Uncomment 2 below line be4 use this method
-
-                    //cancelAllAlarm()
-
-                    //CrashHandler.restartApp(MyApp.instance!!, this@MainActivity)
-                }
-            } catch (e: Exception) {
-                e.printStackTrace()
-            }
-        }
-
-        override fun onError(ex: java.lang.Exception?) {
-            ex?.printStackTrace()
-        }
-    })
-}
 

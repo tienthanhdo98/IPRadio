@@ -3,7 +3,6 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.util.Log
 import app.tek4tv.ipradio.core.mqtt.MQTTManager
-import app.tek4tv.ipradio.di.JsonAdapterProvider.bootstrapAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.fromVs
 import app.tek4tv.ipradio.di.JsonAdapterProvider.logsAdapter
 import app.tek4tv.ipradio.di.JsonAdapterProvider.senmlAdapter
@@ -20,17 +19,16 @@ import app.tek4tv.ipradio.model.McuStreamBackDataData
 import app.tek4tv.ipradio.model.McuUpdateFirmData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
-import app.tek4tv.ipradio.model.NetworkConfig
 import app.tek4tv.ipradio.model.OphRebootData
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.SenMLItem
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.ShowInfo
 import app.tek4tv.ipradio.network.ApiService
-import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.MQTT_PORT
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.MQTT_SECURITY
-import app.tek4tv.ipradio.utils.GlobalProperties.Companion.MQTT_SERVER
+import app.tek4tv.ipradio.utils.DeviceUtils.calculateSpkerr
+import app.tek4tv.ipradio.utils.DeviceUtils.getSdFree
+import app.tek4tv.ipradio.utils.DeviceUtils.getSdTotal
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.HubCommand.OPU_ACK
 import app.tek4tv.ipradio.utils.HubCommand.OPU_GENERIC
@@ -39,6 +37,7 @@ import app.tek4tv.ipradio.utils.HubCommand.OPU_SETTINGS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_STATUS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_SYNC
 import app.tek4tv.ipradio.utils.crypto.b64Decode
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -71,9 +70,8 @@ class HubManager(
     var currentMediaItem: MediaFile? = null
     var currentMediaInfoListId: List<Long>? = null
 
-    var versionName = "M62.4.2c"
+    var versionName = "1.0.0"
 
-    private var bootstrapInfo: BootstrapResp? = null
 
     var isConnectSuccess = false
 
@@ -84,28 +82,26 @@ class HubManager(
     private var lastMessageHash: Int = 0
 
     private var lastMessageTime: Long = 0
+    var hasSync = false
+    var currentListShowInfoSynced = emptyList<ShowInfo>()
+
+    var globalProperties = GlobalProperties.getInst()
+    var bootstrapInfo: BootstrapResp? = null
 
     //In BT Mode
     fun getBootstrapInfo() {
         try {
-            val bootstrapInfoStr =
-                ConfigUtil.getStringEncrypt(appContext, ConfigUtil.BOOTSTRAP_INFO)
-            if (bootstrapInfoStr != "") {
-                bootstrapInfo = bootstrapAdapter.fromJson(bootstrapInfoStr)
-            } else {
+            bootstrapInfo = globalProperties.bootstrapInfo
+            if (bootstrapInfo == null) {
                 val call = authService.getBootstrapInfo(deviceImei, deviceImei)
                 val response = call.execute()
                 if (response.isSuccessful) {
                     Log.i(TAG, "getBootstrapInfo Success")
-                    ConfigUtil.putStringEncrypt(
-                        appContext,
-                        ConfigUtil.BOOTSTRAP_INFO,
-                        bootstrapAdapter.toJson(response.body())
-                    )
+                    globalProperties.saveConnectionConfig(response.body())
                     bootstrapInfo = response.body()
                 } else {
-                    Log.i(TAG, "getBootstrapInfo Success - Data null")
                     bootstrapInfo = null
+                    Log.i(TAG, "getBootstrapInfo Success - Data null")
                 }
             }
         } catch (e: Exception) {
@@ -126,32 +122,23 @@ class HubManager(
                 }
                 getMQTTInfoJob?.cancel()
                 getMQTTInfoJob = launch {
-                    val mqttSecurity = ConfigUtil.getInt(
-                        appContext,
-                        MQTT_SECURITY,
-                        1
-                    )
-                    val mqttServer =
-                        ConfigUtil.getString(appContext, MQTT_SERVER, "aiot.mobifone.vn")
-                    val mqttPort = ConfigUtil.getInt(appContext, MQTT_PORT, 6668)
+                    val mqttSecurity = globalProperties.mqttSecurity
+                    val mqttServer = globalProperties.mqttServer
+                    val mqttPort = globalProperties.mqttPort
                     val protocol = if (mqttSecurity == 1) "ssl" else "tcp"
                     val serverURI = "$protocol://$mqttServer:$mqttPort"
 
                     mqttClient = MQTTManager(
                         appContext,
                         this@HubManager,
-                        bootstrapInfo!!.id!!,
-                        bootstrapInfo!!.key!!,
-                        bootstrapInfo!!.channel!!,
-                        serverURI
+                        serverURI,
+                        bootstrapInfo!!,
                     )
                     while (!isConnectSuccess) {
                         mqttClient?.connectToMQTT()
                         delay(15000)
                     }
-
                 }
-
             }
         }
 
@@ -174,7 +161,7 @@ class HubManager(
         val info = McuInfoData(
             id = deviceImei,
             vcode = deviceImei,
-            fvers = "1.0.0",
+            fvers = versionName,
             osVersion = "5.10",
             osBuilddate = "2026-03-10",
             hwVersion = "3",
@@ -198,6 +185,69 @@ class HubManager(
         sendMessage(finalPayload)
     }
 
+    fun sendSettings() {
+        val time = System.currentTimeMillis() / 1000.0
+        val info = McuSettingsData(
+            txtype = 0,
+            sim = 0,
+            mobileMode = 4,
+            ioct = 0,
+            classd = 0,
+            disabled = 0,
+            mainVolume = globalProperties.volume.toInt(),
+            fmVolume = globalProperties.volume.toInt(),
+            fmAuto = 1,
+            fmThreshold = 15
+        )
+        val settingJsonString = moshi.toVs(info) ?: ""
+
+        val senmlItem = SenMLItem(
+            n = "$deviceImei:s:${OPU_SETTINGS}", t = time, vs = settingJsonString
+        )
+        val finalPayload = moshi.toVs(listOf(senmlItem)) ?: ""
+        Log.d("MGWtest", "sendSettings: $finalPayload")
+        sendMessage(finalPayload)
+    }
+
+    fun sendStatus() {
+        val time = System.currentTimeMillis() / 1000.0
+        val playlist = if (currentMediaItem != null) {
+            currentMediaItem!!.id
+        } else {
+            0
+        }
+        //getDeviceInfo(deviceInfoTemperature,SerialPortController.deviceInfo)
+        val spkerrValue = calculateSpkerr(
+            runningList = listOf(true, true, false, false),
+            errorList = listOf(true, false, false, false)
+        )
+        val status = McuStatusData(
+            conn = globalProperties.settingsTxType,
+            ipLan = NetworkUtils.getEthernetLanIp(appContext),
+            ipWan = NetworkUtils.getMobileLocalIp(appContext),
+            csqm = NetworkUtils.getCellularSignalPercent(appContext),
+            csqw = NetworkUtils.getWifiSignalPercent(appContext),
+            spkErr = spkerrValue,
+            fmSta = 0,
+            sdFree = getSdFree(),
+            sdTotal = getSdTotal(),
+            temp = 40,
+            playlist = playlist!!,
+            mids = currentMediaInfoListId,
+            fmRssi = 0,
+            disconnectionCnt = 0,
+            rssim = 0,
+        )
+        val statusJsonString = moshi.toVs(status) ?: ""
+
+        val senMlItem = SenMLItem(
+            n = "$deviceImei:s:$OPU_STATUS", t = time, vs = statusJsonString
+        )
+        val finalPayload = moshi.toVs(listOf(senMlItem)) ?: ""
+        Log.d("MGWtest", "sendStatus: $finalPayload")
+        sendMessage(finalPayload)
+    }
+
     fun sendAck(opcode: Int, t: Double) {
         val time = System.currentTimeMillis() / 1000.0
         val info = McuAckData(
@@ -210,30 +260,6 @@ class HubManager(
         )
         val finalPayload = moshi.toVs(listOf(senMlItem)) ?: ""
         Log.d("MGWtest", "sendAck: $finalPayload")
-        sendMessage(finalPayload)
-    }
-
-    fun sendSettings() {
-        val time = System.currentTimeMillis() / 1000.0
-        val info = McuSettingsData(
-            txtype = 0,
-            sim = 0,
-            mobileMode = 4,
-            ioct = 0,
-            classd = 0,
-            disabled = 0,
-            mainVolume = SerialPortController.volume.toInt(),
-            fmVolume = SerialPortController.volume.toInt(),
-            fmAuto = 1,
-            fmThreshold = 15
-        )
-        val settingJsonString = moshi.toVs(info) ?: ""
-
-        val senmlItem = SenMLItem(
-            n = "$deviceImei:s:${OPU_SETTINGS}", t = time, vs = settingJsonString
-        )
-        val finalPayload = moshi.toVs(listOf(senmlItem)) ?: ""
-        Log.d("MGWtest", "sendSettings: $finalPayload")
         sendMessage(finalPayload)
     }
 
@@ -251,40 +277,6 @@ class HubManager(
 
         val finalPayload = moshi.toVs(listOf(senmlItem)) ?: ""
         Log.d("MGWtest", "sendOpuSyncMedia: $finalPayload")
-        sendMessage(finalPayload)
-    }
-
-    fun sendStatus() {
-        val time = System.currentTimeMillis() / 1000.0
-        val playlist = if (currentMediaItem != null) {
-            currentMediaItem!!.id
-        } else {
-            0
-        }
-        val status = McuStatusData(
-            conn = 0,
-            ipLan = "192.168.1.10",
-            ipWan = "113.22.1.5",
-            csqm = 25,
-            csqw = 20,
-            spkErr = 0,
-            fmSta = 0,
-            sdFree = 1024000,
-            sdTotal = 2048000,
-            temp = 40,
-            playlist = playlist!!,
-            mids = currentMediaInfoListId,
-            fmRssi = 0,
-            disconnectionCnt = 0,
-            rssim = 0,
-        )
-        val statusJsonString = moshi.toVs(status) ?: ""
-
-        val senmlItem = SenMLItem(
-            n = "$deviceImei:s:$OPU_STATUS", t = time, vs = statusJsonString
-        )
-        val finalPayload = moshi.toVs(listOf(senmlItem)) ?: ""
-        Log.d("MGWtest", "sendStatus: $finalPayload")
         sendMessage(finalPayload)
     }
 
@@ -323,22 +315,24 @@ class HubManager(
 
                     HubCommand.OPH_SETTINGS_V2 -> {
                         val data = moshi.fromVs<McuSettingsData>(data)
-                        if (data?.fmVolume != null || data?.mainVolume != null) {
-                            hubCommand = HubCommand.SET_VOLUME_DEVICE
-                            responseHub.message = data.fmVolume.toString()
-                            onMessageListener.invoke(hubCommand, data.fmVolume.toString())
-                        }
-                        if (data?.txtype != null) {
-                            hubCommand = HubCommand.UPDATE_SETTING_CONFIG
-                            val networkConfig = NetworkConfig(
-                                transport = data.txtype,
-                                simType = data.sim,
-                                radioMode = data.mobileMode
-                            )
-                            responseHub.networkConfig = networkConfig
-                            onMessageListener.invoke(hubCommand, "")
-                        }
+                        hubCommand = HubCommand.UPDATE_SETTING_CONFIG
+                        responseHub.settingConfig = data
+                        onMessageListener.invoke(hubCommand, "")
 
+                    }
+
+                    HubCommand.OPH_SERVER -> {
+                        val data = moshi.fromVs<ServerData>(data)
+                        hubCommand = HubCommand.UPDATE_SERVER_CONFIG
+                        responseHub.serverConfig = data
+                        onMessageListener.invoke(hubCommand, "")
+                    }
+
+                    HubCommand.OPH_UDF -> {
+                        val data = moshi.fromVs<McuUpdateFirmData>(data)
+                        hubCommand = HubCommand.UPDATE_VERSION
+                        responseHub.updateFirmData = data
+                        onMessageListener.invoke(hubCommand, "")
                     }
 
                     HubCommand.OPH_STREAM_BACK -> {
@@ -354,23 +348,11 @@ class HubManager(
                         onMessageListener.invoke(hubCommand, "")
                     }
 
-                    HubCommand.OPH_UDF -> {
-                        val data = moshi.fromVs<McuUpdateFirmData>(data)
-                        hubCommand = HubCommand.UPDATE_VERSION
-                        responseHub.message = data?.url
-                        onMessageListener.invoke(hubCommand, data?.url)
-                    }
 
                     HubCommand.OPH_SETTINGS -> {
 
                     }
 
-                    HubCommand.OPH_SERVER -> {
-                        val data = moshi.fromVs<ServerData>(data)
-                        hubCommand = HubCommand.UPDATE_SERVER_CONFIG
-                        responseHub.serverConfig = data
-                        onMessageListener.invoke(hubCommand, "")
-                    }
 
                     HubCommand.OPH_REBOOT -> {
                         val data = moshi.fromVs<OphRebootData>(data)
@@ -391,6 +373,12 @@ class HubManager(
                         val listMediaInfo = mutableListOf<MediaInfo>()
 
                         if (!records.isNullOrEmpty()) {
+                            hasSync = currentListShowInfoSynced == records
+                            if (hasSync) {
+                                Log.d("MGWtest", "handlerMessage: OPH_MEDIA_V3 synced. Not Update")
+                                return
+                            }
+                            currentListShowInfoSynced = records
                             records.forEach { showInfo ->
                                 val showInfoStr = b64Decode(showInfo.showInfo!!)
                                 val mediaInfo = moshi.fromVs<MediaInfo>(showInfoStr)
@@ -405,24 +393,15 @@ class HubManager(
                                 }
                             }
                             if (listMediaInfo.isEmpty()) return
-                            //Case gửi riêng nhưng khi đồng bộ lại gửi cả live cả lịch
-//                            val listLiveMediaInfo = listMediaInfo.filter { it.mode == 2 }.toList()
-//                            if (listLiveMediaInfo.isNotEmpty()) {
-//                                hubCommand = HubCommand.LIVE
-//                                responseHub.mediaInfo = listLiveMediaInfo.first()
-//                                onMessageListener.invoke(hubCommand, "")
-//                            } else {
-//                                hubCommand = HubCommand.UPDATE_SCHEDULER
-//                                responseHub.listMediaInfo = listMediaInfo
-//                                onMessageListener.invoke(hubCommand, "")
-//                            }
                             val listLiveMediaInfo = listMediaInfo.filter { it.mode == 2 }.toList()
                             val listSchedulerMediaInfo =
                                 listMediaInfo.filter { it.mode == 1 }.toList()
-                            val listSilentInfo = listMediaInfo.filter { it.mode == 0 }.toList()
-                            if (listLiveMediaInfo.isNotEmpty()) {
+                            val listSaveOnlyMediaInfo =
+                                listMediaInfo.filter { it.mode == 0 }.toList()
+
+                            if (listLiveMediaInfo.isNotEmpty() && listSchedulerMediaInfo.isEmpty()) {
                                 hubCommand = HubCommand.LIVE
-                                responseHub.mediaInfo = listLiveMediaInfo.first()
+                                responseHub.listLiveMediaInfo = listLiveMediaInfo
                                 onMessageListener.invoke(hubCommand, "")
                             }
                             if (listSchedulerMediaInfo.isNotEmpty()) {
@@ -430,9 +409,11 @@ class HubManager(
                                 responseHub.listMediaInfo = listSchedulerMediaInfo
                                 onMessageListener.invoke(hubCommand, "")
                             }
-                            if (listSilentInfo.isNotEmpty()) {
-
-                            }
+//                            if (listSaveOnlyMediaInfo.isNotEmpty()) {
+//                                hubCommand = HubCommand.SAVE_SCHEDULER
+//                                responseHub.listSaveOnlyMediaInfo = listSaveOnlyMediaInfo
+//                                onMessageListener.invoke(hubCommand, "")
+//                            }
                         }
                     }
 
@@ -483,8 +464,7 @@ class HubManager(
                 try {
                     delay(60 * 1000L)
                     sendStatus()
-                    //1p sync 1 lần thì???
-//                    sendOpuSyncMedia()
+                    sendOpuSyncMedia()
                 } catch (e: Exception) {
                     delay(5000)
                 }

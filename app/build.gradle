@@ -110,6 +110,7 @@ dependencies {
 
     implementation 'com.microsoft.signalr:signalr:5.0.1'
 
+    implementation("com.arthenica:ffmpeg-kit-audio:6.0-2.LTS")
 
     //Retrofit and Moshi
     implementation 'com.squareup.retrofit2:retrofit:2.9.0'

@@ -7,12 +7,15 @@ import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
+import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
-import java.util.*
 
 class SerialPortController(
     private val appContext: Context,
@@ -47,20 +50,41 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
+//        coroutineScope.launch(Dispatchers.IO) {
+//            while (true) {
+//                updateStatus()
+//                delay(5000)
+//            }
+//        }
+//
+//
+//        if (serialPort != null && inputStream != null && outputStream != null) {
+//            coroutineScope.launch(Dispatchers.IO) {
+//                while (true) {
+//                    onWatchDog()
+//                    delay(5000)
+//                }
+//            }
+//        }
+
         coroutineScope.launch(Dispatchers.IO) {
-            while (true) {
-                updateStatus()
-                delay(5000)
-            }
-        }
+            var watchdogTick = 0
+            var statusTick = 0
 
-
-        if (serialPort != null && inputStream != null && outputStream != null) {
-            coroutineScope.launch(Dispatchers.IO) {
-                while (true) {
+            while (isActive) {
+                if (watchdogTick >= 5 && serialPort != null && inputStream != null && outputStream != null) {
                     onWatchDog()
-                    delay(5000)
+                    watchdogTick = 0
                 }
+
+                if (statusTick >= 15) {
+                    updateStatus()
+                    statusTick = 0
+                }
+
+                delay(1000)
+                watchdogTick++
+                statusTick++
             }
         }
     }

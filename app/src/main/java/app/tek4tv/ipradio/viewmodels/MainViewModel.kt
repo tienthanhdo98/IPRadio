@@ -2,34 +2,38 @@ package app.tek4tv.ipradio.viewmodels
 
 
 import android.Manifest
+import android.app.AppOpsManager
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Process
 import android.util.Log
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.model.MediaInfo
-import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.repo.MediaInfoLiveHistoryRepository
 import app.tek4tv.ipradio.repo.MediaInfoRepository
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.execSu
+import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.toModel
+import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.io.File
+import java.util.Calendar
 import javax.inject.Inject
-import android.app.AppOpsManager
-import android.os.Process
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
     val mediaRepo: MediaRepo,
     val mediaInfoRepo: MediaInfoRepository,
+    val mediaInfoLiveHistoryRepo: MediaInfoLiveHistoryRepository,
 ) : ViewModel() {
-    val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
 
     //MGW
     private val _schedulerUpdated = MutableSharedFlow<Unit>(replay = 1)
@@ -109,6 +113,15 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun saveSchedulerToLocal(listMediaInfo: List<MediaInfo>?) {
+        if (listMediaInfo == null) return
+        viewModelScope.launch {
+            listMediaInfo.forEach { mediaInfo ->
+                //Chỉ lưu ko phát
+                mediaInfoRepo.upsertMediaInfo(mediaInfo)
+            }
+        }
+    }
 
     fun getPlayerContent() {
         viewModelScope.launch {
@@ -145,11 +158,67 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
     fun getMediaInfoIdList(): List<Long> {
         return mediaRepo.listMediaInfoId
     }
 
+
+    suspend fun getOnlyNewMedia(listMediaInfo: List<MediaInfo>?): List<MediaInfo> {
+        if (listMediaInfo.isNullOrEmpty()) return emptyList()
+
+        val localHistory = mediaInfoLiveHistoryRepo.allMedia.first()
+        val localKeys = localHistory.map { "${it.mid}_${it.version}" }.toSet()
+
+        return listMediaInfo.filter { serverItem ->
+            val serverKey = "${serverItem.mid}_${serverItem.version}"
+            !localKeys.contains(serverKey)
+        }
+    }
+
+    fun insertMediaInfoLiveHistory(mediaInfo: MediaInfo) {
+        viewModelScope.launch {
+            mediaInfoLiveHistoryRepo.upsertMediaLiveInfo(mediaInfo)
+        }
+    }
+
+    fun clearLocalMediaInfoExpired(context: Context) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val listLiveHistory = mediaInfoLiveHistoryRepo.allMedia.first()
+                val listLocalMediaInfo = mediaInfoRepo.allMedia.first()
+                val now = Calendar.getInstance()
+
+                listLiveHistory.forEach {
+                    if (it.expired != null) {
+                        val expiredTime = unixSecondsToCalendar(it.expired)
+                        if (!now.before(expiredTime)) {
+                            mediaInfoLiveHistoryRepo.deleteMediaInfoById(it.mid)
+                        }
+                    }
+                }
+                listLocalMediaInfo.forEach { item ->
+                    val mediaInfo = item.toModel()
+                    if (mediaInfo.expired != null && mediaInfo.mid != null) {
+                        val expiredTime = unixSecondsToCalendar(mediaInfo.expired)
+                        if (!now.before(expiredTime)) {
+                            mediaInfoRepo.deleteMediaInfoById(mediaInfo.mid)
+                            val listFile = mediaInfo.files
+                            listFile.forEach { file ->
+                                val fileName = getFileNameFromUrl(file.url ?: "")
+                                if (fileName.isBlank()) return@forEach
+                                val fileLocal = File(context.filesDir.path, fileName)
+                                if (fileLocal.exists()) {
+                                    fileLocal.delete()
+                                }
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e("MediaInfo", "clearLocalMediaInfoExpired error: ${e.message}", e)
+            }
+        }
+    }
 
     fun downloadMedias() {
         mediaRepo.startDownloadMedia()

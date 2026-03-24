@@ -9,7 +9,7 @@ import androidx.room.Transaction
 import kotlinx.coroutines.flow.Flow
 
 @Dao
-interface MediaDao {
+interface MediaInfoDao {
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertMediaInfo(media: MediaInfoEntity)

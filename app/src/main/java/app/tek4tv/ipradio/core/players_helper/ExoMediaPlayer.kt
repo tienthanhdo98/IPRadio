@@ -5,9 +5,7 @@ import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.model.MediaFile
-import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
-import app.tek4tv.ipradio.utils.toCalendar
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
@@ -15,7 +13,6 @@ import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
 import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
 import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import okhttp3.OkHttpClient
-import java.util.Calendar
 
 
 //Mainly for playing m3u8 stream
@@ -34,8 +31,7 @@ class ExoMediaPlayer(
     private var isForceValue = false
 
     private var dataSourceFactory: DefaultDataSourceFactory
-    override fun isPlaying(): Boolean = isPlaying
-
+    
     var handler: Handler? = null
 
     var countReplayLive = 0
@@ -151,12 +147,12 @@ class ExoMediaPlayer(
         }
     }
 
-    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
-        val startTimeOfMedia = toCalendar(mediaItem.start!!)
-        val now = Calendar.getInstance()
-        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-
-    }
+//    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
+//        val startTimeOfMedia = toCalendar(mediaItem.start!!)
+//        val now = Calendar.getInstance()
+//        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+//
+//    }
 
     override fun stop() {
         try {

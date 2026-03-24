@@ -16,13 +16,18 @@ data class ResponseHub(
 
     var level: Int = 0,
 
-    var mediaInfo: MediaInfo? = null,
+    var listLiveMediaInfo: List<MediaInfo>? = null,
 
     var listMediaInfo: List<MediaInfo>? = null,
 
-    var networkConfig: NetworkConfig? = null,
+    var listSaveOnlyMediaInfo: List<MediaInfo>? = null,
 
-    var serverConfig: ServerData? = null
+    var settingConfig: McuSettingsData? = null,
+
+    var serverConfig: ServerData? = null,
+
+    var updateFirmData: McuUpdateFirmData? = null
+
 
 //    var mediaInfo: List<MediaInfo>? = emptyList(),
 

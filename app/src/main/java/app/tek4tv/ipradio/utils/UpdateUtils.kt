@@ -13,10 +13,11 @@ import kotlinx.coroutines.*
 import java.io.File
 
 fun downloadUpdateApk(
-    url: String,
+    url: String?,
     context: Context,
     controller: SerialPortController,
 ) {
+    if (url?.isEmpty() == true || url == "") return
     var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
         .toString() + "/"
     val fileName = "ipradio.apk"
