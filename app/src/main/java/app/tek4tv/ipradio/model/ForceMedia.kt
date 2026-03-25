@@ -43,9 +43,7 @@ data class ForceMedia(
             try {
                 val hasForceMedia =
                     ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
-                if (!hasForceMedia) return false
-
-                return true
+                return hasForceMedia
             } catch (_: Exception) {
                 return false
             }

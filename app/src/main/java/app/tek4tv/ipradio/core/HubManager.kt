@@ -37,6 +37,8 @@ import app.tek4tv.ipradio.utils.HubCommand.OPU_SETTINGS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_STATUS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_SYNC
 import app.tek4tv.ipradio.utils.crypto.b64Decode
+import app.tek4tv.ipradio.utils.getImsi
+import app.tek4tv.ipradio.utils.getSimPhoneNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -172,8 +174,8 @@ class HubManager(
             gsmModel = "CLM920_AC3",
             gsmImei = "123456789012345",
             gsmRevision = "REV1",
-            gsmImsi = "452012345678901",
-            gsmPhone = "0987654321"
+            gsmImsi = getImsi(appContext),
+            gsmPhone = getSimPhoneNumber(appContext)
         )
         val genericJsonString = moshi.toVs(info) ?: ""
         val senmlItem = SenMLItem(
@@ -192,8 +194,8 @@ class HubManager(
             sim = 0,
             mobileMode = 4,
             ioct = 0,
-            classd = 0,
-            disabled = 0,
+            classd = 1,
+            disabled = globalProperties.settingsDisable,
             mainVolume = globalProperties.volume.toInt(),
             fmVolume = globalProperties.volume.toInt(),
             fmAuto = 1,

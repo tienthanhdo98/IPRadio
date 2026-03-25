@@ -4,21 +4,6 @@ import android.util.Log
 import java.io.DataOutputStream
 import java.io.IOException
 
-//fun execSu(command: String) {
-//    try {
-//        val process = Runtime.getRuntime().exec("su")
-//        val os = DataOutputStream(process.outputStream)
-//        os.writeBytes(command)
-//        os.flush()
-//        os.writeBytes("exit\n")
-//        os.flush()
-//        process.waitFor()
-//        os.close()
-//    } catch (e: Exception) {
-//        Log.e("execSu", e.message ?: "")
-//        e.printStackTrace()
-//    }
-//}
 fun execSu(command: String): Int {
     return try {
         val process = Runtime.getRuntime().exec("su")
@@ -32,6 +17,32 @@ fun execSu(command: String): Int {
         Log.e("execSu", "Error: ${e.message}", e)
         -1
     }
+}
+
+fun setAirplaneModeEnable(enableOrDisable: Boolean) {
+    val command: String = if (enableOrDisable) {
+        "settings put global airplane_mode_on 1"
+    } else {
+        "settings put global airplane_mode_on 0"
+    }
+    executeCommandViaSu(command)
+}
+
+fun initESimConfig() {
+    val cmd = """
+        echo 163 > /sys/class/gpio/export
+        echo out > /sys/class/gpio/gpio163/direction
+        """.trimIndent()
+    executeCommandViaSu(cmd)
+}
+
+fun setESimEnable(enableOrDisable: Boolean) {
+    val command: String = if (enableOrDisable) {
+        "echo 1 > /sys/class/gpio/gpio163/value"
+    } else {
+        "echo 0 > /sys/class/gpio/gpio163/value"
+    }
+    executeCommandViaSu(command)
 }
 
 @Throws(java.lang.Exception::class)

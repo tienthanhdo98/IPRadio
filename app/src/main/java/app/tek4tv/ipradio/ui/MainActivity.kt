@@ -2,7 +2,9 @@ package app.tek4tv.ipradio.ui
 
 
 import android.content.Intent
+import android.content.IntentFilter
 import android.media.AudioManager
+import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -41,7 +43,10 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.live1
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.initESimConfig
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.setAirplaneModeEnable
+import app.tek4tv.ipradio.utils.setESimEnable
 import app.tek4tv.ipradio.utils.setEthernetEnabled
 import app.tek4tv.ipradio.utils.setMobileDataEnabled
 import app.tek4tv.ipradio.utils.setPreferredMode
@@ -53,6 +58,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import startMicToIcecast
 import javax.inject.Inject
 
 
@@ -80,6 +86,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var binding: ActivityMainBinding
 
+    private lateinit var airplaneReceiver: AirplaneModeReceiver
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -127,6 +134,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Dừng phát khẩn cấp
         override fun onEndForceMedia(mediaInfo: MediaInfo?) {
             if (mediaInfo != null) {
+                Log.d("MediaInfo", "onEndForceMedia saved to local history")
                 viewModel.insertMediaInfoLiveHistory(mediaInfo)
             }
             ForceMedia.deleteForeMediaPref(applicationContext)
@@ -279,6 +287,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         })
 
         viewModel.clearLocalMediaInfoExpired(applicationContext)
+
+        airplaneReceiver = AirplaneModeReceiver { enabled ->
+            if (enabled) {
+                println("Airplane mode ON")
+            } else {
+                println("Airplane mode OFF")
+            }
+        }
     }
 
     private fun showMac() {
@@ -294,6 +310,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onStart() {
         super.onStart()
         viewModel.getPlayerContentLocal()
+        val filter = IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED)
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            registerReceiver(airplaneReceiver, filter, RECEIVER_NOT_EXPORTED)
+        } else {
+            registerReceiver(airplaneReceiver, filter)
+        }
     }
 
     override fun onStop() {
@@ -301,12 +324,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         playerManager.onActivityStop()
         LocalWebConsole.stop()
         cancelAllAlarm()
+        //
+        unregisterReceiver(airplaneReceiver)
     }
 
     override fun onDestroy() {
         super.onDestroy()
         playerManager.onActivityDestroy()
-
     }
 
 
@@ -345,8 +369,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.hardRestart()
                 }
             }
-
-
         }
     }
 
@@ -380,8 +402,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 if (ForceMedia.hasValidForceMedia(applicationContext)) {
                     val forceMediaInfo = getLocalForceMedia(applicationContext)
                     if (forceMediaInfo != null) {
-                        playerManager.onPlayForceCommand(
-                            applicationContext, forceMediaInfo, mediaScheduler
+                        playerManager.playForceMedia(
+                            forceMediaInfo.endTime,
+                            forceMediaInfo,
+                            mediaScheduler
                         )
                     }
                     return@collect
@@ -424,8 +448,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     clearDatastore()
                     playerManager.resetPlayMode()
                     playerManager.stopAllPlayer()
-                    cancelAllAlarm()
-                    ForceMedia.deleteForeMediaPref(applicationContext)
+//                    ForceMedia.deleteForeMediaPref(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
                     viewModel.updateScheduler(responseHub.listMediaInfo)
                 }
@@ -458,17 +481,46 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 }
                                 //Mobile
                                 1 -> {
-                                    setWifiDataEnabled(false)
-                                    setMobileDataEnabled(true)
-                                    setEthernetEnabled(false)
-                                    val sim = data.sim
-                                    when (sim) {
-                                        0 -> {
-
-                                        }
-
-                                        1 -> {
-
+                                    lifecycleScope.launch {
+                                        val sim = data.sim
+                                        if (sim != null) {
+                                            Log.d(
+                                                "SettingInfo",
+                                                "handleFromCommandServer: Esim init"
+                                            )
+                                            initESimConfig()
+                                            delay(2000)
+                                            setESimEnable(true)
+                                            delay(2000)
+                                            setWifiDataEnabled(false)
+                                            setEthernetEnabled(false)
+                                            setMobileDataEnabled(false)
+                                            setAirplaneModeEnable(false)
+                                            delay(2000)
+                                            setWifiDataEnabled(false)
+                                            setEthernetEnabled(false)
+                                            setMobileDataEnabled(false)
+                                            setAirplaneModeEnable(false)
+                                            delay(2000)
+                                            setMobileDataEnabled(true)
+                                        } else {
+                                            Log.d(
+                                                "SettingInfo",
+                                                "handleFromCommandServer: Sim init"
+                                            )
+                                            setESimEnable(false)
+                                            delay(2000)
+                                            setWifiDataEnabled(false)
+                                            setEthernetEnabled(false)
+                                            setMobileDataEnabled(false)
+                                            setAirplaneModeEnable(false)
+                                            delay(2000)
+                                            setWifiDataEnabled(false)
+                                            setEthernetEnabled(false)
+                                            setMobileDataEnabled(false)
+                                            setAirplaneModeEnable(false)
+                                            delay(2000)
+                                            setMobileDataEnabled(true)
                                         }
                                     }
                                     val mode = data.mobileMode
@@ -549,13 +601,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                         //vlc
 
-                        val streamBackManager = StreamBackManagerVlc(applicationContext)
-                        streamBackManager.updateCurrentMediaUrl("https://binhdinh-ttn.lcsa.vn/site/get-resource?code=nE4Jq3R9OjoQeZgM6apZVg8lNDM7PA&type=.mp3")
-                        streamBackManager.handleStreamBack(
-                            icecastUrl = "icecast://source:hackme@sh.truyenthanhthongminh.vn/6565656565652",
-                            cmd = 0,  // CMD_START13
-                            timeout = 3600  // 1 giờ, hoặc null để không giới hạn
-                        )
+                        startMicToIcecast(this, message)
                     }
                 }
 

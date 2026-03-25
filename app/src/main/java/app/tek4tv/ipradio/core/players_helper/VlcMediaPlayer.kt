@@ -23,19 +23,24 @@ class VlcMediaPlayer(
     private var mLibVLC: LibVLC
     private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaFile? = null
-    var countReplayLive = 0
 
 
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
-                Log.d("MediaInfo", "Vlc EndReached")
-                playerEventListener.onMediaEndReached(currentMedia)
+
+                if (currentMedia?.getMediaType() == MediaFileType.FILE) {
+                    Log.d("MediaInfo", "Vlc EndReached file")
+                    playerEventListener.onMediaEndReached(currentMedia)
+                } else {
+                    Log.e("MediaInfo", "EndReached live")
+                    playerEventListener.onMediaForceEndReached(currentMedia)
+                }
             }
 
             MediaPlayer.Event.Stopped -> {
                 Log.d("MediaInfo", "Vlc Stopped")
-                playerEventListener.onMediaEndReached(currentMedia)
+                Unit
             }
 
             MediaPlayer.Event.EncounteredError -> {

@@ -474,7 +474,8 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         return PendingIntent.getBroadcast(appContext, requestEndForce, intent, flag)
     }
 
-    fun scheduleForceMediaAlarm(endTime: Int) {
+    fun scheduleForceMediaAlarm(endTime: Int?) {
+        if (endTime == null) return
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }

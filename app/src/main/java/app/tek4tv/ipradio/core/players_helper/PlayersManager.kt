@@ -32,6 +32,7 @@ class PlayersManager(
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaFile? = null
     private var currentPlayingMediaInfo: MediaInfo? = null
+    private var currentTimeFrame: String? = null
 
     /**
      * -2 for force media
@@ -73,7 +74,9 @@ class PlayersManager(
     }
 
     override fun onMediaForceEndReached(mediaItem: MediaFile?) {
-        stopForceMedia()
+//        stopForceMedia()
+        onMediaStopPlaying()
+        playNextMedia()
     }
 
 
@@ -98,8 +101,10 @@ class PlayersManager(
             val end = toCalendar(t[1]) //end time
 
             if (now in start.timeInMillis..end.timeInMillis) {
+//                if (currentTimeFrame != period) {
                 setTimeFrame(period)
                 found = true
+//                }
                 break
             }
         }
@@ -114,6 +119,7 @@ class PlayersManager(
         stopAllPlayer()
 
         playMode = timeFrame
+        currentTimeFrame = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame]?.files ?: listOf()
 
@@ -245,6 +251,7 @@ class PlayersManager(
         handlerFMPlayer?.removeCallbacksAndMessages(null)
         currentPlayingMedia = null
         currentPlayingMediaInfo = null
+        currentTimeFrame = null
         vlcPlayer.stop()
         exoPlayer.stop()
     }
@@ -322,9 +329,9 @@ class PlayersManager(
 
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
+        playerManagerListener?.onEndForceMedia(currentPlayingMediaInfo)
         stopAllPlayer()
         onMediaStopPlaying()
-        playerManagerListener?.onEndForceMedia(currentPlayingMediaInfo)
 //        playerManagerListener?.onTimeOver()
     }
 
@@ -375,65 +382,22 @@ class PlayersManager(
                     if (shouldPlay) return@forEachIndexed
                     //KO check, phat ngay khi nhận
                     shouldPlay = true
-                    currentPlayingMediaInfo = mediaInfo
-                    saveForceMediaInfoToPref(appContext, mediaInfoAdapter.toJson(mediaInfo))
 
-                    val endTime = ts.toInt() + durationSlot[index].toInt()
+//                    val endTime = ts.toInt() + durationSlot[index].toInt()
+                    val calendar = Calendar.getInstance()
+                    val hours = calendar.get(Calendar.HOUR_OF_DAY)
+                    val minutes = calendar.get(Calendar.MINUTE)
+                    val seconds = calendar.get(Calendar.SECOND)
+
+                    val nowSecondsOfDay = (hours * 3600) + (minutes * 60) + seconds
+                    val duration = durationSlot.getOrNull(index)?.toInt() ?: 0
+                    val endTime = nowSecondsOfDay + duration
+                    mediaInfo.endTime = endTime
+                    saveForceMediaInfoToPref(appContext, mediaInfoAdapter.toJson(mediaInfo))
                     playForceMedia(
-                        endTime, mediaInfo.files, mediaScheduler = mediaScheduler
+                        endTime, mediaInfo, mediaScheduler = mediaScheduler
                     )
 
-                    //Check start time
-//                    val slotStart = convertSecondsToCalendar(ts.toInt())
-//                    Log.d(
-//                        "MediaInfo", "slotStart: ${convertCalendarToString(slotStart)}"
-//                    )
-//                    val slotEnd = convertSecondsToCalendar(ts.toInt()).apply {
-//                        add(
-//                            Calendar.SECOND, durationSlot[index].toInt()
-//                        )
-//                    }
-//                    Log.d(
-//                        "MediaInfo", "slotEnd: ${convertCalendarToString(slotEnd)}"
-//                    )
-//
-//                    when {
-//                        now < slotStart -> {
-//                            Log.d(
-//                                "MediaInfo", "Chưa đến khung giờ phát"
-//                            )
-//                        }
-//
-//                        now >= slotEnd -> {
-//                            Log.d("MediaInfo", "Đã hết khung phát")
-//                        }
-//
-//                        else -> { // slotStart <= now < slotEnd, và đã qua start, chưa expired
-//                            Log.d(
-//                                "MediaInfo", "Đang phát trong khung: ${
-//                                    convertCalendarToString(
-//                                        slotStart, "HH:mm:ss"
-//                                    )
-//                                } - ${
-//                                    convertCalendarToString(
-//                                        slotEnd, "HH:mm:ss"
-//                                    )
-//                                } duration=${
-//                                    durationSlot.getOrNull(index)
-//                                }"
-//                            )
-//                            // nếu chỉ phát 1 slot thì return/break ở đây
-//                            shouldPlay = true
-//
-//                            saveForceMediaInfoToPref(appContext, mediaInfoAdapter.toJson(mediaInfo))
-//
-//                            val endTime = ts.toInt() + durationSlot[index].toInt()
-//                            playForceMedia(
-//                                endTime, mediaInfo.files, mediaScheduler = mediaScheduler
-//                            )
-//                            return
-//                        }
-//                    }
                 }
             } else {
                 Log.d(
@@ -447,7 +411,7 @@ class PlayersManager(
 
 
     fun playForceMedia(
-        endTime: Int, listForceMedia: List<MediaFile>, mediaScheduler: MediaScheduler
+        endTime: Int?, mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
     ) {
         try {
             Log.d("aaa", "force")
@@ -460,8 +424,8 @@ class PlayersManager(
             playMode = PLAY_MODE_FORCE
 
             stopAllPlayer()
-
-            currentPlaylist = listForceMedia
+            currentPlayingMediaInfo = mediaInfo
+            currentPlaylist = mediaInfo.files
 
             playlistIndex = 0
 

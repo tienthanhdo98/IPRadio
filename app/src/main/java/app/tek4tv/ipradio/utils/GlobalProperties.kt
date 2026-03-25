@@ -5,7 +5,6 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.di.JsonAdapterProvider.bootstrapAdapter
 import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.McuSettingsData
-import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.ServerData
 
 
@@ -66,12 +65,16 @@ class GlobalProperties {
             appContext, MQTT_SECURITY, 1
         )
         mqttPort = ConfigUtil.getInt(appContext, MQTT_PORT, 6668)
-        bootstrapInfo = bootstrapAdapter.fromJson(
-            ConfigUtil.getStringEncrypt(
-                appContext,
-                BOOTSTRAP_INFO, ""
-            ) ?: ""
-        )
+
+        val bootstrapJson = ConfigUtil.getStringEncrypt(appContext, BOOTSTRAP_INFO, null)
+        bootstrapInfo = try {
+            if (bootstrapJson.isNullOrBlank()) null
+            else bootstrapAdapter.fromJson(bootstrapJson)
+        } catch (e: Exception) {
+            //xóa key lỗi khi parse fail
+            ConfigUtil.putStringEncrypt(appContext, BOOTSTRAP_INFO, null)
+            null
+        }
         //setting
         settingsDisable = ConfigUtil.getInt(appContext, SETTINGS_DISABLE, 0)
         settingsTxType = ConfigUtil.getInt(appContext, SETTINGS_TXTYPE, 0)

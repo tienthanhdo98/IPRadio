@@ -199,7 +199,7 @@ class MainViewModel @Inject constructor(
                 listLocalMediaInfo.forEach { item ->
                     val mediaInfo = item.toModel()
                     if (mediaInfo.expired != null && mediaInfo.mid != null) {
-                        val expiredTime = unixSecondsToCalendar(mediaInfo.expired)
+                        val expiredTime = unixSecondsToCalendar(mediaInfo.expired!!)
                         if (!now.before(expiredTime)) {
                             mediaInfoRepo.deleteMediaInfoById(mediaInfo.mid)
                             val listFile = mediaInfo.files
