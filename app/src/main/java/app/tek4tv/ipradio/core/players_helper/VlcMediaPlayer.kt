@@ -28,14 +28,8 @@ class VlcMediaPlayer(
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
             MediaPlayer.Event.EndReached -> {
-
-                if (currentMedia?.getMediaType() == MediaFileType.FILE) {
-                    Log.d("MediaInfo", "Vlc EndReached file")
-                    playerEventListener.onMediaEndReached(currentMedia)
-                } else {
-                    Log.e("MediaInfo", "EndReached live")
-                    playerEventListener.onMediaForceEndReached(currentMedia)
-                }
+                Log.d("MediaInfo", "Vlc EndReached")
+                playerEventListener.onMediaEndReached(currentMedia)
             }
 
             MediaPlayer.Event.Stopped -> {
@@ -116,20 +110,7 @@ class VlcMediaPlayer(
             handlerLivePlayer?.postDelayed(
                 {
                     vlcPlayer.stop()
-                    if (currentMedia?.getMediaType() == MediaFileType.FILE) {
-//                    val isStreamFailed = checkTimeFramePlaying(currentMedia!!)
-//                    if (!isStreamFailed) {
-//                        Log.d(TAG, "Player vlc live stop file")
-//                        playerEventListener.onMediaEndReached(currentMedia)
-//                        isPlaying = false
-//                    } else {
-//                        checkStreamError()
-//                    }
-                        playerEventListener.onMediaEndReached(currentMedia)
-                    } else {
-                        Log.d(TAG, "Player vlc live stop force")
-                        playerEventListener.onMediaForceEndReached(currentMedia)
-                    }
+                    playerEventListener.onMediaEndReached(currentMedia)
 
                 },
                 (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
@@ -242,7 +223,6 @@ class VlcMediaPlayer(
         try {
             handlerLivePlayer?.removeCallbacksAndMessages(null)
             vlcPlayer.stop()
-
             currentMedia = null
         } catch (e: Exception) {
             Log.d(TAG, "stop error :$e ")

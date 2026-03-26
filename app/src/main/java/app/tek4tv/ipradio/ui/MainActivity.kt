@@ -21,7 +21,6 @@ import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.stream.StreamBackManager
-import app.tek4tv.ipradio.core.stream.StreamBackManagerVlc
 import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.model.BootstrapResp
@@ -411,6 +410,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     return@collect
                 }
                 cancelAllAlarm()
+                //playerManager.stopAllPlayer()
                 mediaScheduler.scheduleAllAlarms()
                 playerManager.getPlay()
             }

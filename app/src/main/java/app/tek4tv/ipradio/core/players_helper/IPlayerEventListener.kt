@@ -10,5 +10,4 @@ interface IPlayerEventListener {
     fun onPlayerError(e: String? = null, mediaItem: MediaFile?)
     fun onPlayMediaSuccess(mediaItem: MediaFile?)
     fun onMediaEndReached(mediaItem: MediaFile?)
-    fun onMediaForceEndReached(mediaItem: MediaFile?)
 }

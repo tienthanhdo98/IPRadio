@@ -73,16 +73,9 @@ class PlayersManager(
         playNextMedia()
     }
 
-    override fun onMediaForceEndReached(mediaItem: MediaFile?) {
-//        stopForceMedia()
-        onMediaStopPlaying()
-        playNextMedia()
-    }
-
 
     private fun onMediaStopPlaying() {
         playerManagerListener?.onEndMedia()
-        currentPlayingMedia = null
     }
 
     /**
@@ -137,16 +130,14 @@ class PlayersManager(
             Log.d("MediaInfo", "Play media phat tiep")
             playMediaByIndex(playlistIndex)
         } else {
-            //Ko phát lại nhạc hiệu. chỉ phát lần đầu. Nhạch hiệu Id = 0/ index = 0
-            if (currentPlayingMedia?.id == 0L) {
+            playlistIndex = 0
+            val firstItem = currentPlaylist[playlistIndex]
+            Log.d("MediaInfo", "Playlish End: loop ${currentPlayingMedia?.id}")
+            //Ko phát lại nhạc hiệu. chỉ phát lần đầu. Nhạc hiệu Id = 0/ index = 0
+            if (firstItem.id == 0L) {
                 playlistIndex = 1
-                playMediaByIndex(playlistIndex)
             }
-            //Ko có nhạc hiệu
-            else {
-                playlistIndex = 0
-                playMediaByIndex(playlistIndex)
-            }
+            playMediaByIndex(playlistIndex)
 
 
         }
