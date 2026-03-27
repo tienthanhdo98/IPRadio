@@ -14,7 +14,9 @@ import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.repo.MediaInfoLiveHistoryRepository
 import app.tek4tv.ipradio.repo.MediaInfoRepository
 import app.tek4tv.ipradio.repo.MediaRepo
+import app.tek4tv.ipradio.utils.decodeRepeatDays
 import app.tek4tv.ipradio.utils.execSu
+import app.tek4tv.ipradio.utils.isTodayAllowed
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.toModel
 import app.tek4tv.ipradio.utils.unixSecondsToCalendar
@@ -89,24 +91,31 @@ class MainViewModel @Inject constructor(
                     }
                 }
 
-                // 3. Nếu có thay đổi, tiến hành làm mới lịch hẹn giờ
-                if (hasChanged) {
-                    // Làm sạch bộ nhớ đệm trong Repo
-                    mediaRepo.clearAllScheduled()
+//                //3. Nếu có thay đổi, tiến hành làm mới lịch hẹn giờ
+//                if (hasChanged) {
+//                    // Làm sạch bộ nhớ đệm trong Repo
+//                    //mediaRepo.clearAllScheduled()
+//                    // Nạp lại dữ liệu còn lại từ DB vào Repo
+//                    val remainingMedia = mediaInfoRepo.allMedia.first()
+//                    remainingMedia.forEach { item ->
+//                        mediaRepo.updateScheduler(item.toModel())
+//                    }
+//
+//                    // Phát tín hiệu để dừng/đặt lại Alarm/Player
+//                    _schedulerUpdated.emit(Unit)
+//                    Log.d("MediaInfo", "Đồng bộ hoàn tất, đã cập nhật lại hẹn giờ")
+//                } else {
+//                    _schedulerUpdated.emit(Unit)
+//                    Log.d("MediaInfo", "Đồng bộ hoàn tất, Local = sync")
+//                }
+                val remainingMedia = mediaInfoRepo.allMedia.first().map { it.toModel() }
 
-                    // Nạp lại dữ liệu còn lại từ DB vào Repo
-                    val remainingMedia = mediaInfoRepo.allMedia.first()
-                    remainingMedia.forEach { item ->
-                        mediaRepo.updateScheduler(item.toModel())
-                    }
+                // 3. Gọi hàm Refresh "nguyên khối"
+                // Hàm này sẽ không làm trống RAM giữa chừng, nhạc sẽ không bị ngắt
+                mediaRepo.refreshAllSchedules(remainingMedia)
 
-                    // Phát tín hiệu để dừng/đặt lại Alarm/Player
-                    _schedulerUpdated.emit(Unit)
-                    Log.d("MediaInfo", "Đồng bộ hoàn tất, đã cập nhật lại hẹn giờ")
-                } else {
-                    _schedulerUpdated.emit(Unit)
-                    Log.d("MediaInfo", "Đồng bộ hoàn tất, Local = sync")
-                }
+                // 4. Báo cho MainActivity
+
             } catch (e: Exception) {
                 Log.e("SYNC_DEBUG", "Lỗi đồng bộ: ${e.message}")
             }

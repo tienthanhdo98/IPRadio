@@ -1,10 +1,14 @@
 package app.tek4tv.ipradio.core.stream
 
+import FFMEPGStreamer
 import android.content.Context
 import android.net.Uri
 import android.util.Log
+import androidx.appcompat.app.AppCompatActivity
 import kotlinx.coroutines.Job
 import androidx.core.net.toUri
+import app.tek4tv.ipradio.model.IcecastConfig
+import app.tek4tv.ipradio.model.McuStreamBackData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -16,7 +20,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlin.coroutines.cancellation.CancellationException
 
 class StreamBackManager(
-    private val appContext: Context
+    private val activity: AppCompatActivity
 ) {
     companion object {
         private const val TAG = "StreamBackManager"
@@ -28,49 +32,44 @@ class StreamBackManager(
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutex = Mutex()
 
-    private var currentStreamer: MicAacIcecastStreamer? = null
+    private var currentStreamer: FFMEPGStreamer? = null
     private var streamJob: Job? = null
     private var stopTimeoutJob: Job? = null
 
-    fun handleStreamBack(url: String, cmd: Int?, timeout: Int?) {
-        when (cmd) {
+    fun handleStreamBack(data: McuStreamBackData) {
+        when (data.cmd) {
             CMD_STOP -> {
                 scope.launch { stopStreamBack() }
             }
 
             CMD_START13, CMD_START24 -> {
-                scope.launch { startStreamBack(url, timeout) }
+                scope.launch { startStreamBack(data.streamUrl, data.timeout) }
             }
 
             else -> {
-                Log.w(TAG, "Unknown cmd=$cmd, ignore")
+                Log.w(TAG, "Unknown cmd=${data.cmd}, ignore")
             }
         }
     }
 
-    private suspend fun startStreamBack(url: String, timeout: Int?) {
+    private suspend fun startStreamBack(url: String?, timeout: Int?) {
         mutex.withLock {
-            val config = parseIcecastUrl(url)
-            if (config == null) {
-                Log.e(TAG, "Invalid stream url: $url")
-                return
-            }
+            if (url.isNullOrBlank()) return
 
             stopStreamBackLocked()
 
             streamJob = scope.launch(Dispatchers.IO) {
                 try {
-                    val client = IcecastPutClient(config)
-                    val streamer = MicAacIcecastStreamer(appContext, client)
+                    val streamer = FFMEPGStreamer()
                     currentStreamer = streamer
 
                     Log.d(TAG, "Connecting and streaming to $url")
-                    streamer.start()
+                    streamer.startMicToIcecast(activity, url)
                     Log.d(TAG, "Connect OK")
                 } catch (e: CancellationException) {
                     Log.d(TAG, "Stream job cancelled")
                     try {
-                        currentStreamer?.stop()
+                        currentStreamer?.stopMicToIcecast()
                     } catch (_: Exception) {
                     }
                     currentStreamer = null
@@ -78,7 +77,7 @@ class StreamBackManager(
                 } catch (e: Exception) {
                     Log.e(TAG, "Connect fail: ${e.message}", e)
                     try {
-                        currentStreamer?.stop()
+                        currentStreamer?.stopMicToIcecast()
                     } catch (_: Exception) {
                     }
                     currentStreamer = null
@@ -112,7 +111,7 @@ class StreamBackManager(
         streamJob = null
 
         try {
-            currentStreamer?.stop()
+            currentStreamer?.stopMicToIcecast()
             Log.d(TAG, "Stream stopped")
         } catch (e: Exception) {
             Log.e(TAG, "Stop stream fail: ${e.message}", e)
@@ -130,44 +129,4 @@ class StreamBackManager(
         }
     }
 
-    private fun parseIcecastUrl(rawUrl: String): IcecastConfig? {
-        return try {
-            val uri = rawUrl.toUri()
-
-            val scheme = uri.scheme?.lowercase()
-            val host = uri.host ?: return null
-            val port = when {
-                uri.port != -1 -> uri.port
-                scheme == "icecasts" || scheme == "https" -> 443
-                else -> 80
-            }
-
-            val userInfo = uri.encodedUserInfo ?: ""
-            val parts = userInfo.split(":", limit = 2)
-            val username = parts.getOrNull(0)?.let(Uri::decode).orEmpty()
-            val password = parts.getOrNull(1)?.let(Uri::decode).orEmpty()
-
-            val mount = uri.encodedPath
-                ?.let(Uri::decode)
-                ?.takeIf { it.isNotBlank() }
-                ?: "/"
-
-            val tls = scheme == "icecasts" || scheme == "https"
-
-            if (username.isBlank() || password.isBlank()) return null
-
-            IcecastConfig(
-                host = host,
-                port = port,
-                mount = mount,
-                username = username,
-                password = password,
-                tls = tls,
-                contentType = "audio/aac"
-            )
-        } catch (e: Exception) {
-            Log.e(TAG, "parseIcecastUrl fail: ${e.message}", e)
-            null
-        }
-    }
 }

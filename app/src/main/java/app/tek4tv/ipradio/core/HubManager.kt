@@ -15,7 +15,7 @@ import app.tek4tv.ipradio.model.McuInfoData
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.McuSettingsData
 import app.tek4tv.ipradio.model.McuStatusData
-import app.tek4tv.ipradio.model.McuStreamBackDataData
+import app.tek4tv.ipradio.model.McuStreamBackData
 import app.tek4tv.ipradio.model.McuUpdateFirmData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
@@ -24,6 +24,7 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.SenMLItem
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.ShowInfo
+import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.DeviceUtils.calculateSpkerr
 import app.tek4tv.ipradio.utils.DeviceUtils.getSdFree
@@ -190,10 +191,10 @@ class HubManager(
     fun sendSettings() {
         val time = System.currentTimeMillis() / 1000.0
         val info = McuSettingsData(
-            txtype = 0,
-            sim = 0,
-            mobileMode = 4,
-            ioct = 0,
+            txtype = globalProperties.settingsTxType,
+            sim = globalProperties.settingsSimType,
+            mobileMode = globalProperties.settingsSimMode,
+            ioct = 1,
             classd = 1,
             disabled = globalProperties.settingsDisable,
             mainVolume = globalProperties.volume.toInt(),
@@ -218,10 +219,23 @@ class HubManager(
         } else {
             0
         }
-        //getDeviceInfo(deviceInfoTemperature,SerialPortController.deviceInfo)
+        val rawDeviceInfo = SerialPortController.deviceInfo
+        val deviceStatus = parseDeviceStatusResponse(rawDeviceInfo)
+        val runningList = (deviceStatus?.audioStatus ?: emptyList())
+            .take(4)
+            .map { it == 1 }
+            .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
+
+        val errorList = (deviceStatus?.errorStatus ?: emptyList())
+            .take(4)
+            .map { it == 1 }
+            .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
+//        val runningList = listOf(true, true, true, true)
+//        val errorList = listOf(true, false, false, false)
+
         val spkerrValue = calculateSpkerr(
-            runningList = listOf(true, true, false, false),
-            errorList = listOf(true, false, false, false)
+            runningList = runningList,
+            errorList = errorList
         )
         val status = McuStatusData(
             conn = globalProperties.settingsTxType,
@@ -230,10 +244,10 @@ class HubManager(
             csqm = NetworkUtils.getCellularSignalPercent(appContext),
             csqw = NetworkUtils.getWifiSignalPercent(appContext),
             spkErr = spkerrValue,
-            fmSta = 0,
+            fmSta = deviceStatus?.paStatus ?: 0,
             sdFree = getSdFree(),
             sdTotal = getSdTotal(),
-            temp = 40,
+            temp = deviceStatus?.temperature ?: 0,
             playlist = playlist!!,
             mids = currentMediaInfoListId,
             fmRssi = 0,
@@ -338,15 +352,14 @@ class HubManager(
                     }
 
                     HubCommand.OPH_STREAM_BACK -> {
-                        val data = moshi.fromVs<McuStreamBackDataData>(data)
-                        if (data?.streamUrl == null) return
-                        val url = data.streamUrl
-                        val cmd = data.cmd
-                        val timeout = data.timeout
+                        val data = moshi.fromVs<McuStreamBackData>(data)
+                        val streamBackData = McuStreamBackData(
+                            streamUrl = data?.streamUrl,
+                            cmd = data?.cmd,
+                            timeout = data?.timeout
+                        )
                         hubCommand = HubCommand.STREAM_BACK
-                        responseHub.message = url
-                        responseHub.duration = timeout ?: 10
-                        responseHub.level = cmd ?: 0
+                        responseHub.streamBackData = streamBackData
                         onMessageListener.invoke(hubCommand, "")
                     }
 

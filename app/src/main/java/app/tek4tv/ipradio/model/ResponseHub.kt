@@ -26,7 +26,9 @@ data class ResponseHub(
 
     var serverConfig: ServerData? = null,
 
-    var updateFirmData: McuUpdateFirmData? = null
+    var updateFirmData: McuUpdateFirmData? = null,
+
+    var streamBackData: McuStreamBackData? = null
 
 
 //    var mediaInfo: List<MediaInfo>? = emptyList(),

@@ -109,6 +109,55 @@ class MediaRepo @Inject constructor(
         }
     }
 
+    fun refreshAllSchedules(allMedia: List<MediaInfo>) {
+        val tempScheduledList = LinkedHashMap<String, MediaInfo>()
+        val tempMediaInfoWithPeriod = HashMap<String, String>()
+        val now = Calendar.getInstance()
+
+        allMedia.forEach { mediaInfo ->
+            try {
+                val mode = mediaInfo.mode
+                if (mode != 0) { // Chỉ xử lý loại lưu và phát
+                    val r1 = decodeRepeatDays(mediaInfo.repeat ?: 0, mediaInfo.days ?: 0)
+                    if (isTodayAllowed(now, r1)) {
+                        val timeSlot = mediaInfo.ts
+                        val durationSlot = mediaInfo.ds
+
+                        timeSlot?.forEachIndexed { index, ts ->
+                            if (durationSlot != null && index < durationSlot.size) {
+                                val slotStart = convertSecondsToCalendar(ts.toInt())
+                                val slotEnd =
+                                    convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
+                                val period = "${
+                                    convertCalendarToString(
+                                        slotStart,
+                                        "HH:mm:ss"
+                                    )
+                                }-${convertCalendarToString(slotEnd, "HH:mm:ss")}"
+
+                                // Đẩy vào Map TẠM
+                                tempScheduledList[period] = mediaInfo
+                                tempMediaInfoWithPeriod[period] = mediaInfo.mid.toString()
+                            }
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error processing media ${mediaInfo.mid}: ${e.message}")
+            }
+        }
+
+        // BƯỚC QUAN TRỌNG: Ghi đè cực nhanh vào RAM chính
+        synchronized(scheduledList) {
+            scheduledList.clear()
+            scheduledList.putAll(tempScheduledList)
+            // Cập nhật các map phụ khác nếu cần
+            mediaInfoWithPeriod.clear()
+            mediaInfoWithPeriod.putAll(tempMediaInfoWithPeriod)
+        }
+        Log.d(TAG, "Đã cập nhật lại toàn bộ RAM (Atomic Refresh)")
+    }
+
     fun clearAllScheduled() {
         scheduledList.clear()
         mediaInfoWithPeriod.clear()

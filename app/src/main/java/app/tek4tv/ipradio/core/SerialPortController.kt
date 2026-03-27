@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.telephony.CellSignalStrength
 import android.util.Log
+import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils
@@ -161,10 +162,8 @@ class SerialPortController(
                             val s: String = dataFinal.toString()
                             Log.i("serrialinfo", "readDevice: $s")
                             onDataReceived(s)
-                            val list = s.replace("$$,", "").replace("\r\n", "").split(",")
-                            if (s.contains("\$\$,1,8")) {
+                            if (s.startsWith("\$\$,1,8")) {
                                 deviceInfo = s
-                                volume = if (list.size > 5) list[5] else ""
                             }
                             dataFinal = StringBuffer()
                         }
@@ -203,15 +202,6 @@ class SerialPortController(
                 e.printStackTrace()
             }
         }
-    }
-
-    fun invokeDeviceFunc(funcId: String, data: String, isRead: Boolean = false) {
-        if (isRead) {
-            writeToDevice(buildReadMessage(funcId, data))
-        } else {
-            writeToDevice(buildWriteMessage(funcId, data))
-        }
-        Log.d(LOG_TAG, "invoke $funcId with $data, isRead: $isRead")
     }
 
     fun turnOffPA() {
@@ -275,12 +265,37 @@ class SerialPortController(
         Log.e("PA", "TUNER")
     }
 
+    //    $$,3,0 Không chọn kênh
+//    $$,3,1 Chọn kênh 1
+//    $$,3,2 Chọn kênh 2
+//    $$,3,3 Chọn kênh 3
+//    $$,3,4 Chọn kênh 4
+    fun streamBack(speakerPos: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_STREAM_BACK, speakerPos, true)
+    }
+
+    //    $$,2,0,0 Mute cả 2 kênh
+//    $$,2,0,1 Mute Left, Unmute Right
+//    $$,2,1,0 UnMute Left, Mute Right
+//    $$,2,1,1 Unmute cả 2 kênh
+    fun setMuteSpeak(leftSpeak: String, rightSpeak: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_STREAM_BACK, "$leftSpeak,$rightSpeak", true)
+    }
+
+    fun invokeDeviceFunc(funcId: String, data: String, isRead: Boolean = false) {
+        if (isRead) {
+            writeToDevice(buildReadMessage(funcId, data))
+        } else {
+            writeToDevice(buildWriteMessage(funcId, data))
+        }
+        Log.d(LOG_TAG, "invoke $funcId with $data, isRead: $isRead")
+    }
+
     companion object {
         const val MODE_VOD_LIVE = "MODE_VOD_LIVE"
         const val MODE_TUNER = "MODE_TUNER"
         const val MODE_NONE = "MODE_NONE"
         const val LOG_TAG = "SerialPortController"
-        var volume: String = "50"
         var deviceInfo: String = ""
     }
 }

@@ -2,9 +2,7 @@ package app.tek4tv.ipradio.ui
 
 
 import android.content.Intent
-import android.content.IntentFilter
 import android.media.AudioManager
-import android.os.Build
 import android.os.Bundle
 import android.util.Log
 import android.view.View
@@ -18,6 +16,7 @@ import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.SerialPortController.Companion.deviceInfo
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.stream.StreamBackManager
@@ -31,6 +30,8 @@ import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.ServerData
+import app.tek4tv.ipradio.model.findIndex
+import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
@@ -57,7 +58,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import startMicToIcecast
+
 import javax.inject.Inject
 
 
@@ -85,7 +86,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var binding: ActivityMainBinding
 
-    private lateinit var airplaneReceiver: AirplaneModeReceiver
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
@@ -211,7 +211,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             override fun forceRestartDevice() {
                 serialPortController.hardRestart()
             }
-
         }
 
         appStorageManager = AppStorageManager(applicationContext)
@@ -238,7 +237,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         )
         playerManager.playerManagerListener = playerCallback
 
-        streamBackManager = StreamBackManager(applicationContext)
+        streamBackManager = StreamBackManager(this@MainActivity)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
@@ -287,13 +286,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         viewModel.clearLocalMediaInfoExpired(applicationContext)
 
-        airplaneReceiver = AirplaneModeReceiver { enabled ->
-            if (enabled) {
-                println("Airplane mode ON")
-            } else {
-                println("Airplane mode OFF")
-            }
-        }
     }
 
     private fun showMac() {
@@ -309,13 +301,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     override fun onStart() {
         super.onStart()
         viewModel.getPlayerContentLocal()
-        val filter = IntentFilter(Intent.ACTION_AIRPLANE_MODE_CHANGED)
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-            registerReceiver(airplaneReceiver, filter, RECEIVER_NOT_EXPORTED)
-        } else {
-            registerReceiver(airplaneReceiver, filter)
-        }
     }
 
     override fun onStop() {
@@ -323,8 +308,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         playerManager.onActivityStop()
         LocalWebConsole.stop()
         cancelAllAlarm()
-        //
-        unregisterReceiver(airplaneReceiver)
     }
 
     override fun onDestroy() {
@@ -360,8 +343,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 lifecycleScope.launch {
                     mediaScheduler.cancelAllScheduledListAlarm()
-//                    viewModel.rescheduleMonthlyPlaylist()
-//                    hubManager.reconnectToServer()
                     serialPortController.turnOffPA()
                     delay(120000)
                     Log.e("alarmx", "Hub restart")
@@ -409,13 +390,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                     return@collect
                 }
-                cancelAllAlarm()
+//                cancelAllAlarm()
                 //playerManager.stopAllPlayer()
                 mediaScheduler.scheduleAllAlarms()
                 playerManager.getPlay()
             }
         }
-
     }
 
     fun startPlayingMedia() {
@@ -446,8 +426,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.UPDATE_SCHEDULER -> {
                     clearDatastore()
-                    playerManager.resetPlayMode()
-                    playerManager.stopAllPlayer()
+//                    playerManager.resetPlayMode()
+//                    playerManager.stopAllPlayer()
 //                    ForceMedia.deleteForeMediaPref(applicationContext)
                     Log.d("sds", "handleFromCommandServer: $message ")
                     viewModel.updateScheduler(responseHub.listMediaInfo)
@@ -593,15 +573,45 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 }
 
                 HubCommand.STREAM_BACK -> {
-                    val message = responseHub.message
-                    if (message != null) {
-//                        streamBackManager.handleStreamBack(
-//                            url = message, cmd = responseHub.level, timeout = responseHub.duration
-//                        )
+                    val streamBackData = responseHub.streamBackData
+                    if (streamBackData != null) {
+                        val deviceInfoData = parseDeviceStatusResponse(deviceInfo)
+                        when (streamBackData.cmd) {
+                            0 -> {
+                                val index = findIndex(0, deviceInfoData?.audioStatus)
+                                Log.e(
+                                    "STREAMBACK",
+                                    "source at =${index}"
+                                )
+                                if (index != null) {
+                                    serialPortController.streamBack(index.toString())
+                                } else {
+                                    Log.e(
+                                        "STREAMBACK",
+                                        "No active channel found for cmd=0, audioStatus=${deviceInfoData?.audioStatus}"
+                                    )
+                                }
+                            }
 
-                        //vlc
+                            1 -> {
+                                val index = findIndex(1, deviceInfoData?.audioStatus)
+                                Log.e(
+                                    "STREAMBACK",
+                                    "source at =${index}"
+                                )
+                                if (index != null) {
+                                    serialPortController.streamBack(index.toString())
+                                } else {
+                                    Log.e(
+                                        "STREAMBACK",
+                                        "No active channel found for cmd=0, audioStatus=${deviceInfoData?.audioStatus}"
+                                    )
+                                }
+                            }
+                        }
+                        streamBackManager.handleStreamBack(streamBackData)
 
-                        startMicToIcecast(this, message)
+
                     }
                 }
 

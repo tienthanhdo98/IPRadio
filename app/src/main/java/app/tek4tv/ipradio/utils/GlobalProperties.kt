@@ -44,7 +44,7 @@ class GlobalProperties {
 
     var settingsDisable = 0
     var settingsTxType = 0
-    var settingsSim = 0
+    var settingsSimType = 0
     var settingsSimMode = 0
 
 
@@ -78,7 +78,7 @@ class GlobalProperties {
         //setting
         settingsDisable = ConfigUtil.getInt(appContext, SETTINGS_DISABLE, 0)
         settingsTxType = ConfigUtil.getInt(appContext, SETTINGS_TXTYPE, 0)
-        settingsSim = ConfigUtil.getInt(appContext, SETTINGS_SIM, 0)
+        settingsSimType = ConfigUtil.getInt(appContext, SETTINGS_SIM, 0)
         settingsSimMode = ConfigUtil.getInt(appContext, SETTINGS_SIM_MODE, 0)
     }
 

@@ -22,6 +22,7 @@ object DeviceUtils {
         return (run shl 8) or err
     }
 
+
     fun getSdTotal(): Long {
         val path = Environment.getDataDirectory().path
         val statFs = StatFs(path)

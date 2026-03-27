@@ -11,13 +11,6 @@ object ConfigUtil {
 
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
 
-    //    const val FORCE_MEDIA = "FORCE_MEDIA"
-    const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
-    const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
-    const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
-    const val DISCONNECT_STATE = "DISCONNECT_STATE"
-    const val Minute_TURN_ON_PA = "Minute_TURN_ON_PA"
-
     //count each 5 reset app
     const val CountForHardReset = "KeepAliveInterval"
     const val KEY_EXTEND_FILE = "KEY_EXTEND_FILE"
@@ -28,15 +21,15 @@ object ConfigUtil {
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putString(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putString(key, value)
+        }
     }
 
     fun putStringEncrypt(context: Context, key: String?, value: String?) {
-        val editor = getEncryptedSharedPreferences(context).edit()
-        editor.putString(key, value)
-        editor.apply()
+        getEncryptedSharedPreferences(context).edit {
+            putString(key, value)
+        }
     }
 
     fun getStringEncrypt(context: Context, key: String, defaultValue: String?): String? {

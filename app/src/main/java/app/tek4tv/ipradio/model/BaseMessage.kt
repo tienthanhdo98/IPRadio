@@ -52,7 +52,7 @@ data class McuAckData(
 )
 
 @JsonClass(generateAdapter = true)
-data class McuStreamBackDataData(
+data class McuStreamBackData(
     @Json(name = "stream_url") val streamUrl: String? = null,
     //0=CH1-3, 1=CH2-4, 2=Stop.
     @Json(name = "cmd") val cmd: Int? = null,

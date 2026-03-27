@@ -94,15 +94,32 @@ class PlayersManager(
             val end = toCalendar(t[1]) //end time
 
             if (now in start.timeInMillis..end.timeInMillis) {
-//                if (currentTimeFrame != period) {
-                setTimeFrame(period)
+//                setTimeFrame(period)
+//                found = true
+//                break
+                // KỂM TRA LOGIC LIỀN MẠCH
                 found = true
-//                }
+                if (currentTimeFrame == period) {
+                    // Case 2: Đang phát playlist này, server cập nhật thêm playlist khác
+                    // Khung giờ này vẫn tồn tại -> KHÔNG LÀM GÌ CẢ (để player tự chạy tiếp)
+                    Log.d(
+                        "MediaInfo",
+                        "Đang phát khung giờ $period, tiếp tục phát không ngắt quãng."
+                    )
+                } else {
+                    // Là khung giờ hoàn toàn mới, hoặc trước đó thiết bị đang nghỉ ngơi
+                    Log.d("MediaInfo", "Bắt đầu khung giờ mới: $period")
+                    setTimeFrame(period)
+                }
                 break
             }
         }
         if (!found) {
-            Log.d("MediaInfo", "Không có khung nào phát hiện tại")
+            Log.d("MediaInfo", "Không có khung giờ hợp lệ -> Dừng thiết bị")
+            if (playMode != PLAY_MODE_INIT && playMode != PLAY_MODE_FORCE) {
+                stopPlaylist(playMode)
+                resetPlayMode()
+            }
         }
     }
 
