@@ -51,6 +51,19 @@ object ConfigUtil {
         return MasterKey.Builder(context).setKeyScheme(MasterKey.KeyScheme.AES256_GCM).build()
     }
 
+    fun putLong(context: Context, key: String?, value: Long) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        sharedPref.edit {
+            putLong(key, value)
+        }
+    }
+
+    fun getLong(context: Context, key: String, defaultValue: Long): Long {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        return sharedPref.getLong(key, defaultValue)
+    }
+
+
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         sharedPref.edit {

@@ -238,6 +238,11 @@ data class MediaFile(
 
 
     }
+
+    fun convertKHzToFm(freq: String?): String {
+        val value = freq?.toIntOrNull() ?: return ""
+        return (value / 100).toString()
+    }
 }
 
 enum class MediaFileType {

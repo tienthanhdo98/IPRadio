@@ -30,11 +30,23 @@ class GlobalProperties {
     val SETTINGS_SIM = "SETTINGS_SIM"
     val SETTINGS_SIM_MODE = "SETTINGS_SIM_MODE"
 
+    val DEFAULT_FM_VOLUME = "DEFAULT_FM_VOLUME"
+    val DEFAULT_FM_THRESHOLD = "DEFAULT_FM_VOLUME"
+    val COUNT_RESTART_APP = "COUNT_RESTART_APP"
 
-    var volume = "100"
+    //reset app
+    private val KEY_COUNT_RESTART_APP = "KEY_COUNT_RESTART_APP"
+    private val KEY_LAST_RESTART_TIME = "KEY_LAST_RESTART_TIME"
+    private val KEY_APP_START_TIME = "KEY_APP_START_TIME"
+    private val KEY_RESTART_BLOCKED_UNTIL = "KEY_RESTART_BLOCKED_UNTIL"
+
+
+    var mainVolume = "100"
+    var fmVolume = "100"
+    var fmThreshold = "36"
     var piCode = "0"
     var psName = "AAA"
-    var resumeFromStart = false
+
 
     var bootstrapServer = ""
     var mqttServer = "aiot.mobifone.vn"
@@ -49,10 +61,11 @@ class GlobalProperties {
 
 
     init {
-        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+        mainVolume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
+        fmVolume = ConfigUtil.getString(appContext, DEFAULT_FM_VOLUME, "100") ?: "100"
+        fmThreshold = ConfigUtil.getString(appContext, DEFAULT_FM_THRESHOLD, "36") ?: "36"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
-        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         //
         bootstrapServer =
             ConfigUtil.getStringEncrypt(appContext, BOOTSTRAP_SERVER, "aiot.mobifone.vn")
@@ -117,13 +130,60 @@ class GlobalProperties {
         }
     }
 
-    fun saveVolume(vol: String) {
-        volume = vol
+    fun saveMainVolume(vol: String) {
+        mainVolume = vol
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
+    }
+
+    fun saveFMVolume(vol: String) {
+        fmVolume = vol
+        ConfigUtil.putString(appContext, DEFAULT_FM_VOLUME, vol)
     }
 
     fun clearAllLocalConfigData() {
         ConfigUtil.clearAllPrefs(appContext)
+
+    }
+
+    //Reset app
+    fun getCountRestartApp(): Int {
+        return ConfigUtil.getInt(appContext, KEY_COUNT_RESTART_APP, 0)
+    }
+
+    fun saveCountRestartApp(count: Int) {
+        ConfigUtil.putInt(appContext, KEY_COUNT_RESTART_APP, count)
+    }
+
+    fun getLastRestartTime(): Long {
+        return ConfigUtil.getLong(appContext, KEY_LAST_RESTART_TIME, 0L)
+    }
+
+    fun saveLastRestartTime(time: Long) {
+        ConfigUtil.putLong(appContext, KEY_LAST_RESTART_TIME, time)
+    }
+
+    fun getAppStartTime(): Long {
+        return ConfigUtil.getLong(appContext, KEY_APP_START_TIME, 0L)
+    }
+
+    fun saveAppStartTime(time: Long) {
+        ConfigUtil.putLong(appContext, KEY_APP_START_TIME, time)
+    }
+
+    fun getRestartBlockedUntil(): Long {
+        return ConfigUtil.getLong(appContext, KEY_RESTART_BLOCKED_UNTIL, 0L)
+    }
+
+    fun saveRestartBlockedUntil(time: Long) {
+        ConfigUtil.putLong(appContext, KEY_RESTART_BLOCKED_UNTIL, time)
+    }
+
+    fun clearRestartGuard() {
+        ConfigUtil
+            .putInt(appContext, KEY_COUNT_RESTART_APP, 0)
+        ConfigUtil
+            .putLong(appContext, KEY_LAST_RESTART_TIME, 0L)
+        ConfigUtil.putLong(appContext, KEY_RESTART_BLOCKED_UNTIL, 0L)
 
     }
 

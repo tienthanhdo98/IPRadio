@@ -1,56 +1,88 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
-import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaFile
-import app.tek4tv.ipradio.model.MediaFileType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 
 class VlcMediaPlayer(
-    private val appContext: Context,
-    private val playerEventListener: IPlayerEventListener
-) :
-    IMediaPlayer {
+    private val appContext: Context, private val playerEventListener: IPlayerEventListener
+) : IMediaPlayer {
     private val TAG = "VlcMediaPlayer"
     private var mLibVLC: LibVLC
     private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaFile? = null
-
+    private var hasStartedPlaying = false
+    private var isBufferingTimeoutScheduled = false
+    private var bufferingHandler = Handler(Looper.getMainLooper())
 
     private val vlcEventListener = { event: Int, _: Long, _: Long, _: Float, _: String? ->
         when (event) {
-            MediaPlayer.Event.EndReached -> {
-                Log.d("MediaInfo", "Vlc EndReached")
-                playerEventListener.onMediaEndReached(currentMedia)
-            }
-
-            MediaPlayer.Event.Stopped -> {
-                Log.d("MediaInfo", "Vlc Stopped")
+            MediaPlayer.Event.Opening -> {
+                hasStartedPlaying = false
+                isBufferingTimeoutScheduled = false
+                bufferingHandler.removeCallbacks(bufferingTimeoutRunnable)
+                Log.d(TAG, "Vlc Opening")
                 Unit
             }
 
-            MediaPlayer.Event.EncounteredError -> {
-                handlerLivePlayer?.removeCallbacksAndMessages(null)
-                playerEventListener.onPlayerError("Lõi", currentMedia)
+            MediaPlayer.Event.Buffering -> {
+                Log.d(TAG, "Vlc Buffering")
+                if (!hasStartedPlaying && currentMedia != null && !isBufferingTimeoutScheduled) {
+                    isBufferingTimeoutScheduled = true
+                    bufferingHandler.postDelayed(bufferingTimeoutRunnable, 20_000L)
+                }
+                Unit
             }
 
             MediaPlayer.Event.Playing -> {
+                Log.d(TAG, "Vlc Playing")
+                hasStartedPlaying = true
+                isBufferingTimeoutScheduled = false
+                bufferingHandler.removeCallbacks(bufferingTimeoutRunnable)
                 playerEventListener.onPlayMediaSuccess(currentMedia)
             }
+
+            MediaPlayer.Event.Stopped -> {
+                Log.d(TAG, "Vlc Stopped")
+                isBufferingTimeoutScheduled = false
+                bufferingHandler.removeCallbacks(bufferingTimeoutRunnable)
+                Unit
+            }
+
+            MediaPlayer.Event.EndReached -> {
+                Log.d(TAG, "Vlc EndReached")
+                isBufferingTimeoutScheduled = false
+                bufferingHandler.removeCallbacks(bufferingTimeoutRunnable)
+                playerEventListener.onMediaEndReached(currentMedia)
+            }
+
+
+            MediaPlayer.Event.EncounteredError -> {
+                Log.d(TAG, "Vlc EncounteredError")
+                isBufferingTimeoutScheduled = false
+                bufferingHandler.removeCallbacks(bufferingTimeoutRunnable)
+                playerEventListener.onPlayerError("Lỗi", currentMedia)
+            }
+
 
             else -> {
             }
         }
     }
 
+    private val bufferingTimeoutRunnable = Runnable {
+        if (!hasStartedPlaying && currentMedia != null) {
+            Log.d("MediaInfo", "Vlc Buffering timeout")
+            playerEventListener.onPlayerError("Timeout khi tải stream", currentMedia)
+        }
+    }
 
     init {
         val args = ArrayList<String>()
@@ -65,13 +97,14 @@ class VlcMediaPlayer(
 
     override fun playMedia(mediaItem: MediaFile, isForce: Boolean, timeStamp: Int) {
 //        if (isPlaying) stop()
+        currentMedia = mediaItem
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
             playFile(mediaItem, timeStamp)
 
         }
-        currentMedia = mediaItem
+
     }
 
     override fun pause() {
@@ -87,8 +120,7 @@ class VlcMediaPlayer(
         Log.e("MediaInfo", "vlc play type file : ${mediaItem.duration}")
         val media = mediaItem.getVlcMedia(mLibVLC, appContext)
         Log.e(TAG, "vlc play timeStamp $timeStamp")
-        if (timeStamp != -1)
-            media.addOption(":start-time=$timeStamp")
+        if (timeStamp > 0) media.addOption(":start-time=$timeStamp")
 
         vlcPlayer.play(media)
 
@@ -105,15 +137,14 @@ class VlcMediaPlayer(
         Log.e(LOGTAG, "Player vlc live start")
         val durationMs = (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000
         if (durationMs > 0) {
-            handlerLivePlayer?.removeCallbacksAndMessages(null)
-            handlerLivePlayer = Handler(Looper.getMainLooper())
-            handlerLivePlayer?.postDelayed(
+            bufferingHandler?.removeCallbacksAndMessages(null)
+            bufferingHandler = Handler(Looper.getMainLooper())
+            bufferingHandler.postDelayed(
                 {
                     vlcPlayer.stop()
                     playerEventListener.onMediaEndReached(currentMedia)
 
-                },
-                (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
+                }, (mediaItem.duration * 1000).toLong() - currentTimeStamp * 1000 + 500
             )
         }
 

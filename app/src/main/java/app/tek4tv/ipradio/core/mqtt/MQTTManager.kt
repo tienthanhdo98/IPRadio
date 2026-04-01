@@ -18,17 +18,13 @@ class MQTTManager(
     private val serverURI: String,
     private val bootstrapResp: BootstrapResp,
 ) {
-    //    private val thingId: String,
-//    private val thingKey: String,
-//    private val channels: List<Channel>,
+
     val TAG = "MQTTLOG"
     private val clientID = "${bootstrapResp.id}"
     private val channels = bootstrapResp.channels
     private val channelId = bootstrapResp.channels?.first()?.id
-
     private var mqttClient: MqttAndroidClient? = null
 
-    // Bước 1: Khởi tạo Client và Callback ngay khi class được tạo (Chỉ 1 lần duy nhất)
     init {
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
 
@@ -43,6 +39,7 @@ class MQTTManager(
                 cause?.printStackTrace()
                 // Lưu ý: Không cần báo fail về HubManager ở đây
                 // vì thư viện sẽ tự động reconnect ngầm nhờ isAutomaticReconnect = true.
+                // connectEventListener.onConnectFailure(cause?.message)
             }
 
             override fun deliveryComplete(token: IMqttDeliveryToken?) {
@@ -50,13 +47,14 @@ class MQTTManager(
 
             override fun connectComplete(reconnect: Boolean, serverURI: String?) {
                 Log.d(TAG, "Connection connectComplete. Reconnect: $reconnect")
-                channels?.forEach { subscribe(it.id!!) } // resubscribe
+                channels?.forEach { subscribe(it.id!!) }
+                connectEventListener.onConnectSuccess()
+
             }
         })
     }
 
     fun connectToMQTT() {
-        // Bước 2: Kiểm tra nếu client đã kết nối rồi thì không thực hiện connect nữa
         if (mqttClient?.isConnected == true) {
             Log.d(TAG, "MQTT is already connected")
             return
@@ -67,21 +65,14 @@ class MQTTManager(
         val options = MqttConnectOptions()
         options.userName = bootstrapResp.id
         options.password = bootstrapResp.key?.toCharArray()
-        options.isAutomaticReconnect =
-            true // Thư viện sẽ tự quản lý reconnect bằng cơ chế backoff thông minh
-        options.isCleanSession = false
-        options.connectionTimeout = 40
-        options.keepAliveInterval = 45
+        options.isAutomaticReconnect = true
+        options.isCleanSession = true
+        options.connectionTimeout = 30
+        options.keepAliveInterval = 30
 
         try {
             mqttClient?.connect(options, null, object : IMqttActionListener {
                 override fun onSuccess(asyncActionToken: IMqttToken?) {
-                    Log.d(TAG, "Connection success")
-                    // Do connectComplete đã xử lý subscribe, nhưng gọi thêm ở đây cho lượt connect đầu cũng không sao
-                    channels?.forEach {
-                        subscribe(it.id!!)
-                    }
-                    connectEventListener.onConnectSuccess()
                 }
 
                 override fun onFailure(asyncActionToken: IMqttToken?, exception: Throwable?) {
@@ -98,6 +89,11 @@ class MQTTManager(
     fun publishToMQTT(
         strMessage: String, qos: Int = 0, retained: Boolean = false
     ) {
+        if (mqttClient?.isConnected != true) {
+            Log.d(TAG, "Cannot publish: MQTT not connected")
+            connectEventListener.onConnectFailure("MQTT not connected")
+            return
+        }
         try {
             val message = MqttMessage()
             message.payload = strMessage.toByteArray()
@@ -153,10 +149,23 @@ class MQTTManager(
             if (mqttClient?.isConnected == true) {
                 mqttClient?.disconnect()
             }
+            Log.d(TAG, "MQTT Disconnected")
+
+        } catch (e: Exception) {
+            Log.d(TAG, "MQTT Disconnect error: ${e.message}")
+        }
+    }
+
+    fun disconnectAll() {
+        try {
+            if (mqttClient?.isConnected == true) {
+                mqttClient?.disconnect()
+            }
             // Giải phóng tài nguyên client
             mqttClient?.unregisterResources()
             mqttClient?.close()
-            Log.d(TAG, "MQTT Disconnected gracefully")
+            Log.d(TAG, "MQTT Disconnected and close")
+
         } catch (e: Exception) {
             Log.d(TAG, "MQTT Disconnect error: ${e.message}")
         }

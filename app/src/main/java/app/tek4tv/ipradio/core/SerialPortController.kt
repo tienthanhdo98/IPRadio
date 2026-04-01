@@ -3,7 +3,6 @@ package app.tek4tv.ipradio.core
 import android.content.Context
 import android.telephony.CellSignalStrength
 import android.util.Log
-import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils
@@ -29,7 +28,6 @@ class SerialPortController(
 
     private val deviceMac = Utils.getMacAddr()
 
-    private var isRead = false
 
     var dataFinal = StringBuffer()
     var playMode = ""
@@ -114,8 +112,7 @@ class SerialPortController(
                 val strength = when (networkClass) {
                     "2G", "3G", "4G" -> {
                         val cellStrength = NetworkUtils.getCellSignalStrengthInDbm(appContext)
-                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                            "${cellStrength}dbm"
+                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN) "${cellStrength}dbm"
                         else "undefine"
                     }
 
@@ -135,14 +132,13 @@ class SerialPortController(
 
     private fun buildWriteMessage(functionId: String, data: String): String {
         val s = "$$,$functionId,$data,\r\n"
-        //Log.d(LOG_TAG, s)
+        Log.d(LOG_TAG, s)
         return s
     }
 
     private fun buildReadMessage(functionId: String, message: String): String {
-        isRead = true
         val s = "$$,$functionId,$message,\r\n"
-        //Log.d(LOG_TAG, s)
+        Log.d(LOG_TAG, s)
         return s
     }
 
@@ -160,8 +156,7 @@ class SerialPortController(
                         dataFinal.append(data)
                         if (dataFinal.toString().endsWith("\r\n")) {
                             val s: String = dataFinal.toString()
-                            Log.i("serrialinfo", "readDevice: $s")
-                            onDataReceived(s)
+                            Log.i(LOG_TAG, "readDevice: $s")
                             if (s.startsWith("\$\$,1,8")) {
                                 deviceInfo = s
                             }
@@ -177,22 +172,6 @@ class SerialPortController(
 
     }
 
-    private fun onDataReceived(data: String?) {
-        // read data
-        if (data == null) return
-        //Log.d(LOG_TAG, "dataFinal: $data")
-        if (data.endsWith("\r\n")) {
-            if (data.isNotEmpty() && data.startsWith("$$,")) {
-                if (isRead) {
-//                    hubManager.sendHubDirectMessage(
-//                        hubManager.receivedConnectionId, Utils.DEVICE_INFO, data
-//                    )
-
-                    isRead = false
-                }
-            }
-        }
-    }
 
     private fun writeToDevice(message: String) {
         if (outputStream != null) {
@@ -211,7 +190,7 @@ class SerialPortController(
     }
 
     fun turnOnPAVod() {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().mainVolume)
         playMode = MODE_VOD_LIVE
         Log.e("PA", "ON")
     }
@@ -261,8 +240,23 @@ class SerialPortController(
     fun playTuner(pipsData: String, tunerData: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
-        playMode = MODE_TUNER
+//        playMode = MODE_TUNER
         Log.e("PA", "TUNER")
+    }
+
+    fun writeVolumeTuner(data: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_VOLUME_TUNER, data)
+    }
+
+
+    //Tuner threshold
+    fun writeRSSI(data: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_RSSI, data)
+    }
+
+    //Switch Esim
+    fun writeSetESimMode(data: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_P4_0, data)
     }
 
     //    $$,3,0 Không chọn kênh

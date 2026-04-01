@@ -14,6 +14,9 @@ public class Define {
     public final static String FUNC_WRITE_PLAY_NO_SOURCE = "10";
     public final static String FUNC_WRITE_FORCE_RESTART_DEVICE = "11";
     public final static String FUNC_WRITE_SETUP_PI_PS_NAME = "13";
+    public final static String FUNC_WRITE_VOLUME_TUNER = "16";
     public final static String FUNC_WRITE_MUTE_SPEAKER = "17";
     public final static String FUNC_WRITE_STREAM_BACK = "18";
+    public final static String FUNC_WRITE_RSSI = "19";
+    public final static String FUNC_WRITE_P4_0 = "20";
 }

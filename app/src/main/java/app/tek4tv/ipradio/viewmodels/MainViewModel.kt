@@ -41,6 +41,31 @@ class MainViewModel @Inject constructor(
     private val _schedulerUpdated = MutableSharedFlow<Unit>(replay = 1)
     val schedulerUpdated = _schedulerUpdated.asSharedFlow()
 
+    fun updateSingleMedia(mediaInfo: MediaInfo?) {
+        if (mediaInfo == null) return
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                Log.d("MediaInfo", "Nhận bản tin lẻ: ${mediaInfo.mid}")
+
+                // 1. Lưu hoặc cập nhật bản tin này vào Database
+                // (Nếu đã có trong DB thì nó sẽ ghi đè bản mới nhất)
+                mediaInfoRepo.upsertMediaInfo(mediaInfo)
+
+                // 2. Thêm hoặc cập nhật bản tin này vào RAM (Map scheduledList)
+                // Hàm updateScheduler của bạn dùng `scheduledList[period] = mediaInfo`
+                // nên nó sẽ CỘNG DỒN một cách an toàn, b1 vẫn giữ nguyên.
+                mediaRepo.updateScheduler(mediaInfo)
+
+                // 3. Ra hiệu cho Player kiểm tra lại
+                // Vì b1 vẫn còn trong scheduledList, Player sẽ thấy khung giờ đang phát
+                // vẫn hợp lệ -> Không làm gián đoạn nhạc!
+                _schedulerUpdated.emit(Unit)
+
+            } catch (e: Exception) {
+                Log.e("MediaInfo", "Lỗi khi xử lý bản tin lẻ: ${e.message}")
+            }
+        }
+    }
 
     fun updateScheduler(listMediaInfo: List<MediaInfo>?) {
         if (listMediaInfo == null) return
@@ -52,14 +77,40 @@ class MainViewModel @Inject constructor(
                     mediaRepo.updateScheduler(mediaInfo)
                     Log.d("MediaInfo", "Media sync: $mediaInfo")
                 }
-                if (mediaInfo.action == 4) {
-                    deleteLocalScheduler(mediaInfo)
-                }
             }
             syncLocalWithServer(listMediaInfo.map { it.mid ?: 0L })
 
         }
     }
+
+
+    fun syncLocalWithServer(serverMids: List<Long>) {
+        viewModelScope.launch(Dispatchers.IO) {
+            try {
+                val localMedias = mediaInfoRepo.allMedia.first()
+
+                // 1. Xóa trong DB những gì server đã bỏ
+                localMedias.forEach { item ->
+                    val mid = item.toModel().mid ?: 0L
+                    if (!serverMids.contains(mid)) {
+                        Log.d("MediaInfo", "Media sync local delete: $mid")
+                        mediaInfoRepo.deleteMediaInfoById(mid)
+                    }
+                }
+
+                // 2. Lấy lại list "sạch" từ DB
+                val remainingMedia = mediaInfoRepo.allMedia.first().map { it.toModel() }
+
+                // 3. Cập nhật RAM bằng cách ghi đè nguyên khối (Không lo dừng nhạc)
+                mediaRepo.replaceAllSchedules(remainingMedia)
+
+                _schedulerUpdated.emit(Unit)
+            } catch (e: Exception) {
+                Log.e("SYNC_ERROR", "${e.message}")
+            }
+        }
+    }
+
 
     fun getPlayerContentLocal() {
         viewModelScope.launch {
@@ -73,54 +124,6 @@ class MainViewModel @Inject constructor(
         }
     }
 
-
-    fun syncLocalWithServer(serverMids: List<Long>) {
-        viewModelScope.launch {
-            try {
-                // 1. Lấy dữ liệu hiện tại
-                val mediaInfoWithFile = mediaInfoRepo.allMedia.first()
-                var hasChanged = false
-
-                // 2. Xóa các bản ghi không có trong danh sách server
-                mediaInfoWithFile.forEach { item ->
-                    val mid = item.toModel().mid ?: 0L
-                    if (!serverMids.contains(mid)) {
-                        mediaInfoRepo.deleteMediaInfoById(mid)
-                        hasChanged = true
-                        Log.d("MediaInfo", "Media sync: $mid")
-                    }
-                }
-
-//                //3. Nếu có thay đổi, tiến hành làm mới lịch hẹn giờ
-//                if (hasChanged) {
-//                    // Làm sạch bộ nhớ đệm trong Repo
-//                    //mediaRepo.clearAllScheduled()
-//                    // Nạp lại dữ liệu còn lại từ DB vào Repo
-//                    val remainingMedia = mediaInfoRepo.allMedia.first()
-//                    remainingMedia.forEach { item ->
-//                        mediaRepo.updateScheduler(item.toModel())
-//                    }
-//
-//                    // Phát tín hiệu để dừng/đặt lại Alarm/Player
-//                    _schedulerUpdated.emit(Unit)
-//                    Log.d("MediaInfo", "Đồng bộ hoàn tất, đã cập nhật lại hẹn giờ")
-//                } else {
-//                    _schedulerUpdated.emit(Unit)
-//                    Log.d("MediaInfo", "Đồng bộ hoàn tất, Local = sync")
-//                }
-                val remainingMedia = mediaInfoRepo.allMedia.first().map { it.toModel() }
-
-                // 3. Gọi hàm Refresh "nguyên khối"
-                // Hàm này sẽ không làm trống RAM giữa chừng, nhạc sẽ không bị ngắt
-                mediaRepo.refreshAllSchedules(remainingMedia)
-
-                // 4. Báo cho MainActivity
-
-            } catch (e: Exception) {
-                Log.e("SYNC_DEBUG", "Lỗi đồng bộ: ${e.message}")
-            }
-        }
-    }
 
     fun saveSchedulerToLocal(listMediaInfo: List<MediaInfo>?) {
         if (listMediaInfo == null) return

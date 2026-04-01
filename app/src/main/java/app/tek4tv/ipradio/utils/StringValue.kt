@@ -47,20 +47,13 @@ class StringValue {
             ]
         """.trimIndent()
 
-        //live 1 mediainfo 1 showinfo
-        val OPH_MEDIA_V3_samp1 = """
-            [
-              {
-                "n": "0:d:16",
-                "t": 1710000000,
-                "vs": "{\"records\":[{\"id\":0,\"show_id\":1001,\"show_info\":\"eyJtaWQiOjk4NzYzNCwidmVyc2lvbiI6MywicHJpbyI6MTAsInN1bW1hcnkiOiJC4bqjbiB0aW4gdHXhuqduIFRo4butIG5naGnhu4dtIiwibW9kZSI6MiwicmVwZWF0IjowLCJkYXlzIjo4MCwidHMiOls0MDY4MCw0MzIwMF0sImRzIjpbMTIwMCwxMDAwXSwiY3JlYXRlZCI6MTc3MjU5NzI4MCwic3RhcnQiOjE3NzMwMjUyNDUsImV4cGlyZWQiOjE3NzMwMzc4MDAsImZpbGVzIjpbeyJpZCI6NTAxLCJpbmRleCI6MCwidHlwZSI6MSwic2l6ZSI6MjQ1Njc4OSwiY3MiOjMwNTQxOTg5NiwiZHVyYXRpb24iOjY3LCJ1cmwiOiJodHRwczovL3Rob25ndGlubmd1b24udGhhaW5ndXllbi5nb3Yudm4vRG93bmxvYWQvN2Y5ODEzMzctYTliMC00ZDk0LWFhZTAtNjI2NTQ1MDdjZmZhLm1wMyJ9LHsiaWQiOjAsImluZGV4IjoxLCJ0eXBlIjowLCJzaXplIjowLCJjcyI6MCwiZHVyYXRpb24iOjIwLCJ1cmwiOiIifSx7ImlkIjo1MDIsImluZGV4IjoyLCJ0eXBlIjoyLCJzaXplIjowLCJjcyI6MCwiZHVyYXRpb24iOjMwLCJ1cmwiOiI5ODkwMCJ9LHsiaWQiOjUwMywiaW5kZXgiOjMsInR5cGUiOjMsInNpemUiOjAsImNzIjowLCJkdXJhdGlvbiI6MzAsInVybCI6InJ0c3A6Ly8xNzEuMjQ0LjEyOS4xNDM6MTkzNS9saXZldm92MSJ9XX0=\",\"action\":8,\"description\":\"Thong bao test\",\"version\":1,\"created_at\":\"2024-03-09T00:00:00Z\"}]}"
-              }
-            ]
-        """.trimIndent()
 
         //Live cơ bản. nhạc hiệu gốc
         val live1 = """
-         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOls1NDQyMF0sImRzIjpbMTUzOF0sImNyZWF0ZWQiOjE3NzMxMjQ3NjMsInN0YXJ0IjoxNzczMjQ4NzY2LCJleHBpcmVkIjoxNzc0OTIzMzY1LCJmaWxlcyI6W3siaWQiOjAsImluZGV4IjowLCJ0eXBlIjozLCJzaXplIjoyMDI5MzQsImNzIjoyMDEwMjU4ODIxLCJkdXJhdGlvbiI6NiwidXJsIjoiaHR0cHM6Ly90dHRtLm1vYmlmb25lLnZuL3VwbG9hZEZpbGUvaGVhZGVyL2hlYWRlci53YXYifSx7ImlkIjoyODMyMDQsImluZGV4IjoxLCJ0eXBlIjoxLCJzaXplIjoxMDM0MTY1MCwiY3MiOjI4Mzc1NjI1MDcsImR1cmF0aW9uIjo2NywidXJsIjoiaHR0cHM6Ly90aG9uZ3Rpbm5ndW9uLnRoYWluZ3V5ZW4uZ292LnZuL0Rvd25sb2FkLzdmOTgxMzM3LWE5YjAtNGQ5NC1hYWUwLTYyNjU0NTA3Y2ZmYS5tcDMifV19\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
+         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOls1NDQyMF0sImRzIjpbMTIwXSwiY3JlYXRlZCI6MTc3MzEyNDc2Mywic3RhcnQiOjE3NzMyNDg3NjYsImV4cGlyZWQiOjE3NzQ5OTg0NzcsImZpbGVzIjpbeyJpZCI6MCwiaW5kZXgiOjAsInR5cGUiOjMsInNpemUiOjIwMjkzNCwiY3MiOjIwMTAyNTg4MjEsImR1cmF0aW9uIjo2LCJ1cmwiOiJodHRwczovL3R0dG0ubW9iaWZvbmUudm4vdXBsb2FkRmlsZS9oZWFkZXIvaGVhZGVyLndhdiJ9LHsiaWQiOjI4MzIwNCwiaW5kZXgiOjEsInR5cGUiOjEsInNpemUiOjEwMzQxNjUwLCJjcyI6MjgzNzU2MjUwNywiZHVyYXRpb24iOjEyMCwidXJsIjoiaHR0cDovL3NoLnRydXllbnRoYW5odGhvbmdtaW5oLnZuL01CRl81MzIifV19\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
+        """.trimIndent()
+        val liveFm = """
+         [{"n":"6565656565652:d:16","t":1773124800,"vs":"[{\"id\":283204,\"show_id\":283204,\"show_info\":\"eyJtaWQiOjI4MzIwNCwidmVyc2lvbiI6MSwicHJpbyI6OTk1LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUiLCJtb2RlIjoyLCJyZXBlYXQiOjAsImRheXMiOjEyNywidHMiOls1NDQyMF0sImRzIjpbOTBdLCJjcmVhdGVkIjoxNzczMTI0NzYzLCJzdGFydCI6MTc3MzI0ODc2NiwiZXhwaXJlZCI6MTc3NTQzMDQ3NywiZmlsZXMiOlt7ImlkIjoyODMyMDQsImluZGV4IjoxLCJ0eXBlIjoyLCJzaXplIjoxMDM0MTY1MCwiY3MiOjI4Mzc1NjI1MDcsImR1cmF0aW9uIjozMCwidXJsIjoiOTEwMDAifSx7ImlkIjoyODMyMDQsImluZGV4IjoyLCJ0eXBlIjoxLCJzaXplIjoxMDM0MTY1MCwiY3MiOjI4Mzc1NjI1MDcsImR1cmF0aW9uIjo2MCwidXJsIjoiaHR0cHM6Ly9iaW5oZGluaC10dG4ubGNzYS52bi9zaXRlL2dldC1yZXNvdXJjZT9jb2RlPW5FNEpxM1I5T2pvUWVaZ002YXBaVmc4bE5ETTdQQSZ0eXBlPS5tcDMifV19\",\"action\":1,\"description\":\"283204\",\"version\":1,\"created_at\":\"2026-03-10T13:40:00.732696052+07:00\"}]"}] 
         """.trimIndent()
 
         //ko nhac hieu, loop 2
@@ -72,7 +65,6 @@ class StringValue {
         val Live3 = """
             [{"n":"6565656565652:d:16","t":1773732893.604526,"vs":"[{\"id\":283338,\"show_id\":283338,\"show_info\":\"eyJtaWQiOjI4MzMzOCwidmVyc2lvbiI6MSwicHJpbyI6OTk5LCJzdW1tYXJ5IjoiQuG6o24gdGluIGxpdmUgMTcvMyIsIm1vZGUiOjIsInJlcGVhdCI6MCwiZGF5cyI6MCwidHMiOls1MjU1M10sImRzIjpbMjUzXSwiY3JlYXRlZCI6MTc3MzczMjg4OSwic3RhcnQiOjE3NzM3MzI5OTcsImV4cGlyZWQiOjE3NzM3MzY4NTAsImZpbGVzIjpbeyJpZCI6MCwiaW5kZXgiOjAsInR5cGUiOjEsInNpemUiOjU0MjkyOCwiY3MiOjM1MjY2MTAzMjYsImR1cmF0aW9uIjo2NywidXJsIjoiaHR0cHM6Ly90cnV5ZW50aGFuaHRob25nbWluaC5tb2JpZm9uZS5haS91cGxvYWRGaWxlLzIwMjYwMzE3LzIwMjYwMzE3MTQzNDQ0X2Nvbmd0YWNjaHVhbmJpLm1wMyJ9LHsiaWQiOjI4MzMzOCwiaW5kZXgiOjEsInR5cGUiOjEsInNpemUiOjI5ODAxODYsImNzIjoyODYxODUyNjEyLCJkdXJhdGlvbiI6MTg2LCJ1cmwiOiJodHRwczovL3RydXllbnRoYW5odGhvbmdtaW5oLm1vYmlmb25lLmFpL3VwbG9hZEZpbGUvMjAyNjAzMTcvMjAyNjAzMTcxNDMzNTBfdHQubXAzIn1dfQ==\",\"action\":1,\"description\":\"283338\",\"version\":1,\"created_at\":\"2026-03-17T14:34:53.604108587+07:00\"}]"}]
         """.trimIndent()
-
 
     }
 }

@@ -70,12 +70,13 @@ private fun detectEthernetInterface(): String? {
     return null
 }
 
+
 fun setEthernetEnabled(enableOrDisable: Boolean) {
     val eth = detectEthernetInterface() ?: return
     val command: String = if (enableOrDisable) {
-        "p link set $eth up"
+        "ip link set $eth up"
     } else {
-        "p link set $eth down"
+        "ip link set $eth down"
     }
     executeCommandViaSu(command)
 }

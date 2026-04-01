@@ -15,6 +15,7 @@ import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
+import app.tek4tv.ipradio.core.RestartGuardManager
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.SerialPortController.Companion.deviceInfo
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
@@ -41,6 +42,7 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.live1
+import app.tek4tv.ipradio.utils.StringValue.Companion.liveFm
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.initESimConfig
@@ -84,35 +86,39 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val globalProperties = GlobalProperties.getInst()
 
-    private lateinit var binding: ActivityMainBinding
 
+    private lateinit var binding: ActivityMainBinding
+    private lateinit var restartGuardManager: RestartGuardManager
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
             Log.d("loghub", "onTimeOver: come")
             serialPortController.turnOffPA()
-            serialPortController.writeForceSetVolume(globalProperties.volume)
+            serialPortController.writeForceSetVolume(globalProperties.mainVolume)
             hubManager.currentMediaItem = null
         }
 
         //Phát FM
         override fun onPlayTuner(mediaItem: MediaFile) {
             try {
+                val fmChannel = mediaItem.convertKHzToFm(mediaItem.url)
+                if (fmChannel == "") return
 //                val tunerType = if (mediaItem.getMediaType() == MediaFileType.AM) "0" else "1"
                 val pipsData = "${globalProperties.piCode},${globalProperties.psName}"
-                val tunerData = "1,${mediaItem.url},${globalProperties.volume}"
+                val tunerData = "1,${fmChannel},${globalProperties.fmVolume}"
 
                 hubManager.currentMediaItem = mediaItem
 
-                if (!serialPortController.isUart1) {
-                    lifecycleScope.launch {
-                        delay(11000)
-                        serialPortController.playTuner(pipsData, tunerData)
-                    }
-                } else {
-                    serialPortController.playTuner(pipsData, tunerData)
-                }
+//                if (!serialPortController.isUart1) {
+//                    lifecycleScope.launch {
+//                        delay(11000)
+//                        serialPortController.playTuner(pipsData, tunerData)
+//                    }
+//                } else {
+//                    serialPortController.playTuner(pipsData, tunerData)
+//                }
+                serialPortController.playTuner(pipsData, tunerData)
 
                 val id = System.currentTimeMillis()
                 val logs = listOf(
@@ -141,9 +147,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         }
 
         //Lỗi luồng live
-        override fun onLiveError(mediaItem: MediaFile?) {
+        override fun onPlayError(mediaItem: MediaFile?) {
             // hubManager.currentMediaItem = null
-            serialPortController.turnOffPA()
+//            serialPortController.turnOffPA()
         }
 
 
@@ -169,7 +175,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
         }
 
-        override fun onEndMedia() {
+        override fun onEndMedia(mediaItem: MediaFile?) {
+            if (mediaItem == null) return
+            val id = System.currentTimeMillis()
+
+            val logs = listOf(
+                McuLogData(
+                    id = id,
+                    time = System.currentTimeMillis() / 1000.0,
+                    type = 31,
+                    detail = """{"m":${mediaItem.id}}"""
+                )
+            )
+            hubManager.sendLog(logs)
             hubManager.currentMediaItem = null
         }
     }
@@ -201,7 +219,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     setWifiDataEnabled(true)
                     delay(3000)
                     setMobileDataEnabled(true)
-                    //lấy lại imei trong trường hợp lỗi khi lấy imei
                     ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
                     delay(3000)
                     restartApp(MyApp.instance!!, this@MainActivity)
@@ -285,6 +302,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         })
 
         viewModel.clearLocalMediaInfoExpired(applicationContext)
+        restartGuardManager = RestartGuardManager(globalProperties)
+        globalProperties.saveAppStartTime(System.currentTimeMillis())
 
     }
 
@@ -293,7 +312,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val imei = hubManager.deviceImei
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
-            hubManager.handlerMessage(live1)
+            hubManager.handlerMessage(liveFm)
         }
     }
 
@@ -322,7 +341,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
                 Log.d("alarmx", listKey!!)
                 Log.d("Mediainfo", "onAlarm start $listKey")
-                playerManager.setTimeFrame(listKey)
+                playerManager.setTimeFrame(listKey, null)
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
@@ -333,10 +352,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-                playerManager.stopForceMedia()
                 Log.d("MediaInfo", "End Live")
                 Log.d("alarmx", "stop force")
                 Log.d("turnPA", "on alarm end force media")
+                playerManager.stopForceMedia()
+
             }
 
 
@@ -383,9 +403,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val forceMediaInfo = getLocalForceMedia(applicationContext)
                     if (forceMediaInfo != null) {
                         playerManager.playForceMedia(
-                            forceMediaInfo.endTime,
-                            forceMediaInfo,
-                            mediaScheduler
+                            forceMediaInfo.endTime, forceMediaInfo, mediaScheduler
                         )
                     }
                     return@collect
@@ -408,15 +426,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
-//            if (command == null || command.isEmpty()) {
-//                return
-//            }
-//            if (message == null || message.isEmpty()) {
-//                return
-//            }
 
             val responseHub = hubManager.responseHub
-
 
             when (command) {
 
@@ -424,12 +435,26 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     viewModel.saveSchedulerToLocal(responseHub.listMediaInfo)
                 }
 
+                HubCommand.DELETE_SCHEDULER -> {
+                    val mediaInfo = responseHub.listMediaInfo?.firstOrNull()
+                    Log.d(
+                        "MediaInfo", "Xóa và dừng phát bản tin: ${mediaInfo?.mid}"
+                    )
+                    viewModel.deleteLocalScheduler(mediaInfo)
+                    playerManager.stopMediaInfo(mediaInfo)
+                }
+
                 HubCommand.UPDATE_SCHEDULER -> {
                     clearDatastore()
-//                    playerManager.resetPlayMode()
-//                    playerManager.stopAllPlayer()
-//                    ForceMedia.deleteForeMediaPref(applicationContext)
-                    Log.d("sds", "handleFromCommandServer: $message ")
+                    Log.d(
+                        "MediaInfo", "Cập nhật phát bản tin"
+                    )
+                    //Cập nhật 1 mediainfo, tranh dung phat khi cap nha
+//                    if (responseHub.listMediaInfo?.size == 1) {
+//                        viewModel.updateSingleMedia(responseHub.listMediaInfo?.firstOrNull())
+//                    } else {
+//                        viewModel.updateScheduler(responseHub.listMediaInfo)
+//                    }
                     viewModel.updateScheduler(responseHub.listMediaInfo)
                 }
                 //Phát khẩn cấp luồng live
@@ -439,17 +464,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             val listNew = viewModel.getOnlyNewMedia(responseHub.listLiveMediaInfo)
                             if (listNew.isNotEmpty()) {
                                 onPlayForce(listNew.first())
+                            } else {
+                                Log.d("MediaInfo", "handleFromCommandServer: Live đã phát rồi")
                             }
                         }
+                        //   onPlayForce(responseHub.listLiveMediaInfo!!.first())
                     }
                 }
 
                 HubCommand.UPDATE_SETTING_CONFIG -> {
                     if (responseHub.settingConfig != null) {
                         val data = responseHub.settingConfig
-                        if (data?.fmVolume != null || data?.mainVolume != null) {
-                            serialPortController.writeForceSetVolume(data.fmVolume.toString())
-                            globalProperties.saveVolume(data.fmVolume.toString())
+                        if (data?.mainVolume != null) {
+                            serialPortController.writeForceSetVolume(data.mainVolume.toString())
+                            globalProperties.saveMainVolume(data.mainVolume.toString())
+                        }
+                        if (data?.fmVolume != null) {
+                            serialPortController.writeVolumeTuner(data.fmVolume.toString())
+                            globalProperties.saveFMVolume(data.fmVolume.toString())
                         }
                         if (data?.txtype != null) {
                             when (data.txtype) {
@@ -465,39 +497,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                         val sim = data.sim
                                         if (sim != null) {
                                             Log.d(
-                                                "SettingInfo",
-                                                "handleFromCommandServer: Esim init"
+                                                "SettingInfo", "handleFromCommandServer: Esim init"
                                             )
-                                            initESimConfig()
-                                            delay(2000)
-                                            setESimEnable(true)
-                                            delay(2000)
-                                            setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
-                                            setAirplaneModeEnable(false)
+                                            //ESimEnable
+                                            serialPortController.writeSetESimMode("1")
                                             delay(2000)
                                             setWifiDataEnabled(false)
                                             setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
+                                            setAirplaneModeEnable(true)
+                                            delay(2000)
                                             setAirplaneModeEnable(false)
                                             delay(2000)
                                             setMobileDataEnabled(true)
                                         } else {
                                             Log.d(
-                                                "SettingInfo",
-                                                "handleFromCommandServer: Sim init"
+                                                "SettingInfo", "handleFromCommandServer: Sim init"
                                             )
-                                            setESimEnable(false)
+                                            //ESimDisable
+                                            serialPortController.writeSetESimMode("0")
                                             delay(2000)
                                             setWifiDataEnabled(false)
                                             setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
-                                            setAirplaneModeEnable(false)
+                                            setAirplaneModeEnable(true)
                                             delay(2000)
-                                            setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
                                             setAirplaneModeEnable(false)
                                             delay(2000)
                                             setMobileDataEnabled(true)
@@ -559,17 +581,89 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.RESTART -> {
                     lifecycleScope.launch {
-                        Log.d("handleFromCommandServer", "RESTART: ${message}")
-                        if (message == "0") {
-                            //reset thiết bị
-                            serialPortController.hardRestart()
-                        } else if (message == "1") {
-                            //reset app
-                            restartApp(MyApp.instance!!, this@MainActivity)
+                        val msg = message?.trim()
+                        val now = System.currentTimeMillis()
+
+                        Log.d("handleFromCommandServer", "RESTART raw=$message trim=$msg")
+
+                        when (msg) {
+                            "0" -> {
+                                Log.d("handleFromCommandServer", "RESTART device")
+                                serialPortController.hardRestart()
+                            }
+
+                            "1" -> {
+                                if (!restartGuardManager.canHandleRestartApp(now)) {
+                                    val appStartTime = globalProperties.getAppStartTime()
+                                    val blockedUntil = globalProperties.getRestartBlockedUntil()
+
+                                    when {
+                                        now - appStartTime < 15_000L -> {
+                                            Log.d(
+                                                "handleFromCommandServer",
+                                                "Bỏ qua restart app: app mới khởi động ${now - appStartTime} ms"
+                                            )
+                                        }
+
+                                        now < blockedUntil -> {
+                                            Log.d(
+                                                "handleFromCommandServer",
+                                                "Bỏ qua restart app: đang block đến $blockedUntil"
+                                            )
+                                        }
+
+                                        else -> {
+                                            Log.d(
+                                                "handleFromCommandServer",
+                                                "Bỏ qua restart app: đang xử lý lệnh restart khác"
+                                            )
+                                        }
+                                    }
+                                    return@launch
+                                }
+
+                                restartGuardManager.markHandlingRestart(true)
+
+                                try {
+                                    restartGuardManager.resetWindowIfExpired(now)
+
+                                    val allowed =
+                                        restartGuardManager.registerRestartAndCheckAllowed(now)
+
+                                    if (!allowed) {
+                                        Log.d(
+                                            "handleFromCommandServer",
+                                            "RESTART app bị block 5 phút do vượt ngưỡng trong 60 giây"
+                                        )
+                                        return@launch
+                                    }
+
+                                    val currentCount = restartGuardManager.getCurrentRestartCount()
+
+                                    Log.d(
+                                        "handleFromCommandServer",
+                                        "Cho phép RESTART app lần $currentCount trong cửa sổ 60 giây"
+                                    )
+
+                                    delay(1000)
+
+                                    restartApp(MyApp.instance!!, this@MainActivity)
+
+                                } catch (e: Exception) {
+                                    Log.e("handleFromCommandServer", "Lỗi xử lý RESTART app", e)
+                                } finally {
+                                    delay(2000)
+                                    restartGuardManager.markHandlingRestart(false)
+                                }
+                            }
+
+                            else -> {
+                                Log.d(
+                                    "handleFromCommandServer", "RESTART message không hợp lệ: $msg"
+                                )
+                            }
                         }
-
                     }
-
                 }
 
                 HubCommand.STREAM_BACK -> {
@@ -580,8 +674,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             0 -> {
                                 val index = findIndex(0, deviceInfoData?.audioStatus)
                                 Log.e(
-                                    "STREAMBACK",
-                                    "source at =${index}"
+                                    "STREAMBACK", "source at =${index}"
                                 )
                                 if (index != null) {
                                     serialPortController.streamBack(index.toString())
@@ -596,8 +689,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             1 -> {
                                 val index = findIndex(1, deviceInfoData?.audioStatus)
                                 Log.e(
-                                    "STREAMBACK",
-                                    "source at =${index}"
+                                    "STREAMBACK", "source at =${index}"
                                 )
                                 if (index != null) {
                                     serialPortController.streamBack(index.toString())
@@ -610,8 +702,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                             }
                         }
                         streamBackManager.handleStreamBack(streamBackData)
-
-
                     }
                 }
 
@@ -621,13 +711,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
-//                HubCommand.SET_VOLUME_DEVICE -> {
-//                    if (responseHub.message != null && responseHub.message != "") {
-//                        Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
-//                        serialPortController.writeForceSetVolume(responseHub.message!!)
-//                        globalProperties.saveVolume(responseHub.message!!)
-//                    }
-//                }
 
                 HubCommand.UPDATE_VERSION -> {
 
@@ -661,7 +744,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun onPlayForce(mediaInfo: MediaInfo) {
         //Tránh trường hợp âm lượng bị tắt
-        serialPortController.writeForceSetVolume(globalProperties.volume)
+        serialPortController.writeForceSetVolume(globalProperties.mainVolume)
         playerManager.onPlayForceCommand(applicationContext, mediaInfo, mediaScheduler)
     }
 

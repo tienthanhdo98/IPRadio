@@ -35,7 +35,6 @@ class MediaRepo @Inject constructor(
     //MGW
     //var scheduledList = LinkedHashMap<String, List<MediaFile>>()
     var scheduledList = LinkedHashMap<String, MediaInfo>()
-    var mediaInfoWithPeriod = LinkedHashMap<String, String>()
     var broadcastList = mutableListOf<MediaFile>()
     var listMediaInfoId = mutableListOf<Long>()
     private val mediaStoragePath = appContext.filesDir.path
@@ -59,10 +58,11 @@ class MediaRepo @Inject constructor(
             //Lưu và phát
             else {
                 Log.d(
-                    "MediaInfo", "Mode: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
+                    "MediaInfo",
+                    "Repeat Type: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
                 )
                 Log.d(
-                    "MediaInfo", "Mode: Bản tin ${mediaInfo.summary}"
+                    "MediaInfo", "Name: ${mediaInfo.summary}"
                 )
                 val r1 = decodeRepeatDays(repeat, days)
                 val res = repeatDaysToText(r1)
@@ -95,9 +95,7 @@ class MediaRepo @Inject constructor(
                         Log.d(
                             "MediaInfo", "Khung phát: $period"
                         )
-                        //scheduledList[period] = mediaInfo.files
                         scheduledList[period] = mediaInfo
-                        mediaInfoWithPeriod[period] = mediaInfo.mid.toString()
                     }
 
                 }
@@ -109,58 +107,46 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    fun refreshAllSchedules(allMedia: List<MediaInfo>) {
-        val tempScheduledList = LinkedHashMap<String, MediaInfo>()
-        val tempMediaInfoWithPeriod = HashMap<String, String>()
+
+    // Trong MediaRepo.kt
+    fun replaceAllSchedules(newList: List<MediaInfo>) {
+        val tempMap = LinkedHashMap<String, MediaInfo>()
         val now = Calendar.getInstance()
 
-        allMedia.forEach { mediaInfo ->
-            try {
-                val mode = mediaInfo.mode
-                if (mode != 0) { // Chỉ xử lý loại lưu và phát
-                    val r1 = decodeRepeatDays(mediaInfo.repeat ?: 0, mediaInfo.days ?: 0)
-                    if (isTodayAllowed(now, r1)) {
-                        val timeSlot = mediaInfo.ts
-                        val durationSlot = mediaInfo.ds
-
-                        timeSlot?.forEachIndexed { index, ts ->
-                            if (durationSlot != null && index < durationSlot.size) {
-                                val slotStart = convertSecondsToCalendar(ts.toInt())
-                                val slotEnd =
-                                    convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
-                                val period = "${
-                                    convertCalendarToString(
-                                        slotStart,
-                                        "HH:mm:ss"
-                                    )
-                                }-${convertCalendarToString(slotEnd, "HH:mm:ss")}"
-
-                                // Đẩy vào Map TẠM
-                                tempScheduledList[period] = mediaInfo
-                                tempMediaInfoWithPeriod[period] = mediaInfo.mid.toString()
-                            }
+        newList.forEach { mediaInfo ->
+            if (mediaInfo.mode != 0) { // Chỉ xử lý loại có lịch phát
+                val r1 = decodeRepeatDays(mediaInfo.repeat ?: 0, mediaInfo.days ?: 0)
+                if (isTodayAllowed(now, r1)) {
+                    val timeSlot = mediaInfo.ts
+                    val durationSlot = mediaInfo.ds
+                    timeSlot?.forEachIndexed { index, ts ->
+                        if (durationSlot != null && index < durationSlot.size) {
+                            val slotStart = convertSecondsToCalendar(ts.toInt())
+                            val slotEnd =
+                                convertSecondsToCalendar(ts.toInt() + durationSlot[index].toInt())
+                            val period = "${
+                                convertCalendarToString(
+                                    slotStart,
+                                    "HH:mm:ss"
+                                )
+                            }-${convertCalendarToString(slotEnd, "HH:mm:ss")}"
+                            tempMap[period] = mediaInfo
                         }
                     }
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Error processing media ${mediaInfo.mid}: ${e.message}")
             }
         }
 
-        // BƯỚC QUAN TRỌNG: Ghi đè cực nhanh vào RAM chính
+        // Ghi đè an toàn bằng synchronized
         synchronized(scheduledList) {
             scheduledList.clear()
-            scheduledList.putAll(tempScheduledList)
-            // Cập nhật các map phụ khác nếu cần
-            mediaInfoWithPeriod.clear()
-            mediaInfoWithPeriod.putAll(tempMediaInfoWithPeriod)
+            scheduledList.putAll(tempMap)
         }
-        Log.d(TAG, "Đã cập nhật lại toàn bộ RAM (Atomic Refresh)")
+        Log.d(TAG, "Đã cập nhật nguyên khối danh sách phát mới (Size: ${tempMap.size})")
     }
 
     fun clearAllScheduled() {
         scheduledList.clear()
-        mediaInfoWithPeriod.clear()
         broadcastList.clear()
         listMediaInfoId.clear()
         Log.d(TAG, "Đã làm sạch toàn bộ lịch phát trong bộ nhớ")

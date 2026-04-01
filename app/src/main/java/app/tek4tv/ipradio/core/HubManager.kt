@@ -80,6 +80,7 @@ class HubManager(
 
     private var getMQTTInfoJob: Job? = null
 
+    @Volatile
     var mqttClient: MQTTManager? = null
 
     private var lastMessageHash: Int = 0
@@ -90,6 +91,10 @@ class HubManager(
 
     var globalProperties = GlobalProperties.getInst()
     var bootstrapInfo: BootstrapResp? = null
+
+    @Volatile
+    private var isReconnecting = false
+    private var reconnectAttempts = 0
 
     //In BT Mode
     fun getBootstrapInfo() {
@@ -137,14 +142,36 @@ class HubManager(
                         serverURI,
                         bootstrapInfo!!,
                     )
-                    while (!isConnectSuccess) {
-                        mqttClient?.connectToMQTT()
-                        delay(15000)
-                    }
+//                    while (!isConnectSuccess) {
+//                        mqttClient?.connectToMQTT()
+//                        delay(15000)
+//                    }
+                    connectMqtt()
                 }
             }
         }
+    }
 
+    fun connectMqtt() {
+        mqttClient?.connectToMQTT()
+    }
+
+    private fun reconnectHard() {
+        if (bootstrapInfo == null) {
+            Log.d(TAG, "reconnectHard: bootstrapInfo null, fallback to connectToServer()")
+            connectToServer()
+            return
+        }
+        try {
+            mqttClient?.disconnect()
+        } catch (_: Exception) {
+        }
+
+        val protocol = if (globalProperties.mqttSecurity == 1) "ssl" else "tcp"
+        val serverURI = "$protocol://${globalProperties.mqttServer}:${globalProperties.mqttPort}"
+
+        mqttClient = MQTTManager(appContext, this, serverURI, bootstrapInfo!!)
+        mqttClient?.connectToMQTT()
     }
 
     fun sendLog(logs: List<McuLogData>) {
@@ -197,10 +224,10 @@ class HubManager(
             ioct = 1,
             classd = 1,
             disabled = globalProperties.settingsDisable,
-            mainVolume = globalProperties.volume.toInt(),
-            fmVolume = globalProperties.volume.toInt(),
+            mainVolume = globalProperties.mainVolume.toInt(),
+            fmVolume = globalProperties.fmVolume.toInt(),
             fmAuto = 1,
-            fmThreshold = 15
+            fmThreshold = globalProperties.fmThreshold.toInt()
         )
         val settingJsonString = moshi.toVs(info) ?: ""
 
@@ -221,21 +248,16 @@ class HubManager(
         }
         val rawDeviceInfo = SerialPortController.deviceInfo
         val deviceStatus = parseDeviceStatusResponse(rawDeviceInfo)
-        val runningList = (deviceStatus?.audioStatus ?: emptyList())
-            .take(4)
-            .map { it == 1 }
+        val runningList = (deviceStatus?.audioStatus ?: emptyList()).take(4).map { it == 1 }
             .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
 
-        val errorList = (deviceStatus?.errorStatus ?: emptyList())
-            .take(4)
-            .map { it == 1 }
+        val errorList = (deviceStatus?.errorStatus ?: emptyList()).take(4).map { it == 1 }
             .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
 //        val runningList = listOf(true, true, true, true)
 //        val errorList = listOf(true, false, false, false)
 
         val spkerrValue = calculateSpkerr(
-            runningList = runningList,
-            errorList = errorList
+            runningList = runningList, errorList = errorList
         )
         val status = McuStatusData(
             conn = globalProperties.settingsTxType,
@@ -354,9 +376,7 @@ class HubManager(
                     HubCommand.OPH_STREAM_BACK -> {
                         val data = moshi.fromVs<McuStreamBackData>(data)
                         val streamBackData = McuStreamBackData(
-                            streamUrl = data?.streamUrl,
-                            cmd = data?.cmd,
-                            timeout = data?.timeout
+                            streamUrl = data?.streamUrl, cmd = data?.cmd, timeout = data?.timeout
                         )
                         hubCommand = HubCommand.STREAM_BACK
                         responseHub.streamBackData = streamBackData
@@ -401,10 +421,21 @@ class HubManager(
                                     "MGWtest",
                                     "Test: OPH_MEDIA_V3 showInfo action ${showInfo.action} "
                                 )
-
                                 if (mediaInfo != null) {
                                     mediaInfo.action = showInfo.action
-                                    listMediaInfo.add(mediaInfo)
+                                    when (mediaInfo.action) {
+                                        1 -> {
+                                            listMediaInfo.add(mediaInfo)
+                                        }
+
+                                        4, 8 -> {
+                                            hubCommand = HubCommand.DELETE_SCHEDULER
+                                            responseHub.listMediaInfo = listOf(mediaInfo)
+                                            onMessageListener.invoke(hubCommand, "")
+                                        }
+
+                                    }
+
                                 }
                             }
                             if (listMediaInfo.isEmpty()) return
@@ -446,17 +477,41 @@ class HubManager(
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
-        getMQTTInfoJob?.cancel()
+        reconnectAttempts = 0
         sendGeneric()
         sendSettings()
         sendStatus()
-        sendGeneric()
         sendOpuSyncMedia()
         startPingTimer()
     }
 
     override fun onConnectFailure(message: String?) {
+//        Log.d(TAG, "onConnectFailure: $message")
+//        isConnectSuccess = false
+//        stopAllJob()
+//
+//        // Guard: nếu đang có reconnect job chạy rồi thì không tạo thêm
+//        if (isReconnecting) {
+//            Log.d(TAG, "Already reconnecting, skip")
+//            return
+//        }
+//        isReconnecting = true
+//
+//        coroutineScope.launch {
+//            val delayMs = minOf(5000L * (1 shl reconnectAttempts), 60000L) // max 60s
+//            Log.d(TAG, "Reconnecting in ${delayMs}ms (attempt ${reconnectAttempts + 1})")
+//            delay(delayMs)
+//            reconnectAttempts++
+//            isReconnecting = false
+//            reconnectHard()
+//        }
+
+        Log.d(TAG, "Initial connect failed: $message — retry in 10s")
         isConnectSuccess = false
+        coroutineScope.launch {
+            delay(10000)
+            mqttClient?.connectToMQTT() // thử lại đơn giản, không cần tạo instance mới
+        }
     }
 
     override fun onReceiveMessageSuccess(message: String) {
@@ -473,11 +528,13 @@ class HubManager(
 
     private fun startPingTimer() {
         stopAllJob()
+
         // NHÓM 1: Các gói tin gửi mỗi phút (STATUS & SYNC)
         fastJob = coroutineScope.launch(Dispatchers.Default) {
             while (isActive) {
                 try {
                     delay(60 * 1000L)
+                    pingCounter++
                     sendStatus()
                     sendOpuSyncMedia()
                 } catch (e: Exception) {
@@ -504,8 +561,12 @@ class HubManager(
     }
 
     fun disconnect() {
+        stopAllJob()
+        isConnectSuccess = false
         mqttClient?.disconnect()
+        mqttClient = null
     }
+
 }
 
 
