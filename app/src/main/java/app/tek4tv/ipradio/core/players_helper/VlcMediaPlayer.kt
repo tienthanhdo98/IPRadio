@@ -8,8 +8,10 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.ui.CustomPlayer
+import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
+import java.io.File
 
 class VlcMediaPlayer(
     private val appContext: Context, private val playerEventListener: IPlayerEventListener
@@ -116,13 +118,22 @@ class VlcMediaPlayer(
     }
 
     private fun playFile(mediaItem: MediaFile, timeStamp: Int) {
-        Log.e(TAG, "vlc play file : time stamp $timeStamp")
-        Log.e("MediaInfo", "vlc play type file : ${mediaItem.duration}")
-        val media = mediaItem.getVlcMedia(mLibVLC, appContext)
-        Log.e(TAG, "vlc play timeStamp $timeStamp")
-        if (timeStamp > 0) media.addOption(":start-time=$timeStamp")
+        try {
+            Log.e(TAG, "vlc play file : time stamp $timeStamp")
+            Log.e("MediaInfo", "vlc play type file : ${mediaItem.duration}")
+            val media = mediaItem.getVlcMedia(mLibVLC, appContext)
+            val fileName = getFileNameFromUrl(mediaItem.url ?: "")
+            val localFile = File(appContext.filesDir.path, fileName)
+            Log.e(TAG, "vlc play timeStamp $timeStamp")
+            if (timeStamp > 0 && localFile.exists() && localFile.isFile) {
+                media.addOption(":start-time=$timeStamp")
+                Log.e("MediaInfo", "vlc play type file set start time")
+            }
 
-        vlcPlayer.play(media)
+            vlcPlayer.play(media)
+        } catch (e: Exception) {
+            Log.e("MediaInfo", "vlc play type file :error ${e.message}")
+        }
 
     }
 

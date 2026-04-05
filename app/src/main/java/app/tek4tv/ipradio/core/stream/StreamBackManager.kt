@@ -36,14 +36,17 @@ class StreamBackManager(
     private var streamJob: Job? = null
     private var stopTimeoutJob: Job? = null
 
-    fun handleStreamBack(data: McuStreamBackData) {
+    fun handleStreamBack(data: McuStreamBackData, onStopBack: () -> Unit) {
         when (data.cmd) {
             CMD_STOP -> {
-                scope.launch { stopStreamBack() }
+                scope.launch {
+                    stopStreamBack()
+                    onStopBack()
+                }
             }
 
             CMD_START13, CMD_START24 -> {
-                scope.launch { startStreamBack(data.streamUrl, data.timeout) }
+                scope.launch { startStreamBack(data.streamUrl, data.timeout, onStopBack) }
             }
 
             else -> {
@@ -52,7 +55,7 @@ class StreamBackManager(
         }
     }
 
-    private suspend fun startStreamBack(url: String?, timeout: Int?) {
+    private suspend fun startStreamBack(url: String?, timeout: Int?, onStopBack: () -> Unit) {
         mutex.withLock {
             if (url.isNullOrBlank()) return
 
@@ -92,6 +95,7 @@ class StreamBackManager(
                     mutex.withLock {
                         stopStreamBackLocked()
                     }
+                    onStopBack()
                 }
             }
         }

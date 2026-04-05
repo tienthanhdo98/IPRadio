@@ -25,7 +25,6 @@ class MediaInfoLiveHistoryRepository @Inject constructor(
      * Lưu hoặc cập nhật thông tin Media cùng với các Files liên quan
      */
     suspend fun upsertMediaLiveInfo(mediaInfo: MediaInfo) {
-        val mid = mediaInfo.mid ?: return
 
         // 1. Chuyển đổi sang Entity
         val mediaEntity = mediaInfo.toLiveEntity()

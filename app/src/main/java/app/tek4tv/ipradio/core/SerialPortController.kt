@@ -191,7 +191,7 @@ class SerialPortController(
 
     fun turnOnPAVod() {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().mainVolume)
-        playMode = MODE_VOD_LIVE
+//        playMode = MODE_VOD_LIVE
         Log.e("PA", "ON")
     }
 
@@ -217,7 +217,7 @@ class SerialPortController(
 
     fun setTimeOn(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, data, true)
-        playMode = MODE_VOD_LIVE
+//        playMode = MODE_VOD_LIVE
     }
 
     fun setUpPiPsName(data: String) {
@@ -230,7 +230,7 @@ class SerialPortController(
 
     fun writePlayVodLiveForce(data: String) {
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE_FORCE, data)
-        playMode = MODE_VOD_LIVE
+//        playMode = MODE_VOD_LIVE
     }
 
     fun playTunerLiveForce(data: String) {

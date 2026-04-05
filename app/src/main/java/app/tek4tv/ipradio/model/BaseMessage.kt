@@ -222,7 +222,7 @@ data class MediaFile(
                 val fileName = getFileNameFromUrl(remoteUrl)
                 val localFile = File(appContext.filesDir.path, fileName)
 
-                return if (localFile.exists() && localFile.isFile) {
+                if (localFile.exists() && localFile.isFile) {
                     Log.d("player", "file link local: ${localFile.absolutePath}")
                     Media(mLibVLC, localFile.toUri())
                 } else {

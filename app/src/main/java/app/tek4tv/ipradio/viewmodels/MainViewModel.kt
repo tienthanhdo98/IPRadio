@@ -141,6 +141,22 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun deleteMediaInfInRepo(mediaInfo: MediaInfo?) {
+        if (mediaInfo == null) return
+
+        val keyToRemove = mediaRepo.scheduledList.entries
+            .find { it.value.mid == mediaInfo.mid }
+            ?.key
+
+        if (keyToRemove != null) {
+            mediaRepo.scheduledList.remove(keyToRemove)
+            Log.e(
+                "MediaInfo",
+                "Xóa repo: ${mediaInfo.mid}"
+            )
+        }
+    }
+
     fun deleteLocalScheduler(mediaInfo: MediaInfo?) {
         // 1. Kiểm tra ID hợp lệ trước khi launch
         val mid = mediaInfo?.mid ?: return
@@ -148,6 +164,10 @@ class MainViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 mediaInfoRepo.deleteMediaInfoById(mid)
+                Log.e(
+                    "MediaInfo",
+                    "Xóa local: ${mediaInfo.mid}"
+                )
                 // 2. Sau khi xóa DB thành công, phải hủy luôn Alarm/Lịch phát liên quan
                 // cancelAlarm(mid)
             } catch (e: Exception) {
@@ -179,6 +199,9 @@ class MainViewModel @Inject constructor(
         if (listMediaInfo.isNullOrEmpty()) return emptyList()
 
         val localHistory = mediaInfoLiveHistoryRepo.allMedia.first()
+        localHistory.forEach {
+            Log.d("MediaInfo", "getOnlyNewMedia: All item history ${it.mid} - ${it.summary}")
+        }
         val localKeys = localHistory.map { "${it.mid}_${it.version}" }.toSet()
 
         return listMediaInfo.filter { serverItem ->

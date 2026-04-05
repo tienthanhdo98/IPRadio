@@ -19,11 +19,19 @@ fun execSu(command: String): Int {
     }
 }
 
+//fun setAirplaneModeEnable(enableOrDisable: Boolean) {
+//    val command: String = if (enableOrDisable) {
+//        "settings put global airplane_mode_on 1"
+//    } else {
+//        "settings put global airplane_mode_on 0"
+//    }
+//    executeCommandViaSu(command)
+//}
 fun setAirplaneModeEnable(enableOrDisable: Boolean) {
     val command: String = if (enableOrDisable) {
-        "settings put global airplane_mode_on 1"
+        "cmd connectivity airplane-mode enable"
     } else {
-        "settings put global airplane_mode_on 0"
+        "cmd connectivity airplane-mode disable"
     }
     executeCommandViaSu(command)
 }
@@ -53,6 +61,18 @@ fun setMobileDataEnabled(enableOrDisable: Boolean) {
         "svc data disable"
     }
     executeCommandViaSu(command)
+}
+
+fun getStateMobileData(): String {
+    val command = "getprop gsm.sim.state"
+    val result = run(command)
+    return result
+}
+
+fun getEnableMobileData(): String {
+    val command = "settings get global mobile_data"
+    val result = run(command)
+    return result
 }
 
 private fun detectEthernetInterface(): String? {

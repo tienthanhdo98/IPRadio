@@ -7,31 +7,34 @@ import java.util.concurrent.ConcurrentHashMap
 
 data class UserSession(val username: String)
 data class ServerSettings(
-    val bootstrapServer: String,
-    val mqttServer: String,
-    val mqttPort: Int,
-    val mqttSecurity: Int
+    val bootstrapServer: String, val mqttServer: String, val mqttPort: Int, val mqttSecurity: Int
 )
 
 data class ConnectionSettings(
-    val thingId: String,
-    val thingKey: String,
-    val channels: String
+    val thingId: String, val thingKey: String, val channels: String
+)
+
+data class FirmwareUpdateData(
+    val url: String, val updateMode: Int
 )
 
 object LocalWebConsole {
     private var server: AppNanoHttpd? = null
 
+    private val sessions = ConcurrentHashMap<String, UserSession>()
+
     fun start(
         onServerUpdate: (ServerSettings) -> Unit,
-        onConnectionUpdate: (ConnectionSettings) -> Unit
+        onConnectionUpdate: (ConnectionSettings) -> Unit,
+        onFirmwareUpdate: (FirmwareUpdateData) -> Unit
     ) {
         if (server != null) return
 
         server = AppNanoHttpd(
             port = 8080,
             onServerUpdate = onServerUpdate,
-            onConnectionUpdate = onConnectionUpdate
+            onConnectionUpdate = onConnectionUpdate,
+            onFirmwareUpdate = onFirmwareUpdate
         ).apply {
             start(SOCKET_READ_TIMEOUT, false)
         }
@@ -45,10 +48,10 @@ object LocalWebConsole {
     private class AppNanoHttpd(
         port: Int,
         private val onServerUpdate: (ServerSettings) -> Unit,
-        private val onConnectionUpdate: (ConnectionSettings) -> Unit
+        private val onConnectionUpdate: (ConnectionSettings) -> Unit,
+        private val onFirmwareUpdate: (FirmwareUpdateData) -> Unit,
     ) : NanoHTTPD(port) {
 
-        private val sessions = ConcurrentHashMap<String, UserSession>()
 
         override fun serve(session: IHTTPSession): Response {
             return try {
@@ -56,10 +59,37 @@ object LocalWebConsole {
                 val method = session.method
 
                 when {
+                    //Get
                     method == Method.GET && uri == "/login" -> {
                         html(renderLoginPage())
                     }
 
+                    method == Method.GET && uri == "/logout" -> {
+                        val sid = getCookie(session, "USER_SESSION")
+                        if (sid != null) sessions.remove(sid)
+                        redirect(
+                            "/login",  // ← redirect về login
+                            cookies = listOf("USER_SESSION=deleted; Path=/; HttpOnly; Max-Age=0")  // ← Max-Age=0 để xóa cookie
+                        )
+                    }
+
+                    method == Method.GET && uri == "/" -> {
+                        requireLogin(session) { html(renderMenuPage()) }
+                    }
+
+                    method == Method.GET && uri == "/config-server" -> {
+                        requireLogin(session) { html(renderServerPage()) }
+                    }
+
+                    method == Method.GET && uri == "/config-connection" -> {
+                        requireLogin(session) { html(renderConnectionPage()) }
+                    }
+
+                    method == Method.GET && uri == "/update-firmware" -> {
+                        requireLogin(session) { html(renderFirmwareUpdatePage()) }
+                    }
+
+                    //Post
                     method == Method.POST && uri == "/login" -> {
                         val params = parsePostParams(session)
                         val password = params["password"].orEmpty()
@@ -69,6 +99,7 @@ object LocalWebConsole {
                             sessions[sid] = UserSession("admin")
 
                             redirect("/", cookies = listOf("USER_SESSION=$sid; Path=/; HttpOnly"))
+
                         } else {
                             html(
                                 renderStatusPage(
@@ -79,30 +110,6 @@ object LocalWebConsole {
                                 )
                             )
                         }
-                    }
-
-                    method == Method.GET && uri == "/logout" -> {
-                        val sid = getCookie(session, "USER_SESSION")
-                        if (sid != null) sessions.remove(sid)
-                        redirect(
-                            "/login",
-                            cookies = listOf("USER_SESSION=deleted; Path=/; Max-Age=0")
-                        )
-                    }
-
-                    method == Method.GET && uri == "/" -> {
-                        if (!isLoggedIn(session)) return redirect("/login")
-                        html(renderMenuPage())
-                    }
-
-                    method == Method.GET && uri == "/config-server" -> {
-                        if (!isLoggedIn(session)) return redirect("/login")
-                        html(renderServerPage())
-                    }
-
-                    method == Method.GET && uri == "/config-connection" -> {
-                        if (!isLoggedIn(session)) return redirect("/login")
-                        html(renderConnectionPage())
                     }
 
                     method == Method.POST && uri == "/update-server" -> {
@@ -150,11 +157,36 @@ object LocalWebConsole {
                         )
                     }
 
+                    method == Method.POST && uri == "/do-update" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        val params = parsePostParams(session)
+                        val firmwareUrl = params["firmware_url"].orEmpty()
+                        val updateMode =
+                            params["update_mode"].orEmpty() // Sẽ nhận giá trị "keep_config" hoặc "reset_config"
+
+                        val mode = if (updateMode == "keep_config") 0 else 1
+
+                        val modeText =
+                            if (updateMode == "keep_config") "Giữ nguyên cấu hình" else "Cấu hình mặc định"
+                        val updateData = FirmwareUpdateData(
+                            url = firmwareUrl, updateMode = mode
+                        )
+                        onFirmwareUpdate(updateData)
+
+                        html(
+                            renderStatusPage(
+                                title = "Đang xử lý cập nhật...",
+                                message = "Hệ thống đang tải firmware từ:<br><b>${firmwareUrl}</b><br><br>Chế độ: <b>${modeText}</b>.<br>Vui lòng không tắt nguồn thiết bị!",
+                                isSuccess = true,
+                                backUrl = "/"
+                            )
+                        )
+                    }
+
                     else -> {
                         newFixedLengthResponse(
-                            Response.Status.NOT_FOUND,
-                            "text/plain; charset=UTF-8",
-                            "404 Not Found"
+                            Response.Status.NOT_FOUND, "text/plain; charset=UTF-8", "404 Not Found"
                         )
                     }
                 }
@@ -172,12 +204,16 @@ object LocalWebConsole {
             return sessions.containsKey(sid)
         }
 
+        //        private fun getCookie(session: IHTTPSession, name: String): String? {
+//            val cookieHeader = session.headers["cookie"] ?: return null
+//            return cookieHeader.split(";").map { it.trim() }.firstOrNull { it.startsWith("$name=") }
+//                ?.substringAfter("=")
+//        }
         private fun getCookie(session: IHTTPSession, name: String): String? {
             val cookieHeader = session.headers["cookie"] ?: return null
-            return cookieHeader.split(";")
-                .map { it.trim() }
-                .firstOrNull { it.startsWith("$name=") }
-                ?.substringAfter("=")
+            return cookieHeader.split(";").map { it.trim() }
+                .firstOrNull { it.startsWith("$name=", ignoreCase = true) }?.substringAfter("=", "")
+                ?.trim()
         }
 
         private fun parsePostParams(session: IHTTPSession): Map<String, String> {
@@ -191,19 +227,39 @@ object LocalWebConsole {
             return result
         }
 
+        //No Cache
         private fun html(content: String): Response {
-            return newFixedLengthResponse(
-                Response.Status.OK,
-                "text/html; charset=UTF-8",
-                content
-            )
+            val r = newFixedLengthResponse(Response.Status.OK, "text/html; charset=UTF-8", content)
+            r.addHeader("Cache-Control", "no-cache, no-store, must-revalidate")
+            return r
         }
 
         private fun redirect(location: String, cookies: List<String> = emptyList()): Response {
-            val response = newFixedLengthResponse(Response.Status.REDIRECT, "text/plain", "")
+            val response = newFixedLengthResponse(
+                Response.Status.REDIRECT_SEE_OTHER, // 303 - không bị cache
+                "text/plain", ""
+            )
             response.addHeader("Location", location)
+            response.addHeader("Cache-Control", "no-cache, no-store, must-revalidate")
             cookies.forEach { response.addHeader("Set-Cookie", it) }
             return response
+        }
+
+        private fun requireLogin(session: IHTTPSession, onSuccess: () -> Response): Response {
+            val sid = getCookie(session, "USER_SESSION")
+
+            android.util.Log.d("WebConsole", "=== requireLogin ===")
+            android.util.Log.d("WebConsole", "URI: ${session.uri}")
+            android.util.Log.d("WebConsole", "Cookie raw: ${session.headers["cookie"]}")
+            android.util.Log.d("WebConsole", "SID extracted: '$sid'")
+            android.util.Log.d("WebConsole", "Active sessions: ${sessions.keys.toList()}")
+
+            if (sid == null || !sessions.containsKey(sid)) {
+                return redirect(
+                    "/login", cookies = listOf("USER_SESSION=deleted; Path=/; Max-Age=0")
+                )
+            }
+            return onSuccess()
         }
     }
 
@@ -239,32 +295,33 @@ object LocalWebConsole {
     """.trimIndent()
 
     private fun renderMenuPage() = """
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Menu Cấu hình MGW</title>
-        <style>
-            body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-            .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); text-align: center; }
-            h2 { margin-bottom: 10px; color: #333; }
-            p { color: #666; margin-bottom: 25px; }
-            .btn-menu { display: block; width: 100%; padding: 18px; margin: 12px 0; background: #1a73e8; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
-            .btn-menu:active { background: #1557b0; transform: scale(0.97); }
-            .logout { display: inline-block; margin-top: 20px; color: #d93025; text-decoration: none; font-size: 14px; font-weight: 500; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <h2>MGW Dashboard</h2>
-            <p>Vui lòng chọn mục thiết lập</p>
-            <a href="/config-server" class="btn-menu">Cấu hình Server</a>
-            <a href="/config-connection" class="btn-menu">Cấu hình Kết nối</a>
-            <a href="/logout" class="logout">Đăng xuất tài khoản</a>
-        </div>
-    </body>
-    </html>
-    """.trimIndent()
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menu Cấu hình MGW</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); text-align: center; }
+        h2 { margin-bottom: 10px; color: #333; }
+        p { color: #666; margin-bottom: 25px; }
+        .btn-menu { display: block; width: 100%; padding: 18px; margin: 12px 0; background: #1a73e8; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
+        .btn-menu:active { background: #1557b0; transform: scale(0.97); }
+        .logout { display: inline-block; margin-top: 20px; color: #d93025; text-decoration: none; font-size: 14px; font-weight: 500; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>MGW Dashboard</h2>
+        <p>Vui lòng chọn mục thiết lập</p>
+        <a href="/config-server" class="btn-menu">Cấu hình Server</a>
+        <a href="/config-connection" class="btn-menu">Cấu hình Kết nối</a>
+        <a href="/update-firmware" class="btn-menu">Cập nhật Firmware</a>
+        <a href="/logout" class="logout">Đăng xuất tài khoản</a>
+    </div>
+</body>
+</html>
+""".trimIndent()
 
     private fun renderServerPage() = """
     <!DOCTYPE html>
@@ -290,11 +347,11 @@ object LocalWebConsole {
             <h2>Server Settings</h2>
             <form action='/update-server' method='post'>
                 <label>Bootstrap Server</label>
-                <input type='text' name='bootstrap_server' value='http://bootstrap.aiot.vn'>
+                <input type='text' name='bootstrap_server' placeholder='Nhập bootstrap server'>
                 <label>MQTT Server</label>
-                <input type='text' name='mqtt_server' value='aiot.mobifone.vn'>
+                <input type='text' name='mqtt_server' placeholder='Nhập Mqtt server'>
                 <label>MQTT Port</label>
-                <input type='number' name='mqtt_port' value='1883'>
+                <input type='number' name='mqtt_port' placeholder='Nhập Mqtt port'>
                 <label>MQTT Security</label>
                 <select name='mqtt_security'>
                     <option value='0'>None (TCP)</option>
@@ -334,7 +391,7 @@ object LocalWebConsole {
                 <label>Thing Key</label>
                 <input type='password' name='thing_key' placeholder='Nhập Thing Key'>
                 <label>Channels (Topics)</label>
-                <input type='text' name='channels' placeholder='Ví dụ: 1, 2, 3'>
+                <input type='text' name='channels' placeholder='Nhập channels'>
                 <button type='submit' class='btn-save'>CẬP NHẬT KẾT NỐI</button>
             </form>
         </div>
@@ -343,10 +400,7 @@ object LocalWebConsole {
     """.trimIndent()
 
     private fun renderStatusPage(
-        title: String,
-        message: String,
-        isSuccess: Boolean = true,
-        backUrl: String = "/"
+        title: String, message: String, isSuccess: Boolean = true, backUrl: String = "/"
     ) = """
     <!DOCTYPE html>
     <html lang="vi">
@@ -377,4 +431,54 @@ object LocalWebConsole {
     </body>
     </html>
     """.trimIndent()
+
+    private fun renderFirmwareUpdatePage() = """
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cập nhật Firmware</title>
+    <style>
+        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
+        .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
+        .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #1a73e8; font-weight: 500; }
+        h2 { margin: 0 0 20px 0; color: #333; border-left: 4px solid #8e44ad; padding-left: 15px; }
+        label.section-title { display: block; margin-top: 15px; font-weight: 600; color: #555; font-size: 14px; }
+        input[type="url"] { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
+        input[type="url"]:focus { border-color: #8e44ad; }
+        .radio-group { margin-top: 10px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
+        .radio-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 15px; color: #444; cursor: pointer; }
+        .radio-item:last-child { margin-bottom: 0; }
+        .radio-item input[type="radio"] { margin: 0 10px 0 0; transform: scale(1.2); cursor: pointer; }
+        .btn-update { width: 100%; padding: 16px; background: #8e44ad; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; transition: 0.2s; }
+        .btn-update:active { background: #732d91; transform: scale(0.98); }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <a href="/" class="back-link">← Quay lại Menu</a>
+        <h2>Cập nhật Firmware</h2>
+        <form action='/do-update' method='post'>
+            <label class="section-title">Đường dẫn Firmware (URL)</label>
+            <input type='url' name='firmware_url' placeholder='Ví dụ: http://server.com/firmware.apk' required>
+            
+            <label class="section-title">Tuỳ chọn cài đặt</label>
+            <div class="radio-group">
+                <label class="radio-item">
+                    <input type="radio" name="update_mode" value="keep_config" checked>
+                    Cập nhật giữ nguyên cấu hình
+                </label>
+                <label class="radio-item">
+                    <input type="radio" name="update_mode" value="reset_config">
+                    Cập nhật theo cấu hình mặc định
+                </label>
+            </div>
+
+            <button type='submit' class='btn-update'>BẮT ĐẦU CẬP NHẬT</button>
+        </form>
+    </div>
+</body>
+</html>
+""".trimIndent()
+
 }

@@ -140,6 +140,10 @@ class GlobalProperties {
         ConfigUtil.putString(appContext, DEFAULT_FM_VOLUME, vol)
     }
 
+    fun saveSimType(type: Int) {
+        ConfigUtil.putInt(appContext, SETTINGS_SIM, type)
+    }
+
     fun clearAllLocalConfigData() {
         ConfigUtil.clearAllPrefs(appContext)
 

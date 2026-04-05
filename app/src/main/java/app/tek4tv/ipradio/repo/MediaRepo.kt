@@ -145,6 +145,7 @@ class MediaRepo @Inject constructor(
         Log.d(TAG, "Đã cập nhật nguyên khối danh sách phát mới (Size: ${tempMap.size})")
     }
 
+
     fun clearAllScheduled() {
         scheduledList.clear()
         broadcastList.clear()
@@ -172,7 +173,7 @@ class MediaRepo @Inject constructor(
 //        1 -> MediaFileType.FILE
 //        2 -> MediaFileType.FM
 //        3 -> MediaFileType.LIVE
-        Log.d("startDownloadMedia", "type : ${it.type}")
+//        Log.d("startDownloadMedia", "type : ${it.type}")
 //        if (it.body == "start" || it.body == "end") return
         if (it.type != 1) return
         val url = it.url
@@ -192,7 +193,7 @@ class MediaRepo @Inject constructor(
         if (fileName.isBlank()) return
         val localFile = File(appContext.filesDir.path, fileName)
         if (localFile.exists()) {
-            Log.d("download item", "Item existed")
+//            Log.d("download item", "Item existed")
             return
         }
 

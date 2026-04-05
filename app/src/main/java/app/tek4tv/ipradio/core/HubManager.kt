@@ -64,7 +64,7 @@ class HubManager(
 
     private var getBootstrapInfoJob: Job? = null
 
-    val deviceImei = "6565656565652"
+    val deviceImei = "656565656565"
 
     var pingCounter = 0
 
@@ -73,7 +73,7 @@ class HubManager(
     var currentMediaItem: MediaFile? = null
     var currentMediaInfoListId: List<Long>? = null
 
-    var versionName = "1.0.0"
+    var versionName = "0.0.9"
 
 
     var isConnectSuccess = false
@@ -92,8 +92,6 @@ class HubManager(
     var globalProperties = GlobalProperties.getInst()
     var bootstrapInfo: BootstrapResp? = null
 
-    @Volatile
-    private var isReconnecting = false
     private var reconnectAttempts = 0
 
     //In BT Mode
@@ -253,8 +251,6 @@ class HubManager(
 
         val errorList = (deviceStatus?.errorStatus ?: emptyList()).take(4).map { it == 1 }
             .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
-//        val runningList = listOf(true, true, true, true)
-//        val errorList = listOf(true, false, false, false)
 
         val spkerrValue = calculateSpkerr(
             runningList = runningList, errorList = errorList
@@ -272,7 +268,7 @@ class HubManager(
             temp = deviceStatus?.temperature ?: 0,
             playlist = playlist!!,
             mids = currentMediaInfoListId,
-            fmRssi = 0,
+            fmRssi = globalProperties.fmThreshold.toInt(),
             disconnectionCnt = 0,
             rssim = 0,
         )
@@ -564,6 +560,13 @@ class HubManager(
         stopAllJob()
         isConnectSuccess = false
         mqttClient?.disconnect()
+        mqttClient = null
+    }
+
+    fun disconnectAll() {
+        stopAllJob()
+        isConnectSuccess = false
+        mqttClient?.disconnectAll()
         mqttClient = null
     }
 

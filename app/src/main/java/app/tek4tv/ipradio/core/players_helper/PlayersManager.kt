@@ -157,12 +157,12 @@ class PlayersManager(
         currentPlayingMediaInfo = mediaRepo.scheduledList[timeFrame]
 
 
-
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
-            playMediaByIndex(playlistIndex, resumePoint.second)
             Log.d("MediaInfo", "resumePoint index : ${resumePoint.first}")
             Log.d("MediaInfo", "resumePoint second: ${resumePoint.second}")
+            playMediaByIndex(playlistIndex, resumePoint.second)
+
         } else {
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
@@ -291,8 +291,8 @@ class PlayersManager(
         )
         handlerFMPlayer?.removeCallbacksAndMessages(null)
         handlerFMPlayer = null
-        currentPlayingMedia = null
-        currentPlayingMediaInfo = null
+//        currentPlayingMedia = null
+//        currentPlayingMediaInfo = null
         currentTimeFrame = null
         vlcPlayer.stop()
         exoPlayer.stop()
@@ -315,7 +315,7 @@ class PlayersManager(
      * Find media and the second from start which it should be played at the moment
      * trả về index của media cần phát tịa thời điểm hiện tại và nếu là file thì thời gian tính từ lúc bắt đầu
      * **/
-    private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
+    fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         return try {
             val mediaList = mediaRepo.scheduledList[timeFrame]?.files ?: return Pair(0, 0)
             if (mediaList.isEmpty()) return Pair(0, 0)
@@ -369,18 +369,28 @@ class PlayersManager(
 
     fun stopForceMedia() {
         if (playMode != PLAY_MODE_FORCE) return
-        stopAllPlayer("stopForceMedia")
         onMediaStopPlaying()
+        stopAllPlayer("stopForceMedia")
         playerManagerListener?.onEndForceMedia(currentPlayingMediaInfo)
-
-
 //        playerManagerListener?.onTimeOver()
     }
 
     fun stopMediaInfo(mediaInfo: MediaInfo?) {
         if (mediaInfo == null) return
+        Log.e(
+            "MediaInfo",
+            "stopMediaInfo: ${mediaInfo.mid}"
+        )
+        Log.e(
+            "MediaInfo",
+            "stopMediaInfo: current ${currentPlayingMediaInfo?.mid}"
+        )
         if (mediaInfo.mid == currentPlayingMediaInfo?.mid) {
             if (mediaInfo.mode == 2) {
+                Log.e(
+                    "MediaInfo",
+                    "stopMediaInfo: stop force"
+                )
                 stopForceMedia()
             } else if (mediaInfo.mode == 1) {
                 onMediaStopPlaying()
@@ -397,6 +407,11 @@ class PlayersManager(
         appContext: Context, mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
     ) {
         try {
+            if (currentPlayingMediaInfo?.mid == mediaInfo.mid) {
+                Log.d("MediaInfo", "Live đang phát. Không phát đè")
+                return
+            }
+
             val start = mediaInfo.start ?: return
             val expired = mediaInfo.expired ?: return
             Log.d("MediaInfo", "Mode: Live ")
@@ -469,6 +484,7 @@ class PlayersManager(
         endTime: Int?, mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
     ) {
         try {
+            if (playMode == PLAY_MODE_FORCE) return
             Log.d("aaa", "force")
             //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllAlarm()

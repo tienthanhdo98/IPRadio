@@ -371,6 +371,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
                 setAlarmForList(periodKey, startReqCode, startCal)
                 setAlarmForList(periodKey, endReqCode, endCal, true)
             }
+            Log.d(
+                "MediaInfo",
+                "-----------"
+            )
         }
     }
 
@@ -395,6 +399,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             "MediaInfo",
             "Alarm Set ${if (shouldEndPlaying) "End" else "Start"} $listKey - $requestCode"
         )
+
 
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
         val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)

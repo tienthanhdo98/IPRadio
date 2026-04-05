@@ -29,20 +29,20 @@ data class DeviceStatusResponse(
     fun isPaOn(): Boolean = paStatus == 1
 }
 
-fun findIndex(input: Int, list: List<Int>?): Int? {
-    if (list == null) return null
+fun findIndex(input: Int, list: List<Int>?): Int {
+    if (list == null) return 0
 
     val candidates = when (input) {
         0 -> listOf(0, 2)
         1 -> listOf(1, 3)
-        else -> return null
+        else -> return 0
     }
 
     val found = candidates.firstOrNull { index ->
         list.getOrNull(index) == 1
     }
 
-    return found?.plus(1) // trả về index đếm từ 1
+    return found?.plus(1) ?: 0 // trả về index đếm từ 1
 }
 
 fun parseDeviceStatusResponse(raw: String): DeviceStatusResponse? {
