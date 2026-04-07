@@ -41,8 +41,8 @@ class GlobalProperties {
     private val KEY_RESTART_BLOCKED_UNTIL = "KEY_RESTART_BLOCKED_UNTIL"
 
 
-    var mainVolume = "100"
-    var fmVolume = "100"
+    var mainVolume = "90"
+    var fmVolume = "90"
     var fmThreshold = "36"
     var piCode = "0"
     var psName = "AAA"
@@ -61,8 +61,8 @@ class GlobalProperties {
 
 
     init {
-        mainVolume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-        fmVolume = ConfigUtil.getString(appContext, DEFAULT_FM_VOLUME, "100") ?: "100"
+        mainVolume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "90") ?: "90"
+        fmVolume = ConfigUtil.getString(appContext, DEFAULT_FM_VOLUME, "90") ?: "90"
         fmThreshold = ConfigUtil.getString(appContext, DEFAULT_FM_THRESHOLD, "36") ?: "36"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
@@ -99,24 +99,32 @@ class GlobalProperties {
         if (settingConfig == null) return
         if (settingConfig.txtype != null) {
             ConfigUtil.putInt(appContext, SETTINGS_TXTYPE, settingConfig.txtype)
+            settingsTxType = settingConfig.txtype
         }
         if (settingConfig.sim != null) {
             ConfigUtil.putInt(appContext, SETTINGS_SIM, settingConfig.sim)
+            settingsSimType = settingConfig.sim
         }
         if (settingConfig.mobileMode != null) {
             ConfigUtil.putInt(appContext, SETTINGS_SIM_MODE, settingConfig.mobileMode)
+            settingsSimMode = settingConfig.mobileMode
         }
         if (settingConfig.disabled != null) {
             ConfigUtil.putInt(appContext, SETTINGS_DISABLE, settingConfig.disabled)
+            settingsDisable = settingConfig.disabled
         }
     }
 
     fun saveServerConfig(serverData: ServerData?) {
         if (serverData != null) {
             ConfigUtil.putStringEncrypt(appContext, BOOTSTRAP_SERVER, serverData.bootstrapServer)
+            bootstrapServer = serverData.bootstrapServer ?: "aiot.mobifone.vn"
             ConfigUtil.putInt(appContext, MQTT_SECURITY, serverData.mqttSecurity ?: 1)
+            mqttSecurity = serverData.mqttSecurity ?: 1
             ConfigUtil.putStringEncrypt(appContext, MQTT_SERVER, serverData.mqttServer)
+            mqttServer = serverData.mqttServer ?: "aiot.mobifone.vn"
             ConfigUtil.putInt(appContext, MQTT_PORT, serverData.mqttPort ?: 6668)
+            mqttPort = serverData.mqttPort ?: 6668
         }
     }
 
@@ -127,6 +135,7 @@ class GlobalProperties {
                 BOOTSTRAP_INFO,
                 bootstrapAdapter.toJson(bootstrapResp)
             )
+            bootstrapInfo = bootstrapResp
         }
     }
 

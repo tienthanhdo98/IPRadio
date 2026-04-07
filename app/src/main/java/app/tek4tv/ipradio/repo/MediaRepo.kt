@@ -145,6 +145,9 @@ class MediaRepo @Inject constructor(
         Log.d(TAG, "Đã cập nhật nguyên khối danh sách phát mới (Size: ${tempMap.size})")
     }
 
+    fun syncListMediaInfoId(mid: Long) {
+        listMediaInfoId.remove(mid)
+    }
 
     fun clearAllScheduled() {
         scheduledList.clear()

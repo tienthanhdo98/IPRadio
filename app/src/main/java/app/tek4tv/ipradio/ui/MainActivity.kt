@@ -4,7 +4,10 @@ package app.tek4tv.ipradio.ui
 import android.content.Intent
 import android.media.AudioManager
 import android.os.Bundle
+import android.os.SystemClock
 import android.util.Log
+import android.view.KeyEvent
+import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -14,6 +17,7 @@ import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
 import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.core.IHubObserve
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.RestartGuardManager
 import app.tek4tv.ipradio.core.SerialPortController
@@ -36,14 +40,12 @@ import app.tek4tv.ipradio.model.findIndex
 import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.ConfigUtil
-import app.tek4tv.ipradio.utils.CrashHandler
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
-import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
-import app.tek4tv.ipradio.utils.StringValue.Companion.liveFm
+import app.tek4tv.ipradio.utils.StringValue.Companion.live
 import app.tek4tv.ipradio.utils.StringValue.Companion.liveFmSohoaLoi
 import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
@@ -67,7 +69,7 @@ import javax.inject.Inject
 
 
 @AndroidEntryPoint
-class MainActivity : AppCompatActivity(), AlarmListener {
+class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private val viewModel by viewModels<MainViewModel>()
 
@@ -122,16 +124,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 //                }
                 serialPortController.playTuner(pipsData, tunerData)
 
-                val id = System.currentTimeMillis()
-                val logs = listOf(
-                    McuLogData(
-                        id = id,
-                        time = System.currentTimeMillis() / 1000.0,
-                        type = 3,
-                        detail = """{"m":${mediaItem.id}}"""
-                    )
+
+                viewModel.addLog(
+                    type = 3, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
                 )
-                hubManager.sendLog(logs)
                 hubManager.sendStatus()
             } catch (e: Exception) {
                 e.printStackTrace()
@@ -145,6 +141,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             viewModel.insertMediaInfoLiveHistory(mediaInfo)
             ForceMedia.deleteForeMediaPref(applicationContext)
             playerManager.resetPlayMode()
+            serialPortController.turnOffPA()
             startPlayingMedia()
         }
 
@@ -162,34 +159,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 serialPortController.turnOnPAVod()
 
-                val id = System.currentTimeMillis()
 
-                val logs = listOf(
-                    McuLogData(
-                        id = id,
-                        time = System.currentTimeMillis() / 1000.0,
-                        type = 3,
-                        detail = """{"m":${mediaItem.id}}"""
-                    )
+                viewModel.addLog(
+                    type = 3, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
                 )
-                hubManager.sendLog(logs)
                 hubManager.sendStatus()
             }
         }
 
         override fun onEndMedia(mediaItem: MediaFile?) {
             if (mediaItem == null) return
-            val id = System.currentTimeMillis()
-
-            val logs = listOf(
-                McuLogData(
-                    id = id,
-                    time = System.currentTimeMillis() / 1000.0,
-                    type = 31,
-                    detail = """{"m":${mediaItem.id}}"""
-                )
+            viewModel.addLog(
+                type = 31, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
             )
-            hubManager.sendLog(logs)
             hubManager.currentMediaItem = null
         }
     }
@@ -200,7 +182,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         viewModel.grantPermissionThoughAdb(baseContext)
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart: Int) {
@@ -239,6 +221,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         ) { command, message ->
             handleFromCommandServer(command, message)
         }
+        hubManager.hubObverse = this
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S4_NAME)
@@ -282,6 +265,12 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         viewModel.clearLocalMediaInfoExpired(applicationContext)
         restartGuardManager = RestartGuardManager(globalProperties)
         globalProperties.saveAppStartTime(System.currentTimeMillis())
+        viewModel.addLog(
+            type = 8,
+            detail = """{"u":${SystemClock.elapsedRealtime() / 1000}}""",
+            hubManager = hubManager
+        )
+        Log.d("MQTTLOG", "onCreate instance=${this.hashCode()} taskId=$taskId intent=$intent")
 
     }
 
@@ -290,7 +279,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         val imei = hubManager.deviceImei
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
-            hubManager.handlerMessage(liveFmSohoaLoi)
+            //hubManager.handlerMessage(liveFmSohoaLoi)
+            hubManager.handlerMessage(live)
             //serialPortController.writeSetESimMode("0")
             //serialPortController.turnOnPAVod()
         }
@@ -302,10 +292,10 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         viewModel.getPlayerContentLocal()
     }
 
+
     override fun onDestroy() {
         super.onDestroy()
         hubManager.disconnectAll()
-        playerManager.onActivityStop()
         playerManager.onActivityDestroy()
         cancelAllAlarm()
         LocalWebConsole.stop()
@@ -383,8 +373,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val forceMediaInfo = getLocalForceMedia(applicationContext)
                     if (forceMediaInfo != null) {
                         Log.d(
-                            "MediaInfo",
-                            "handleFromCommandServer: Play Live from local"
+                            "MediaInfo", "handleFromCommandServer: Play Live from local"
                         )
                         playerManager.playForceMedia(
                             forceMediaInfo.endTime, forceMediaInfo, mediaScheduler
@@ -396,8 +385,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 //playerManager.stopAllPlayer()
                 if (playerManager.playMode == PLAY_MODE_FORCE) {
                     Log.d(
-                        "MediaInfo",
-                        "Live is playing, skip cancelAllAlarm and scheduleAllAlarms"
+                        "MediaInfo", "Live is playing, skip cancelAllAlarm and scheduleAllAlarms"
                     )
                     return@collect
                 }
@@ -417,6 +405,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initSettings() {
         val networkType = globalProperties.settingsTxType
+        setEthernetEnabled(true)
         when (networkType) {
             0 -> {
                 Log.d("initSettings", "initSettings: Ethernet")
@@ -425,7 +414,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
             1 -> {
                 Log.d("initSettings", "initSettings: Sim")
-
                 val state = getStateMobileData().trim()
                 val isEnable = getEnableMobileData().trim()
 
@@ -441,7 +429,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (!hasLoadedSim) {
                         Log.d("initSettings", "No loaded SIM, reset radio/network")
 
-                        setEthernetEnabled(false)
+//                        setEthernetEnabled(false)
                         setWifiDataEnabled(false)
                         setAirplaneModeEnable(true)
                         delay(2000)
@@ -465,6 +453,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     }
 
     private fun initHubConnect() {
+        Log.d("MQTTLOG", "onCreate instance=${this.hashCode()}")
+        Log.d("MQTTLOG", "connectToServer hub=${this.hashCode()}")
         hubManager.connectToServer()
     }
 
@@ -526,6 +516,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     val mediaInfo = responseHub.listMediaInfo?.firstOrNull()
                     Log.d(
                         "MediaInfo", "Xóa và dừng phát bản tin: ${mediaInfo?.mid}"
+                    )
+                    viewModel.addLog(
+                        type = 4, detail = """{"m":${mediaInfo?.mid}}""", hubManager = hubManager
                     )
                     viewModel.deleteLocalScheduler(mediaInfo)
                     viewModel.deleteMediaInfInRepo(mediaInfo)
@@ -597,7 +590,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                             serialPortController.writeSetESimMode("1")
                                             delay(2000)
                                             setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
+//                                            setEthernetEnabled(false)
                                             setMobileDataEnabled(false)
                                             setAirplaneModeEnable(true)
                                             delay(2000)
@@ -610,19 +603,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                             )
                                             //ESimDisable
                                             serialPortController.writeSetESimMode("0")
+                                            delay(1000)
+                                            Log.d(
+                                                "SettingInfo",
+                                                "handleFromCommandServer: ${globalProperties.settingsSimType}"
+                                            )
                                             if (globalProperties.settingsSimType == 1) {
                                                 globalProperties.saveSimType(0)
+                                                Log.d(
+                                                    "SettingInfo",
+                                                    "handleFromCommandServer: reset to init sim"
+                                                )
                                                 serialPortController.hardRestart()
                                             }
                                             delay(2000)
                                             setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
+//                                            setEthernetEnabled(false)
                                             setMobileDataEnabled(false)
                                             setAirplaneModeEnable(true)
                                             delay(2000)
                                             setAirplaneModeEnable(false)
                                             delay(2000)
                                             setMobileDataEnabled(true)
+
                                         }
                                     }
                                     val mode = data.mobileMode
@@ -648,7 +651,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                                 2 -> {
                                     setWifiDataEnabled(true)
                                     setMobileDataEnabled(false)
-                                    setEthernetEnabled(false)
+//                                    setEthernetEnabled(false)
                                 }
 
                             }
@@ -682,88 +685,26 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 HubCommand.RESTART -> {
                     lifecycleScope.launch {
                         val msg = message?.trim()
-                        val now = System.currentTimeMillis()
 
                         Log.d("handleFromCommandServer", "RESTART raw=$message trim=$msg")
 
                         when (msg) {
                             "0" -> {
-                                Log.d("handleFromCommandServer", "RESTART device")
-                                serialPortController.hardRestart()
+                                handleRestartWithGuard("RESTART device") {
+                                    serialPortController.hardRestart()
+                                }
                             }
 
                             "1" -> {
-                                if (!restartGuardManager.canHandleRestartApp(now)) {
-                                    val appStartTime = globalProperties.getAppStartTime()
-                                    val blockedUntil = globalProperties.getRestartBlockedUntil()
-
-                                    when {
-                                        now - appStartTime < 15_000L -> {
-                                            Log.d(
-                                                "handleFromCommandServer",
-                                                "Bỏ qua restart app: app mới khởi động ${now - appStartTime} ms"
-                                            )
-                                        }
-
-                                        now < blockedUntil -> {
-                                            Log.d(
-                                                "handleFromCommandServer",
-                                                "Bỏ qua restart app: đang block đến $blockedUntil"
-                                            )
-                                        }
-
-                                        else -> {
-                                            Log.d(
-                                                "handleFromCommandServer",
-                                                "Bỏ qua restart app: đang xử lý lệnh restart khác"
-                                            )
-                                        }
-                                    }
-                                    return@launch
-                                }
-
-                                restartGuardManager.markHandlingRestart(true)
-
-                                try {
-                                    restartGuardManager.resetWindowIfExpired(now)
-
-                                    val allowed =
-                                        restartGuardManager.registerRestartAndCheckAllowed(
-                                            now
-                                        )
-
-                                    if (!allowed) {
-                                        Log.d(
-                                            "handleFromCommandServer",
-                                            "RESTART app bị block 5 phút do vượt ngưỡng trong 60 giây"
-                                        )
-                                        return@launch
-                                    }
-
-                                    val currentCount = restartGuardManager.getCurrentRestartCount()
-
-                                    Log.d(
-                                        "handleFromCommandServer",
-                                        "Cho phép RESTART app lần $currentCount trong cửa sổ 60 giây"
-                                    )
-
-                                    delay(1000)
-
+                                handleRestartWithGuard("RESTART app") {
                                     restartApp(MyApp.instance!!, this@MainActivity)
-
-                                } catch (e: Exception) {
-                                    Log.e(
-                                        "handleFromCommandServer", "Lỗi xử lý RESTART app", e
-                                    )
-                                } finally {
-                                    delay(2000)
-                                    restartGuardManager.markHandlingRestart(false)
                                 }
                             }
 
                             else -> {
                                 Log.d(
-                                    "handleFromCommandServer", "RESTART message không hợp lệ: $msg"
+                                    "handleFromCommandServer",
+                                    "RESTART message không hợp lệ: $msg"
                                 )
                             }
                         }
@@ -805,20 +746,32 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
 
                 HubCommand.UPDATE_VERSION -> {
-
                     if (responseHub.updateFirmData != null) {
                         val updateFirmData = responseHub.updateFirmData
-                        Log.d("update", updateFirmData?.url.toString())
+                        val url = updateFirmData?.url.orEmpty()
+
+                        Log.d("update", url)
                         Log.d("update", updateFirmData?.option.toString())
-                        if (updateFirmData?.option == 0) {
-                            downloadUpdateApk(
-                                updateFirmData.url, this, serialPortController
+
+                        if (url.contains("tek4tv", ignoreCase = true)) {
+                            viewModel.addLog(
+                                type = 23,
+                                detail = """{"u":${SystemClock.elapsedRealtime() / 1000}}""",
+                                hubManager = hubManager
                             )
-                        } else if (updateFirmData?.option == 1) {
-                            globalProperties.clearAllLocalConfigData()
-                            downloadUpdateApk(
-                                updateFirmData.url, this, serialPortController
-                            )
+
+                            if (updateFirmData?.option == 0) {
+                                downloadUpdateApk(
+                                    url, this, serialPortController
+                                )
+                            } else if (updateFirmData?.option == 1) {
+                                globalProperties.clearAllLocalConfigData()
+                                downloadUpdateApk(
+                                    url, this, serialPortController
+                                )
+                            }
+                        } else {
+                            Log.d("update", "Url không đúng")
                         }
                     }
                 }
@@ -835,6 +788,73 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
+        }
+    }
+
+    private suspend fun handleRestartWithGuard(
+        actionName: String,
+        action: suspend () -> Unit
+    ) {
+        val now = System.currentTimeMillis()
+
+        if (!restartGuardManager.canHandleRestartApp(now)) {
+            val appStartTime = globalProperties.getAppStartTime()
+            val blockedUntil = globalProperties.getRestartBlockedUntil()
+
+            when {
+                now - appStartTime < 15_000L -> {
+                    Log.d(
+                        "handleFromCommandServer",
+                        "Bỏ qua $actionName: app mới khởi động ${now - appStartTime} ms"
+                    )
+                }
+
+                now < blockedUntil -> {
+                    Log.d(
+                        "handleFromCommandServer",
+                        "Bỏ qua $actionName: đang block đến $blockedUntil"
+                    )
+                }
+
+                else -> {
+                    Log.d(
+                        "handleFromCommandServer",
+                        "Bỏ qua $actionName: đang xử lý lệnh restart khác"
+                    )
+                }
+            }
+            return
+        }
+
+        restartGuardManager.markHandlingRestart(true)
+
+        try {
+            restartGuardManager.resetWindowIfExpired(now)
+
+            val allowed = restartGuardManager.registerRestartAndCheckAllowed(now)
+
+            if (!allowed) {
+                Log.d(
+                    "handleFromCommandServer",
+                    "$actionName bị block 5 phút do vượt ngưỡng trong 60 giây"
+                )
+                return
+            }
+
+            val currentCount = restartGuardManager.getCurrentRestartCount()
+
+            Log.d(
+                "handleFromCommandServer",
+                "Cho phép $actionName lần $currentCount trong cửa sổ 60 giây"
+            )
+
+            delay(1000)
+            action()
+        } catch (e: Exception) {
+            Log.e("handleFromCommandServer", "Lỗi xử lý $actionName", e)
+        } finally {
+            delay(2000)
+            restartGuardManager.markHandlingRestart(false)
         }
     }
 
@@ -868,6 +888,22 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
+    }
+
+    override fun onHubConnected() {
+        viewModel.addLog(
+            type = 9,
+            detail = """{"u":${SystemClock.elapsedRealtime() / 1000}}""",
+            hubManager = hubManager
+        )
+    }
+
+    override fun onHubDisConnected() {
+        viewModel.addLog(
+            type = 10,
+            detail = """{"u":${SystemClock.elapsedRealtime() / 1000}}""",
+            hubManager = hubManager
+        )
     }
 
     companion object {

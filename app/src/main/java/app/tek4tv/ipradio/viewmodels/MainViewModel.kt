@@ -10,22 +10,27 @@ import android.util.Log
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.repo.MediaInfoLiveHistoryRepository
 import app.tek4tv.ipradio.repo.MediaInfoRepository
 import app.tek4tv.ipradio.repo.MediaRepo
-import app.tek4tv.ipradio.utils.decodeRepeatDays
+import app.tek4tv.ipradio.repo.MgwLogRepository
 import app.tek4tv.ipradio.utils.execSu
-import app.tek4tv.ipradio.utils.isTodayAllowed
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.toModel
 import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.util.Calendar
 import javax.inject.Inject
@@ -35,11 +40,15 @@ class MainViewModel @Inject constructor(
     val mediaRepo: MediaRepo,
     val mediaInfoRepo: MediaInfoRepository,
     val mediaInfoLiveHistoryRepo: MediaInfoLiveHistoryRepository,
+    val logRepo: MgwLogRepository,
 ) : ViewModel() {
 
     //MGW
     private val _schedulerUpdated = MutableSharedFlow<Unit>(replay = 1)
     val schedulerUpdated = _schedulerUpdated.asSharedFlow()
+
+    private var flushJob: Job? = null
+    private val flushMutex = Mutex()
 
     fun updateSingleMedia(mediaInfo: MediaInfo?) {
         if (mediaInfo == null) return
@@ -95,6 +104,7 @@ class MainViewModel @Inject constructor(
                     if (!serverMids.contains(mid)) {
                         Log.d("MediaInfo", "Media sync local delete: $mid")
                         mediaInfoRepo.deleteMediaInfoById(mid)
+                        mediaRepo.syncListMediaInfoId(mid)
                     }
                 }
 
@@ -144,15 +154,13 @@ class MainViewModel @Inject constructor(
     fun deleteMediaInfInRepo(mediaInfo: MediaInfo?) {
         if (mediaInfo == null) return
 
-        val keyToRemove = mediaRepo.scheduledList.entries
-            .find { it.value.mid == mediaInfo.mid }
-            ?.key
+        val keyToRemove =
+            mediaRepo.scheduledList.entries.find { it.value.mid == mediaInfo.mid }?.key
 
         if (keyToRemove != null) {
             mediaRepo.scheduledList.remove(keyToRemove)
             Log.e(
-                "MediaInfo",
-                "Xóa repo: ${mediaInfo.mid}"
+                "MediaInfo", "Xóa repo: ${mediaInfo.mid}"
             )
         }
     }
@@ -165,8 +173,7 @@ class MainViewModel @Inject constructor(
             try {
                 mediaInfoRepo.deleteMediaInfoById(mid)
                 Log.e(
-                    "MediaInfo",
-                    "Xóa local: ${mediaInfo.mid}"
+                    "MediaInfo", "Xóa local: ${mediaInfo.mid}"
                 )
                 // 2. Sau khi xóa DB thành công, phải hủy luôn Alarm/Lịch phát liên quan
                 // cancelAlarm(mid)
@@ -251,6 +258,57 @@ class MainViewModel @Inject constructor(
                 }
             } catch (e: Exception) {
                 Log.e("MediaInfo", "clearLocalMediaInfoExpired error: ${e.message}", e)
+            }
+        }
+    }
+
+    //Log
+
+    fun addLog(type: Int, detail: String, hubManager: HubManager) {
+        logRepo.addLog(
+            McuLogData(
+                id = System.currentTimeMillis(),
+                time = System.currentTimeMillis() / 1000.0,
+                type = type,
+                detail = detail
+            )
+        )
+
+        if (logRepo.size() >= 10) {
+            flushLogsNow(hubManager)
+        } else {
+            scheduleFlushLogs(hubManager)
+        }
+    }
+
+    fun scheduleFlushLogs(hubManager: HubManager, delayMs: Long = 60000L) {
+        flushJob?.cancel()
+        flushJob = viewModelScope.launch {
+            delay(delayMs)
+            flushLogsNow(hubManager)
+        }
+    }
+
+    fun flushLogsNow(hubManager: HubManager) {
+        viewModelScope.launch {
+            flushMutex.withLock {
+                while (true) {
+                    val batch = logRepo.getTopPendingLogs(10)
+                    if (batch.isEmpty()) break
+
+                    val success = try {
+                        hubManager.sendLog(batch)
+                        true
+                    } catch (e: Exception) {
+                        false
+                    }
+
+                    if (success) {
+                        logRepo.removeLogs(batch)
+                    } else {
+                        break
+                    }
+                }
             }
         }
     }

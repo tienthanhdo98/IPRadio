@@ -39,6 +39,7 @@ import app.tek4tv.ipradio.utils.HubCommand.OPU_STATUS
 import app.tek4tv.ipradio.utils.HubCommand.OPU_SYNC
 import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.getImsi
+import app.tek4tv.ipradio.utils.getModeMobileData
 import app.tek4tv.ipradio.utils.getSimPhoneNumber
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import kotlinx.coroutines.CoroutineScope
@@ -64,7 +65,10 @@ class HubManager(
 
     private var getBootstrapInfoJob: Job? = null
 
+    lateinit var hubObverse: IHubObserve
+
     val deviceImei = "656565656565"
+    //val deviceImei = "6565656565652"
 
     var pingCounter = 0
 
@@ -73,7 +77,7 @@ class HubManager(
     var currentMediaItem: MediaFile? = null
     var currentMediaInfoListId: List<Long>? = null
 
-    var versionName = "0.0.9"
+    var versionName = "1.0.1"
 
 
     var isConnectSuccess = false
@@ -93,6 +97,10 @@ class HubManager(
     var bootstrapInfo: BootstrapResp? = null
 
     private var reconnectAttempts = 0
+
+    @Volatile
+    private var hasNotifiedDisconnected = false
+    private var reconnectJob: Job? = null
 
     //In BT Mode
     fun getBootstrapInfo() {
@@ -154,23 +162,6 @@ class HubManager(
         mqttClient?.connectToMQTT()
     }
 
-    private fun reconnectHard() {
-        if (bootstrapInfo == null) {
-            Log.d(TAG, "reconnectHard: bootstrapInfo null, fallback to connectToServer()")
-            connectToServer()
-            return
-        }
-        try {
-            mqttClient?.disconnect()
-        } catch (_: Exception) {
-        }
-
-        val protocol = if (globalProperties.mqttSecurity == 1) "ssl" else "tcp"
-        val serverURI = "$protocol://${globalProperties.mqttServer}:${globalProperties.mqttPort}"
-
-        mqttClient = MQTTManager(appContext, this, serverURI, bootstrapInfo!!)
-        mqttClient?.connectToMQTT()
-    }
 
     fun sendLog(logs: List<McuLogData>) {
         val time = System.currentTimeMillis() / 1000.0
@@ -255,8 +246,25 @@ class HubManager(
         val spkerrValue = calculateSpkerr(
             runningList = runningList, errorList = errorList
         )
+        val conn = when (globalProperties.settingsTxType) {
+            0 -> {
+                0
+            }
+
+            1 -> {
+                getModeMobileData()
+            }
+
+            2 -> {
+                2
+            }
+
+            else -> {
+                0
+            }
+        }
         val status = McuStatusData(
-            conn = globalProperties.settingsTxType,
+            conn = conn,
             ipLan = NetworkUtils.getEthernetLanIp(appContext),
             ipWan = NetworkUtils.getMobileLocalIp(appContext),
             csqm = NetworkUtils.getCellularSignalPercent(appContext),
@@ -473,6 +481,10 @@ class HubManager(
 
     override fun onConnectSuccess() {
         isConnectSuccess = true
+        hasNotifiedDisconnected = false
+        reconnectJob = null
+        hubObverse.onHubConnected()
+        Log.d("MediaInfo", "Initial connect success")
         reconnectAttempts = 0
         sendGeneric()
         sendSettings()
@@ -482,31 +494,19 @@ class HubManager(
     }
 
     override fun onConnectFailure(message: String?) {
-//        Log.d(TAG, "onConnectFailure: $message")
-//        isConnectSuccess = false
-//        stopAllJob()
-//
-//        // Guard: nếu đang có reconnect job chạy rồi thì không tạo thêm
-//        if (isReconnecting) {
-//            Log.d(TAG, "Already reconnecting, skip")
-//            return
-//        }
-//        isReconnecting = true
-//
-//        coroutineScope.launch {
-//            val delayMs = minOf(5000L * (1 shl reconnectAttempts), 60000L) // max 60s
-//            Log.d(TAG, "Reconnecting in ${delayMs}ms (attempt ${reconnectAttempts + 1})")
-//            delay(delayMs)
-//            reconnectAttempts++
-//            isReconnecting = false
-//            reconnectHard()
-//        }
 
-        Log.d(TAG, "Initial connect failed: $message — retry in 10s")
+        Log.d("MediaInfo", "Initial connect failed: $message — retry in 15s")
         isConnectSuccess = false
-        coroutineScope.launch {
-            delay(10000)
-            mqttClient?.connectToMQTT() // thử lại đơn giản, không cần tạo instance mới
+        if (!hasNotifiedDisconnected) {
+            hasNotifiedDisconnected = true
+            hubObverse.onHubDisConnected()
+        }
+
+        if (reconnectJob?.isActive == true) return
+
+        reconnectJob = coroutineScope.launch {
+            delay(15000)
+            mqttClient?.connectToMQTT()
         }
     }
 
@@ -557,6 +557,8 @@ class HubManager(
     }
 
     fun disconnect() {
+        reconnectJob?.cancel()
+        reconnectJob = null
         stopAllJob()
         isConnectSuccess = false
         mqttClient?.disconnect()
@@ -564,6 +566,8 @@ class HubManager(
     }
 
     fun disconnectAll() {
+        reconnectJob?.cancel()
+        reconnectJob = null
         stopAllJob()
         isConnectSuccess = false
         mqttClient?.disconnectAll()

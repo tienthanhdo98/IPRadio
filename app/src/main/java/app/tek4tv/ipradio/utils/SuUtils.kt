@@ -36,22 +36,23 @@ fun setAirplaneModeEnable(enableOrDisable: Boolean) {
     executeCommandViaSu(command)
 }
 
-fun initESimConfig() {
-    val cmd = """
-        echo 163 > /sys/class/gpio/export
-        echo out > /sys/class/gpio/gpio163/direction
-        """.trimIndent()
-    executeCommandViaSu(cmd)
-}
+//fun initESimConfig() {
+//    val cmd = """
+//        echo 163 > /sys/class/gpio/export
+//        echo out > /sys/class/gpio/gpio163/direction
+//        """.trimIndent()
+//    executeCommandViaSu(cmd)
+//}
+//
+//fun setESimEnable(enableOrDisable: Boolean) {
+//    val command: String = if (enableOrDisable) {
+//        "echo 1 > /sys/class/gpio/gpio163/value"
+//    } else {
+//        "echo 0 > /sys/class/gpio/gpio163/value"
+//    }
+//    executeCommandViaSu(command)
+//}
 
-fun setESimEnable(enableOrDisable: Boolean) {
-    val command: String = if (enableOrDisable) {
-        "echo 1 > /sys/class/gpio/gpio163/value"
-    } else {
-        "echo 0 > /sys/class/gpio/gpio163/value"
-    }
-    executeCommandViaSu(command)
-}
 
 @Throws(java.lang.Exception::class)
 fun setMobileDataEnabled(enableOrDisable: Boolean) {
@@ -67,6 +68,21 @@ fun getStateMobileData(): String {
     val command = "getprop gsm.sim.state"
     val result = run(command)
     return result
+}
+
+fun getModeMobileData(): Int {
+    try {
+        // Chạy lệnh ADB shell
+        val command = "getprop gsm.network.type"
+        val result = run(command) // Hàm run() của bạn
+
+        // Convert chuỗi kết quả sang số
+        return convertMobileDataToInt(result)
+
+    } catch (e: Exception) {
+        Log.e("Network", "Lỗi lấy trạng thái mạng: ${e.message}")
+        return -1 // Lỗi
+    }
 }
 
 fun getEnableMobileData(): String {

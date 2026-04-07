@@ -5,6 +5,7 @@ import androidx.room.Room
 import app.tek4tv.ipradio.model.local.AppDatabase
 import app.tek4tv.ipradio.model.local.MediaInfoDao
 import app.tek4tv.ipradio.model.local.MediaInfoLiveHistoryDao
+import app.tek4tv.ipradio.model.local.log.MgwLogDao
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -27,6 +28,11 @@ object DatabaseModule {
     @Provides
     fun provideSchedulerDao(db: AppDatabase): MediaInfoDao {
         return db.mediaDao()
+    }
+
+    @Provides
+    fun provideLogDao(db: AppDatabase): MgwLogDao {
+        return db.logDao()
     }
 
     @Provides

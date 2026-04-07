@@ -76,4 +76,5 @@ class RestartGuardManager(
             globalProperties.saveCountRestartApp(0)
         }
     }
+
 }

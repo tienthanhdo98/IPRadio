@@ -204,6 +204,7 @@ class SerialPortController(
     }
 
     fun hardRestart() {
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
         invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
     }
 

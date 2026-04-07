@@ -133,6 +133,7 @@ class PlayersManager(
         }
         if (!found) {
             Log.d("MediaInfo", "Không có khung giờ hợp lệ -> Dừng thiết bị")
+            playerManagerListener?.onTimeOver()
             if (playMode != PLAY_MODE_INIT && playMode != PLAY_MODE_FORCE) {
                 Log.e(
                     "MediaInfo",
@@ -167,8 +168,7 @@ class PlayersManager(
             playlistIndex = 0
             playMediaByIndex(playlistIndex)
         }
-        //playlistIndex = 0
-        //playMediaByIndex(playlistIndex)
+
 
         isTimeOver = false
     }

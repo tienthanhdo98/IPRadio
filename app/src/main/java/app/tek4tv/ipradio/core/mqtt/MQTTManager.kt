@@ -39,7 +39,7 @@ class MQTTManager(
                 cause?.printStackTrace()
                 // Lưu ý: Không cần báo fail về HubManager ở đây
                 // vì thư viện sẽ tự động reconnect ngầm nhờ isAutomaticReconnect = true.
-                // connectEventListener.onConnectFailure(cause?.message)
+//                connectEventListener.onConnectFailure(cause?.message)
             }
 
             override fun deliveryComplete(token: IMqttDeliveryToken?) {
@@ -66,7 +66,7 @@ class MQTTManager(
         options.userName = bootstrapResp.id
         options.password = bootstrapResp.key?.toCharArray()
         options.isAutomaticReconnect = true
-        options.isCleanSession = true
+        options.isCleanSession = false
         options.connectionTimeout = 30
         options.keepAliveInterval = 30
 
@@ -91,7 +91,6 @@ class MQTTManager(
     ) {
         if (mqttClient?.isConnected != true) {
             Log.d(TAG, "Cannot publish: MQTT not connected")
-            connectEventListener.onConnectFailure("MQTT not connected")
             return
         }
         try {

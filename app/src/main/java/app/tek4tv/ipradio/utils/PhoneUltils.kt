@@ -7,6 +7,7 @@ import android.content.pm.PackageManager
 import android.os.Build
 import android.telephony.SubscriptionManager
 import android.telephony.TelephonyManager
+import android.util.Log
 import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 
@@ -29,6 +30,40 @@ fun getImsi(context: Context): String? {
         tm.subscriberId?.takeIf { it.isNotBlank() }
     } catch (_: Throwable) {
         null
+    }
+}
+
+
+/**
+ * Loại kết nối hiện tại: 0=ETH, 1=WiFi, 2=2G, 3=3G, 4=4G, 5=5G.
+ * Trả về -1 nếu không xác định được.
+ */
+fun convertMobileDataToInt(networkTypeString: String): Int {
+    // getprop có thể trả về "LTE,Unknown" nếu máy có 2 SIM. Ta lấy phần tử đầu tiên.
+    val firstSimType = networkTypeString.split(",").firstOrNull() ?: ""
+
+    // Chuẩn hóa chuỗi: xóa khoảng trắng, xuống dòng và viết hoa hết
+    val type = firstSimType.trim().uppercase()
+
+    return when (type) {
+        // --- 5G ---
+        "NR" -> 5
+
+        // --- 4G ---
+        "LTE", "LTE_CA" -> 4
+
+        // --- 3G ---
+        "UMTS", "HSDPA", "HSUPA", "HSPA", "HSPAP", "HSPA+", "EVDO_0", "EVDO_A", "EVDO_B", "EHRPD", "TD_SCDMA" -> 3
+
+        // --- 2G ---
+        "GPRS", "EDGE", "CDMA", "1XRTT", "IDEN", "GSM" -> 2
+
+        // --- WiFi / LAN (Dành cho việc mở rộng) ---
+        "WIFI", "WLAN" -> 1
+        "ETH", "ETHERNET" -> 0
+
+        // --- Không xác định hoặc không có mạng ---
+        else -> -1 // Hoặc trả về 2 (mặc định thấp nhất) tùy logic của bạn
     }
 }
 
