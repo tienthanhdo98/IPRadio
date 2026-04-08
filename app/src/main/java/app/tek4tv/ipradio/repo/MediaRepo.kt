@@ -62,7 +62,7 @@ class MediaRepo @Inject constructor(
                     "Repeat Type: Scheduler ${if (mediaInfo.repeat == 0) "tuần" else "tháng"}"
                 )
                 Log.d(
-                    "MediaInfo", "Name: ${mediaInfo.summary}"
+                    "MediaInfo", "Name: ${mediaInfo.summary} - ${mediaInfo.mid}"
                 )
                 val r1 = decodeRepeatDays(repeat, days)
                 val res = repeatDaysToText(r1)

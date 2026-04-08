@@ -1,14 +1,7 @@
 package app.tek4tv.ipradio.model
 
-import android.content.Context
-import android.util.Log
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
-import org.videolan.libvlc.LibVLC
-import org.videolan.libvlc.Media
-import java.io.File
-import androidx.core.net.toUri
-import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 
 
 @JsonClass(generateAdapter = true)
@@ -170,7 +163,7 @@ data class MediaInfo(
     @Json(name = "ds") val ds: List<Long>? = null,
 
     @Json(name = "created") val created: Long? = null,
-    @Json(name = "start") val start: Long? = null,
+    @Json(name = "start") var start: Long? = null,
     @Json(name = "expired") var expired: Long? = null,
 
     @Json(name = "files") val files: List<MediaFile> = emptyList(),
@@ -208,36 +201,36 @@ data class MediaFile(
         }
     }
 
-    fun getVlcMedia(mLibVLC: LibVLC, appContext: Context): Media {
-        return when (getMediaType()) {
-            MediaFileType.LIVE -> {
-                Log.d("player", "Live: $pathBackup")
-                Media(mLibVLC, pathBackup.toUri())
-            }
-
-            MediaFileType.FILE -> {
-                val remoteUrl = url
-                require(!remoteUrl.isNullOrBlank()) { "Media url is null or blank" }
-
-                val fileName = getFileNameFromUrl(remoteUrl)
-                val localFile = File(appContext.filesDir.path, fileName)
-
-                if (localFile.exists() && localFile.isFile) {
-                    Log.d("player", "file link local: ${localFile.absolutePath}")
-                    Media(mLibVLC, localFile.toUri())
-                } else {
-                    Log.d("player", "file link online: $pathBackup")
-                    Media(mLibVLC, pathBackup.toUri())
-                }
-            }
-
-            else -> {
-                throw IllegalStateException("Unsupported media type: ${getMediaType()}")
-            }
-        }
-
-
-    }
+//    fun getVlcMedia(mLibVLC: LibVLC, appContext: Context): Media {
+//        return when (getMediaType()) {
+//            MediaFileType.LIVE -> {
+//                Log.d("player", "Live: $pathBackup")
+//                Media(mLibVLC, pathBackup.toUri())
+//            }
+//
+//            MediaFileType.FILE -> {
+//                val remoteUrl = url
+//                require(!remoteUrl.isNullOrBlank()) { "Media url is null or blank" }
+//
+//                val fileName = getFileNameFromUrl(remoteUrl)
+//                val localFile = File(appContext.filesDir.path, fileName)
+//
+//                if (localFile.exists() && localFile.isFile) {
+//                    Log.d("player", "file link local: ${localFile.absolutePath}")
+//                    Media(mLibVLC, localFile.toUri())
+//                } else {
+//                    Log.d("player", "file link online: $pathBackup")
+//                    Media(mLibVLC, pathBackup.toUri())
+//                }
+//            }
+//
+//            else -> {
+//                throw IllegalStateException("Unsupported media type: ${getMediaType()}")
+//            }
+//        }
+//
+//
+//    }
 
     fun convertKHzToFm(freq: String?): String {
         val value = freq?.toIntOrNull() ?: return ""

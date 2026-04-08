@@ -25,53 +25,108 @@ class NetworkUtils private constructor() {
         private set
     private val mCallbacks: MutableList<ConnectionCallback> = LinkedList()
     var mNetworkLive = MutableLiveData<Boolean>()
-    private val mNetRequest = NetworkRequest.Builder()
-        .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-        .build()
+    private val mNetRequest =
+        NetworkRequest.Builder().addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET).build()
+//    private val mNetCallback: NetworkCallback = object : NetworkCallback() {
+//        override fun onAvailable(network: Network) {
+//            super.onAvailable(network)
+//            Log.d(TAG, "available")
+//            mNetworkLive.postValue(true)
+//            isNetworkConnected = true
+//            for (callback in mCallbacks) {
+//                callback.onChange(true)
+//            }
+//        }
+//
+//        override fun onLost(network: Network) {
+//            super.onLost(network)
+//            Log.d(TAG, "lost")
+//            mNetworkLive.postValue(false)
+//            isNetworkConnected = false
+//            for (callback in mCallbacks) {
+//                callback?.onChange(false)
+//            }
+//        }
+//    }
+
+    private var appContext: Context? = null
+
     private val mNetCallback: NetworkCallback = object : NetworkCallback() {
         override fun onAvailable(network: Network) {
             super.onAvailable(network)
-            Log.d(TAG, "available")
-            mNetworkLive.postValue(true)
-            isNetworkConnected = true
+            val connected = appContext?.let { getCurrentConnectedState(it) } ?: true
+            Log.d(TAG, "available -> connected=$connected")
+            mNetworkLive.postValue(connected)
+            isNetworkConnected = connected
             for (callback in mCallbacks) {
-                callback.onChange(true)
+                callback.onChange(connected)
             }
         }
 
         override fun onLost(network: Network) {
             super.onLost(network)
-            Log.d(TAG, "lost")
-            mNetworkLive.postValue(false)
-            isNetworkConnected = false
+            val connected = appContext?.let { getCurrentConnectedState(it) } ?: false
+            Log.d(TAG, "lost -> connected=$connected")
+            mNetworkLive.postValue(connected)
+            isNetworkConnected = connected
             for (callback in mCallbacks) {
-                callback?.onChange(false)
+                callback.onChange(connected)
             }
         }
     }
 
+    //    fun startNetworkListener(context: Context) {
+//        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+//        if (manager != null) {
+//            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+//                manager.registerDefaultNetworkCallback(mNetCallback)
+//            } else {
+//                manager.registerNetworkCallback(mNetRequest, mNetCallback)
+//            }
+//            Log.d(TAG, "#startNetworkListener() success")
+//        } else {
+//            Log.d(TAG, "#startNetworkListener() failed")
+//        }
+//    }
     fun startNetworkListener(context: Context) {
+        appContext = context.applicationContext
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (manager != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                manager.registerDefaultNetworkCallback(mNetCallback)
-            } else {
-                manager.registerNetworkCallback(mNetRequest, mNetCallback)
-            }
-            Log.d(TAG, "#startNetworkListener() success")
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            manager.registerDefaultNetworkCallback(mNetCallback)
         } else {
-            Log.d(TAG, "#startNetworkListener() failed")
+            manager.registerNetworkCallback(mNetRequest, mNetCallback)
         }
+        isNetworkConnected = getCurrentConnectedState(appContext!!)
+        mNetworkLive.postValue(isNetworkConnected)
+        Log.d(TAG, "#startNetworkListener() success, connected=$isNetworkConnected")
     }
 
+    //    fun stopNetworkListener(context: Context) {
+//        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+//        if (manager != null) {
+//            manager.unregisterNetworkCallback(mNetCallback)
+//            Log.d(TAG, "#stopNetworkListener() success")
+//        } else {
+//            Log.d(TAG, "#stopNetworkListener() failed")
+//        }
+//    }
     fun stopNetworkListener(context: Context) {
         val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-        if (manager != null) {
+        try {
             manager.unregisterNetworkCallback(mNetCallback)
-            Log.d(TAG, "#stopNetworkListener() success")
-        } else {
-            Log.d(TAG, "#stopNetworkListener() failed")
+        } catch (_: Exception) {
         }
+        appContext = null
+        Log.d(TAG, "#stopNetworkListener() success")
+    }
+
+    fun getCurrentConnectedState(context: Context): Boolean {
+        val manager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val activeNetwork = manager.activeNetwork ?: return false
+        val caps = manager.getNetworkCapabilities(activeNetwork) ?: return false
+
+        return caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET) &&
+                caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED)
     }
 
     fun addObserver(owner: LifecycleOwner?, observer: Observer<Boolean>?) {
@@ -194,10 +249,7 @@ class NetworkUtils private constructor() {
             if (lp == null) return null
             for (linkAddress in lp.linkAddresses) {
                 val address = linkAddress.address
-                if (address is Inet4Address &&
-                    !address.isLoopbackAddress &&
-                    !address.isLinkLocalAddress
-                ) {
+                if (address is Inet4Address && !address.isLoopbackAddress && !address.isLinkLocalAddress) {
                     return address.hostAddress
                 }
             }
@@ -282,8 +334,7 @@ class NetworkUtils private constructor() {
         fun checkForNetworkStatPermission(context: Context): Boolean {
             val appOps = context.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager?
             val mode = appOps!!.checkOpNoThrow(
-                AppOpsManager.OPSTR_GET_USAGE_STATS,
-                Process.myUid(), context.packageName
+                AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), context.packageName
             )
             return mode == AppOpsManager.MODE_ALLOWED
         }
@@ -321,18 +372,12 @@ class NetworkUtils private constructor() {
                     add(Calendar.MONTH, 1)
                     add(Calendar.DAY_OF_MONTH, -1)
                 }
-                val allRxByte =
-                    helper.getAllRxByte(
-                        appContext,
-                        startTime.timeInMillis,
-                        endTime.timeInMillis
-                    ) / 1024
-                val allTxByte =
-                    helper.getAllTxByte(
-                        appContext,
-                        startTime.timeInMillis,
-                        endTime.timeInMillis
-                    ) / 1024
+                val allRxByte = helper.getAllRxByte(
+                    appContext, startTime.timeInMillis, endTime.timeInMillis
+                ) / 1024
+                val allTxByte = helper.getAllTxByte(
+                    appContext, startTime.timeInMillis, endTime.timeInMillis
+                ) / 1024
                 //data nhận, data gửi
                 "$allRxByte,$allTxByte"
             } catch (e: Exception) {
@@ -350,10 +395,8 @@ class NetworkUtils private constructor() {
                     "Ethernet" -> ""
                     else -> {
                         val cellStrength = getCellSignalStrengthInDbm(appContext)
-                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN)
-                            "${cellStrength}dbm"
-                        else
-                            ""
+                        if (cellStrength != CellSignalStrength.SIGNAL_STRENGTH_NONE_OR_UNKNOWN) "${cellStrength}dbm"
+                        else ""
                     }
                 }
 

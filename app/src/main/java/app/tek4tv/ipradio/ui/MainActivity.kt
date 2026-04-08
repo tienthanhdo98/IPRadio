@@ -15,7 +15,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
-import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.IHubObserve
 import app.tek4tv.ipradio.core.MediaScheduler
@@ -32,22 +31,17 @@ import app.tek4tv.ipradio.model.BootstrapResp
 import app.tek4tv.ipradio.model.Channel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
-import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.findIndex
 import app.tek4tv.ipradio.model.parseDeviceStatusResponse
 import app.tek4tv.ipradio.network.ApiService
-import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
-import app.tek4tv.ipradio.utils.StringValue.Companion.live
-import app.tek4tv.ipradio.utils.StringValue.Companion.liveFmSohoaLoi
-import app.tek4tv.ipradio.utils.Utils
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.getEnableMobileData
 import app.tek4tv.ipradio.utils.getStateMobileData
@@ -63,6 +57,7 @@ import app.tek4tv.ipradio.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -90,14 +85,43 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private val globalProperties = GlobalProperties.getInst()
 
-
     private lateinit var binding: ActivityMainBinding
+
     private lateinit var restartGuardManager: RestartGuardManager
+
+    private var isSelectingNetwork = false
+    private var networkReselectJob: Job? = null
+
+    private val networkCallback = object : NetworkUtils.ConnectionCallback {
+        override fun onChange(netWorkState: Boolean) {
+            if (isSelectingNetwork) return
+
+            Log.d("initSettings", "Network changed: $netWorkState")
+
+            networkReselectJob?.cancel()
+            networkReselectJob = lifecycleScope.launch {
+                delay(1500)
+
+                val stillConnected = NetworkUtils.instance.isNetworkConnected
+
+                if (netWorkState) {
+                    if (!isSelectingNetwork) initSettings()
+                    return@launch
+                }
+
+                if (!stillConnected) {
+                    if (!isSelectingNetwork) initSettings()
+                } else {
+                    Log.d("initSettings", "Bỏ qua reselect vì vẫn còn mạng")
+                }
+            }
+        }
+    }
 
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
-            Log.d("loghub", "onTimeOver: come")
+            Log.d("MediaInfo", "onTimeOver: come")
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.mainVolume)
             hubManager.currentMediaItem = null
@@ -114,16 +138,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                 hubManager.currentMediaItem = mediaItem
 
-//                if (!serialPortController.isUart1) {
-//                    lifecycleScope.launch {
-//                        delay(11000)
-//                        serialPortController.playTuner(pipsData, tunerData)
-//                    }
-//                } else {
-//                    serialPortController.playTuner(pipsData, tunerData)
-//                }
                 serialPortController.playTuner(pipsData, tunerData)
-
 
                 viewModel.addLog(
                     type = 3, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
@@ -132,6 +147,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             } catch (e: Exception) {
                 e.printStackTrace()
             }
+        }
+
+        override fun onForceMediaExpired(mediaInfo: MediaInfo?) {
+            if (mediaInfo == null) return
+            Log.d("MediaInfo", "onForceMediaExpired clear data")
+            viewModel.insertMediaInfoLiveHistory(mediaInfo)
+            ForceMedia.deleteForeMediaPref(applicationContext)
+            playerManager.resetPlayMode()
         }
 
         //Dừng phát khẩn cấp
@@ -145,6 +168,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             startPlayingMedia()
         }
 
+
         //Lỗi luồng live
         override fun onPlayError(mediaItem: MediaFile?) {
             // hubManager.currentMediaItem = null
@@ -153,18 +177,17 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
 
         override fun onPlayMediaSuccess(mediaItem: MediaFile?) {
-            if (mediaItem != null && mediaItem.id != 0L) {
+            if (mediaItem == null) return
 
-                hubManager.currentMediaItem = mediaItem
+            hubManager.currentMediaItem = mediaItem
 
-                serialPortController.turnOnPAVod()
+            serialPortController.turnOnPAVod()
 
+            viewModel.addLog(
+                type = 3, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
+            )
+            hubManager.sendStatus()
 
-                viewModel.addLog(
-                    type = 3, detail = """{"m":${mediaItem.id}}""", hubManager = hubManager
-                )
-                hubManager.sendStatus()
-            }
         }
 
         override fun onEndMedia(mediaItem: MediaFile?) {
@@ -184,36 +207,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         viewModel.grantPermissionThoughAdb(baseContext)
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
-        val hubComm = object : HubComm {
-            override fun forceRestartApp(countHardRestart: Int) {
-                lifecycleScope.launch {
-                    //sau khi 30p reset app thì sẽ reset phần cứng.
-                    Log.d("resetApp", "force reset $countHardRestart")
-                    if (countHardRestart >= 6) {
-                        ConfigUtil.putInt(baseContext, ConfigUtil.CountForHardReset, 0)
-                        serialPortController.hardRestart()
-                    }
-                    ConfigUtil.putInt(
-                        baseContext, ConfigUtil.CountForHardReset, countHardRestart + 1
-                    )
-                    Log.d("turnPA", "force reset")
-                    delay(3000)
-                    //bật tắt lại mạng di động
-                    setMobileDataEnabled(false)
-                    setWifiDataEnabled(true)
-                    delay(3000)
-                    setMobileDataEnabled(true)
-                    ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
-                    delay(3000)
-                    restartApp(MyApp.instance!!, this@MainActivity)
-                }
-            }
-
-            override fun forceRestartDevice() {
-                serialPortController.hardRestart()
-            }
-        }
-
         appStorageManager = AppStorageManager(applicationContext)
 
         hubManager = HubManager(
@@ -226,14 +219,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         serialPortController.connectToSerialPort(UART_S4_NAME)
 
-//        lifecycleScope.launch {
-//            delay(10000)
-//            if (!serialPortController.isUart1) {
-//                serialPortController.connectToSerialPort(UART_S4_NAME)
-//                Log.i("PA", "onCreate: s4")
-//            }
-//        }
-
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
         )
@@ -244,9 +229,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
         alarmListener = this
-
-
-        initSettings()
 
         initHubConnect()
 
@@ -260,9 +242,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         showMac()
 
-
         NetworkUtils.instance.startNetworkListener(this)
+        NetworkUtils.instance.addCallback(networkCallback)
         viewModel.clearLocalMediaInfoExpired(applicationContext)
+        initSettings()
         restartGuardManager = RestartGuardManager(globalProperties)
         globalProperties.saveAppStartTime(System.currentTimeMillis())
         viewModel.addLog(
@@ -280,7 +263,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
             //hubManager.handlerMessage(liveFmSohoaLoi)
-            hubManager.handlerMessage(live)
+            //hubManager.handlerMessage(liveCount)
+            //hubManager.handlerMessage(liveHttp)
             //serialPortController.writeSetESimMode("0")
             //serialPortController.turnOnPAVod()
         }
@@ -292,9 +276,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         viewModel.getPlayerContentLocal()
     }
 
-
     override fun onDestroy() {
         super.onDestroy()
+        NetworkUtils.instance.removeCallback(networkCallback)
+        NetworkUtils.instance.stopNetworkListener(this)
         hubManager.disconnectAll()
         playerManager.onActivityDestroy()
         cancelAllAlarm()
@@ -322,13 +307,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
-                Log.d("MediaInfo", "End Live")
+                Log.d("MediaInfo", "Force End Live")
                 Log.d("alarmx", "stop force")
                 Log.d("turnPA", "on alarm end force media")
                 playerManager.stopForceMedia()
 
             }
-
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 lifecycleScope.launch {
@@ -342,13 +326,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
-//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-//        return true
-//    }
-//
-//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-//        return true
-//    }
+    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+        return true
+    }
+
+    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+        return true
+    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -368,31 +352,36 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             viewModel.schedulerUpdated.collect {
                 hubManager.currentMediaInfoListId = viewModel.getMediaInfoIdList()
                 viewModel.downloadMedias()
-                Log.d("checkcheck", "scheduler updated")
-                if (ForceMedia.hasValidForceMedia(applicationContext)) {
-                    val forceMediaInfo = getLocalForceMedia(applicationContext)
-                    if (forceMediaInfo != null) {
-                        Log.d(
-                            "MediaInfo", "handleFromCommandServer: Play Live from local"
-                        )
-                        playerManager.playForceMedia(
-                            forceMediaInfo.endTime, forceMediaInfo, mediaScheduler
-                        )
-                    }
-                    return@collect
-                }
-
-                //playerManager.stopAllPlayer()
-                if (playerManager.playMode == PLAY_MODE_FORCE) {
-                    Log.d(
-                        "MediaInfo", "Live is playing, skip cancelAllAlarm and scheduleAllAlarms"
-                    )
-                    return@collect
-                }
-
-                cancelAllAlarm()
                 if (globalProperties.settingsDisable == 0) {
+                    Log.d("checkcheck", "scheduler updated")
+                    if (ForceMedia.hasValidForceMedia(applicationContext)) {
+                        val forceMediaInfo = getLocalForceMedia(applicationContext)
+                        if (forceMediaInfo != null) {
+                            Log.d(
+                                "MediaInfo", "handleFromCommandServer: Play Live from local"
+                            )
+                            playerManager.playForceMedia(
+                                forceMediaInfo.endTime,
+                                forceMediaInfo,
+                                mediaScheduler
+                            )
+                        }
+                        return@collect
+                    }
+
+                    //playerManager.stopAllPlayer()
+                    if (playerManager.playMode == PLAY_MODE_FORCE) {
+                        Log.d(
+                            "MediaInfo",
+                            "Live is playing, skip cancelAllAlarm and scheduleAllAlarms"
+                        )
+                        return@collect
+                    }
+
+                    cancelAllAlarm()
+
                     mediaScheduler.scheduleAllAlarms()
+
                     playerManager.getPlay()
                 }
             }
@@ -404,52 +393,118 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun initSettings() {
+        if (isSelectingNetwork) return
         val networkType = globalProperties.settingsTxType
-        setEthernetEnabled(true)
-        when (networkType) {
-            0 -> {
-                Log.d("initSettings", "initSettings: Ethernet")
-                setEthernetEnabled(true)
-            }
+        isSelectingNetwork = true
+        lifecycleScope.launch {
+            try {
+                val connected = NetworkUtils.isNetworkConnected(this@MainActivity)
+                if (connected) {
+                    Log.d("initSettings", "Đã có mạng sẵn, vẫn kiểm tra theo ưu tiên cấu hình")
+                }
 
-            1 -> {
-                Log.d("initSettings", "initSettings: Sim")
-                val state = getStateMobileData().trim()
-                val isEnable = getEnableMobileData().trim()
-
-                val simStates = state.split(",").map { it.trim() }
-                val hasLoadedSim = simStates.any { it.contains("LOADED", ignoreCase = true) }
-
-                Log.d(
-                    "initSettings",
-                    "initSettings: Sim state=$state, mobileData=${if (isEnable == "1") "enable" else "disable"}"
-                )
-
-                lifecycleScope.launch {
-                    if (!hasLoadedSim) {
-                        Log.d("initSettings", "No loaded SIM, reset radio/network")
-
-//                        setEthernetEnabled(false)
-                        setWifiDataEnabled(false)
-                        setAirplaneModeEnable(true)
-                        delay(2000)
-                        setAirplaneModeEnable(false)
-                        delay(1500)
-                        setMobileDataEnabled(true)
+                val success = when (networkType) {
+                    0 -> {
+                        Log.d("initSettings", "Preferred network: Ethernet")
+                        tryUseEthernet() || tryUseSim() || tryUseWifi()
                     }
 
-                    if (isEnable == "0") {
-                        Log.d("initSettings", "Enable mobile data")
-                        setMobileDataEnabled(true)
+                    1 -> {
+                        Log.d("initSettings", "Preferred network: Sim")
+                        tryUseSim() || tryUseEthernet() || tryUseWifi()
+                    }
+
+                    2 -> {
+                        Log.d("initSettings", "Preferred network: Wifi")
+                        tryUseWifi() || tryUseEthernet() || tryUseSim()
+                    }
+
+                    else -> {
+                        Log.d("initSettings", "Unknown networkType, fallback all")
+                        tryUseEthernet() || tryUseSim() || tryUseWifi()
                     }
                 }
-            }
 
-            2 -> {
-                Log.d("initSettings", "initSettings: Wifi")
-                setWifiDataEnabled(true)
+                Log.d("initSettings", "initSettings result: success=$success")
+
+                if (!success) {
+                    Log.d("initSettings", "Không tìm được loại mạng nào usable")
+                }
+
+            } finally {
+                delay(1000)
+                isSelectingNetwork = false
             }
         }
+    }
+
+    private suspend fun tryUseEthernet(): Boolean {
+        Log.d("initSettings", "tryUseEthernet")
+        setEthernetEnabled(true)
+        delay(2500)
+        setWifiDataEnabled(false)
+        setMobileDataEnabled(false)
+        return NetworkUtils.getEthernetLanIp(this@MainActivity) != null
+    }
+
+    private suspend fun tryUseSim(): Boolean {
+        Log.d("initSettings", "tryUseSim")
+
+        var state = getStateMobileData().trim()
+        var simStates = state.split(",").map { it.trim() }
+        var hasLoadedSim = simStates.any { it.contains("LOADED", ignoreCase = true) }
+
+        if (!hasLoadedSim) {
+            Log.d("initSettings", "tryUseSim: no loaded SIM, reset radio")
+
+            setWifiDataEnabled(false)
+            setMobileDataEnabled(false)
+            setAirplaneModeEnable(true)
+            delay(1500)
+            setAirplaneModeEnable(false)
+            delay(1500)
+            setMobileDataEnabled(true)
+
+            delay(2000)
+
+            state = getStateMobileData().trim()
+            simStates = state.split(",").map { it.trim() }
+            hasLoadedSim = simStates.any { it.contains("LOADED", ignoreCase = true) }
+            if (!hasLoadedSim) {
+                Log.d("initSettings", "tryUseSim: SIM vẫn chưa LOADED")
+                return false
+            }
+        } else {
+            setWifiDataEnabled(false)
+            setMobileDataEnabled(false)
+            setAirplaneModeEnable(true)
+            delay(1500)
+            setAirplaneModeEnable(false)
+            delay(1500)
+            setMobileDataEnabled(true)
+            delay(2000)
+        }
+
+        repeat(5) {
+            delay(1000)
+            val mobileIp = NetworkUtils.getMobileLocalIp(this@MainActivity)
+            Log.d("initSettings", "tryUseSim: mobileIp=$mobileIp")
+            delay(1000)
+            if (mobileIp != null) {
+                setEthernetEnabled(false)
+                return true
+            }
+        }
+
+        Log.d("initSettings", "tryUseSim: mobile chưa lên")
+        return false
+    }
+
+    private suspend fun tryUseWifi(): Boolean {
+        Log.d("initSettings", "tryUseWifi")
+        setWifiDataEnabled(true)
+        delay(2000)
+        return NetworkUtils.isNetworkConnected(this@MainActivity)
     }
 
     private fun initHubConnect() {
@@ -555,7 +610,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 )
                             }
                         }
-                        //   onPlayForce(responseHub.listLiveMediaInfo!!.first())
+                        //onPlayForce(responseHub.listLiveMediaInfo!!.first())
                     }
                 }
 
@@ -590,7 +645,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                             serialPortController.writeSetESimMode("1")
                                             delay(2000)
                                             setWifiDataEnabled(false)
-//                                            setEthernetEnabled(false)
+                                            setEthernetEnabled(false)
                                             setMobileDataEnabled(false)
                                             setAirplaneModeEnable(true)
                                             delay(2000)
@@ -618,7 +673,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                             }
                                             delay(2000)
                                             setWifiDataEnabled(false)
-//                                            setEthernetEnabled(false)
+                                            setEthernetEnabled(false)
                                             setMobileDataEnabled(false)
                                             setAirplaneModeEnable(true)
                                             delay(2000)
@@ -651,7 +706,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 2 -> {
                                     setWifiDataEnabled(true)
                                     setMobileDataEnabled(false)
-//                                    setEthernetEnabled(false)
+                                    setEthernetEnabled(false)
                                 }
 
                             }

@@ -5,6 +5,7 @@ import app.tek4tv.ipradio.di.JsonAdapterProvider.mediaInfoAdapter
 import app.tek4tv.ipradio.utils.ConfigUtil
 import com.squareup.moshi.Json
 
+
 data class ForceMedia(
     @Json(name = "Message")
     var path: String = "",
@@ -68,6 +69,12 @@ data class ForceMedia(
     }
 }
 
+data class ForceProgressState(
+    val isExpired: Boolean,
+    val completedLoops: Int,
+    val itemIndex: Int,
+    val itemOffsetSec: Int
+)
 
 
 

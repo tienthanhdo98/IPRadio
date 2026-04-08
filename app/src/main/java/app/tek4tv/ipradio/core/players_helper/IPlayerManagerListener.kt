@@ -10,8 +10,8 @@ interface IPlayerManagerListener {
     fun onTimeOver()
     fun onPlayTuner(mediaItem: MediaFile)
     fun onPlayError(mediaItem: MediaFile?)
-    fun onEndForceMedia(mediaInfo: MediaInfo?)
     fun onPlayMediaSuccess(mediaItem: MediaFile?)
     fun onEndMedia(mediaItem: MediaFile?)
-
+    fun onEndForceMedia(mediaInfo: MediaInfo?)
+    fun onForceMediaExpired(mediaInfo: MediaInfo?)
 }

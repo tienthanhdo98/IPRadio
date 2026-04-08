@@ -89,7 +89,7 @@ class SerialPortController(
     }
 
     private fun onWatchDog() {
-        val looseHubConnection = hubManager.pingCounter >= 3
+        val looseHubConnection = !hubManager.isConnectSuccess
 
         if (outputStream != null) {
 
