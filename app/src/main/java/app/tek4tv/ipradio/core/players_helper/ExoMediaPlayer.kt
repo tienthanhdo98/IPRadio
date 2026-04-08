@@ -9,6 +9,7 @@ import androidx.core.net.toUri
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
+import com.google.android.exoplayer2.DefaultLoadControl
 import com.google.android.exoplayer2.ExoPlayer
 import com.google.android.exoplayer2.PlaybackException
 import com.google.android.exoplayer2.Player
@@ -104,9 +105,25 @@ class ExoMediaPlayer(
         }.build()
         val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
         val dataSourceFactory = DefaultDataSourceFactory(appContext, null, okHttpFactory)
-
+//        val loadControl = DefaultLoadControl.Builder()
+//            .setBufferDurationsMs(
+//                /* minBufferMs  */ 1_500,   // default 50_000 – giữ tối thiểu 1.5s trong buffer
+//                /* maxBufferMs  */ 3_000,   // default 50_000 – không cache quá 3s
+//                /* bufferForPlaybackMs             */ 800,  // default 2_500 – cần 0.8s là phát
+//                /* bufferForPlaybackAfterRebufferMs*/ 1_500 // default 5_000 – sau rebuffer cần 1.5s
+//            )
+//            .build()
+        val loadControl = DefaultLoadControl.Builder()
+            .setBufferDurationsMs(
+                500,   // minBufferMs
+                1500,  // maxBufferMs
+                250,   // bufferForPlaybackMs
+                500    // bufferForPlaybackAfterRebufferMs
+            )
+            .build()
         exoPlayer = ExoPlayer.Builder(appContext)
             .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setLoadControl(loadControl)
             .build()
             .also { it.addListener(exoListener) }
     }
