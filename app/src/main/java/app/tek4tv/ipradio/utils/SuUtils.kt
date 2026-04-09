@@ -36,24 +36,6 @@ fun setAirplaneModeEnable(enableOrDisable: Boolean) {
     executeCommandViaSu(command)
 }
 
-//fun initESimConfig() {
-//    val cmd = """
-//        echo 163 > /sys/class/gpio/export
-//        echo out > /sys/class/gpio/gpio163/direction
-//        """.trimIndent()
-//    executeCommandViaSu(cmd)
-//}
-//
-//fun setESimEnable(enableOrDisable: Boolean) {
-//    val command: String = if (enableOrDisable) {
-//        "echo 1 > /sys/class/gpio/gpio163/value"
-//    } else {
-//        "echo 0 > /sys/class/gpio/gpio163/value"
-//    }
-//    executeCommandViaSu(command)
-//}
-
-
 @Throws(java.lang.Exception::class)
 fun setMobileDataEnabled(enableOrDisable: Boolean) {
     val command: String = if (enableOrDisable) {

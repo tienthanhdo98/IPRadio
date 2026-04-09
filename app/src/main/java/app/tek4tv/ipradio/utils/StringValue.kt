@@ -16,33 +16,13 @@ class StringValue {
         const val UART_S1_NAME = "/dev/ttyS1"
         const val UART_S4_NAME = "/dev/ttyS4"
 
-        //
-        val OPH_SETTINGS = """
-            [
-              {
-                "n": "0:d:2",
-                "t": 1710000000,
-                "vs": "{\"txtype\":1,\"sim\":0,\"mobile_mode\":4,\"ioct\":0,\"classd\":1,\"disabled\":0,\"main_volume\":70,\"fm_volume\":80,\"fm_auto\":1,\"fm_threshold\":15}"
-              }
-            ]
-        """.trimIndent()
+
         val OPH_MEDIA_DELETE_ALL = """
              [
               {
                 "n": "0:d:17",
                 "t": 1710000000,
                 "vs": "{}"
-              }
-            ]
-        """.trimIndent()
-
-        //0: reset cứng 1: reset app
-        val OPH_REBOOT = """
-            [
-              {
-                "n": "0:d:5",
-                "t": 1710000000,
-                "vs": "{\"option\": 0}"
               }
             ]
         """.trimIndent()

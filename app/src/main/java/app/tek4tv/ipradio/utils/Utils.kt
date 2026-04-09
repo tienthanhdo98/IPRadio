@@ -15,19 +15,7 @@ import java.util.*
 
 class Utils {
     companion object {
-        const val STORAGE_INFO = "STORAGE_INFO"
-        const val ENCRYPTED_STORAGE_INFO = "ENCRYPTED_STORAGE_INFO"
-        const val ping = "Ping"
-        const val heartbeat = "Heartbeat"
         const val DEVICE_ID = "device_id"
-        const val APP_VERSION = "APP_VERSION"
-        const val NETWORK_INFO = "NETWORK_INFO"
-        const val DEVICE_LOCATION = "DEVICE_LOCATION"
-        const val DIRECT_MESSAGE = "DirectMessage"
-        const val DEVICE_INFO = "DEVICE_INFO"
-        const val GET_AUDIO_PATH = "GET_AUDIO_PATH"
-        const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
-        const val GET_RECORD = "GET_RECORD"
 
 
         fun convertSecondsToCalendar(seconds: Int): Calendar {
@@ -95,7 +83,7 @@ class Utils {
             return adapter.toJson(list)
         }
 
-        
+
         fun getDeviceInfo(valueName: String, deviceInfo: String?): String? {
             // Check if deviceInfo is null or empty
             if (deviceInfo.isNullOrEmpty()) {

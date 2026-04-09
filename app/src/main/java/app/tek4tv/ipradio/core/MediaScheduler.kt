@@ -508,4 +508,13 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         cancelForceMediaAlarm()
         cancelAllScheduledListAlarm()
     }
+
+    fun getActivePeriodKey(now: Long = System.currentTimeMillis()): String? {
+        val finalSegments = buildFinalSegments()
+        return finalSegments.firstOrNull { now in it.first until it.second }?.third
+    }
+
+    fun isPeriodActive(periodKey: String, now: Long = System.currentTimeMillis()): Boolean {
+        return getActivePeriodKey(now) == periodKey
+    }
 }

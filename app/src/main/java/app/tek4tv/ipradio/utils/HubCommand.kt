@@ -94,16 +94,6 @@ object HubCommand {
     const val OPU_CHARGE_MONEY = "8"
     const val OPU_ACK = "15"
 
-    //MGW_CT
-    const val OPH_CT_READ = "80"
-    const val OPH_CT_CONFIG = "81"
-    const val OPH_CT_CONTROL = "82"
-    const val OPH_CT_GET_LOG = "83"
-    const val OPU_CT_STATUS = "208"
-    const val OPU_CT_CONFIG = "209"
-    const val OPU_CT_LOG = "210"
-    const val OPU_CT_ACK = "223"
-
     //Command
     const val UPDATE_SCHEDULER = "UPDATE_SCHEDULER"
     const val SAVE_SCHEDULER = "SAVE_SCHEDULER"

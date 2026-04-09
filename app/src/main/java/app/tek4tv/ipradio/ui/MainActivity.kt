@@ -219,16 +219,20 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         serialPortController.connectToSerialPort(UART_S4_NAME)
 
-        playerManager = PlayersManager(
-            applicationContext, viewModel.mediaRepo
-        )
-        playerManager.playerManagerListener = playerCallback
+
+
 
         streamBackManager = StreamBackManager(this@MainActivity)
 
         mediaScheduler = MediaScheduler(applicationContext, viewModel.mediaRepo)
 
+        playerManager = PlayersManager(
+            applicationContext, viewModel.mediaRepo, mediaScheduler
+        )
+        playerManager.playerManagerListener = playerCallback
+
         alarmListener = this
+
 
         initHubConnect()
 
@@ -290,20 +294,19 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     override fun onAlarm(intent: Intent) {
         when (intent.action) {
             MediaScheduleReceiver.ACTION_PLAY_MEDIA_LIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
-                Log.d("alarmx", listKey!!)
+                val listKey =
+                    intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY) ?: return
+                Log.d("alarmx", listKey)
                 Log.d("Mediainfo", "onAlarm start $listKey")
-                val t = listKey.split("-")
-                val start = toCalendar(t[0])
-                val resumePoint = playerManager.calculateResumePoint(start, listKey)
-                playerManager.setTimeFrame(listKey, resumePoint)
+                playerManager.onScheduleStart(listKey)
             }
 
             MediaScheduleReceiver.ACTION_END_PLAYLIST -> {
-                val listKey = intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY)
+                val listKey =
+                    intent.getStringExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY) ?: return
                 Log.d("alarmx", "end: $listKey")
                 Log.d("Mediainfo", "onAlarm end $listKey")
-                playerManager.stopPlaylist(listKey!!)
+                playerManager.markPlaylistEnd(listKey)
             }
 
             MediaScheduleReceiver.ACTION_END_FORCE_MEDIA -> {
@@ -311,7 +314,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 Log.d("alarmx", "stop force")
                 Log.d("turnPA", "on alarm end force media")
                 playerManager.stopForceMedia()
-
             }
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
@@ -395,12 +397,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private fun initSettings() {
         if (isSelectingNetwork) return
         val networkType = globalProperties.settingsTxType
+        Log.d("initSettings", "Conn: $networkType")
         isSelectingNetwork = true
         lifecycleScope.launch {
             try {
                 val connected = NetworkUtils.isNetworkConnected(this@MainActivity)
                 if (connected) {
-                    Log.d("initSettings", "Đã có mạng sẵn, vẫn kiểm tra theo ưu tiên cấu hình")
+                    Log.d(
+                        "initSettings",
+                        "Đã có mạng sẵn, vẫn kiểm tra theo ưu tiên cấu hình $networkType"
+                    )
                 }
 
                 val success = when (networkType) {
@@ -629,9 +635,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             when (data.txtype) {
                                 //ETH
                                 0 -> {
-                                    setWifiDataEnabled(false)
-                                    setMobileDataEnabled(false)
-                                    setEthernetEnabled(true)
+                                    lifecycleScope.launch {
+                                        setEthernetEnabled(true)
+                                        setWifiDataEnabled(false)
+                                        setMobileDataEnabled(false)
+                                        globalProperties.saveSettingConfig(responseHub.settingConfig)
+                                    }
                                 }
                                 //Mobile
                                 1 -> {
@@ -643,75 +652,54 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                             )
                                             //ESimEnable
                                             serialPortController.writeSetESimMode("1")
-                                            delay(2000)
-                                            setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
-                                            setAirplaneModeEnable(true)
-                                            delay(2000)
-                                            setAirplaneModeEnable(false)
-                                            delay(2000)
-                                            setMobileDataEnabled(true)
                                         } else {
                                             Log.d(
                                                 "SettingInfo", "handleFromCommandServer: Sim init"
                                             )
                                             //ESimDisable
                                             serialPortController.writeSetESimMode("0")
-                                            delay(1000)
-                                            Log.d(
-                                                "SettingInfo",
-                                                "handleFromCommandServer: ${globalProperties.settingsSimType}"
-                                            )
-                                            if (globalProperties.settingsSimType == 1) {
-                                                globalProperties.saveSimType(0)
-                                                Log.d(
-                                                    "SettingInfo",
-                                                    "handleFromCommandServer: reset to init sim"
-                                                )
-                                                serialPortController.hardRestart()
+                                        }
+                                        val mode = data.mobileMode
+                                        when (mode) {
+                                            0 -> {
+                                                setPreferredMode(0)
                                             }
-                                            delay(2000)
-                                            setWifiDataEnabled(false)
-                                            setEthernetEnabled(false)
-                                            setMobileDataEnabled(false)
-                                            setAirplaneModeEnable(true)
-                                            delay(2000)
-                                            setAirplaneModeEnable(false)
-                                            delay(2000)
-                                            setMobileDataEnabled(true)
 
-                                        }
-                                    }
-                                    val mode = data.mobileMode
-                                    when (mode) {
-                                        0 -> {
-                                            setPreferredMode(0)
-                                        }
+                                            2 -> {
+                                                setPreferredMode(2)
+                                            }
 
-                                        2 -> {
-                                            setPreferredMode(2)
-                                        }
+                                            3 -> {
+                                                setPreferredMode(3)
+                                            }
 
-                                        3 -> {
-                                            setPreferredMode(3)
+                                            4 -> {
+                                                setPreferredMode(4)
+                                            }
                                         }
-
-                                        4 -> {
-                                            setPreferredMode(4)
-                                        }
+                                        globalProperties.saveSettingConfig(responseHub.settingConfig)
+                                        Log.d(
+                                            "initSettings",
+                                            "mobile: ${responseHub?.settingConfig?.txtype}"
+                                        )
+                                        delay(3000)
+                                        serialPortController.hardRestart()
                                     }
                                 }
                                 //Wifi
                                 2 -> {
-                                    setWifiDataEnabled(true)
-                                    setMobileDataEnabled(false)
-                                    setEthernetEnabled(false)
+                                    lifecycleScope.launch {
+                                        setWifiDataEnabled(true)
+                                        setMobileDataEnabled(false)
+                                        setEthernetEnabled(false)
+                                        globalProperties.saveSettingConfig(responseHub.settingConfig)
+                                        delay(3000)
+                                        serialPortController.hardRestart()
+                                    }
                                 }
-
                             }
                         }
-                        globalProperties.saveSettingConfig(responseHub.settingConfig)
+
                     }
                 }
 

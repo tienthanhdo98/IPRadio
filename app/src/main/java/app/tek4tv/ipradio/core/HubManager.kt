@@ -67,8 +67,8 @@ class HubManager(
 
     lateinit var hubObverse: IHubObserve
 
-    //val deviceImei = "656565656565"
-    val deviceImei = "6565656565652"
+    val deviceImei = "656565656565"
+    //val deviceImei = "6565656565652"
 
     var pingCounter = 0
 
