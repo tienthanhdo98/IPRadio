@@ -4,19 +4,32 @@ import android.annotation.SuppressLint
 import android.app.AppOpsManager
 import android.app.usage.NetworkStatsManager
 import android.content.Context
-import android.net.*
+import android.net.ConnectivityManager
 import android.net.ConnectivityManager.NetworkCallback
+import android.net.LinkProperties
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Process
-import android.telephony.*
+import android.telephony.CellInfoCdma
+import android.telephony.CellInfoGsm
+import android.telephony.CellInfoLte
+import android.telephony.CellInfoWcdma
+import android.telephony.CellSignalStrength
+import android.telephony.TelephonyManager
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import java.net.Inet4Address
-import java.util.*
+import java.net.InetAddress
+import java.net.NetworkInterface
+import java.util.Calendar
+import java.util.Collections
+import java.util.LinkedList
 
 
 class NetworkUtils private constructor() {
@@ -182,6 +195,36 @@ class NetworkUtils private constructor() {
             return null
         }
 
+        fun getRealEthernetIp(): String? {
+            try {
+                // Lấy danh sách toàn bộ các cổng mạng hiện có dưới kernel
+                val interfaces: MutableList<NetworkInterface> = Collections.list<NetworkInterface?>(
+                    NetworkInterface.getNetworkInterfaces()
+                )
+
+                for (intf in interfaces) {
+                    // Tìm đúng cổng mạng dây (thường là eth0)
+                    if (intf.getName().equals("eth0", ignoreCase = true)) {
+                        // Lấy danh sách các IP đang được gán cho cổng này
+
+                        val addrs: MutableList<InetAddress> =
+                            Collections.list<InetAddress?>(intf.getInetAddresses())
+
+                        for (addr in addrs) {
+                            // Bỏ qua địa chỉ loopback (127.0.0.1) và chỉ lấy IPv4
+                            if (!addr.isLoopbackAddress() && addr is Inet4Address) {
+                                return addr.getHostAddress() // Trả về IP tĩnh bạn vừa set
+                            }
+                        }
+                    }
+                }
+            } catch (ex: java.lang.Exception) {
+                ex.printStackTrace()
+            }
+            return null // Trả về null nếu không tìm thấy
+        }
+
+
         /**
          * Lấy IPv4 cục bộ của interface Mobile data.
          * Đây là IP trên interface di động của máy, không chắc là public IP Internet.
@@ -197,7 +240,7 @@ class NetworkUtils private constructor() {
                     if (ip != null) return ip
                 }
             }
-            return null
+            return ""
         }
 
         fun getCellularSignalPercent(context: Context): Int? {
@@ -339,52 +382,6 @@ class NetworkUtils private constructor() {
             return mode == AppOpsManager.MODE_ALLOWED
         }
 
-        fun getTotalDataNetworkUsed(appContext: Context): String {
-            val netStatManager =
-                appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
-            val helper = NetworkStatsHelper(netStatManager)
-            val startTime = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, 1)
-            }
-            val endTime = Calendar.getInstance().apply {
-                set(Calendar.DAY_OF_MONTH, 1)
-                add(Calendar.MONTH, 1)
-                add(Calendar.DAY_OF_MONTH, -1)
-            }
-            val allRxByte =
-                helper.getAllRxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
-            val allTxByte =
-                helper.getAllTxByte(appContext, startTime.timeInMillis, endTime.timeInMillis)
-
-            return ((allRxByte + allTxByte) / 1024).toString()
-        }
-
-        fun getNetworkUsage(appContext: Context): String {
-            return try {
-                val netStatManager =
-                    appContext.getSystemService(AppCompatActivity.NETWORK_STATS_SERVICE) as NetworkStatsManager
-                val helper = NetworkStatsHelper(netStatManager)
-                val startTime = Calendar.getInstance().apply {
-                    set(Calendar.DAY_OF_MONTH, 1)
-                }
-                val endTime = Calendar.getInstance().apply {
-                    set(Calendar.DAY_OF_MONTH, 1)
-                    add(Calendar.MONTH, 1)
-                    add(Calendar.DAY_OF_MONTH, -1)
-                }
-                val allRxByte = helper.getAllRxByte(
-                    appContext, startTime.timeInMillis, endTime.timeInMillis
-                ) / 1024
-                val allTxByte = helper.getAllTxByte(
-                    appContext, startTime.timeInMillis, endTime.timeInMillis
-                ) / 1024
-                //data nhận, data gửi
-                "$allRxByte,$allTxByte"
-            } catch (e: Exception) {
-                e.printStackTrace()
-                "-1,-1"
-            }
-        }
 
         fun getNetworkInfo(appContext: Context): String {
             return try {

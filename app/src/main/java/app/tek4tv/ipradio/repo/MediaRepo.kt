@@ -33,10 +33,9 @@ class MediaRepo @Inject constructor(
     private val downloadHelper = DownloadHelper2.getInstance()
 
     //MGW
-    //var scheduledList = LinkedHashMap<String, List<MediaFile>>()
     var scheduledList = LinkedHashMap<String, MediaInfo>()
     var broadcastList = mutableListOf<MediaFile>()
-    var listMediaInfoId = mutableListOf<Long>()
+    var listMediaInfoId = mutableSetOf<Long>()
     private val mediaStoragePath = appContext.filesDir.path
 
     fun updateScheduler(mediaInfo: MediaInfo) {
@@ -139,8 +138,10 @@ class MediaRepo @Inject constructor(
 
         // Ghi đè an toàn bằng synchronized
         synchronized(scheduledList) {
+            listMediaInfoId.clear()
             scheduledList.clear()
             scheduledList.putAll(tempMap)
+            listMediaInfoId.addAll(tempMap.values.map { it.mid ?: 0L })
         }
         Log.d(TAG, "Đã cập nhật nguyên khối danh sách phát mới (Size: ${tempMap.size})")
     }
@@ -160,9 +161,7 @@ class MediaRepo @Inject constructor(
         return ConfigUtil.getString(
             appContext, ConfigUtil.KEY_EXTEND_FILE, "mp3#aac#wav#wma#ac3#wav"
         )
-
     }
-
 
     fun startDownloadMedia() {
         if (broadcastList.isEmpty()) return

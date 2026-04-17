@@ -32,6 +32,7 @@ class GlobalProperties {
 
     val DEFAULT_FM_VOLUME = "DEFAULT_FM_VOLUME"
     val DEFAULT_FM_THRESHOLD = "DEFAULT_FM_VOLUME"
+    val DEFAULT_FM_AUTO_STOP = "DEFAULT_FM_AUTO_STOP"
     val COUNT_RESTART_APP = "COUNT_RESTART_APP"
 
     //reset app
@@ -40,9 +41,13 @@ class GlobalProperties {
     private val KEY_APP_START_TIME = "KEY_APP_START_TIME"
     private val KEY_RESTART_BLOCKED_UNTIL = "KEY_RESTART_BLOCKED_UNTIL"
 
+    val ADMIN_PASSWORD = "ADMIN_PASSWORD"
+    var adminPassword = "1"
+
 
     var mainVolume = "90"
     var fmVolume = "90"
+    var fmAutoStop = 1
     var fmThreshold = "36"
     var piCode = "0"
     var psName = "AAA"
@@ -54,16 +59,25 @@ class GlobalProperties {
     var mqttSecurity = 1
     var bootstrapInfo: BootstrapResp? = null
 
-    var settingsDisable = 0
+    var settingsDisable = 1
     var settingsTxType = 0
     var settingsSimType = 0
     var settingsSimMode = 0
+
+    val SETTINGS_LOCAL_IP = "SETTINGS_LOCAL_IP"
+    val SETTINGS_SUBNET = "SETTINGS_SUBNET"
+    val SETTINGS_GATEWAY = "SETTINGS_GATEWAY"
+
+    var localIp = "192.168.1.231"
+    var subnet = "255.255.255.0"
+    var gateway = "192.168.1.1"
 
 
     init {
         mainVolume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "90") ?: "90"
         fmVolume = ConfigUtil.getString(appContext, DEFAULT_FM_VOLUME, "90") ?: "90"
         fmThreshold = ConfigUtil.getString(appContext, DEFAULT_FM_THRESHOLD, "36") ?: "36"
+        fmAutoStop = ConfigUtil.getInt(appContext, DEFAULT_FM_AUTO_STOP, 1)
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         //
@@ -89,10 +103,16 @@ class GlobalProperties {
             null
         }
         //setting
-        settingsDisable = ConfigUtil.getInt(appContext, SETTINGS_DISABLE, 0)
+        settingsDisable = ConfigUtil.getInt(appContext, SETTINGS_DISABLE, 1)
         settingsTxType = ConfigUtil.getInt(appContext, SETTINGS_TXTYPE, 0)
         settingsSimType = ConfigUtil.getInt(appContext, SETTINGS_SIM, 0)
         settingsSimMode = ConfigUtil.getInt(appContext, SETTINGS_SIM_MODE, 0)
+        
+        localIp = ConfigUtil.getString(appContext, SETTINGS_LOCAL_IP, "192.168.1.231") ?: "192.168.1.231"
+        subnet = ConfigUtil.getString(appContext, SETTINGS_SUBNET, "255.255.255.0") ?: "255.255.255.0"
+        gateway = ConfigUtil.getString(appContext, SETTINGS_GATEWAY, "192.168.1.1") ?: "192.168.1.1"
+
+        adminPassword = ConfigUtil.getString(appContext, ADMIN_PASSWORD, "1") ?: "1"
     }
 
     fun saveSettingConfig(settingConfig: McuSettingsData?) {
@@ -139,6 +159,21 @@ class GlobalProperties {
         }
     }
 
+    fun saveNetworkIpConfig(ip: String?, sub: String?, gate: String?) {
+        ip?.let {
+            localIp = it
+            ConfigUtil.putString(appContext, SETTINGS_LOCAL_IP, it)
+        }
+        sub?.let {
+            subnet = it
+            ConfigUtil.putString(appContext, SETTINGS_SUBNET, it)
+        }
+        gate?.let {
+            gateway = it
+            ConfigUtil.putString(appContext, SETTINGS_GATEWAY, it)
+        }
+    }
+
     fun saveMainVolume(vol: String) {
         mainVolume = vol
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
@@ -149,13 +184,65 @@ class GlobalProperties {
         ConfigUtil.putString(appContext, DEFAULT_FM_VOLUME, vol)
     }
 
+    fun saveFmThreshold(value: String) {
+        fmThreshold = value
+        ConfigUtil.putString(appContext, DEFAULT_FM_THRESHOLD, value)
+    }
+
+    fun saveFmAutoStop(value: Int) {
+        fmAutoStop = value
+        ConfigUtil.putInt(appContext, DEFAULT_FM_AUTO_STOP, value)
+
+    }
+
     fun saveSimType(type: Int) {
         ConfigUtil.putInt(appContext, SETTINGS_SIM, type)
+    }
+
+    fun saveAdminPassword(password: String) {
+        adminPassword = password
+        ConfigUtil.putString(appContext, ADMIN_PASSWORD, password)
     }
 
     fun clearAllLocalConfigData() {
         ConfigUtil.clearAllPrefs(appContext)
 
+    }
+    
+    fun clearConnectionConfig() {
+        ConfigUtil.removeSharefEncrypt(appContext, MQTT_SERVER)
+        ConfigUtil.removeSharef(appContext, MQTT_SECURITY)
+        ConfigUtil.removeSharef(appContext, MQTT_PORT)
+        ConfigUtil.removeSharef(appContext, SETTINGS_LOCAL_IP)
+        ConfigUtil.removeSharef(appContext, SETTINGS_SUBNET)
+        ConfigUtil.removeSharef(appContext, SETTINGS_GATEWAY)
+        
+        mqttServer = "aiot.mobifone.vn"
+        mqttSecurity = 1
+        mqttPort = 6668
+        localIp = "192.168.1.231"
+        subnet = "255.255.255.0"
+        gateway = "192.168.1.1"
+    }
+
+    fun clearSettingsConfig() {
+        ConfigUtil.removeSharef(appContext, SETTINGS_TXTYPE)
+        ConfigUtil.removeSharef(appContext, SETTINGS_SIM)
+        ConfigUtil.removeSharef(appContext, SETTINGS_SIM_MODE)
+        ConfigUtil.removeSharef(appContext, SETTINGS_DISABLE)
+        ConfigUtil.removeSharef(appContext, DEFAULT_VOLUME)
+        ConfigUtil.removeSharef(appContext, DEFAULT_FM_VOLUME)
+        ConfigUtil.removeSharef(appContext, DEFAULT_FM_AUTO_STOP)
+        ConfigUtil.removeSharef(appContext, DEFAULT_FM_THRESHOLD)
+        
+        settingsTxType = 0
+        settingsSimType = 0
+        settingsSimMode = 0
+        settingsDisable = 1
+        mainVolume = "90"
+        fmVolume = "90"
+        fmAutoStop = 1
+        fmThreshold = "36"
     }
 
     //Reset app

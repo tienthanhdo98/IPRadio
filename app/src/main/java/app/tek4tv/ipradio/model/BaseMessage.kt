@@ -79,7 +79,7 @@ data class McuStatusData(
     @Json(name = "temp") val temp: Int? = 0,
     @Json(name = "playlist") val playlist: Long? = 0,
     @Json(name = "disconnection_cnt") val disconnectionCnt: Int? = 0, // Bổ sung
-    @Json(name = "mids") val mids: List<Long>? = emptyList()
+    @Json(name = "mids") val mids: Set<Long>? = emptySet()
 )
 
 @JsonClass(generateAdapter = true)

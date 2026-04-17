@@ -1,40 +1,84 @@
 package app.tek4tv.ipradio.core.webserver
 
+import android.content.Context
+import app.tek4tv.ipradio.core.webserver.MiraWebConsolePages.renderAboutPage
+import app.tek4tv.ipradio.core.webserver.MiraWebConsolePages.renderConnectionPage
+import app.tek4tv.ipradio.core.webserver.MiraWebConsolePages.renderMediaPage
+import app.tek4tv.ipradio.model.McuInfoData
+import app.tek4tv.ipradio.model.MediaInfo
+import app.tek4tv.ipradio.model.webconsole.ConnectionSettings
+import app.tek4tv.ipradio.model.webconsole.DeviceBasicInfo
+import app.tek4tv.ipradio.model.webconsole.MediaActionData
+import app.tek4tv.ipradio.model.webconsole.StatusPageData
+import app.tek4tv.ipradio.utils.GlobalProperties
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoHTTPD.SOCKET_READ_TIMEOUT
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
 data class UserSession(val username: String)
-data class ServerSettings(
-    val bootstrapServer: String, val mqttServer: String, val mqttPort: Int, val mqttSecurity: Int
-)
 
-data class ConnectionSettings(
-    val thingId: String, val thingKey: String, val channels: String
-)
-
-data class FirmwareUpdateData(
-    val url: String, val updateMode: Int
-)
 
 object LocalWebConsole {
     private var server: AppNanoHttpd? = null
 
     private val sessions = ConcurrentHashMap<String, UserSession>()
 
+    @Volatile
+    private var deviceBasicInfo: DeviceBasicInfo = DeviceBasicInfo()
+
+    @Volatile
+    private var currentConnectionSettings: ConnectionSettings = ConnectionSettings()
+
+    @Volatile
+    private var currentMcuInfoData: McuInfoData = McuInfoData()
+
+    @Volatile
+    private var currentMediaList: List<MediaInfo> = listOf()
+
+    fun updateBasicInfo(info: DeviceBasicInfo) {
+        deviceBasicInfo = info
+    }
+
+    fun updateConnectionSettings(settings: ConnectionSettings) {
+        currentConnectionSettings = settings
+    }
+
+    fun updateMcuInfoData(mcuInfo: McuInfoData?) {
+        if (mcuInfo == null) return
+        currentMcuInfoData = mcuInfo
+    }
+
+    fun updateMediaList(mediaList: List<MediaInfo>) {
+        currentMediaList = mediaList.toSet().toList()
+    }
+
     fun start(
-        onServerUpdate: (ServerSettings) -> Unit,
+        context: Context,
+        globalProperties: GlobalProperties,
         onConnectionUpdate: (ConnectionSettings) -> Unit,
-        onFirmwareUpdate: (FirmwareUpdateData) -> Unit
+        onMediaAction: (MediaActionData) -> Unit,
+        onGetStatusData: () -> StatusPageData,
+        onResetConnection: () -> Unit,
+        onResetSettings: () -> Unit,
+        onRebootMira: () -> Unit,
+        onRestartApp: () -> Unit,
+        onFactoryReset: () -> Unit
     ) {
         if (server != null) return
 
         server = AppNanoHttpd(
+            context = context,
+            globalProperties = globalProperties,
             port = 8080,
-            onServerUpdate = onServerUpdate,
             onConnectionUpdate = onConnectionUpdate,
-            onFirmwareUpdate = onFirmwareUpdate
+            onMediaAction = onMediaAction,
+            onGetStatusData = onGetStatusData,
+            onResetConnection = onResetConnection,
+            onResetSettings = onResetSettings,
+            onRebootMira = onRebootMira,
+            onRestartApp = onRestartApp,
+            onFactoryReset = onFactoryReset
         ).apply {
             start(SOCKET_READ_TIMEOUT, false)
         }
@@ -46,12 +90,18 @@ object LocalWebConsole {
     }
 
     private class AppNanoHttpd(
+        private val context: Context,
+        private val globalProperties: GlobalProperties,
         port: Int,
-        private val onServerUpdate: (ServerSettings) -> Unit,
         private val onConnectionUpdate: (ConnectionSettings) -> Unit,
-        private val onFirmwareUpdate: (FirmwareUpdateData) -> Unit,
+        private val onMediaAction: (MediaActionData) -> Unit,
+        private val onGetStatusData: () -> StatusPageData,
+        private val onResetConnection: () -> Unit,
+        private val onResetSettings: () -> Unit,
+        private val onRebootMira: () -> Unit,
+        private val onRestartApp: () -> Unit,
+        private val onFactoryReset: () -> Unit,
     ) : NanoHTTPD(port) {
-
 
         override fun serve(session: IHTTPSession): Response {
             return try {
@@ -59,129 +109,293 @@ object LocalWebConsole {
                 val method = session.method
 
                 when {
-                    //Get
                     method == Method.GET && uri == "/login" -> {
-                        html(renderLoginPage())
+                        html(MiraWebConsolePages.renderLoginPage())
+                    }
+
+                    method == Method.GET && uri == "/" -> {
+                        redirect("/config-connection")
+                    }
+
+//                    method == Method.GET && uri == "/config-connection" -> {
+//                        requireLogin(session) { html(renderConnectionPage()) }
+//                    }
+                    method == Method.GET && uri == "/config-connection" -> {
+                        requireLogin(session) {
+                            html(
+                                renderConnectionPage(
+                                    basicInfo = deviceBasicInfo, data = currentConnectionSettings
+                                )
+                            )
+                        }
+                    }
+
+                    method == Method.GET && uri == "/config-settings" -> {
+                        requireLogin(session) {
+                            html(
+                                MiraWebConsolePages.renderSettingsPage(
+                                    data = currentConnectionSettings
+                                )
+                            )
+                        }
+                    }
+
+                    method == Method.GET && uri == "/io-ct" -> {
+                        requireLogin(session) { html(MiraWebConsolePages.renderIoCtPage()) }
+                    }
+
+                    method == Method.GET && uri == "/class-d" -> {
+                        requireLogin(session) { html(MiraWebConsolePages.renderClassDPage()) }
+                    }
+
+                    method == Method.GET && uri == "/media" -> {
+                        requireLogin(session) {
+                            val selectedMid =
+                                session.parameters["mid"]?.firstOrNull()?.toLongOrNull()
+
+                            html(
+                                renderMediaPage(
+                                    mediaList = currentMediaList, selectedMid = selectedMid
+                                )
+                            )
+                        }
+                    }
+
+                    method == Method.GET && uri == "/player" -> {
+                        requireLogin(session) { html(MiraWebConsolePages.renderPlayerPage()) }
+                    }
+
+                    method == Method.GET && uri == "/status" -> {
+                        requireLogin(session) {
+                            html(
+                                MiraWebConsolePages.renderStatusPage(
+                                    onGetStatusData()
+                                )
+                            )
+                        }
+                    }
+
+                    method == Method.GET && uri == "/3g-4g" -> {
+                        requireLogin(session) {
+                            html(
+                                MiraWebConsolePages.render3G4GPage(
+                                    currentMcuInfoData
+                                )
+                            )
+                        }
+                    }
+
+                    method == Method.GET && uri == "/admin" -> {
+                        requireLogin(session) { html(MiraWebConsolePages.renderAdminPage()) }
+                    }
+
+                    method == Method.GET && uri == "/about" -> {
+                        requireLogin(session) { html(renderAboutPage(currentMcuInfoData, context)) }
+                    }
+
+                    method == Method.POST && uri == "/login" -> {
+                        val params = parsePostParams(session)
+                        val username = params["username"].orEmpty()
+                        val password = params["password"].orEmpty()
+
+                        if (username == "admin" && password == globalProperties.adminPassword) {
+                            val sid = UUID.randomUUID().toString()
+                            sessions[sid] = UserSession(username = "admin")
+                            redirect(
+                                "/config-connection",
+                                cookies = listOf("USER_SESSION=$sid; Path=/; HttpOnly; SameSite=Lax")
+                            )
+                        } else {
+                            html(MiraWebConsolePages.renderLoginPage())
+                        }
                     }
 
                     method == Method.GET && uri == "/logout" -> {
                         val sid = getCookie(session, "USER_SESSION")
                         if (sid != null) sessions.remove(sid)
                         redirect(
-                            "/login",  // ← redirect về login
-                            cookies = listOf("USER_SESSION=deleted; Path=/; HttpOnly; Max-Age=0")  // ← Max-Age=0 để xóa cookie
+                            "/login", cookies = listOf("USER_SESSION=deleted; Path=/; Max-Age=0")
                         )
-                    }
-
-                    method == Method.GET && uri == "/" -> {
-                        requireLogin(session) { html(renderMenuPage()) }
-                    }
-
-                    method == Method.GET && uri == "/config-server" -> {
-                        requireLogin(session) { html(renderServerPage()) }
-                    }
-
-                    method == Method.GET && uri == "/config-connection" -> {
-                        requireLogin(session) { html(renderConnectionPage()) }
-                    }
-
-                    method == Method.GET && uri == "/update-firmware" -> {
-                        requireLogin(session) { html(renderFirmwareUpdatePage()) }
                     }
 
                     //Post
-                    method == Method.POST && uri == "/login" -> {
+                    method == Method.POST && (uri == "/update-connection" || uri == "/update-settings") -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
                         val params = parsePostParams(session)
-                        val password = params["password"].orEmpty()
 
-                        if (password == "admin123") {
-                            val sid = UUID.randomUUID().toString()
-                            sessions[sid] = UserSession("admin")
+                        val conn = ConnectionSettings(
+                            localIp = params["local_ip"] ?: currentConnectionSettings.localIp,
+                            subnet = params["subnet"] ?: currentConnectionSettings.subnet,
+                            gateway = params["gateway"] ?: currentConnectionSettings.gateway,
+                            mqttSecurity = params["mqtt_security"]
+                                ?: currentConnectionSettings.mqttSecurity,
+                            mqttServer = params["mqtt_server"]
+                                ?: currentConnectionSettings.mqttServer,
+                            mqttPort = params["mqtt_port"] ?: currentConnectionSettings.mqttPort,
+                            networkType = params["network_type"]
+                                ?: currentConnectionSettings.networkType,
+                            simSelection = params["sim_slot"]
+                                ?: currentConnectionSettings.simSelection,
+                            mobileDataMode = params["mobile_data_mode"]
+                                ?: currentConnectionSettings.mobileDataMode,
+                            activation = params["activation"]
+                                ?: currentConnectionSettings.activation,
+                            normalVolume = params["normal_volume"]
+                                ?: currentConnectionSettings.normalVolume,
+                            fmVolume = params["fm_volume"] ?: currentConnectionSettings.fmVolume,
+                            fmAutoStop = params["fm_auto_stop"]
+                                ?: currentConnectionSettings.fmAutoStop,
+                            fmAutoThreshold = params["fm_rssi_threshold"]
+                                ?: currentConnectionSettings.fmAutoThreshold
+                        )
 
-                            redirect("/", cookies = listOf("USER_SESSION=$sid; Path=/; HttpOnly"))
+                        currentConnectionSettings = conn
+                        onConnectionUpdate(conn)
 
+                        if (uri == "/update-settings") {
+                            html(MiraWebConsolePages.renderSettingsPage(conn))
                         } else {
-                            html(
-                                renderStatusPage(
-                                    title = "Đăng nhập thất bại",
-                                    message = "Mật khẩu không chính xác. Vui lòng kiểm tra lại.",
-                                    isSuccess = false,
-                                    backUrl = "/login"
-                                )
-                            )
+                            html(renderConnectionPage(deviceBasicInfo, conn))
+                        }
+
+                    }
+                    
+                    method == Method.POST && uri == "/default-connection" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        globalProperties.clearConnectionConfig()
+
+                        val defaultConn = currentConnectionSettings.copy(
+                            localIp = globalProperties.localIp,
+                            subnet = globalProperties.subnet,
+                            gateway = globalProperties.gateway,
+                            mqttSecurity = globalProperties.mqttSecurity.toString(),
+                            mqttServer = globalProperties.mqttServer,
+                            mqttPort = globalProperties.mqttPort.toString()
+                        )
+                        currentConnectionSettings = defaultConn
+                        onResetConnection()
+                        redirect("/config-connection")
+                    }
+
+                    method == Method.POST && uri == "/default-settings" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        globalProperties.clearSettingsConfig()
+
+                        val defaultConn = currentConnectionSettings.copy(
+                            networkType = globalProperties.settingsTxType.toString(),
+                            simSelection = globalProperties.settingsSimType.toString(),
+                            mobileDataMode = globalProperties.settingsSimMode.toString(),
+                            activation = globalProperties.settingsDisable.toString(),
+                            normalVolume = globalProperties.mainVolume,
+                            fmVolume = globalProperties.fmVolume,
+                            fmAutoStop = globalProperties.fmAutoStop.toString(),
+                            fmAutoThreshold = globalProperties.fmThreshold
+                        )
+                        currentConnectionSettings = defaultConn
+                        onResetSettings()
+                        redirect("/config-settings")
+                    }
+
+                    // Admin Routes
+                    method == Method.GET && uri == "/admin" -> {
+                        requireLogin(session) {
+                            html(MiraWebConsolePages.renderAdminPage())
                         }
                     }
 
-                    method == Method.POST && uri == "/update-server" -> {
+                    method == Method.POST && uri == "/admin/change-password" -> {
                         if (!isLoggedIn(session)) return redirect("/login")
-
                         val params = parsePostParams(session)
-                        val settings = ServerSettings(
-                            bootstrapServer = params["bootstrap_server"].orEmpty(),
-                            mqttServer = params["mqtt_server"].orEmpty(),
-                            mqttPort = params["mqtt_port"]?.toIntOrNull() ?: 1883,
-                            mqttSecurity = params["mqtt_security"]?.toIntOrNull() ?: 0
-                        )
+                        val curr = params["current_password"].orEmpty()
+                        val newp = params["new_password"].orEmpty()
+                        val conf = params["confirm_password"].orEmpty()
 
-                        onServerUpdate(settings)
-
-                        html(
-                            renderStatusPage(
-                                title = "Thành công!",
-                                message = "Cấu hình Server đã được lưu và đang đồng bộ.",
-                                isSuccess = true,
-                                backUrl = "/"
-                            )
-                        )
+                        if (curr == globalProperties.adminPassword && newp == conf && newp.isNotEmpty()) {
+                            globalProperties.saveAdminPassword(newp)
+                            redirect("/admin")
+                        } else {
+                            // Alternatively we can use an error param, but for simplicity redirect back
+                            redirect("/admin") 
+                        }
                     }
 
-                    method == Method.POST && uri == "/update-connection" -> {
+                    method == Method.POST && uri == "/admin/reboot-mira" -> {
                         if (!isLoggedIn(session)) return redirect("/login")
-
-                        val params = parsePostParams(session)
-                        val conn = ConnectionSettings(
-                            thingId = params["thing_id"].orEmpty(),
-                            thingKey = params["thing_key"].orEmpty(),
-                            channels = params["channels"].orEmpty()
-                        )
-
-                        onConnectionUpdate(conn)
-
-                        html(
-                            renderStatusPage(
-                                title = "Thành công!",
-                                message = "Cấu hình Kết nối đã được lưu và đang đồng bộ.",
-                                isSuccess = true,
-                                backUrl = "/"
-                            )
-                        )
+                        onRebootMira()
+                        redirect("/admin")
                     }
 
-                    method == Method.POST && uri == "/do-update" -> {
+                    method == Method.POST && uri == "/admin/restart-app" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+                        onRestartApp()
+                        redirect("/admin")
+                    }
+
+                    method == Method.POST && uri == "/admin/factory-reset" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+                        onFactoryReset()
+                        redirect("/admin")
+                    }
+
+                    //Post Media
+                    method == Method.POST && uri == "/media/play" -> {
                         if (!isLoggedIn(session)) return redirect("/login")
 
                         val params = parsePostParams(session)
-                        val firmwareUrl = params["firmware_url"].orEmpty()
-                        val updateMode =
-                            params["update_mode"].orEmpty() // Sẽ nhận giá trị "keep_config" hoặc "reset_config"
+                        val mid = params["mid"]?.toLongOrNull()
 
-                        val mode = if (updateMode == "keep_config") 0 else 1
-
-                        val modeText =
-                            if (updateMode == "keep_config") "Giữ nguyên cấu hình" else "Cấu hình mặc định"
-                        val updateData = FirmwareUpdateData(
-                            url = firmwareUrl, updateMode = mode
-                        )
-                        onFirmwareUpdate(updateData)
-
-                        html(
-                            renderStatusPage(
-                                title = "Đang xử lý cập nhật...",
-                                message = "Hệ thống đang tải firmware từ:<br><b>${firmwareUrl}</b><br><br>Chế độ: <b>${modeText}</b>.<br>Vui lòng không tắt nguồn thiết bị!",
-                                isSuccess = true,
-                                backUrl = "/"
+                        onMediaAction(
+                            MediaActionData(
+                                action = "play", mid = mid
                             )
                         )
+
+                        redirect("/media?mid=${mid ?: ""}")
+                    }
+
+                    method == Method.POST && uri == "/media/stop" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        val params = parsePostParams(session)
+                        val mid = params["mid"]?.toLongOrNull()
+
+                        onMediaAction(
+                            MediaActionData(
+                                action = "stop", mid = mid
+                            )
+                        )
+
+                        redirect("/media?mid=${mid ?: ""}")
+                    }
+
+                    method == Method.POST && uri == "/media/delete" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        val params = parsePostParams(session)
+                        val mid = params["mid"]?.toLongOrNull()
+
+                        onMediaAction(
+                            MediaActionData(
+                                action = "delete", mid = mid
+                            )
+                        )
+
+                        redirect("/media")
+                    }
+
+                    method == Method.POST && uri == "/media/delete-all" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+
+                        onMediaAction(
+                            MediaActionData(
+                                action = "delete_all"
+                            )
+                        )
+
+                        redirect("/media")
                     }
 
                     else -> {
@@ -189,6 +403,8 @@ object LocalWebConsole {
                             Response.Status.NOT_FOUND, "text/plain; charset=UTF-8", "404 Not Found"
                         )
                     }
+
+
                 }
             } catch (e: Exception) {
                 newFixedLengthResponse(
@@ -262,223 +478,5 @@ object LocalWebConsole {
             return onSuccess()
         }
     }
-
-    private fun renderLoginPage() = """
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-        <title>MGW-v3 Login</title>
-        <style>
-            body { font-family: 'Segoe UI', Roboto, sans-serif; background: #f0f2f5; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-            .login-card { background: white; padding: 40px 30px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); width: 100%; max-width: 360px; text-align: center; }
-            h2 { color: #1a73e8; margin: 0 0 25px 0; font-size: 24px; }
-            input { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; transition: border 0.3s; outline: none; }
-            input:focus { border-color: #1a73e8; }
-            button { width: 100%; padding: 14px; background: #1a73e8; color: white; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
-            button:active { background: #1557b0; transform: scale(0.98); }
-            p { font-size: 13px; color: #888; margin-top: 20px; }
-        </style>
-    </head>
-    <body>
-        <div class="login-card">
-            <h2>MGW-v3 Login</h2>
-            <form action='/login' method='post'>
-                <input type='password' name='password' placeholder='Nhập mật khẩu' required autofocus>
-                <button type='submit'>ĐĂNG NHẬP</button>
-            </form>
-            <p>Truy cập quản trị nội bộ thiết bị</p>
-        </div>
-    </body>
-    </html>
-    """.trimIndent()
-
-    private fun renderMenuPage() = """
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Menu Cấu hình MGW</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .card { background: white; width: 100%; max-width: 400px; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); text-align: center; }
-        h2 { margin-bottom: 10px; color: #333; }
-        p { color: #666; margin-bottom: 25px; }
-        .btn-menu { display: block; width: 100%; padding: 18px; margin: 12px 0; background: #1a73e8; color: white; text-decoration: none; border-radius: 12px; font-weight: bold; font-size: 16px; box-sizing: border-box; transition: 0.2s; }
-        .btn-menu:active { background: #1557b0; transform: scale(0.97); }
-        .logout { display: inline-block; margin-top: 20px; color: #d93025; text-decoration: none; font-size: 14px; font-weight: 500; }
-    </style>
-</head>
-<body>
-    <div class="card">
-        <h2>MGW Dashboard</h2>
-        <p>Vui lòng chọn mục thiết lập</p>
-        <a href="/config-server" class="btn-menu">Cấu hình Server</a>
-        <a href="/config-connection" class="btn-menu">Cấu hình Kết nối</a>
-        <a href="/update-firmware" class="btn-menu">Cập nhật Firmware</a>
-        <a href="/logout" class="logout">Đăng xuất tài khoản</a>
-    </div>
-</body>
-</html>
-""".trimIndent()
-
-    private fun renderServerPage() = """
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Cấu hình Server</title>
-        <style>
-            body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-            .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-            .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #1a73e8; font-weight: 500; }
-            h2 { margin: 0 0 20px 0; color: #333; border-left: 4px solid #1a73e8; padding-left: 15px; }
-            label { display: block; margin-top: 15px; font-weight: 600; color: #555; font-size: 14px; }
-            input, select { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
-            input:focus { border-color: #1a73e8; }
-            .btn-save { width: 100%; padding: 16px; background: #34a853; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 30px; cursor: pointer; }
-            .btn-save:active { background: #2d8a45; transform: scale(0.98); }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <a href="/" class="back-link">← Quay lại Menu</a>
-            <h2>Server Settings</h2>
-            <form action='/update-server' method='post'>
-                <label>Bootstrap Server</label>
-                <input type='text' name='bootstrap_server' placeholder='Nhập bootstrap server'>
-                <label>MQTT Server</label>
-                <input type='text' name='mqtt_server' placeholder='Nhập Mqtt server'>
-                <label>MQTT Port</label>
-                <input type='number' name='mqtt_port' placeholder='Nhập Mqtt port'>
-                <label>MQTT Security</label>
-                <select name='mqtt_security'>
-                    <option value='0'>None (TCP)</option>
-                    <option value='1'>SSL/TLS</option>
-                </select>
-                <button type='submit' class='btn-save'>LƯU THÔNG TIN</button>
-            </form>
-        </div>
-    </body>
-    </html>
-    """.trimIndent()
-
-    private fun renderConnectionPage() = """
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Cấu hình Kết nối</title>
-        <style>
-            body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-            .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-            .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #1a73e8; font-weight: 500; }
-            h2 { margin: 0 0 20px 0; color: #333; border-left: 4px solid #fbbc05; padding-left: 15px; }
-            label { display: block; margin-top: 15px; font-weight: 600; color: #555; font-size: 14px; }
-            input { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; }
-            .btn-save { width: 100%; padding: 16px; background: #fbbc05; color: #333; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 30px; cursor: pointer; }
-            .btn-save:active { background: #eab000; transform: scale(0.98); }
-        </style>
-    </head>
-    <body>
-        <div class="container">
-            <a href="/" class="back-link">← Quay lại Menu</a>
-            <h2>MGW Connection</h2>
-            <form action='/update-connection' method='post'>
-                <label>Thing ID</label>
-                <input type='text' name='thing_id' placeholder='Nhập Thing ID'>
-                <label>Thing Key</label>
-                <input type='password' name='thing_key' placeholder='Nhập Thing Key'>
-                <label>Channels (Topics)</label>
-                <input type='text' name='channels' placeholder='Nhập channels'>
-                <button type='submit' class='btn-save'>CẬP NHẬT KẾT NỐI</button>
-            </form>
-        </div>
-    </body>
-    </html>
-    """.trimIndent()
-
-    private fun renderStatusPage(
-        title: String, message: String, isSuccess: Boolean = true, backUrl: String = "/"
-    ) = """
-    <!DOCTYPE html>
-    <html lang="vi">
-    <head>
-        <meta charset="UTF-8">
-        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-        <title>Thông báo MGW</title>
-        <style>
-            body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-            .card { background: white; padding: 40px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); text-align: center; width: 85%; max-width: 400px; border-top: 5px solid ${if (isSuccess) "#34a853" else "#d93025"}; }
-            .icon { font-size: 60px; margin-bottom: 20px; }
-            .success-icon { color: #34a853; }
-            .error-icon { color: #d93025; }
-            h2 { margin: 0 0 10px 0; color: #333; }
-            p { color: #666; line-height: 1.5; margin-bottom: 25px; }
-            .btn-back { display: inline-block; padding: 12px 25px; background: ${if (isSuccess) "#1a73e8" else "#555"}; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
-        </style>
-    </head>
-    <body>
-        <div class="card">
-            <div class="icon ${if (isSuccess) "success-icon" else "error-icon"}">
-                ${if (isSuccess) "✔" else "⚠"}
-            </div>
-            <h2>$title</h2>
-            <p>$message</p>
-            <a href="$backUrl" class="btn-back">${if (isSuccess) "Quay lại Menu" else "Thử lại"}</a>
-        </div>
-    </body>
-    </html>
-    """.trimIndent()
-
-    private fun renderFirmwareUpdatePage() = """
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Cập nhật Firmware</title>
-    <style>
-        body { font-family: sans-serif; background: #f4f7f6; display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; padding: 20px; box-sizing: border-box; }
-        .container { width: 100%; max-width: 450px; background: white; padding: 30px; border-radius: 20px; box-shadow: 0 8px 20px rgba(0,0,0,0.06); }
-        .back-link { display: inline-block; margin-bottom: 20px; text-decoration: none; color: #1a73e8; font-weight: 500; }
-        h2 { margin: 0 0 20px 0; color: #333; border-left: 4px solid #8e44ad; padding-left: 15px; }
-        label.section-title { display: block; margin-top: 15px; font-weight: 600; color: #555; font-size: 14px; }
-        input[type="url"] { width: 100%; padding: 12px; margin-top: 6px; border: 1px solid #ddd; border-radius: 10px; box-sizing: border-box; font-size: 16px; outline: none; }
-        input[type="url"]:focus { border-color: #8e44ad; }
-        .radio-group { margin-top: 10px; background: #f9f9f9; padding: 15px; border-radius: 10px; border: 1px solid #eee; }
-        .radio-item { display: flex; align-items: center; margin-bottom: 12px; font-size: 15px; color: #444; cursor: pointer; }
-        .radio-item:last-child { margin-bottom: 0; }
-        .radio-item input[type="radio"] { margin: 0 10px 0 0; transform: scale(1.2); cursor: pointer; }
-        .btn-update { width: 100%; padding: 16px; background: #8e44ad; color: white; border: none; border-radius: 10px; font-weight: bold; font-size: 16px; margin-top: 25px; cursor: pointer; transition: 0.2s; }
-        .btn-update:active { background: #732d91; transform: scale(0.98); }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <a href="/" class="back-link">← Quay lại Menu</a>
-        <h2>Cập nhật Firmware</h2>
-        <form action='/do-update' method='post'>
-            <label class="section-title">Đường dẫn Firmware (URL)</label>
-            <input type='url' name='firmware_url' placeholder='Ví dụ: http://server.com/firmware.apk' required>
-            
-            <label class="section-title">Tuỳ chọn cài đặt</label>
-            <div class="radio-group">
-                <label class="radio-item">
-                    <input type="radio" name="update_mode" value="keep_config" checked>
-                    Cập nhật giữ nguyên cấu hình
-                </label>
-                <label class="radio-item">
-                    <input type="radio" name="update_mode" value="reset_config">
-                    Cập nhật theo cấu hình mặc định
-                </label>
-            </div>
-
-            <button type='submit' class='btn-update'>BẮT ĐẦU CẬP NHẬT</button>
-        </form>
-    </div>
-</body>
-</html>
-""".trimIndent()
 
 }

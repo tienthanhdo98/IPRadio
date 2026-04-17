@@ -121,6 +121,10 @@ object ConfigUtil {
         sharedPref.edit { remove(key) }
     }
 
+    fun removeSharefEncrypt(context: Context, key: String) {
+        getEncryptedSharedPreferences(context).edit { remove(key) }
+    }
+
     fun clearAllPrefs(context: Context) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         sharedPref.edit { clear() }

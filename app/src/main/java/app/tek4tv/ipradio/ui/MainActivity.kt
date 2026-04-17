@@ -6,8 +6,6 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.os.SystemClock
 import android.util.Log
-import android.view.KeyEvent
-import android.view.MotionEvent
 import android.view.View
 import android.widget.TextView
 import androidx.activity.viewModels
@@ -27,15 +25,17 @@ import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE
 import app.tek4tv.ipradio.core.stream.StreamBackManager
 import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.model.BootstrapResp
-import app.tek4tv.ipradio.model.Channel
 import app.tek4tv.ipradio.model.ForceMedia
 import app.tek4tv.ipradio.model.ForceMedia.Companion.getLocalForceMedia
+import app.tek4tv.ipradio.model.McuSettingsData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.findIndex
 import app.tek4tv.ipradio.model.parseDeviceStatusResponse
+import app.tek4tv.ipradio.model.webconsole.StatusPageData
+import app.tek4tv.ipradio.model.webconsole.ConnectionSettings
+import app.tek4tv.ipradio.model.webconsole.DeviceBasicInfo
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
@@ -43,7 +43,6 @@ import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.downloadUpdateApk
-import app.tek4tv.ipradio.utils.getEnableMobileData
 import app.tek4tv.ipradio.utils.getStateMobileData
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.setAirplaneModeEnable
@@ -52,7 +51,7 @@ import app.tek4tv.ipradio.utils.setMobileDataEnabled
 import app.tek4tv.ipradio.utils.setPreferredMode
 import app.tek4tv.ipradio.utils.setWifiDataEnabled
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
-import app.tek4tv.ipradio.utils.toCalendar
+import app.tek4tv.ipradio.utils.su.EthernetStaticIpUtils
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -206,7 +205,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         setContentView(binding.root)
         viewModel.grantPermissionThoughAdb(baseContext)
         //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
-
         appStorageManager = AppStorageManager(applicationContext)
 
         hubManager = HubManager(
@@ -215,6 +213,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             handleFromCommandServer(command, message)
         }
         hubManager.hubObverse = this
+        hubManager.prepareMcuInfo()
+        hubManager.onMcuInfoUpdated = { info ->
+            LocalWebConsole.updateMcuInfoData(info)
+        }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S4_NAME)
@@ -266,11 +268,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         val imei = hubManager.deviceImei
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
-            //hubManager.handlerMessage(liveFmSohoaLoi)
-            //hubManager.handlerMessage(liveCount)
-            //hubManager.handlerMessage(liveHttp)
-            //serialPortController.writeSetESimMode("0")
-            //serialPortController.turnOnPAVod()
+            lifecycleScope.launch(Dispatchers.IO) {
+                EthernetStaticIpUtils.forceStaticIp(
+                    globalProperties.localIp,
+                    globalProperties.gateway,
+                    "8.8.8.8",
+                    "1.1.1.1"
+                )
+            }
         }
     }
 
@@ -328,13 +333,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
-    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
-        return true
-    }
-
-    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
-        return true
-    }
+//    override fun dispatchKeyEvent(event: KeyEvent?): Boolean {
+//        return true
+//    }
+//
+//    override fun dispatchTouchEvent(ev: MotionEvent?): Boolean {
+//        return true
+//    }
 
     private fun hideSystemUI() {
         val decorView: View = window.decorView
@@ -352,6 +357,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private fun registerObservers() {
         lifecycleScope.launch {
             viewModel.schedulerUpdated.collect {
+
+                LocalWebConsole.updateMediaList(
+                    viewModel.getScheduleList()
+                )
+
                 hubManager.currentMediaInfoListId = viewModel.getMediaInfoIdList()
                 viewModel.downloadMedias()
                 if (globalProperties.settingsDisable == 0) {
@@ -363,9 +373,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 "MediaInfo", "handleFromCommandServer: Play Live from local"
                             )
                             playerManager.playForceMedia(
-                                forceMediaInfo.endTime,
-                                forceMediaInfo,
-                                mediaScheduler
+                                forceMediaInfo, mediaScheduler
                             )
                         }
                         return@collect
@@ -446,6 +454,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private suspend fun tryUseEthernet(): Boolean {
         Log.d("initSettings", "tryUseEthernet")
+        EthernetStaticIpUtils.forceStaticIp(
+            globalProperties.localIp,
+            globalProperties.gateway,
+            "8.8.8.8",
+            "1.1.1.1"
+        )
         setEthernetEnabled(true)
         delay(2500)
         setWifiDataEnabled(false)
@@ -520,45 +534,212 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun initWebConsole() {
-        LocalWebConsole.start(onServerUpdate = { serverData ->
-            val serverData = ServerData(
-                bootstrapServer = serverData.bootstrapServer,
-                mqttServer = serverData.mqttServer,
-                mqttPort = serverData.mqttPort,
-                mqttSecurity = serverData.mqttSecurity
+        //Info connection page
+        LocalWebConsole.updateBasicInfo(
+            DeviceBasicInfo(
+                mgwId = hubManager.deviceImei,
+                verifyCode = hubManager.verifyCode,
+                firmwareVersion = hubManager.versionName
             )
-            globalProperties.saveServerConfig(serverData)
-            Log.d("webconsole", "Đã cập nhật Server và gửi OPU_SETTINGS")
-            lifecycleScope.launch {
-                delay(5000)
-                Log.e("webconsole", "Rebooting....")
-                serialPortController.hardRestart()
-            }
-        }, onConnectionUpdate = { connData ->
-            val bootstrapResp = BootstrapResp(
-                id = connData.thingId,
-                key = connData.thingKey,
-                channels = listOf(Channel(id = connData.channels))
+        )
+        LocalWebConsole.updateConnectionSettings(
+            ConnectionSettings(
+                localIp = globalProperties.localIp,
+                subnet = globalProperties.subnet,
+                gateway = globalProperties.gateway,
+                mqttSecurity = globalProperties.mqttSecurity.toString(),
+                mqttServer = globalProperties.mqttServer,
+                mqttPort = globalProperties.mqttPort.toString(),
+                networkType = globalProperties.settingsTxType.toString(),
+                simSelection = globalProperties.settingsSimType.toString(),
+                mobileDataMode = globalProperties.settingsSimMode.toString(),
+                activation = globalProperties.settingsDisable.toString(),
+                normalVolume = globalProperties.mainVolume,
+                fmVolume = globalProperties.fmVolume,
+                fmAutoStop = globalProperties.fmAutoStop.toString(),
+                fmAutoThreshold = globalProperties.fmThreshold
             )
-            globalProperties.saveConnectionConfig(bootstrapResp)
-            Log.d("webconsole", "Đã nhận ThingID mới: ${connData.thingId}, đang reboot...")
-            lifecycleScope.launch {
-                delay(5000)
-                Log.e("webconsole", "Rebooting....")
-                serialPortController.hardRestart()
-            }
-        }, onFirmwareUpdate = { firmwareData ->
-            Log.d("webconsole", "Đã nhận Firmware: $firmwareData")
-            val mode = firmwareData.updateMode
-            val url = firmwareData.url
-            if (mode == 1) {
-                globalProperties.clearAllLocalConfigData()
-            }
-            downloadUpdateApk(
-                url, this, serialPortController
-            )
-        }
+        )
+        //Status page
 
+        //About page
+        LocalWebConsole.updateMcuInfoData(hubManager.currentMcuInfo)
+
+        LocalWebConsole.start(
+            context = applicationContext,
+            globalProperties = globalProperties,
+            onConnectionUpdate = { connData ->
+                Log.d("webconsole", "Đã nhận cấu hình mới: $connData")
+
+                //Mqtt setting
+                val mqttServer = connData.mqttServer
+                val mqttPort = connData.mqttPort
+                val mqttSecurity = connData.mqttSecurity
+                val serverData = ServerData(
+                    mqttServer = mqttServer,
+                    mqttPort = mqttPort?.toInt(),
+                    mqttSecurity = mqttSecurity?.toInt()
+                )
+                globalProperties.saveServerConfig(serverData)
+                //Network settings
+                val settingConfig = McuSettingsData(
+                    txtype = connData.networkType?.toInt(),
+                    sim = connData.simSelection?.toInt(),
+                    mobileMode = connData.mobileDataMode?.toInt(),
+                    disabled = connData.activation?.toInt(),
+                    mainVolume = connData.normalVolume?.toInt(),
+                    fmVolume = connData.fmVolume?.toInt(),
+                    fmAuto = connData.fmAutoStop?.toInt(),
+                    fmThreshold = connData.fmAutoThreshold?.toInt()
+                )
+                globalProperties.saveSettingConfig(settingConfig)
+                globalProperties.saveNetworkIpConfig(
+                    connData.localIp,
+                    connData.subnet,
+                    connData.gateway
+                )
+
+                lifecycleScope.launch(Dispatchers.IO) {
+                    EthernetStaticIpUtils.forceStaticIp(
+                        globalProperties.localIp,
+                        globalProperties.gateway,
+                        "8.8.8.8",
+                        "1.1.1.1"
+                    )
+                }
+
+                lifecycleScope.launch {
+                    delay(5000)
+                    Log.e("webconsole", "Rebooting....")
+                    serialPortController.hardRestart()
+                }
+            },
+            onMediaAction = { action ->
+                when (action.action) {
+                    "play" -> {
+                        val mid = action.mid ?: return@start
+                        val mediaInfo = viewModel.getScheduleList().firstOrNull { it.mid == mid }
+                            ?: return@start
+                        Log.d("webconsole", "Play $mid")
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            playerManager.playMediaInfoTest(mediaInfo)
+                        }
+                    }
+
+                    "stop" -> {
+                        val mid = action.mid ?: return@start
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            playerManager.stopAllPlayer()
+                            playerManager.resetPlayMode()
+                        }
+                        Log.d("webconsole", "Stop $mid")
+                    }
+
+                    "delete" -> {
+                        val mid = action.mid ?: return@start
+                        val mediaInfo = viewModel.getScheduleList().firstOrNull { it.mid == mid }
+                        viewModel.deleteLocalScheduler(mediaInfo)
+                        viewModel.deleteMediaInfInRepo(mediaInfo)
+                        playerManager.stopMediaInfo(mediaInfo)
+                        Log.d("webconsole", "Delete $mid")
+                    }
+
+                    "delete_all" -> {
+                        appStorageManager.deleteAllMedia()
+                        viewModel.deleteAllLocalScheduler()
+                        Log.d("webconsole", "Delete all")
+                    }
+                }
+            },
+            onGetStatusData = {
+                val appUptime = System.currentTimeMillis() - globalProperties.getAppStartTime()
+                val systemUptime = SystemClock.elapsedRealtime()
+                val storageTotalMiB = app.tek4tv.ipradio.utils.DeviceUtils.getSdTotal() / 1024.0
+                val storageFreeMiB = app.tek4tv.ipradio.utils.DeviceUtils.getSdFree() / 1024.0
+
+                val currentConn = when (globalProperties.settingsTxType) {
+                    0 -> "ETH"
+                    1 -> "MOBILE"
+                    2 -> "WIFI"
+                    else -> "UNKNOWN"
+                }
+
+                val rawDeviceInfo = deviceInfo
+                val deviceStatus = parseDeviceStatusResponse(rawDeviceInfo)
+
+                val runningList = (deviceStatus?.audioStatus ?: emptyList()).take(4).map { it == 1 }
+                    .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
+                val errorList = (deviceStatus?.errorStatus ?: emptyList()).take(4).map { it == 1 }
+                    .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
+
+                val isFmPlaying = hubManager.currentMediaItem?.type == 2
+
+                StatusPageData(
+                    appUptime = appUptime,
+                    systemUptime = systemUptime,
+                    storageTotalMiB = storageTotalMiB,
+                    storageFreeMiB = storageFreeMiB,
+                    connectionType = currentConn,
+                    disconnectionCnt = hubManager.disconnectionCnt,
+                    isServerConnected = hubManager.isConnectSuccess,
+                    isFmPlaying = isFmPlaying,
+                    fmRssi = if (isFmPlaying) globalProperties.fmThreshold.toInt() else 0,
+                    isStreamBack = streamBackManager.isStreamBacking(),
+                    spk1Run = runningList.getOrElse(0) { false },
+                    spk1Err = errorList.getOrElse(0) { false },
+                    spk2Run = runningList.getOrElse(1) { false },
+                    spk2Err = errorList.getOrElse(1) { false },
+                    spk3Run = runningList.getOrElse(2) { false },
+                    spk3Err = errorList.getOrElse(2) { false },
+                    spk4Run = runningList.getOrElse(3) { false },
+                    spk4Err = errorList.getOrElse(3) { false },
+                    serverMacAddress = globalProperties.mqttServer
+                )
+            },
+            onResetConnection = {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    EthernetStaticIpUtils.forceStaticIp(
+                        globalProperties.localIp,
+                        globalProperties.gateway,
+                        "8.8.8.8",
+                        "1.1.1.1"
+                    )
+                }
+                lifecycleScope.launch {
+                    delay(5000)
+                    Log.e("webconsole", "Rebooting after reset connection....")
+                    serialPortController.hardRestart()
+                }
+            },
+            onResetSettings = {
+                lifecycleScope.launch {
+                    delay(5000)
+                    Log.e("webconsole", "Rebooting after reset settings....")
+                    serialPortController.hardRestart()
+                }
+            },
+            onRebootMira = {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    delay(5000)
+                    Log.e("webconsole", "Rebooting mira....")
+                    serialPortController.hardRestart()
+                }
+            },
+            onRestartApp = {
+                lifecycleScope.launch(Dispatchers.Main) {
+                    delay(5000)
+                    Log.e("webconsole", "Restarting app....")
+                    restartApp(MyApp.instance!!, this@MainActivity)
+                }
+            },
+            onFactoryReset = {
+                lifecycleScope.launch(Dispatchers.IO) {
+                    globalProperties.clearAllLocalConfigData()
+                    delay(5000)
+                    Log.e("webconsole", "Factory reset and Rebooting....")
+                    serialPortController.hardRestart()
+                }
+            }
         )
     }
 
@@ -680,7 +861,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                         globalProperties.saveSettingConfig(responseHub.settingConfig)
                                         Log.d(
                                             "initSettings",
-                                            "mobile: ${responseHub?.settingConfig?.txtype}"
+                                            "mobile: ${responseHub.settingConfig?.txtype}"
                                         )
                                         delay(3000)
                                         serialPortController.hardRestart()
@@ -746,8 +927,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                             else -> {
                                 Log.d(
-                                    "handleFromCommandServer",
-                                    "RESTART message không hợp lệ: $msg"
+                                    "handleFromCommandServer", "RESTART message không hợp lệ: $msg"
                                 )
                             }
                         }
@@ -775,9 +955,9 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 serialPortController.streamBack(index.toString())
                             }
                         }
-                        streamBackManager.handleStreamBack(streamBackData, {
+                        streamBackManager.handleStreamBack(streamBackData) {
                             serialPortController.streamBack("0")
-                        })
+                        }
                     }
                 }
 
@@ -835,8 +1015,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private suspend fun handleRestartWithGuard(
-        actionName: String,
-        action: suspend () -> Unit
+        actionName: String, action: suspend () -> Unit
     ) {
         val now = System.currentTimeMillis()
 

@@ -67,6 +67,23 @@ fun getModeMobileData(): Int {
     }
 }
 
+fun getModeMobileDataNoConvert(): String {
+    return try {
+        val result = run("getprop gsm.network.type")
+        val type = result.split(",").firstOrNull().orEmpty().trim().uppercase()
+
+        when {
+            type.isBlank() -> ""
+            type == "UNKNOWN" -> ""
+            type == "NONE" -> ""
+            else -> type
+        }
+    } catch (e: Exception) {
+        Log.e("Network", "Lỗi lấy trạng thái mạng: ${e.message}")
+        ""
+    }
+}
+
 fun getEnableMobileData(): String {
     val command = "settings get global mobile_data"
     val result = run(command)

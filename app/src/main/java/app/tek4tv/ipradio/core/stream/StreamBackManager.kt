@@ -133,4 +133,5 @@ class StreamBackManager(
         }
     }
 
+    fun isStreamBacking(): Boolean = currentStreamer != null
 }

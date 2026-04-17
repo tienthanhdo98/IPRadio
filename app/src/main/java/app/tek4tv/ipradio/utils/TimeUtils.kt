@@ -113,6 +113,13 @@ fun convertCalendarToString(
     return sdf.format(calendar.time)
 }
 
+fun formatDuration(ms: Long): String {
+    val totalSeconds = ms / 1000
+    val h = totalSeconds / 3600
+    val m = (totalSeconds % 3600) / 60
+    val s = totalSeconds % 60
+    return "%d:%02d:%02d".format(h, m, s)
+}
 
 fun unixTimeStampToDateTime(
     epochTime: Long?,
@@ -178,6 +185,7 @@ fun toCalendar(time: String): Calendar {
         Calendar.getInstance()
     }
 }
+
 
 //duration: HH:mm:ss
 fun getDurationInSecond(duration: String): Int {

@@ -55,7 +55,8 @@ class HubManager(
     private val appContext: Context,
     private val coroutineScope: CoroutineScope,
     private var onMessageListener: (command: String?, message: String?) -> Unit,
-) : IConnectionServer {
+
+    ) : IConnectionServer {
     private val TAG = "HubManager"
 
     private val API_CALL_INTERVAL = 60000L
@@ -68,19 +69,21 @@ class HubManager(
     lateinit var hubObverse: IHubObserve
 
     val deviceImei = "656565656565"
-    //val deviceImei = "6565656565652"
+    val verifyCode = "656565656565"
+
 
     var pingCounter = 0
 
     var responseHub = ResponseHub()
 
     var currentMediaItem: MediaFile? = null
-    var currentMediaInfoListId: List<Long>? = null
+    var currentMediaInfoListId: Set<Long>? = null
 
-    var versionName = "1.0.2"
+    var versionName = "1.0.3"
 
 
     var isConnectSuccess = false
+    var disconnectionCnt = 0
 
     private var getMQTTInfoJob: Job? = null
 
@@ -102,12 +105,50 @@ class HubManager(
     private var hasNotifiedDisconnected = false
     private var reconnectJob: Job? = null
 
+    //Info
+    var onMcuInfoUpdated: ((McuInfoData?) -> Unit)? = null
+    var currentMcuInfo: McuInfoData? = null
+
+    fun prepareMcuInfo() {
+        val info = McuInfoData(
+            id = deviceImei,
+            vcode = deviceImei,
+            fvers = versionName,
+            osVersion = "5.10",
+            osBuilddate = "2026-03-10",
+            hwVersion = "3",
+            sdCid = "1234567890",
+            fm = "SD87.5",
+            classdVersion = "2.1",
+            classdChipset = "TAS5825",
+            gsmModel = "CLM920_AC3",
+            gsmImei = "123456789012345",
+            gsmRevision = "REV1",
+            gsmImsi = getImsi(appContext),
+            gsmPhone = getSimPhoneNumber(appContext)
+        )
+        updateCurrentMcuInfo(info)
+    }
+
+    fun refreshDynamicMcuInfo() {
+        val updated = currentMcuInfo?.copy(
+            gsmImsi = getImsi(appContext), gsmPhone = getSimPhoneNumber(appContext)
+        )
+        updateCurrentMcuInfo(updated)
+    }
+
+    private fun updateCurrentMcuInfo(newInfo: McuInfoData?) {
+        currentMcuInfo = newInfo
+        onMcuInfoUpdated?.invoke(currentMcuInfo)
+    }
+
     //In BT Mode
     fun getBootstrapInfo() {
         try {
             bootstrapInfo = globalProperties.bootstrapInfo
             if (bootstrapInfo == null) {
-                val call = authService.getBootstrapInfo(deviceImei, deviceImei)
+                val call =
+                    authService.getBootstrapInfo(externalId = deviceImei, externalKey = verifyCode)
                 val response = call.execute()
                 if (response.isSuccessful) {
                     Log.i(TAG, "getBootstrapInfo Success")
@@ -148,10 +189,6 @@ class HubManager(
                         serverURI,
                         bootstrapInfo!!,
                     )
-//                    while (!isConnectSuccess) {
-//                        mqttClient?.connectToMQTT()
-//                        delay(15000)
-//                    }
                     connectMqtt()
                 }
             }
@@ -177,23 +214,8 @@ class HubManager(
 
     fun sendGeneric() {
         val time = System.currentTimeMillis() / 1000.0
-        val info = McuInfoData(
-            id = deviceImei,
-            vcode = deviceImei,
-            fvers = versionName,
-            osVersion = "5.10",
-            osBuilddate = "2026-03-10",
-            hwVersion = "3",
-            sdCid = "1234567890",
-            fm = "SD87.5",
-            classdVersion = "2.1",
-            classdChipset = "TAS5825",
-            gsmModel = "CLM920_AC3",
-            gsmImei = "123456789012345",
-            gsmRevision = "REV1",
-            gsmImsi = getImsi(appContext),
-            gsmPhone = getSimPhoneNumber(appContext)
-        )
+        refreshDynamicMcuInfo()
+        val info = currentMcuInfo ?: return
         val genericJsonString = moshi.toVs(info) ?: ""
         val senmlItem = SenMLItem(
             n = "$deviceImei:s:${OPU_GENERIC}", t = time, vs = genericJsonString
@@ -265,7 +287,8 @@ class HubManager(
         }
         val status = McuStatusData(
             conn = conn,
-            ipLan = NetworkUtils.getEthernetLanIp(appContext),
+//            ipLan = NetworkUtils.getEthernetLanIp(appContext),
+            ipLan = NetworkUtils.getRealEthernetIp(),
             ipWan = NetworkUtils.getMobileLocalIp(appContext),
             csqm = NetworkUtils.getCellularSignalPercent(appContext),
             csqw = NetworkUtils.getWifiSignalPercent(appContext),
@@ -277,7 +300,7 @@ class HubManager(
             playlist = playlist!!,
             mids = currentMediaInfoListId,
             fmRssi = globalProperties.fmThreshold.toInt(),
-            disconnectionCnt = 0,
+            disconnectionCnt = this.disconnectionCnt,
             rssim = 0,
         )
         val statusJsonString = moshi.toVs(status) ?: ""
@@ -334,7 +357,7 @@ class HubManager(
                 val cmd = nameParts[2]
                 val data = appdata.vs
 
-                var hubCommand = ""
+                var hubCommand: String
                 responseHub = ResponseHub()
 
                 val currentHash = data.hashCode()
@@ -499,6 +522,7 @@ class HubManager(
         isConnectSuccess = false
         if (!hasNotifiedDisconnected) {
             hasNotifiedDisconnected = true
+            disconnectionCnt++
             hubObverse.onHubDisConnected()
         }
 

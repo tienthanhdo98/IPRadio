@@ -12,24 +12,25 @@ import androidx.annotation.RequiresPermission
 import androidx.core.content.ContextCompat
 
 @SuppressLint("HardwareIds", "MissingPermission")
-fun getImsi(context: Context): String? {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return null
+fun getImsi(context: Context): String {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) return ""
 
-    if (ContextCompat.checkSelfPermission(
+    if (
+        ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_PHONE_STATE
         ) != PackageManager.PERMISSION_GRANTED
     ) {
-        return null
+        return ""
     }
 
     val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-        ?: return null
+        ?: return ""
 
     return try {
-        tm.subscriberId?.takeIf { it.isNotBlank() }
+        tm.subscriberId?.takeIf { it.isNotBlank() } ?: ""
     } catch (_: Throwable) {
-        null
+        ""
     }
 }
 
@@ -87,28 +88,28 @@ fun getImsiBySubscription(context: Context, subId: Int): String? {
 }
 
 @SuppressLint("MissingPermission", "HardwareIds")
-fun getSimPhoneNumber(context: Context): String? {
+fun getSimPhoneNumber(context: Context): String {
     val hasPermission =
         ContextCompat.checkSelfPermission(
             context,
             Manifest.permission.READ_PHONE_STATE
         ) == PackageManager.PERMISSION_GRANTED
 
-    if (!hasPermission) return null
+    if (!hasPermission) return ""
 
     return try {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
             val subManager = context.getSystemService(SubscriptionManager::class.java)
-                ?: return null
+                ?: return ""
             val subId = SubscriptionManager.getDefaultSubscriptionId()
-            subManager.getPhoneNumber(subId).takeIf { it.isNotBlank() }
+            subManager.getPhoneNumber(subId).takeIf { it.isNotBlank() } ?: ""
         } else {
             val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as? TelephonyManager
-                ?: return null
+                ?: return ""
             @Suppress("DEPRECATION")
-            tm.line1Number?.takeIf { it.isNotBlank() }
+            tm.line1Number?.takeIf { it.isNotBlank() } ?: ""
         }
     } catch (_: Throwable) {
-        null
+        ""
     }
 }

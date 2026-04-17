@@ -10,10 +10,14 @@ apply plugin: 'com.klaxit.hiddensecrets'
 android {
     signingConfigs {
         release {
-            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
-            storePassword '123456789'
-            keyAlias 'key0'
-            keyPassword '123456789'
+//            storeFile file('C:\\Users\\xxxx9\\Documents\\GitHub\\IPRadio\\key.jks')
+//            storePassword '123456789'
+//            keyAlias 'key0'
+//            keyPassword '123456789'
+            storeFile file("C:\\Users\\treze\\app\\libs\\platform.jks")
+            storePassword "android"
+            keyAlias "platform"
+            keyPassword "android"
         }
     }
     compileSdkVersion 33
@@ -84,6 +88,11 @@ android {
         exclude 'META-INF/LICENSE.txt'
         exclude 'META-INF/NOTICE'
         exclude 'META-INF/NOTICE.txt'
+    }
+
+    // Bỏ qua warning hidden API
+    lintOptions {
+        disable 'InvalidPackage'
     }
 
 }
@@ -166,4 +175,5 @@ dependencies {
 
     implementation files('libs/ffmpeg-kit.aar')
 
+//    compileOnly fileTree(dir: 'libs', include: ['*.jar'])
 }

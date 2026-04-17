@@ -108,7 +108,6 @@ class PlayersManager(
             playNextMedia()
             return
         }
-
         resolveAfterCurrentMediaEnded()
     }
 
@@ -166,31 +165,6 @@ class PlayersManager(
         endingTimeFrame = listKey
     }
 
-    //    fun onScheduleStart(listKey: String) {
-//        Log.d(
-//            "MediaInfo",
-//            "onScheduleStart listKey=$listKey current=$currentTimeFrame playMode=$playMode"
-//        )
-//
-//        if (playMode == PLAY_MODE_FORCE) {
-//            Log.d("MediaInfo", "Force đang phát -> bỏ qua schedule start")
-//            return
-//        }
-//
-//        if (currentTimeFrame == null || currentPlayingMedia == null) {
-//            Log.d("MediaInfo", "Hiện không phát gì -> start ngay timeframe mới")
-//            startTimeFrameResolved(listKey)
-//            return
-//        }
-//
-//        if (currentTimeFrame == listKey) {
-//            Log.d("MediaInfo", "Schedule start trùng timeframe hiện tại -> bỏ qua")
-//            return
-//        }
-//
-//        pendingTimeFrame = listKey
-//        Log.d("MediaInfo", "Đang phát dở -> ghi nhận pendingTimeFrame=$pendingTimeFrame")
-//    }
     fun onScheduleStart(listKey: String) {
         Log.d(
             "MediaInfo",
@@ -393,48 +367,6 @@ class PlayersManager(
         playMediaByIndex(playlistIndex)
     }
 
-//    fun playNextMedia() {
-//        if (playMode == "") return
-//        if (currentPlaylist.isEmpty()) return
-//
-//        if (playMode == PLAY_MODE_FORCE) {
-//            val mediaInfo = currentPlayingMediaInfo
-//            if (mediaInfo != null) {
-//                val progress = calculateForceProgress(mediaInfo)
-//                if (progress.isExpired) {
-//                    Log.d("MediaInfo", "Force media expired by elapsed time")
-//                    stopForceMedia()
-//                    return
-//                }
-//            }
-//        }
-//
-//        playlistIndex++
-//
-//        if (playlistIndex >= currentPlaylist.size) {
-//            playlistIndex = 0
-//
-//            if (playMode == PLAY_MODE_FORCE) {
-//                forceCompletedLoopCount++
-//
-//                Log.d(
-//                    "MediaInfo",
-//                    "Force loop completed: $forceCompletedLoopCount/$forceTargetLoopCount"
-//                )
-//
-//                if (forceCompletedLoopCount >= forceTargetLoopCount) {
-//                    Log.d("MediaInfo", "Force media finished by completed loop count")
-//                    stopForceMedia()
-//                    return
-//                }
-//            }
-//
-//            Log.d("MediaInfo", "Quay lại đầu Playlist: loop")
-//        }
-//
-//        playMediaByIndex(playlistIndex)
-//    }
-
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
@@ -636,6 +568,7 @@ class PlayersManager(
 //        isTimeOver = true
 //        checkTimeOver()
 //    }
+
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
 
@@ -759,7 +692,7 @@ class PlayersManager(
                     mediaInfo.endTime = 0
                     saveForceMediaInfoToPref(appContext, mediaInfoAdapter.toJson(mediaInfo))
                     playForceMedia(
-                        endTime, mediaInfo, mediaScheduler = mediaScheduler
+                        mediaInfo, mediaScheduler = mediaScheduler
                     )
 
                 }
@@ -774,38 +707,8 @@ class PlayersManager(
     }
 
 
-    //    fun playForceMedia(
-//        endTime: Int?, mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
-//    ) {
-//        try {
-//            if (playMode == PLAY_MODE_FORCE) return
-//            Log.d("aaa", "force")
-//            //Hủy hẹn giờ của kịch bản đang phát
-//            mediaScheduler.cancelAllAlarm()
-//
-//            //hẹn giờ dừng media khẩn cấp
-//            // mediaScheduler.scheduleForceMediaAlarm(endTime)
-//
-//            playMode = PLAY_MODE_FORCE
-//
-//            stopAllPlayer("playForceMedia")
-//
-//            currentPlayingMediaInfo = mediaInfo
-//
-//            currentPlaylist = mediaInfo.files
-//
-//            prepareForceLoopState(mediaInfo)
-//
-//            playlistIndex = 0
-//
-//            playMediaByIndex(playlistIndex, 0)
-//
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//        }
-//    }
     fun playForceMedia(
-        endTime: Int?, mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
+        mediaInfo: MediaInfo, mediaScheduler: MediaScheduler
     ) {
         try {
             if (playMode == PLAY_MODE_FORCE) return
@@ -844,25 +747,6 @@ class PlayersManager(
     }
 
     private fun prepareForceLoopState(mediaInfo: MediaInfo) {
-//        val playlist = mediaInfo.files
-//        val totalLoopDuration = playlist.sumOf { (it.duration ?: 0) }
-//
-//        forceDurationSeconds = mediaInfo.ds?.firstOrNull() ?: 0
-//
-//        forceTargetLoopCount = when {
-//            playlist.isEmpty() -> 0
-//            totalLoopDuration <= 0 -> 1
-//            forceDurationSeconds <= 0 -> 1
-//            else -> kotlin.math.ceil(forceDurationSeconds.toDouble() / totalLoopDuration.toDouble())
-//                .toInt()
-//        }
-//
-//        forceCompletedLoopCount = 0
-//
-//        Log.d(
-//            "MediaInfo",
-//            "prepareForceLoopState totalLoopDuration=$totalLoopDuration forceDurationSeconds=$forceDurationSeconds forceTargetLoopCount=$forceTargetLoopCount"
-//        )
 
         val playlist = mediaInfo.files
         val totalLoopDuration = playlist.sumOf { it.duration ?: 0 }
@@ -951,10 +835,19 @@ class PlayersManager(
         )
     }
 
+    fun playMediaInfoTest(mediaInfo: MediaInfo) {
+
+        stopAllPlayer("playMediaInfoTest")
+
+        currentPlayingMediaInfo = mediaInfo
+        currentPlaylist = mediaInfo.files
+
+        playlistIndex = 0
+        playMode = PLAY_MODE_TEST
+        playMediaByIndex(playlistIndex)
+    }
+
     private fun resetForceLoopState() {
-//        forceTargetLoopCount = 0
-//        forceCompletedLoopCount = 0
-//        forceDurationSeconds = 0
         forceTargetLoopCount = 0
         forceCompletedLoopCount = 0
         forceDurationSeconds = 0
@@ -980,6 +873,7 @@ class PlayersManager(
 
     companion object {
         const val PLAY_MODE_FORCE = "-2"
+        const val PLAY_MODE_TEST = "-1"
         const val PLAY_MODE_INIT = "0"
         const val LOGTAG = "player"
         var currentPlaylist = listOf<MediaFile>()

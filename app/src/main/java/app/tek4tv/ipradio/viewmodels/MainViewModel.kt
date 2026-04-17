@@ -11,6 +11,7 @@ import androidx.core.content.ContextCompat
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.tek4tv.ipradio.core.HubManager
+import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.model.McuLogData
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.repo.MediaInfoLiveHistoryRepository
@@ -35,6 +36,7 @@ import java.io.File
 import java.util.Calendar
 import javax.inject.Inject
 
+
 @HiltViewModel
 class MainViewModel @Inject constructor(
     val mediaRepo: MediaRepo,
@@ -49,6 +51,7 @@ class MainViewModel @Inject constructor(
 
     private var flushJob: Job? = null
     private val flushMutex = Mutex()
+
 
     fun updateSingleMedia(mediaInfo: MediaInfo?) {
         if (mediaInfo == null) return
@@ -125,6 +128,8 @@ class MainViewModel @Inject constructor(
     fun getPlayerContentLocal() {
         viewModelScope.launch {
             val mediaInfoWithFile = mediaInfoRepo.allMedia.first()
+            LocalWebConsole.updateMediaList(
+                mediaInfoWithFile.toMutableList().map { it.toModel() })
             mediaInfoWithFile.forEach { item ->
                 val mediaInfoModel = item.toModel()
                 Log.d("MediaInfo", "getPlayerContentLocal: $mediaInfoModel")
@@ -197,8 +202,12 @@ class MainViewModel @Inject constructor(
         }
     }
 
-    fun getMediaInfoIdList(): List<Long> {
+    fun getMediaInfoIdList(): Set<Long> {
         return mediaRepo.listMediaInfoId
+    }
+
+    fun getScheduleList(): List<MediaInfo> {
+        return mediaRepo.scheduledList.values.toList()
     }
 
 
