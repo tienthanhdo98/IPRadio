@@ -260,6 +260,20 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_P4_0, data)
     }
 
+    fun writeADC(data: String) {
+        invokeDeviceFunc(Define.FUNC_WRITE_ADC, data)
+    }
+
+    fun writeMuteSpeaker(leftMute: Boolean, rightMute: Boolean) {
+        val leftValue = if (leftMute) 0 else 1
+        val rightValue = if (rightMute) 0 else 1
+
+        GlobalProperties.getInst().saveMuteSpeaker(leftValue, rightValue)
+
+        val data = "\$\$,17,$leftValue,$rightValue"
+        invokeDeviceFunc(Define.FUNC_WRITE_MUTE_SPEAKER, data)
+    }
+
     //    $$,3,0 Không chọn kênh
 //    $$,3,1 Chọn kênh 1
 //    $$,3,2 Chọn kênh 2

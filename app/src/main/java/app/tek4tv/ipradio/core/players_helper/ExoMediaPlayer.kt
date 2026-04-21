@@ -165,6 +165,13 @@ class ExoMediaPlayer(
         exoPlayer.release()
     }
 
+    override fun getCurrentPositionMs(): Long = try { exoPlayer.currentPosition } catch (_: Exception) { 0L }
+
+    override fun getCurrentDurationMs(): Long = try {
+        val d = exoPlayer.duration
+        if (d == com.google.android.exoplayer2.C.TIME_UNSET || d <= 0) 0L else d
+    } catch (_: Exception) { 0L }
+
     // -------------------------------------------------------------------
     // Private helpers
     // -------------------------------------------------------------------

@@ -6,6 +6,7 @@ import androidx.annotation.RequiresApi
 import app.tek4tv.ipradio.model.McuInfoData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
+import app.tek4tv.ipradio.model.webconsole.ClassDUiModel
 import app.tek4tv.ipradio.model.webconsole.ConnectionSettings
 import app.tek4tv.ipradio.model.webconsole.DeviceBasicInfo
 import app.tek4tv.ipradio.model.webconsole.StatusPageData
@@ -161,75 +162,166 @@ object MiraWebConsolePages {
         )
     }
 
-    fun renderSettingsPage(data: ConnectionSettings = ConnectionSettings()): String {
+    fun renderSettingsPage(
+        data: ConnectionSettings = ConnectionSettings(), wifiList: List<String> = emptyList()
+    ): String {
+        val fieldStyle =
+            "width: 100%; height: 38px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-size: 14px;"
+
         val content = """
-        <div class="section">
-            <h2 class="section-title">Network settings</h2>
-            <table class="form-table">
-                <tr>
-                    <td>Network Type</td>
-                    <td>
-                        <select name="network_type">                    
-                            <option  value="1" ${if (data.networkType == "1" || data.networkType == null) "selected" else ""}>Mobile Data</option>
-                            <option  value="0" ${if (data.networkType == "0") "selected" else ""}>Ethernet</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>SIM selection</td>
-                    <td>
-                        <select name="sim_slot">
-                            <option  value="0" ${if (data.simSelection == "0" || data.simSelection == null) "selected" else ""}>Classic(Physical)</option>
-                            <option  value="1" ${if (data.simSelection == "1") "selected" else ""}>ESim</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr>
-                    <td>Mobile Data mode</td>
-                    <td>
-                        <select name="mobile_data_mode">
-                            <option  value="0" ${if (data.mobileDataMode == "0") "selected" else ""}>Auto</option>
-                            <option  value="2" ${if (data.mobileDataMode == "2" || data.mobileDataMode == null) "selected" else ""}>2G</option>
-                            <option  value="3" ${if (data.mobileDataMode == "3" || data.mobileDataMode == null) "selected" else ""}>3G</option>
-                            <option  value="4" ${if (data.mobileDataMode == "4" || data.mobileDataMode == null) "selected" else ""}>4G</option>
-                        </select>
-                    </td>
-                </tr>           
-            </table>
-        </div>
+    <div class="section">
+        <h2 class="section-title">Network settings</h2>
+        <table class="form-table">
+            <tr>
+                <td>Network Type</td>
+                <td>
+                    <select name="network_type" id="network_type_select" onchange="updateFieldVisibility()" style="$fieldStyle">                    
+                        <option value="1" ${if (data.networkType == "1" || data.networkType == null) "selected" else ""}>Mobile Data</option>
+                        <option value="0" ${if (data.networkType == "0") "selected" else ""}>Ethernet</option>
+                        <option value="2" ${if (data.networkType == "2") "selected" else ""}>WiFi</option>
+                    </select>
+                </td>
+            </tr>
+            
+            <tr id="wifi_ssid_row" style="display: none;">
+                <td>WiFi Name (SSID)</td>
+                <td>
+                    <input list="wifi_ssids" name="wifi_ssid" value="${data.wifiSsid ?: ""}" autocomplete="off" style="$fieldStyle">
+                    <datalist id="wifi_ssids">
+                        ${wifiList.joinToString("\n") { "<option value=\"$it\">" }}
+                    </datalist>
+                </td>
+            </tr>
+            <tr id="wifi_password_row" style="display: none;">
+                <td>WiFi Password</td>
+                <td>
+                    <div style="position: relative; display: flex; align-items: center;">
+                        <input type="password" id="wifi_pwd_input" name="wifi_password" value="${data.wifiPassword ?: ""}" style="$fieldStyle padding-right: 40px;">
+                        
+                        <span id="toggle_pwd_icon" onclick="togglePasswordVisibility()" style="position: absolute; right: 10px; cursor: pointer; display: flex; align-items: center;">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </span>
+                    </div>
+                </td>
+            </tr>
 
-        <div class="section">
-            <h2 class="section-title">Other settings</h2>
-            <table class="form-table">
-                <tr>
-                    <td>Activation</td>
-                    <td>
-                        <select name="activation">
-                            <option  value="0" ${if (data.activation == "0") "selected" else ""}>Disable</option>
-                            <option  value="1" ${if (data.activation == "1" || data.activation == null) "selected" else ""}>Enable</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr><td>Normal Volume (0 - 100%)</td><td><input type="number" name="normal_volume" min="0" max="100" value="${data.normalVolume ?: "80"}"></td></tr>
-                <tr><td>FM Volume (0 - 100%)</td><td><input type="number" name="fm_volume" min="0" max="100" value="${data.fmVolume ?: "65"}"></td></tr>
-                <tr>
-                    <td>FM Auto Stop for weak signal</td>
-                    <td>
-                        <select name="fm_auto_stop">
-                            <option  value="0" ${if (data.fmAutoStop == "0" || data.fmAutoStop == null) "selected" else ""}>Disable</option>
-                            <option  value="1" ${if (data.fmAutoStop == "1") "selected" else ""}>Enable</option>
-                        </select>
-                    </td>
-                </tr>
-                <tr><td>FM Auto RSSI Threshold (0 - 100dBuV)</td><td><input type="number" name="fm_rssi_threshold" value="${data.fmAutoThreshold ?: "70"}"></td></tr>
-            </table>
-        </div>
+            <tr id="sim_selection_row">
+                <td>SIM selection</td>
+                <td>
+                    <select name="sim_slot" style="$fieldStyle">
+                        <option value="0" ${if (data.simSelection == "0" || data.simSelection == null) "selected" else ""}>Classic(Physical)</option>
+                        <option value="1" ${if (data.simSelection == "1") "selected" else ""}>ESim</option>
+                    </select>
+                </td>
+            </tr>
+            <tr id="mobile_data_mode_row">
+                <td>Mobile Data mode</td>
+                <td>
+                    <select name="mobile_data_mode" style="$fieldStyle">
+                        <option value="0" ${if (data.mobileDataMode == "0") "selected" else ""}>Auto</option>
+                        <option value="2" ${if (data.mobileDataMode == "2" || data.mobileDataMode == null) "selected" else ""}>2G</option>
+                        <option value="3" ${if (data.mobileDataMode == "3" || data.mobileDataMode == null) "selected" else ""}>3G</option>
+                        <option value="4" ${if (data.mobileDataMode == "4" || data.mobileDataMode == null) "selected" else ""}>4G</option>
+                    </select>
+                </td>
+            </tr>           
+        </table>
+    </div>
 
-        <div class="btn-row">
-            <button class="btn primary" type="submit">Update</button>
-            <button class="btn secondary" type="button" onclick="if(confirm('Khôi phục cấu hình về mặc định?')) { this.form.action='/default-settings'; this.form.submit(); }">Default</button>
-        </div>
-        """.trimIndent()
+    <div class="section">
+        <h2 class="section-title">Other settings</h2>
+        <table class="form-table">
+            <tr>
+                <td>Activation</td>
+                <td>
+                    <select name="activation" style="$fieldStyle">
+                        <option value="0" ${if (data.activation == "0") "selected" else ""}>Disable</option>
+                        <option value="1" ${if (data.activation == "1" || data.activation == null) "selected" else ""}>Enable</option>
+                    </select>
+                </td>
+            </tr>
+            <tr><td>Normal Volume (0 - 100%)</td><td><input type="number" name="normal_volume" min="0" max="100" value="${data.normalVolume ?: "80"}" style="$fieldStyle"></td></tr>
+            <tr><td>FM Volume (0 - 100%)</td><td><input type="number" name="fm_volume" min="0" max="100" value="${data.fmVolume ?: "65"}" style="$fieldStyle"></td></tr>
+            <tr>
+                <td>FM Auto Stop for weak signal</td>
+                <td>
+                    <select name="fm_auto_stop" style="$fieldStyle">
+                        <option value="0" ${if (data.fmAutoStop == "0" || data.fmAutoStop == null) "selected" else ""}>Disable</option>
+                        <option value="1" ${if (data.fmAutoStop == "1") "selected" else ""}>Enable</option>
+                    </select>
+                </td>
+            </tr>
+            <tr><td>FM Auto RSSI Threshold (0 - 100dBuV)</td><td><input type="number" name="fm_rssi_threshold" value="${data.fmAutoThreshold ?: "70"}" style="$fieldStyle"></td></tr>
+        </table>
+    </div>
+
+    <div class="btn-row">
+        <button class="btn primary" type="submit">Update</button>
+        <button class="btn secondary" type="button" onclick="if(confirm('Khôi phục cấu hình về mặc định?')) { this.form.action='/default-settings'; this.form.submit(); }">Default</button>
+    </div>
+
+    <script>
+        // Chuỗi chứa mã vẽ SVG cho 2 trạng thái
+        var svgEyeOpen = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>';
+        var svgEyeClosed = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#777" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>';
+
+        function updateFieldVisibility() {
+            var el = document.getElementById("network_type_select");
+            if (!el) return;
+            var val = el.value;
+
+            var isWifi = (val === '2');
+            document.getElementById('wifi_ssid_row').style.display = isWifi ? '' : 'none';
+            document.getElementById('wifi_password_row').style.display = isWifi ? '' : 'none';
+
+            var isMobile = (val === '1');
+            document.getElementById('sim_selection_row').style.display = isMobile ? '' : 'none';
+            document.getElementById('mobile_data_mode_row').style.display = isMobile ? '' : 'none';
+        }
+
+        function togglePasswordVisibility() {
+            var input = document.getElementById("wifi_pwd_input");
+            var iconContainer = document.getElementById("toggle_pwd_icon");
+            
+            // Thay vì đổi class name, ta thay thế mã HTML bên trong thẻ span
+            if (input.type === "password") {
+                input.type = "text";
+                iconContainer.innerHTML = svgEyeClosed; // Hiện mật khẩu -> Icon nhắm mắt
+            } else {
+                input.type = "password";
+                iconContainer.innerHTML = svgEyeOpen;   // Ẩn mật khẩu -> Icon mở mắt
+            }
+        }
+
+        function refreshWifiList() {
+            var el = document.getElementById("network_type_select");
+            if (el && el.value !== '2') return;
+
+            fetch('/api/wifi-list')
+                .then(function(r) { return r.json(); })
+                .then(function(ssids) {
+                    var dl = document.getElementById('wifi_ssids');
+                    if (!dl) return;
+                    dl.innerHTML = '';
+                    ssids.forEach(function(ssid) {
+                        var opt = document.createElement('option');
+                        opt.value = ssid;
+                        dl.appendChild(opt);
+                    });
+                })
+                .catch(function(e) { console.warn('wifi-list fetch error', e); });
+        }
+
+        window.addEventListener('load', function() {
+            updateFieldVisibility();
+            refreshWifiList();
+            setInterval(refreshWifiList, 10000);
+        });
+    </script>
+    """.trimIndent()
 
         return renderDashboardLayout(
             title = "Settings",
@@ -314,50 +406,11 @@ object MiraWebConsolePages {
         return renderDashboardLayout("IO-CT", "ioct", content)
     }
 
-    fun renderClassDPage(): String {
-        val content = """
-            <form action="/update-classd" method="post">
-                <div class="page-head">
-                    <div>
-                        <h1 class="page-title">Class D</h1>
-                        <div class="page-desc">Mô phỏng bảng thông số amplifier giống layout trong tài liệu.</div>
-                    </div>
-                </div>
-
-                <div class="split">
-                    <div>
-                        <h2 class="section-title">Amplifier settings</h2>
-                        <table class="form-table">
-                            <tr><td>Mode</td><td><select name="classd_mode"><option>BTL</option><option selected>PBTL</option></select></td></tr>
-                            <tr><td>Output power</td><td><input type="number" name="output_power" value="80"></td></tr>
-                            <tr><td>Gain</td><td><input type="number" name="gain" value="24"></td></tr>
-                            <tr><td>Limiter</td><td><div class="inline"><label class="switch"><input checked type="checkbox" name="limiter"><span class="slider"></span></label><span>Enable</span></div></td></tr>
-                            <tr><td>Thermal protection</td><td><span class="tag ok">Active</span></td></tr>
-                        </table>
-                    </div>
-                    <div>
-                        <h2 class="section-title">Realtime monitor</h2>
-                        <div class="cards" style="grid-template-columns: repeat(2, minmax(0, 1fr));">
-                            <div class="info-card"><div class="metric-label">Temperature</div><div class="metric">42°C</div></div>
-                            <div class="info-card"><div class="metric-label">Voltage</div><div class="metric">24V</div></div>
-                            <div class="info-card"><div class="metric-label">Current</div><div class="metric">1.4A</div></div>
-                            <div class="info-card"><div class="metric-label">Load</div><div class="metric">8Ω</div></div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="btn-row">
-                    <button class="btn primary" type="submit">Update</button>
-                </div>
-            </form>
-        """.trimIndent()
-
-        return renderDashboardLayout("Class D", "classd", content)
-    }
 
     fun renderMediaPage(
         mediaList: List<MediaInfo> = emptyList(),
         selectedMid: Long? = null,
+        statusPlaying: Int = -1
     ): String {
         val selectedMedia =
             mediaList.firstOrNull { it.mid == selectedMid } ?: mediaList.firstOrNull()
@@ -397,8 +450,7 @@ object MiraWebConsolePages {
             if (seconds == null || seconds <= 0) return "-"
             return try {
                 val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                java.time.Instant.ofEpochSecond(seconds)
-                    .atZone(java.time.ZoneId.systemDefault())
+                java.time.Instant.ofEpochSecond(seconds).atZone(java.time.ZoneId.systemDefault())
                     .format(formatter)
             } catch (_: Exception) {
                 "-"
@@ -415,13 +467,13 @@ object MiraWebConsolePages {
             return if (result.isEmpty()) "-" else result.joinToString(", ")
         }
 
-        fun playTimeInDayText(ts: List<Long>?, ds: List<Long>?): String {
-            if (ts.isNullOrEmpty()) return "-"
-            return ts.mapIndexed { index, value ->
-                val d = ds?.getOrNull(index)
-                if (d != null) "$value ($d)" else value.toString()
-            }.joinToString(", ")
-        }
+//        fun playTimeInDayText(ts: List<Long>?, ds: List<Long>?): String {
+//            if (ts.isNullOrEmpty()) return "-"
+//            return ts.mapIndexed { index, value ->
+//                val d = ds?.getOrNull(index)
+//                if (d != null) "$value ($d)" else value.toString()
+//            }.joinToString(", ")
+//        }
 
         fun audioInformationText(files: List<MediaFile>): String {
             if (files.isEmpty()) return "-"
@@ -435,7 +487,7 @@ object MiraWebConsolePages {
             }
         }
 
-        val headerIds = mediaList.mapNotNull { it.mid }.joinToString(", ").ifBlank { "0" }
+//        val headerIds = mediaList.mapNotNull { it.mid }.joinToString(", ").ifBlank { "0" }
 
         val selectedOptions = buildString {
             mediaList.forEach { item ->
@@ -447,6 +499,12 @@ object MiraWebConsolePages {
 
         val detail = selectedMedia
         val selectedMidValue = detail?.mid?.toString().orEmpty()
+
+        val statusDisplay = when (statusPlaying) {
+            1 -> "Normal"
+            0 -> "Lỗi"
+            else -> actionText(detail?.action) // Trạng thái gốc ban đầu khi chưa ấn Play
+        }
 
         val content = """
         <div class="section">
@@ -477,7 +535,7 @@ object MiraWebConsolePages {
                 <tr><td>Active Days</td><td>${activeDaysText(detail?.days)}</td></tr>
                 <tr><td>Audio information</td><td>${audioInformationText(detail?.files ?: emptyList())}</td></tr>
                 <tr><td>Schedule duration</td><td>${detail?.ds}</td></tr>
-                <tr><td>Status</td><td>${actionText(detail?.action)}</td></tr>
+                 <tr><td>Status</td><td>$statusDisplay</td></tr>
             </table>
         </div>
 
@@ -514,32 +572,94 @@ object MiraWebConsolePages {
 
     fun renderPlayerPage(): String {
         val content = """
-            <form action="/update-player" method="post">
-                <div class="page-head">
-                    <div>
-                        <h1 class="page-title">Player</h1>
-                        <div class="page-desc">Màn quản lý playback theo bố cục đơn giản trong tài liệu.</div>
-                    </div>
-                    <div class="tag ok">Idle</div>
-                </div>
+        <div class="section">
+            <h2 class="section-title">Playlist</h2>
+            <table class="form-table" id="playlist-table">
+                <thead>
+                    <tr>
+                        <th style="text-align:left;color:#555;font-weight:600;">Media ID</th>
+                        <th style="text-align:left;color:#555;font-weight:600;">Cycle</th>
+                        <th style="text-align:left;color:#555;font-weight:600;">File chunk</th>
+                        <th style="text-align:left;color:#555;font-weight:600;">Playing time</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td id="pl-mediaid">-</td>
+                        <td id="pl-cycle">-</td>
+                        <td id="pl-chunk">-</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:10px;">
+                                <input type="range" id="pl-slider" min="0" max="100" value="0"
+                                    style="width:200px;accent-color:#2a8de0;" readonly>
+                                <span id="pl-time" style="white-space:nowrap;font-size:13px;color:#444;">0m00s/0m00s (0%)</span>
+                            </div>
+                        </td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
 
-                <div class="section">
-                    <h2 class="section-title">Playback controls</h2>
-                    <table class="form-table">
-                        <tr><td>Playing Media ID</td><td><input type="text" name="media_id" value="audio_001"></td></tr>
-                        <tr><td>Volume</td><td><input type="number" name="volume" value="80"></td></tr>
-                        <tr><td>Priority</td><td><select name="priority"><option>Low</option><option selected>Normal</option><option>High</option></select></td></tr>
-                        <tr><td>Status</td><td><span class="tag warn">Paused</span></td></tr>
-                    </table>
-                </div>
+        <div class="section">
+            <h2 class="section-title">Players status</h2>
+            <table class="form-table">
+                <tr>
+                    <td style="color:#2a8de0;font-weight:600;">MPD</td>
+                    <td id="st-mpd">OFF</td>
+                </tr>
+                <tr>
+                    <td style="color:#2a8de0;font-weight:600;">FM</td>
+                    <td id="st-fm">OFF</td>
+                </tr>
+                <tr>
+                    <td style="color:#2a8de0;font-weight:600;">SILENCE</td>
+                    <td id="st-silence">OFF</td>
+                </tr>
+                <tr>
+                    <td style="color:#2a8de0;font-weight:600;">LIVE MIC</td>
+                    <td id="st-livemic">-</td>
+                </tr>
+            </table>
+        </div>
 
-                <div class="btn-row">
-                    <button class="btn primary" type="submit">Play</button>
-                    <button class="btn secondary" type="button">Stop</button>
-                    <button class="btn secondary" type="button">Pause</button>
-                    <button class="btn secondary" type="button">Default</button>
-                </div>
+           <div class="btn-row" style="border-top:0;gap:10px;">
+            <form method="post" action="/media/next" style="margin:0;">
+                <button class="btn primary" type="submit">Next</button>
             </form>
+            <form method="post" action="/media/delete-all" style="margin:0;" onsubmit="return confirm('Stop all và xóa toàn bộ media?');">
+                <input type="hidden" name="from" value="player">
+                <button class="btn secondary" type="submit">Stop All</button>
+            </form>
+        </div>
+
+        <script>
+            function refreshPlayerStatus() {
+                fetch('/api/player-status')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        // Playlist
+                        document.getElementById('pl-mediaid').textContent = d.mediaId !== null ? d.mediaId : '-';
+                        document.getElementById('pl-cycle').textContent = d.cycle || '-';
+                        document.getElementById('pl-chunk').textContent = d.fileChunk || '-';
+
+                        var pct = parseFloat(d.pct) || 0;
+                        document.getElementById('pl-slider').value = pct;
+                        document.getElementById('pl-time').textContent =
+                            (d.posFmt || '0m00s') + '/' + (d.durFmt || '0m00s') + ' (' + pct.toFixed(1) + '%)';
+
+                        // Players status
+                        document.getElementById('st-mpd').textContent = d.isMpd ? 'ON' : 'OFF';
+                        var fmText = d.isFm ? ('ON, RSSI=' + d.fmRssi) : 'OFF';
+                        document.getElementById('st-fm').textContent = fmText;
+                        document.getElementById('st-silence').textContent = d.isSilence ? 'ON' : 'OFF';
+                        document.getElementById('st-livemic').textContent = d.isLiveMic ? 'ON' : '-';
+                    })
+                    .catch(function(e) { console.warn('player-status error', e); });
+            }
+
+            refreshPlayerStatus();
+            setInterval(refreshPlayerStatus, 1000);
+        </script>
         """.trimIndent()
 
         return renderDashboardLayout("Player", "player", content)
@@ -563,8 +683,7 @@ object MiraWebConsolePages {
         val spk2 = spkStr(statusData.spk2Run, statusData.spk2Err)
         val spk3 = spkStr(statusData.spk3Run, statusData.spk3Err)
         val spk4 = spkStr(statusData.spk4Run, statusData.spk4Err)
-        val serverStatus =
-            if (statusData.isServerConnected) "Connected" else "Disconnect"
+        val serverStatus = if (statusData.isServerConnected) "Connected" else "Disconnect"
 
         val content = """
         <div class="section">
@@ -573,8 +692,7 @@ object MiraWebConsolePages {
                 <tr><td>Uptime</td><td>${uptimeText}</td></tr>
                 <tr><td>Storage</td><td>total=${
             String.format(
-                "%.1f",
-                statusData.storageTotalMiB
+                "%.1f", statusData.storageTotalMiB
             )
         }MiB, free=${String.format("%.1f", statusData.storageFreeMiB)}MiB</td></tr>
                
@@ -717,7 +835,7 @@ object MiraWebConsolePages {
         content: String,
     ): String {
         fun menuClass(menu: String) = if (menu == activeMenu) "menu-item active" else "menu-item"/*                 <a href="/io-ct" class="${menuClass("ioct")}">IO-CT</a>
-                                            <a href="/class-d" class="${menuClass("classd")}">Class D</a>
+
                                           <a href="/admin" class="${menuClass("admin")}">Admin</a>
                                                     <a href="/logout" class="menu-item logout">Đăng xuất</a>
                                             */
@@ -740,6 +858,7 @@ object MiraWebConsolePages {
           
                             <a href="/config-connection" class="${menuClass("connection")}">Connection</a>                
                             <a href="/config-settings" class="${menuClass("settings")}">Settings</a>
+                            <a href="/class-d" class="${menuClass("classd")}">Class D</a>
                             <a href="/media" class="${menuClass("media")}">Media</a>
                             <a href="/player" class="${menuClass("player")}">Player</a>
                             <a href="/status" class="${menuClass("status")}">Status</a>
@@ -1083,5 +1202,96 @@ object MiraWebConsolePages {
             .page-head { flex-direction: column; align-items: flex-start; }
         }
     """.trimIndent()
+
+    fun renderClassDPage(model: ClassDUiModel): String {
+        // Để cho các input đẹp và đồng bộ, bạn có thể tái sử dụng fieldStyle nhé,
+        // ở đây tôi giữ nguyên cấu trúc cũ của bạn và cập nhật phần nút bấm.
+
+        val content = """
+    <div class="section">
+        <h2 class="section-title">ClassD status</h2>
+        <table class="form-table">
+            <tr><td>Monitor Channel</td><td>0</td></tr>
+            <tr><td>faultsz (left, right)</td><td>0,0</td></tr>
+            <tr><td>szd (left, right)</td><td>(${model.szdLeft}, ${model.szdRight})</td></tr>
+            <tr><td>mute (left, right)</td><td>${model.muteLeft},${model.muteRight}</td></tr>
+            <tr><td>Threshold</td><td>${model.threshold}</td></tr>
+            <tr><td>Speaker 1 (status, alarm, adc, offset)</td><td>0,0,0,${model.speaker1Offset}</td></tr>
+            <tr><td>Speaker 2 (status, alarm, adc, offset)</td><td>0,0,0,${model.speaker2Offset}</td></tr>
+            <tr><td>Speaker 3 (status, alarm, adc, offset)</td><td>0,0,0,${model.speaker3Offset}</td></tr>
+            <tr><td>Speaker 4 (status, alarm, adc, offset)</td><td>0,0,0,${model.speaker4Offset}</td></tr>
+        </table>
+    </div>
+
+    <div class="section">
+        <h2 class="section-title">ClassD settings</h2>
+        <form action="/update-classd" method="post">
+            <table class="form-table">
+                <tr>
+                    <td>Monitor Channel</td>
+                    <td>
+                        <select name="monitor_channel" style="max-width: 320px;">
+                            <option ${if (model.monitorChannel == "CH 1-2") "selected" else ""}>CH 1-2</option>
+                            <option ${if (model.monitorChannel == "CH 2-4") "selected" else ""}>CH 2-4</option>                            
+                        </select>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>szd (left, right)</td>
+                    <td>
+                        <div style="display:flex; gap:10px; max-width: 320px;">
+                            <input type="number" name="szd_left" value="${model.szdLeft}">
+                            <input type="number" name="szd_right" value="${model.szdRight}">
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>mute (left, right)</td>
+                    <td>
+                        <div style="display:flex; gap:10px; max-width: 320px;">
+                            <input type="number" name="mute_left" value="${model.muteLeft}">
+                            <input type="number" name="mute_right" value="${model.muteRight}">
+                        </div>
+                    </td>
+                </tr>
+
+                <tr>
+                    <td>Threshold</td>
+                    <td><input type="number" name="threshold" value="${model.threshold}" style="max-width: 320px;"></td>
+                </tr>
+
+                <tr>
+                    <td>Speaker 1 Offset</td>
+                    <td><input type="number" name="speaker1_offset" value="${model.speaker1Offset}" style="max-width: 320px;"></td>
+                </tr>
+
+                <tr>
+                    <td>Speaker 2 Offset</td>
+                    <td><input type="number" name="speaker2_offset" value="${model.speaker2Offset}" style="max-width: 320px;"></td>
+                </tr>
+
+                <tr>
+                    <td>Speaker 3 Offset</td>
+                    <td><input type="number" name="speaker3_offset" value="${model.speaker3Offset}" style="max-width: 320px;"></td>
+                </tr>
+
+                <tr>
+                    <td>Speaker 4 Offset</td>
+                    <td><input type="number" name="speaker4_offset" value="${model.speaker4Offset}" style="max-width: 320px;"></td>
+                </tr>
+            </table>
+
+            <div class="btn-row" style="border-top: 0; padding-top: 16px;">
+                <button class="btn primary" type="submit">Update</button>
+                <button class="btn secondary" type="button" onclick="if(confirm('Khôi phục cài đặt Class D về mặc định?')) { this.form.action='/default-classd'; this.form.submit(); }">Default</button>
+            </div>
+        </form>
+    </div>
+    """.trimIndent()
+
+        return renderDashboardLayout("Class D", "classd", content)
+    }
 
 }

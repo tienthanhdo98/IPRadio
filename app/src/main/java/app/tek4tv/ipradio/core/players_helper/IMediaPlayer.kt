@@ -11,4 +11,6 @@ interface IMediaPlayer {
     fun pause()
     fun resume()
     fun release()
+    fun getCurrentPositionMs(): Long
+    fun getCurrentDurationMs(): Long
 }

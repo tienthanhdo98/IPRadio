@@ -472,7 +472,7 @@ class HubManager(
                             val listSaveOnlyMediaInfo =
                                 listMediaInfo.filter { it.mode == 0 }.toList()
 
-                            if (listLiveMediaInfo.isNotEmpty() && listSchedulerMediaInfo.isEmpty()) {
+                            if (listLiveMediaInfo.isNotEmpty()) {
                                 hubCommand = HubCommand.LIVE
                                 responseHub.listLiveMediaInfo = listLiveMediaInfo
                                 onMessageListener.invoke(hubCommand, "")

@@ -287,6 +287,20 @@ class NetworkUtils private constructor() {
             return WifiManager.calculateSignalLevel(rssi, 101).coerceIn(0, 100)
         }
 
+        fun getAvailableWifiNetworks(appContext: Context): List<String> {
+            return try {
+                val wifiManager =
+                    appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+                if (!wifiManager.isWifiEnabled) return emptyList()
+                val scanResults = wifiManager.scanResults
+                scanResults.mapNotNull { it.SSID }.filter { it.isNotBlank() }.distinct()
+            } catch (e: Exception) {
+                Log.d("showWifi", "getAvailableWifiNetworks: ${e.message}")
+                emptyList()
+
+            }
+        }
+
 
         private fun findIpv4FromLinkProperties(lp: LinkProperties?): String? {
             if (lp == null) return null

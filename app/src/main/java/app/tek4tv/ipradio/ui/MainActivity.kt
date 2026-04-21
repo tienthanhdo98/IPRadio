@@ -22,6 +22,7 @@ import app.tek4tv.ipradio.core.SerialPortController.Companion.deviceInfo
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
+import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_TEST
 import app.tek4tv.ipradio.core.stream.StreamBackManager
 import app.tek4tv.ipradio.core.webserver.LocalWebConsole
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
@@ -33,11 +34,15 @@ import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.findIndex
 import app.tek4tv.ipradio.model.parseDeviceStatusResponse
+import app.tek4tv.ipradio.model.serialport.AdcThresholds
+import app.tek4tv.ipradio.model.serialport.parseAdcThresholds
+import app.tek4tv.ipradio.model.webconsole.ClassDUiModel
 import app.tek4tv.ipradio.model.webconsole.StatusPageData
 import app.tek4tv.ipradio.model.webconsole.ConnectionSettings
 import app.tek4tv.ipradio.model.webconsole.DeviceBasicInfo
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
+import app.tek4tv.ipradio.utils.DeviceUtils
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
@@ -45,6 +50,7 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.getStateMobileData
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.network.connectWifi
 import app.tek4tv.ipradio.utils.setAirplaneModeEnable
 import app.tek4tv.ipradio.utils.setEthernetEnabled
 import app.tek4tv.ipradio.utils.setMobileDataEnabled
@@ -52,6 +58,7 @@ import app.tek4tv.ipradio.utils.setPreferredMode
 import app.tek4tv.ipradio.utils.setWifiDataEnabled
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.utils.su.EthernetStaticIpUtils
+import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -59,6 +66,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.util.Calendar
 import javax.inject.Inject
 
 
@@ -172,12 +180,17 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         override fun onPlayError(mediaItem: MediaFile?) {
             // hubManager.currentMediaItem = null
 //            serialPortController.turnOffPA()
+            if (playerManager.playMode == PLAY_MODE_TEST) {
+                LocalWebConsole.updateMediaStatusPlaying(0)
+            }
         }
 
 
         override fun onPlayMediaSuccess(mediaItem: MediaFile?) {
             if (mediaItem == null) return
-
+            if (playerManager.playMode == PLAY_MODE_TEST) {
+                LocalWebConsole.updateMediaStatusPlaying(1)
+            }
             hubManager.currentMediaItem = mediaItem
 
             serialPortController.turnOnPAVod()
@@ -268,13 +281,22 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         val imei = hubManager.deviceImei
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
-            lifecycleScope.launch(Dispatchers.IO) {
-                EthernetStaticIpUtils.forceStaticIp(
-                    globalProperties.localIp,
-                    globalProperties.gateway,
-                    "8.8.8.8",
-                    "1.1.1.1"
-                )
+//            lifecycleScope.launch(Dispatchers.IO) {
+//                EthernetStaticIpUtils.forceStaticIp(
+//                    globalProperties.localIp,
+//                    globalProperties.gateway,
+//                    "8.8.8.8",
+//                    "1.1.1.1"
+//                )
+//            }
+            lifecycleScope.launch() {
+                Log.d("showWifi", "getAvailableWifiNetworks")
+                val listName = NetworkUtils.getAvailableWifiNetworks(this@MainActivity)
+                delay(1500)
+                Log.d("showWifi", "showWifi get: ${listName.size}")
+                listName.forEach {
+                    Log.d("showWifi", "showWifi: $it")
+                }
             }
         }
     }
@@ -364,7 +386,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                 hubManager.currentMediaInfoListId = viewModel.getMediaInfoIdList()
                 viewModel.downloadMedias()
-                if (globalProperties.settingsDisable == 0) {
+                if (globalProperties.settingsDisable == 1) {
                     Log.d("checkcheck", "scheduler updated")
                     if (ForceMedia.hasValidForceMedia(applicationContext)) {
                         val forceMediaInfo = getLocalForceMedia(applicationContext)
@@ -455,10 +477,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private suspend fun tryUseEthernet(): Boolean {
         Log.d("initSettings", "tryUseEthernet")
         EthernetStaticIpUtils.forceStaticIp(
-            globalProperties.localIp,
-            globalProperties.gateway,
-            "8.8.8.8",
-            "1.1.1.1"
+            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
         )
         setEthernetEnabled(true)
         delay(2500)
@@ -523,8 +542,23 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private suspend fun tryUseWifi(): Boolean {
         Log.d("initSettings", "tryUseWifi")
         setWifiDataEnabled(true)
-        delay(2000)
-        return NetworkUtils.isNetworkConnected(this@MainActivity)
+        delay(1000)
+
+        val ssid = globalProperties.wifiSsid
+        val pass = globalProperties.wifiPassword
+
+        if (ssid.isNotBlank()) {
+            Log.d("initSettings", "tryUseWifi: connecting to SSID=$ssid")
+            connectWifi(ssid, pass)
+            delay(4000) // chờ kết nối WiFi
+        } else {
+            Log.d("initSettings", "tryUseWifi: no SSID configured, chờ auto-reconnect")
+            delay(2000)
+        }
+
+        val connected = NetworkUtils.isNetworkConnected(this@MainActivity)
+        Log.d("initSettings", "tryUseWifi: connected=$connected")
+        return connected
     }
 
     private fun initHubConnect() {
@@ -555,12 +589,27 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 mobileDataMode = globalProperties.settingsSimMode.toString(),
                 activation = globalProperties.settingsDisable.toString(),
                 normalVolume = globalProperties.mainVolume,
-                fmVolume = globalProperties.fmVolume,
                 fmAutoStop = globalProperties.fmAutoStop.toString(),
-                fmAutoThreshold = globalProperties.fmThreshold
+                fmAutoThreshold = globalProperties.fmThreshold,
+                wifiSsid = globalProperties.wifiSsid,
+                wifiPassword = globalProperties.wifiPassword
             )
         )
         //Status page
+        //ClassD
+        LocalWebConsole.updateClassD(
+            ClassDUiModel(
+                threshold = globalProperties.classdThreshold,
+                szdLeft = globalProperties.classdSzdLeft,
+                szdRight = globalProperties.classdSzdRight,
+                muteLeft = globalProperties.muteSpeakerLeft,
+                muteRight = globalProperties.muteSpeakerRight,
+                speaker1Offset = globalProperties.adcThresholdCh1,
+                speaker2Offset = globalProperties.adcThresholdCh2,
+                speaker3Offset = globalProperties.adcThresholdCh3,
+                speaker4Offset = globalProperties.adcThresholdCh4
+            )
+        )
 
         //About page
         LocalWebConsole.updateMcuInfoData(hubManager.currentMcuInfo)
@@ -594,18 +643,33 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 )
                 globalProperties.saveSettingConfig(settingConfig)
                 globalProperties.saveNetworkIpConfig(
-                    connData.localIp,
-                    connData.subnet,
-                    connData.gateway
+                    connData.localIp, connData.subnet, connData.gateway
+                )
+                globalProperties.saveWifiConfig(
+                    connData.wifiSsid ?: "", connData.wifiPassword ?: ""
                 )
 
-                lifecycleScope.launch(Dispatchers.IO) {
-                    EthernetStaticIpUtils.forceStaticIp(
-                        globalProperties.localIp,
-                        globalProperties.gateway,
-                        "8.8.8.8",
-                        "1.1.1.1"
-                    )
+                val networkType = connData.networkType ?: globalProperties.settingsTxType.toString()
+
+                if (networkType == "2") {
+                    // WiFi mode: connect đến WiFi đã cấu hình
+                    val ssid = globalProperties.wifiSsid
+                    val pass = globalProperties.wifiPassword
+                    if (ssid.isNotBlank()) {
+                        Log.d("webconsole", "Connecting to WiFi: $ssid")
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            connectWifi(ssid, pass)
+                        }
+                    } else {
+                        Log.w("webconsole", "WiFi SSID trống, bỏ qua connect")
+                    }
+                } else {
+                    // Ethernet / Mobile: apply static IP rồi reboot
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        EthernetStaticIpUtils.forceStaticIp(
+                            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+                        )
+                    }
                 }
 
                 lifecycleScope.launch {
@@ -629,8 +693,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     "stop" -> {
                         val mid = action.mid ?: return@start
                         lifecycleScope.launch(Dispatchers.Main) {
-                            playerManager.stopAllPlayer()
-                            playerManager.resetPlayMode()
+                            val mediaInfo =
+                                viewModel.getScheduleList().firstOrNull { it.mid == mid }
+                            if (playerManager.playMode == PlayersManager.PLAY_MODE_TEST && playerManager.currentPlayingMediaInfo?.mid == mid) {
+                                playerManager.stopMediaInfoTest()
+                            } else {
+                                playerManager.stopMediaInfo(mediaInfo)
+                            }
                         }
                         Log.d("webconsole", "Stop $mid")
                     }
@@ -638,15 +707,28 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     "delete" -> {
                         val mid = action.mid ?: return@start
                         val mediaInfo = viewModel.getScheduleList().firstOrNull { it.mid == mid }
-                        viewModel.deleteLocalScheduler(mediaInfo)
-                        viewModel.deleteMediaInfInRepo(mediaInfo)
-                        playerManager.stopMediaInfo(mediaInfo)
+                        if (mediaInfo != null) {
+                            viewModel.deleteLocalScheduler(mediaInfo)
+                            viewModel.deleteMediaInfInRepo(mediaInfo)
+                            if (playerManager.playMode == PlayersManager.PLAY_MODE_TEST && playerManager.currentPlayingMediaInfo?.mid == mediaInfo.mid) {
+                                playerManager.stopMediaInfoTest()
+                            } else {
+                                playerManager.stopMediaInfo(mediaInfo)
+                            }
+                        }
                         Log.d("webconsole", "Delete $mid")
                     }
 
                     "delete_all" -> {
                         appStorageManager.deleteAllMedia()
                         viewModel.deleteAllLocalScheduler()
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            if (playerManager.playMode == PlayersManager.PLAY_MODE_TEST) {
+                                playerManager.stopMediaInfoTest()
+                            }
+                            playerManager.stopAllPlayer("Delete all")
+                            playerManager.resetPlayMode()
+                        }
                         Log.d("webconsole", "Delete all")
                     }
                 }
@@ -654,8 +736,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             onGetStatusData = {
                 val appUptime = System.currentTimeMillis() - globalProperties.getAppStartTime()
                 val systemUptime = SystemClock.elapsedRealtime()
-                val storageTotalMiB = app.tek4tv.ipradio.utils.DeviceUtils.getSdTotal() / 1024.0
-                val storageFreeMiB = app.tek4tv.ipradio.utils.DeviceUtils.getSdFree() / 1024.0
+                val storageTotalMiB = DeviceUtils.getSdTotal() / 1024.0
+                val storageFreeMiB = DeviceUtils.getSdFree() / 1024.0
 
                 val currentConn = when (globalProperties.settingsTxType) {
                     0 -> "ETH"
@@ -699,10 +781,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             onResetConnection = {
                 lifecycleScope.launch(Dispatchers.IO) {
                     EthernetStaticIpUtils.forceStaticIp(
-                        globalProperties.localIp,
-                        globalProperties.gateway,
-                        "8.8.8.8",
-                        "1.1.1.1"
+                        globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
                     )
                 }
                 lifecycleScope.launch {
@@ -739,15 +818,43 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     Log.e("webconsole", "Factory reset and Rebooting....")
                     serialPortController.hardRestart()
                 }
-            }
-        )
+            },
+            onGetPlayerStatus = {
+                val isFmPlaying = hubManager.currentMediaItem?.type == 2
+                val fmRssi = if (isFmPlaying) globalProperties.fmThreshold.toIntOrNull() ?: 0 else 0
+                playerManager.getPlayerStatusData(fmRssi = fmRssi)
+            },
+            onClassDUpdate = { classD ->
+                Log.d("webconsole", "onClassDUpdate")
+                globalProperties.apply {
+                    saveClassDThreshold(classD.threshold)
+                    saveClassDSzdLeft(classD.szdLeft)
+                    saveClassDSzdRight(classD.szdRight)
+                    saveMuteSpeaker(classD.muteLeft, classD.muteRight)
+                    updateSpeakerMute(classD.muteLeft, classD.muteRight)
+                    saveAdcThresholds(
+                        classD.speaker1Offset,
+                        classD.speaker2Offset,
+                        classD.speaker3Offset,
+                        classD.speaker4Offset
+                    )
+                    updateADC(
+                        classD.speaker1Offset,
+                        classD.speaker2Offset,
+                        classD.speaker3Offset,
+                        classD.speaker4Offset
+                    )
+                }
+            })
     }
 
     private fun handleFromCommandServer(command: String?, message: String?) {
         try {
 
             val responseHub = hubManager.responseHub
-
+            Log.d(
+                "MediaInfo", "handleFromCommandServer $command"
+            )
             when (command) {
 
                 HubCommand.SAVE_SCHEDULER -> {
@@ -786,18 +893,50 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         lifecycleScope.launch {
                             val listNew = viewModel.getOnlyNewMedia(responseHub.listLiveMediaInfo)
                             if (listNew.isNotEmpty()) {
-                                Log.d(
-                                    "MediaInfo",
-                                    "handleFromCommandServer: Play Live ${listNew.first().summary}"
-                                )
-                                onPlayForce(listNew.first())
+                                val now = Calendar.getInstance()
+                                var playableMedia: MediaInfo? = null
+
+                                listNew.forEach { media ->
+                                    val expiredTime = unixSecondsToCalendar(media.expired ?: 0L)
+                                    if (!now.before(expiredTime)) {
+                                        // Bản tin đã hết hạn -> đẩy thẳng vào history tránh phát nhầm
+                                        Log.d(
+                                            "MediaInfo",
+                                            "Sync Live quá hạn -> đẩy vào history: ${media.mid}"
+                                        )
+                                        viewModel.insertMediaInfoLiveHistory(media)
+                                    } else if (playableMedia == null) {
+                                        // Lấy bản tin Live hợp lệ đầu tiên
+                                        playableMedia = media
+                                    } else {
+                                        // Có nhiều Live hợp lệ -> giữ nguyên pending (vẫn "new"), 
+                                        // lần sync hoặc getPlay sau sẽ phát khi Live đầu hết hạn.
+                                        Log.d(
+                                            "MediaInfo",
+                                            "Pending Live dư thừa chưa hết hạn: ${media.mid}"
+                                        )
+                                    }
+                                }
+
+                                val finalPlayable = playableMedia
+                                if (finalPlayable != null) {
+                                    Log.d(
+                                        "MediaInfo",
+                                        "handleFromCommandServer: Play Live ${finalPlayable.summary}"
+                                    )
+                                    onPlayForce(finalPlayable)
+                                } else {
+                                    Log.d(
+                                        "MediaInfo",
+                                        "handleFromCommandServer: Tất cả Live mới đều đã hết hạn."
+                                    )
+                                }
                             } else {
                                 Log.d(
                                     "MediaInfo", "handleFromCommandServer: Live đã phát rồi"
                                 )
                             }
                         }
-                        //onPlayForce(responseHub.listLiveMediaInfo!!.first())
                     }
                 }
 
@@ -1088,6 +1227,33 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private fun cancelAllAlarm() {
         mediaScheduler.cancelAllAlarm()
+    }
+
+
+    fun updateADC(offset1: Int, offset2: Int, offset3: Int, offset4: Int) {
+        GlobalProperties.getInst().saveAdcThresholds(
+            ch1 = offset1, ch2 = offset2, ch3 = offset3, ch4 = offset4
+        )
+        val data = "${offset1}-${offset2}-${offset3}-${offset4}"
+        serialPortController.writeADC(data)
+    }
+
+    fun updateSpeakerMute(muteLeft: Int, muteRight: Int) {
+        val leftMute = when (muteLeft) {
+            0 -> true   // Mute Left
+            1 -> false  // Unmute Left
+            else -> throw IllegalArgumentException("muteLeft chỉ nhận 0 hoặc 1")
+        }
+
+        val rightMute = when (muteRight) {
+            0 -> true   // Mute Right
+            1 -> false  // Unmute Right
+            else -> throw IllegalArgumentException("muteRight chỉ nhận 0 hoặc 1")
+        }
+
+        serialPortController.writeMuteSpeaker(
+            leftMute = leftMute, rightMute = rightMute
+        )
     }
 
     private fun setMaxVolume() {

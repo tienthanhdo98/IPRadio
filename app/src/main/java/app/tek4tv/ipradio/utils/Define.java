@@ -19,4 +19,5 @@ public class Define {
     public final static String FUNC_WRITE_STREAM_BACK = "18";
     public final static String FUNC_WRITE_RSSI = "19";
     public final static String FUNC_WRITE_P4_0 = "20";
+    public final static String FUNC_WRITE_ADC = "21";
 }

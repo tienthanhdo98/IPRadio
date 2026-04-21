@@ -16,7 +16,9 @@ data class ConnectionSettings(
     val normalVolume: String? = null,
     val fmVolume: String? = null,
     val fmAutoStop: String? = null,
-    val fmAutoThreshold: String? = null
+    val fmAutoThreshold: String? = null,
+    val wifiSsid: String? = null,
+    val wifiPassword: String? = null
 )
 
 data class ServerSettings(
@@ -49,4 +51,20 @@ data class StatusPageData(
 
 data class FirmwareUpdateData(
     val url: String, val updateMode: Int
+)
+
+data class PlayerStatusData(
+    val mediaId: Long? = null,
+    val cycleSec: Long = 0,
+    val fileChunkCurrent: Int = 0,
+    val fileChunkTotal: Int = 0,
+    val currentFilePositionMs: Long = 0,
+    val currentFileDurationMs: Long = 0,
+    // Player types active
+    val isMpdOn: Boolean = false,
+    val isFmOn: Boolean = false,
+    val fmRssi: Int = 0,
+    val isSilenceOn: Boolean = false,
+    val isLiveMicOn: Boolean = false,
+    val playMode: String = "INIT"
 )

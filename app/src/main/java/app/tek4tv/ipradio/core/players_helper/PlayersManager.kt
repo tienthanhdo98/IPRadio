@@ -11,6 +11,7 @@ import app.tek4tv.ipradio.model.ForceProgressState
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaFileType
 import app.tek4tv.ipradio.model.MediaInfo
+import app.tek4tv.ipradio.model.webconsole.PlayerStatusData
 import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils.Companion.convertSecondsToCalendar
@@ -31,11 +32,12 @@ class PlayersManager(
 ) : IPlayerEventListener {
 
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private var testTimerJob: kotlinx.coroutines.Job? = null
 
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this)
     private var currentPlayer: IMediaPlayer? = null
     private var currentPlayingMedia: MediaFile? = null
-    private var currentPlayingMediaInfo: MediaInfo? = null
+    var currentPlayingMediaInfo: MediaInfo? = null
     private var currentTimeFrame: String? = null
     private var countErrorCurrentMediaPlaying = 0
     private var MAX_RETRY = 5
@@ -75,6 +77,46 @@ class PlayersManager(
     private var pendingTimeFrame: String? = null
     private var endingTimeFrame: String? = null
 
+    // Cache vị trí phát - được cập nhật trên Main thread, an toàn để đọc từ bất kỳ thread nào
+    @Volatile
+    var cachedPositionMs: Long = 0L
+    @Volatile
+    var cachedDurationMs: Long = 0L
+    private var positionPollingJob: kotlinx.coroutines.Job? = null
+
+    // Đếm số vòng loop đã hoàn thành trong phiên phát hiện tại (reset khi đổi MediaInfo)
+    @Volatile
+    var currentLoopCount: Int = 0
+
+    private fun startPositionPolling() {
+        positionPollingJob?.cancel()
+        positionPollingJob = coroutineScope.launch {
+            while (true) {
+                cachedPositionMs = try {
+                    currentPlayer?.getCurrentPositionMs() ?: 0L
+                } catch (_: Exception) {
+                    0L
+                }
+                cachedDurationMs = try {
+                    val d = currentPlayer?.getCurrentDurationMs() ?: 0L
+                    if (d > 0) d else ((currentPlaylist.getOrNull(playlistIndex)?.duration
+                        ?: 0) * 1000L)
+                } catch (_: Exception) {
+                    (currentPlaylist.getOrNull(playlistIndex)?.duration ?: 0) * 1000L
+                }
+                delay(500)
+            }
+        }
+    }
+
+    private fun stopPositionPolling() {
+        positionPollingJob?.cancel()
+        positionPollingJob = null
+        cachedPositionMs = 0L
+        cachedDurationMs = 0L
+        currentLoopCount = 0
+    }
+
     override fun onPlayerError(e: String?, mediaItem: MediaFile?) {
         //To log stream played duration
         playerManagerListener?.onPlayError(mediaItem)
@@ -104,7 +146,7 @@ class PlayersManager(
     override fun onMediaEndReached(mediaItem: MediaFile?) {
         onMediaStopPlaying()
 
-        if (playMode == PLAY_MODE_FORCE) {
+        if (playMode == PLAY_MODE_FORCE || playMode == PLAY_MODE_TEST) {
             playNextMedia()
             return
         }
@@ -176,6 +218,13 @@ class PlayersManager(
             return
         }
 
+        if (playMode == PLAY_MODE_TEST) {
+            Log.d("MediaInfo", "Test đang phát -> Ngắt test để ưu tiên schedule start")
+            cancelTestMode()
+            setTimeFrameFromStart(listKey)
+            return
+        }
+
         if (currentTimeFrame == listKey) {
             Log.d("MediaInfo", "Schedule start trùng timeframe hiện tại -> bỏ qua")
             return
@@ -219,15 +268,27 @@ class PlayersManager(
                 // KỂM TRA LOGIC LIỀN MẠCH
                 found = true
                 if (currentTimeFrame == period) {
-                    // Case 2: Đang phát playlist này, server cập nhật thêm playlist khác
-                    // Khung giờ này vẫn tồn tại -> KHÔNG LÀM GÌ CẢ (để player tự chạy tiếp)
-                    Log.d(
-                        "MediaInfo", "Đang phát khung giờ $period, tiếp tục phát không ngắt quãng."
-                    )
-//                    val resumePoint = calculateResumePoint(start, period)
-//                    setTimeFrame(period, resumePoint)
+                    if (playMode == PLAY_MODE_TEST) {
+                        Log.d(
+                            "MediaInfo",
+                            "Lịch $period đang kích hoạt nhưng thiết bị đang phát TEST -> Ngắt test để phát lịch!"
+                        )
+                        cancelTestMode()
+                        val resumePoint = calculateResumePoint(start, period)
+                        setTimeFrame(period, resumePoint)
+                    } else {
+                        // Case 2: Đang phát playlist này, server cập nhật thêm playlist khác
+                        // Khung giờ này vẫn tồn tại -> KHÔNG LÀM GÌ CẢ (để player tự chạy tiếp)
+                        Log.d(
+                            "MediaInfo",
+                            "Đang phát khung giờ $period, tiếp tục phát không ngắt quãng."
+                        )
+                    }
 
                 } else {
+                    if (playMode == PLAY_MODE_TEST) {
+                        cancelTestMode()
+                    }
                     // Là khung giờ hoàn toàn mới, hoặc trước đó thiết bị đang nghỉ ngơi
                     Log.d("MediaInfo", "Bắt đầu khung giờ mới: $period")
                     val resumePoint = calculateResumePoint(start, period)
@@ -263,11 +324,18 @@ class PlayersManager(
 
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
+            // Ước tính số vòng loop đã qua dựa trên thời gian đã trôi
+            val cycleSec = currentPlaylist.sumOf { (it.duration ?: 0).toLong() }
+            val completedSecBeforeResume =
+                currentPlaylist.take(resumePoint.first).sumOf { (it.duration ?: 0).toLong() }
+            val totalElapsedSec = resumePoint.second.toLong() + completedSecBeforeResume
+            currentLoopCount = if (cycleSec > 0) (totalElapsedSec / cycleSec).toInt() else 0
             Log.d("MediaInfo", "resumePoint index : ${resumePoint.first}")
             Log.d("MediaInfo", "resumePoint second: ${resumePoint.second}")
             playMediaByIndex(playlistIndex, resumePoint.second)
         } else {
             playlistIndex = 0
+            currentLoopCount = 0
             playMediaByIndex(playlistIndex)
         }
 
@@ -304,7 +372,7 @@ class PlayersManager(
         if (playMode == "") return
         if (currentPlaylist.isEmpty()) return
 
-        if (playMode != PLAY_MODE_FORCE) {
+        if (playMode != PLAY_MODE_FORCE && playMode != PLAY_MODE_TEST) {
             val now = System.currentTimeMillis()
             val resolvedPeriodKey = mediaScheduler.getActivePeriodKey(now)
 
@@ -362,6 +430,7 @@ class PlayersManager(
             }
 
             Log.d("MediaInfo", "Quay lại đầu Playlist: loop")
+            currentLoopCount++
         }
 
         playMediaByIndex(playlistIndex)
@@ -405,10 +474,9 @@ class PlayersManager(
                     if (mediaItem.url!!.contains("m3u8")) {
                         playLiveStream(mediaItem, false, timeStamp)
                     } else {
-//                        vlcPlayer.playMedia(mediaItem, false, timeStamp)
-//                        currentPlayer = vlcPlayer
                         exoPlayer.playMedia(mediaItem, false, timeStamp)
                         currentPlayer = exoPlayer
+                        startPositionPolling()
                     }
                 }
 
@@ -455,7 +523,7 @@ class PlayersManager(
         Log.d(LOGTAG, "playLiveStream resume time: $resumeLiveTime")
         exoPlayer.playMedia(mediaItem, isForce, resumeLiveTime)
         currentPlayer = exoPlayer
-
+        startPositionPolling()
     }
 
     //    fun stopAllPlayer(reason: String = "unknown") {
@@ -475,6 +543,7 @@ class PlayersManager(
             "MediaInfo",
             "stopAllPlayer reason=$reason playMode=$playMode current=${currentPlayingMedia?.id}"
         )
+        stopPositionPolling()
         handlerFMPlayer?.removeCallbacksAndMessages(null)
         handlerFMPlayer = null
         currentTimeFrame = null
@@ -835,16 +904,99 @@ class PlayersManager(
         )
     }
 
+    private fun cancelTestMode() {
+        if (playMode == PLAY_MODE_TEST) {
+            Log.d("MediaInfo", "cancelTestMode: Hủy ngang test mode")
+            testTimerJob?.cancel()
+            testTimerJob = null
+            onMediaStopPlaying()
+            stopAllPlayer("cancelTestMode")
+            resetPlayMode()
+        }
+    }
+
+    fun stopMediaInfoTest() {
+        if (playMode != PLAY_MODE_TEST) return
+        Log.d("MediaInfo", "stopMediaInfoTest")
+        cancelTestMode()
+
+        getPlay() // resume schedule logic
+    }
+
     fun playMediaInfoTest(mediaInfo: MediaInfo) {
+        try {
+            if (playMode == PLAY_MODE_FORCE) {
+                Log.d("MediaInfo", "playMediaInfoTest: Cannot test during PLAY_MODE_FORCE")
+                return
+            }
 
-        stopAllPlayer("playMediaInfoTest")
+            stopAllPlayer("playMediaInfoTest")
 
-        currentPlayingMediaInfo = mediaInfo
-        currentPlaylist = mediaInfo.files
+            currentPlayingMediaInfo = mediaInfo
+            currentPlaylist = mediaInfo.files
 
-        playlistIndex = 0
-        playMode = PLAY_MODE_TEST
-        playMediaByIndex(playlistIndex)
+            playlistIndex = 0
+            currentLoopCount = 0
+            playMode = PLAY_MODE_TEST
+            playMediaByIndex(playlistIndex)
+
+            val totalLoopDuration: Long = currentPlaylist.sumOf { (it.duration ?: 0).toLong() }
+            val testDs: Long = mediaInfo.ds?.firstOrNull() ?: totalLoopDuration
+            val testDuration: Long =
+                if (testDs > 0L) testDs else if (totalLoopDuration > 0L) totalLoopDuration else 30L
+
+            Log.d("MediaInfo", "playMediaInfoTest: Start testing for ${testDuration}s")
+
+            testTimerJob?.cancel()
+            testTimerJob = coroutineScope.launch {
+                delay(testDuration * 1000L)
+                Log.d("MediaInfo", "playMediaInfoTest: Test time expired, stopping...")
+                stopMediaInfoTest()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun getPlayerStatusData(fmRssi: Int = 0): PlayerStatusData {
+        val info = currentPlayingMediaInfo
+        val files = currentPlaylist
+        val currentFile = files.getOrNull(playlistIndex)
+
+        val cycleSec = files.sumOf { (it.duration ?: 0).toLong() }
+        val fileTotal = files.size
+        val fileChunkCurrent = if (fileTotal > 0) playlistIndex + 1 else 0
+
+        // Tổng duration của phát đầy đủ: lấy từ ds của MediaInfo (nếu có), fallback về 1 vòng
+        val totalDurationSec: Long = info?.ds?.firstOrNull()?.takeIf { it > 0 } ?: cycleSec
+
+        // Vị trí trong vòng hiện tại = tổng các file đã phát xong + vị trí file hiện tại
+        val completedFilesInLoopMs = files.take(playlistIndex).sumOf { (it.duration ?: 0) * 1000L }
+        val posInLoopMs = completedFilesInLoopMs + cachedPositionMs
+
+        // Tổng vị trí = loop đã xong + vị trí trong vòng hiện tại
+        val totalPositionMs = (currentLoopCount * cycleSec * 1000L) + posInLoopMs
+        val totalDurationMs = totalDurationSec * 1000L
+
+        val fileType = currentFile?.type
+        val isMpd = fileType == MediaFileType.FILE.ordinal
+        val isFm = fileType == MediaFileType.FM.ordinal
+        val isSilence = fileType == MediaFileType.SILENT.ordinal
+
+        return PlayerStatusData(
+            mediaId = info?.mid,
+            cycleSec = cycleSec,
+            fileChunkCurrent = fileChunkCurrent,
+            fileChunkTotal = fileTotal,
+            currentFilePositionMs = totalPositionMs,
+            currentFileDurationMs = totalDurationMs,
+            isMpdOn = isMpd,
+            isFmOn = isFm,
+            fmRssi = if (isFm) fmRssi else 0,
+            isSilenceOn = isSilence,
+            isLiveMicOn = false,
+            playMode = playMode
+        )
     }
 
     private fun resetForceLoopState() {
