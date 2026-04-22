@@ -55,12 +55,12 @@ class GlobalProperties {
     val CLASSD_SZD_RIGHT = "CLASSD_SZD_RIGHT"
 
 
-    var adcThresholdRaw = "16-16-16-16"
-    var adcThresholdCh1 = 16
-    var adcThresholdCh2 = 16
-    var adcThresholdCh3 = 16
-    var adcThresholdCh4 = 16
-    var classdThreshold = 5
+    var adcThresholdRaw = "18-18-18-18"
+    var adcThresholdCh1 = 18
+    var adcThresholdCh2 = 18
+    var adcThresholdCh3 = 18
+    var adcThresholdCh4 = 18
+    var classdThreshold = 10
     var classdSzdLeft = 0
     var classdSzdRight = 0
 
@@ -73,7 +73,7 @@ class GlobalProperties {
     var muteSpeakerLeft = 1   // 0 = Mute, 1 = Unmute
     var muteSpeakerRight = 1  // 0 = Mute, 1 = Unmute
 
-
+    var serialVolume = "100"
     var mainVolume = "90"
     var fmVolume = "90"
     var fmAutoStop = 1
@@ -152,14 +152,14 @@ class GlobalProperties {
         //adc
         adcThresholdRaw =
             ConfigUtil.getString(appContext, ADC_THRESHOLD_RAW, adcThresholdRaw) ?: adcThresholdRaw
-        adcThresholdCh1 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH1, 16)
-        adcThresholdCh2 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH2, 16)
-        adcThresholdCh3 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH3, 16)
-        adcThresholdCh4 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH4, 16)
+        adcThresholdCh1 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH1, 18)
+        adcThresholdCh2 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH2, 18)
+        adcThresholdCh3 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH3, 18)
+        adcThresholdCh4 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH4, 18)
         //
         muteSpeakerLeft = ConfigUtil.getInt(appContext, MUTE_SPEAKER_LEFT, 1)
         muteSpeakerRight = ConfigUtil.getInt(appContext, MUTE_SPEAKER_RIGHT, 1)
-        classdThreshold = ConfigUtil.getInt(appContext, CLASSD_THRESHOLD, 5)
+        classdThreshold = ConfigUtil.getInt(appContext, CLASSD_THRESHOLD, 10)
         classdSzdLeft = ConfigUtil.getInt(appContext, CLASSD_SZD_LEFT, 0)
         classdSzdRight = ConfigUtil.getInt(appContext, CLASSD_SZD_RIGHT, 0)
     }
@@ -342,14 +342,14 @@ class GlobalProperties {
         ConfigUtil.removeSharef(appContext, CLASSD_SZD_RIGHT)
         ConfigUtil.removeSharef(appContext, MUTE_SPEAKER_LEFT)
         ConfigUtil.removeSharef(appContext, MUTE_SPEAKER_RIGHT)
-        adcThresholdRaw = "16-16-16-16"
-        adcThresholdCh1 = 16
-        adcThresholdCh2 = 16
-        adcThresholdCh3 = 16
-        adcThresholdCh4 = 16
+        adcThresholdRaw = "18-18-18-18"
+        adcThresholdCh1 = 18
+        adcThresholdCh2 = 18
+        adcThresholdCh3 = 18
+        adcThresholdCh4 = 18
         muteSpeakerLeft = 1
         muteSpeakerRight = 1
-        classdThreshold = 5
+        classdThreshold = 10
         classdSzdLeft = 0
         classdSzdRight = 0
     }

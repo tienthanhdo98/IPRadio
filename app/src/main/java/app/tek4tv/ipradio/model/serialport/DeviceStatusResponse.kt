@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.model
+package app.tek4tv.ipradio.model.serialport
 
 import android.util.Log
 
@@ -21,7 +21,8 @@ data class DeviceStatusResponse(
     val audioStatus: List<Int>,
     val errorStatus: List<Int>,
     val acDetect: Int,
-    val streamback: Int
+    val streamback: Int,
+    val adcThresholds: List<Int> = emptyList(),
 ) {
     fun fmFrequencyMHz(): Float = fmFrequency / 10f
     fun isFm(): Boolean = fmAmMode == 1
@@ -76,7 +77,8 @@ fun parseDeviceStatusResponse(raw: String): DeviceStatusResponse? {
             audioStatus = parts[15].split("-").mapNotNull { it.toIntOrNull() },
             errorStatus = parts[16].split("-").mapNotNull { it.toIntOrNull() },
             acDetect = parts[17].toIntOrNull() ?: 0,
-            streamback = parts[18].toIntOrNull() ?: 0
+            streamback = parts[18].toIntOrNull() ?: 0,
+            adcThresholds = parts[19].split("-").mapNotNull { it.toIntOrNull() },
         )
     } catch (e: Exception) {
         Log.e("serrialinfo", "parseDeviceStatusResponse error: ${e.message}", e)

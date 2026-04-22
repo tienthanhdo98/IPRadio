@@ -39,7 +39,7 @@ object LocalWebConsole {
     private var currentMediaList: List<MediaInfo> = listOf()
 
     @Volatile
-    private var currentStatusMediaPlaying: Int = 0
+    private var currentStatusMediaPlaying: Int = -1
 
     @Volatile
     private var currentMediaPlayingMid: Long? = 0
@@ -243,6 +243,11 @@ object LocalWebConsole {
                             append("}")
                         }
                         json(j)
+                    }
+
+                    method == Method.GET && uri == "/api/media-status" -> {
+                        if (!isLoggedIn(session)) return json("{}")
+                        json("{\"status\":$currentStatusMediaPlaying}")
                     }
 
                     method == Method.GET && uri == "/status" -> {
@@ -461,6 +466,7 @@ object LocalWebConsole {
                         val params = parsePostParams(session)
                         val mid = params["mid"]?.toLongOrNull()
                         currentMediaPlayingMid = mid
+                        currentStatusMediaPlaying = 2
                         onMediaAction(
                             MediaActionData(
                                 action = "play", mid = mid
@@ -475,6 +481,7 @@ object LocalWebConsole {
 
                         val params = parsePostParams(session)
                         val mid = params["mid"]?.toLongOrNull()
+                        currentStatusMediaPlaying = -1
 
                         onMediaAction(
                             MediaActionData(
@@ -490,6 +497,7 @@ object LocalWebConsole {
 
                         val params = parsePostParams(session)
                         val mid = params["mid"]?.toLongOrNull()
+                        currentStatusMediaPlaying = -1
 
                         onMediaAction(
                             MediaActionData(
@@ -505,6 +513,7 @@ object LocalWebConsole {
 
                         val params = parsePostParams(session)
                         val from = params["from"]
+                        currentStatusMediaPlaying = -1
 
                         onMediaAction(
                             MediaActionData(
@@ -518,6 +527,16 @@ object LocalWebConsole {
                         } else {
                             redirect("/media")
                         }
+                    }
+
+                    method == Method.POST && uri == "/media/next" -> {
+                        if (!isLoggedIn(session)) return redirect("/login")
+                        onMediaAction(
+                            MediaActionData(
+                                action = "next"
+                            )
+                        )
+                        redirect("/player")
                     }
 
                     method == Method.POST && uri == "/update-classd" -> {

@@ -23,13 +23,13 @@ class MyApp : Application() {
 //        )
 
         //a9 b02
-        val globalProperties = app.tek4tv.ipradio.utils.GlobalProperties.getInst()
-        EthernetStaticIpUtils.forceStaticIp(
-            globalProperties.localIp,
-            globalProperties.gateway,
-            "8.8.8.8",
-            "1.1.1.1"
-        )
+//        val globalProperties = app.tek4tv.ipradio.utils.GlobalProperties.getInst()
+//        EthernetStaticIpUtils.forceStaticIp(
+//            globalProperties.localIp,
+//            globalProperties.gateway,
+//            "8.8.8.8",
+//            "1.1.1.1"
+//        )
     }
 
     companion object {

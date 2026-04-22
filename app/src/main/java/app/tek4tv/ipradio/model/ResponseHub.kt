@@ -31,7 +31,4 @@ data class ResponseHub(
     var streamBackData: McuStreamBackData? = null
 
 
-//    var mediaInfo: List<MediaInfo>? = emptyList(),
-
-
 )

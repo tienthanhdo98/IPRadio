@@ -24,7 +24,7 @@ import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.model.SenMLItem
 import app.tek4tv.ipradio.model.ServerData
 import app.tek4tv.ipradio.model.ShowInfo
-import app.tek4tv.ipradio.model.parseDeviceStatusResponse
+import app.tek4tv.ipradio.model.serialport.parseDeviceStatusResponse
 import app.tek4tv.ipradio.network.ApiService
 import app.tek4tv.ipradio.utils.DeviceUtils.calculateSpkerr
 import app.tek4tv.ipradio.utils.DeviceUtils.getSdFree
@@ -237,7 +237,7 @@ class HubManager(
             disabled = globalProperties.settingsDisable,
             mainVolume = globalProperties.mainVolume.toInt(),
             fmVolume = globalProperties.fmVolume.toInt(),
-            fmAuto = 1,
+            fmAuto = globalProperties.fmAutoStop,
             fmThreshold = globalProperties.fmThreshold.toInt()
         )
         val settingJsonString = moshi.toVs(info) ?: ""

@@ -1,16 +1,12 @@
 package app.tek4tv.ipradio.core.stream
 
 import FFMEPGStreamer
-import android.content.Context
-import android.net.Uri
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
-import kotlinx.coroutines.Job
-import androidx.core.net.toUri
-import app.tek4tv.ipradio.model.IcecastConfig
 import app.tek4tv.ipradio.model.McuStreamBackData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.delay

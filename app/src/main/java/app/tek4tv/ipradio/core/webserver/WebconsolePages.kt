@@ -503,6 +503,7 @@ object MiraWebConsolePages {
         val statusDisplay = when (statusPlaying) {
             1 -> "Normal"
             0 -> "Lỗi"
+            2 -> "Đang chờ phát..."
             else -> actionText(detail?.action) // Trạng thái gốc ban đầu khi chưa ấn Play
         }
 
@@ -535,7 +536,7 @@ object MiraWebConsolePages {
                 <tr><td>Active Days</td><td>${activeDaysText(detail?.days)}</td></tr>
                 <tr><td>Audio information</td><td>${audioInformationText(detail?.files ?: emptyList())}</td></tr>
                 <tr><td>Schedule duration</td><td>${detail?.ds}</td></tr>
-                 <tr><td>Status</td><td>$statusDisplay</td></tr>
+                 <tr><td>Status</td><td id="media-status-cell">$statusDisplay</td></tr>
             </table>
         </div>
 
@@ -565,6 +566,23 @@ object MiraWebConsolePages {
                 </div>
             </div>
         </div>
+        
+        <script>
+            function refreshMediaStatus() {
+                fetch('/api/media-status')
+                    .then(function(r) { return r.json(); })
+                    .then(function(d) {
+                        var cell = document.getElementById('media-status-cell');
+                        if (cell) {
+                            if (d.status === 1) cell.textContent = 'Normal';
+                            else if (d.status === 0) cell.textContent = 'Lỗi';
+                            else if (d.status === 2) cell.textContent = 'Đang chờ phát...';
+                        }
+                    })
+                    .catch(function(e) { console.warn('media-status error', e); });
+            }
+            setInterval(refreshMediaStatus, 1500);
+        </script>
     """.trimIndent()
 
         return renderDashboardLayout("Media", "media", content)
@@ -637,14 +655,14 @@ object MiraWebConsolePages {
                 fetch('/api/player-status')
                     .then(function(r) { return r.json(); })
                     .then(function(d) {
-                        // Playlist
-                        document.getElementById('pl-mediaid').textContent = d.mediaId !== null ? d.mediaId : '-';
-                        document.getElementById('pl-cycle').textContent = d.cycle || '-';
-                        document.getElementById('pl-chunk').textContent = d.fileChunk || '-';
+                        var isIdle = (d.mediaId === null);
+                        document.getElementById('pl-mediaid').textContent = isIdle ? '-' : d.mediaId;
+                        document.getElementById('pl-cycle').textContent = isIdle ? '-' : (d.cycle || '-');
+                        document.getElementById('pl-chunk').textContent = isIdle ? '-' : (d.fileChunk || '-');
 
-                        var pct = parseFloat(d.pct) || 0;
+                        var pct = isIdle ? 0 : (parseFloat(d.pct) || 0);
                         document.getElementById('pl-slider').value = pct;
-                        document.getElementById('pl-time').textContent =
+                        document.getElementById('pl-time').textContent = isIdle ? '-' :
                             (d.posFmt || '0m00s') + '/' + (d.durFmt || '0m00s') + ' (' + pct.toFixed(1) + '%)';
 
                         // Players status

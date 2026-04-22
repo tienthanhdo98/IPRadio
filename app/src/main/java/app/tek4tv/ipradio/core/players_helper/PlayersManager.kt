@@ -436,6 +436,28 @@ class PlayersManager(
         playMediaByIndex(playlistIndex)
     }
 
+    fun playNextManually() {
+        if (currentPlaylist.isEmpty()) return
+
+        if (playlistIndex + 1 < currentPlaylist.size) {
+            exoPlayer.stop()
+            handlerFMPlayer?.removeCallbacksAndMessages(null)
+            
+            playlistIndex++
+            playMediaByIndex(playlistIndex)
+        } else {
+            stopAllPlayer("playNextManually_end")
+            if (playMode == PLAY_MODE_TEST) {
+                stopMediaInfoTest()
+            } else if (playMode == PLAY_MODE_FORCE) {
+                stopForceMedia()
+            } else {
+                resetPlayMode()
+                playerManagerListener?.onTimeOver()
+            }
+        }
+    }
+
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = -1) {
         try {
@@ -959,6 +981,23 @@ class PlayersManager(
     }
 
     fun getPlayerStatusData(fmRssi: Int = 0): PlayerStatusData {
+        if (currentPlayingMedia == null) {
+            return PlayerStatusData(
+                mediaId = null,
+                cycleSec = 0,
+                fileChunkCurrent = 0,
+                fileChunkTotal = 0,
+                currentFilePositionMs = 0,
+                currentFileDurationMs = 0,
+                isMpdOn = false,
+                isFmOn = false,
+                fmRssi = 0,
+                isSilenceOn = false,
+                isLiveMicOn = false,
+                playMode = playMode
+            )
+        }
+
         val info = currentPlayingMediaInfo
         val files = currentPlaylist
         val currentFile = files.getOrNull(playlistIndex)

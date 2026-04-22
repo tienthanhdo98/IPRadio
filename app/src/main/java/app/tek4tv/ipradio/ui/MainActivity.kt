@@ -32,10 +32,8 @@ import app.tek4tv.ipradio.model.McuSettingsData
 import app.tek4tv.ipradio.model.MediaFile
 import app.tek4tv.ipradio.model.MediaInfo
 import app.tek4tv.ipradio.model.ServerData
-import app.tek4tv.ipradio.model.findIndex
-import app.tek4tv.ipradio.model.parseDeviceStatusResponse
-import app.tek4tv.ipradio.model.serialport.AdcThresholds
-import app.tek4tv.ipradio.model.serialport.parseAdcThresholds
+import app.tek4tv.ipradio.model.serialport.findIndex
+import app.tek4tv.ipradio.model.serialport.parseDeviceStatusResponse
 import app.tek4tv.ipradio.model.webconsole.ClassDUiModel
 import app.tek4tv.ipradio.model.webconsole.StatusPageData
 import app.tek4tv.ipradio.model.webconsole.ConnectionSettings
@@ -47,6 +45,7 @@ import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
+import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.getStateMobileData
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -130,7 +129,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         override fun onTimeOver() {
             Log.d("MediaInfo", "onTimeOver: come")
             serialPortController.turnOffPA()
-            serialPortController.writeForceSetVolume(globalProperties.mainVolume)
+            //serialPortController.writeForceSetVolume(globalProperties.mainVolume)
             hubManager.currentMediaItem = null
         }
 
@@ -234,8 +233,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         serialPortController.connectToSerialPort(UART_S4_NAME)
 
-
-
+        initSerialConfig()
 
         streamBackManager = StreamBackManager(this@MainActivity)
 
@@ -281,14 +279,6 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         val imei = hubManager.deviceImei
         tvMacAddress.text = "$imei - Ver: ${hubManager.versionName}"
         tvMacAddress.setOnClickListener {
-//            lifecycleScope.launch(Dispatchers.IO) {
-//                EthernetStaticIpUtils.forceStaticIp(
-//                    globalProperties.localIp,
-//                    globalProperties.gateway,
-//                    "8.8.8.8",
-//                    "1.1.1.1"
-//                )
-//            }
             lifecycleScope.launch() {
                 Log.d("showWifi", "getAvailableWifiNetworks")
                 val listName = NetworkUtils.getAvailableWifiNetworks(this@MainActivity)
@@ -298,6 +288,9 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     Log.d("showWifi", "showWifi: $it")
                 }
             }
+//            changeVolume(
+//                roundToNearestNumber(64)
+//            )
         }
     }
 
@@ -597,18 +590,22 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         )
         //Status page
         //ClassD
+        val rawDeviceInfo = deviceInfo
+        val deviceStatus = parseDeviceStatusResponse(rawDeviceInfo)
+
+        val adcThresholds = (deviceStatus?.adcThresholds ?: emptyList())
+        val classD = ClassDUiModel(
+            threshold = globalProperties.classdThreshold,
+            szdLeft = globalProperties.classdSzdLeft,
+            szdRight = globalProperties.classdSzdRight,
+            muteLeft = globalProperties.muteSpeakerLeft,
+            muteRight = globalProperties.muteSpeakerRight,
+            speaker1Offset = adcThresholds.getOrElse(0) { globalProperties.adcThresholdCh1 },
+            speaker2Offset = adcThresholds.getOrElse(1) { globalProperties.adcThresholdCh2 },
+            speaker3Offset = adcThresholds.getOrElse(2) { globalProperties.adcThresholdCh3 },
+            speaker4Offset = adcThresholds.getOrElse(3) { globalProperties.adcThresholdCh4 })
         LocalWebConsole.updateClassD(
-            ClassDUiModel(
-                threshold = globalProperties.classdThreshold,
-                szdLeft = globalProperties.classdSzdLeft,
-                szdRight = globalProperties.classdSzdRight,
-                muteLeft = globalProperties.muteSpeakerLeft,
-                muteRight = globalProperties.muteSpeakerRight,
-                speaker1Offset = globalProperties.adcThresholdCh1,
-                speaker2Offset = globalProperties.adcThresholdCh2,
-                speaker3Offset = globalProperties.adcThresholdCh3,
-                speaker4Offset = globalProperties.adcThresholdCh4
-            )
+            classD
         )
 
         //About page
@@ -730,6 +727,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             playerManager.resetPlayMode()
                         }
                         Log.d("webconsole", "Delete all")
+                    }
+
+                    "next" -> {
+                        lifecycleScope.launch(Dispatchers.Main) {
+                            playerManager.playNextManually()
+                        }
                     }
                 }
             },
@@ -944,8 +947,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     if (responseHub.settingConfig != null) {
                         val data = responseHub.settingConfig
                         if (data?.mainVolume != null) {
-                            serialPortController.writeForceSetVolume(data.mainVolume.toString())
                             globalProperties.saveMainVolume(data.mainVolume.toString())
+                            changeVolume(
+                                roundToNearestNumber(data.mainVolume)
+                            )
                         }
                         if (data?.fmVolume != null) {
                             serialPortController.writeVolumeTuner(data.fmVolume.toString())
@@ -956,6 +961,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 //ETH
                                 0 -> {
                                     lifecycleScope.launch {
+                                        EthernetStaticIpUtils.forceStaticIp(
+                                            globalProperties.localIp,
+                                            globalProperties.gateway,
+                                            "8.8.8.8",
+                                            "1.1.1.1"
+                                        )
                                         setEthernetEnabled(true)
                                         setWifiDataEnabled(false)
                                         setMobileDataEnabled(false)
@@ -1153,6 +1164,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         }
     }
 
+    fun initSerialConfig() {
+        serialPortController.writeADC("${globalProperties.adcThresholdCh1}-${globalProperties.adcThresholdCh2}-${globalProperties.adcThresholdCh3}-${globalProperties.adcThresholdCh4}")
+        serialPortController.writeForceSetVolume(globalProperties.serialVolume)
+    }
+
     private suspend fun handleRestartWithGuard(
         actionName: String, action: suspend () -> Unit
     ) {
@@ -1221,7 +1237,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private fun onPlayForce(mediaInfo: MediaInfo) {
         //Tránh trường hợp âm lượng bị tắt
-        serialPortController.writeForceSetVolume(globalProperties.mainVolume)
+        //serialPortController.writeForceSetVolume(globalProperties.mainVolume)
         playerManager.onPlayForceCommand(applicationContext, mediaInfo, mediaScheduler)
     }
 
@@ -1256,11 +1272,15 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         )
     }
 
+    private fun changeVolume(volumeValue: Int) {
+        val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
+
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
+    }
+
     private fun setMaxVolume() {
         try {
-            val audio = getSystemService(AUDIO_SERVICE) as AudioManager
-            val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
-            audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
+            changeVolume(globalProperties.mainVolume.toInt())
         } catch (_: Exception) {
             Log.e("Main", "Error setting max volume")
         }

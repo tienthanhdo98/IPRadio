@@ -27,6 +27,7 @@ class Utils {
             return cal
         }
 
+
         @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
             var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
@@ -60,57 +61,17 @@ class Utils {
             return "02:00:00:00:00:00"
         }
 
-        fun getRootDirPath(context: Context): String {
-            return if (Environment.MEDIA_MOUNTED == Environment.getExternalStorageState()) {
-                val file = ContextCompat.getExternalFilesDirs(
-                    context.applicationContext,
-                    null
-                )[0]
-                file.absolutePath
+
+        //
+        fun roundToNearestNumber(number: Int): Int {
+            // Calculate remainder when dividing by 10
+            val remainder = number % 10
+
+            // Round down if remainder is less than or equal to 5, else round up
+            return if (remainder <= 4) {
+                (number - remainder) / 10
             } else {
-                context.applicationContext.filesDir.absolutePath
-            }
-        }
-
-        fun <T> toJsonString(moshi: Moshi, type: Class<T>, value: T): String {
-            val adapter = moshi.adapter(type)
-            return adapter.toJson(value)
-        }
-
-        fun toJsonList(moshi: Moshi, list: List<String>): String {
-            val listType = Types.newParameterizedType(List::class.java, String::class.java)
-            val adapter = moshi.adapter<List<String>>(listType)
-            return adapter.toJson(list)
-        }
-
-
-        fun getDeviceInfo(valueName: String, deviceInfo: String?): String? {
-            // Check if deviceInfo is null or empty
-            if (deviceInfo.isNullOrEmpty()) {
-                Log.d("debugLog", "getDeviceInfo: deviceInfo is null or empty")
-                return null
-            }
-            // Check if deviceInfo contains expected pattern
-            if (deviceInfo.contains("$$,1,8")) {
-                val listInfo = deviceInfo.split(",")
-
-                // Ensure the list has enough elements before accessing indexes
-                if (listInfo.size < 12) {  // 12 because we're accessing index 11 later
-                    Log.d("debugLog", "getDeviceInfo: Insufficient data in deviceInfo")
-                    return null
-                }
-
-                val result = when (valueName) {
-                    StringValue.deviceInfoVolume -> listInfo.getOrNull(6) ?: "0"
-                    StringValue.deviceInfoPA -> listInfo.getOrNull(8) ?: "0"
-                    StringValue.deviceInfoTemperature -> listInfo.getOrNull(11) ?: "0"
-                    else -> null
-                }
-                Log.d("debugLog", "getDeviceInfo: Extracted result -> $result")
-                return result
-            } else {
-                Log.d("debugLog", "getDeviceInfo: Pattern not found in deviceInfo $deviceInfo")
-                return null
+                (number + (10 - remainder)) / 10
             }
         }
 
