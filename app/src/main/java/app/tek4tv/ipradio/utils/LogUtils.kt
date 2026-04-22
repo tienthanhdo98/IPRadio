@@ -13,6 +13,7 @@ import app.tek4tv.ipradio.model.MediaRecord
 import app.tek4tv.ipradio.model.TimeFrameRecord
 import app.tek4tv.ipradio.model.toJson
 import app.tek4tv.ipradio.network.LogService
+import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.storage.createFolder
 import app.tek4tv.ipradio.utils.storage.isFolderExisted
 import kotlinx.coroutines.CoroutineScope
@@ -53,15 +54,13 @@ class LogUtils private constructor() {
      private val deviceStatusDb : DatabaseReference
      private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
-
-
+    
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
 
     var logService: LogService? = null
-    val destinationId = GlobalProperties.getInst().destinationId
-    val destinationName = GlobalProperties.getInst().destinationName
+
     val providerValue = GlobalProperties.getInst().providerValue
 
     init {
@@ -95,7 +94,8 @@ class LogUtils private constructor() {
         val filePath = getLogFilePath(playerLogFolderPath)
         val sourceId: String
         val sourceName: String
-
+        val destinationId = GlobalProperties.getInst().destinationId
+        val destinationName = GlobalProperties.getInst().destinationName
         if (mediaItem.sourceID != null && mediaItem.sourceName != null) {
             sourceId = mediaItem.sourceID
             sourceName = mediaItem.sourceName

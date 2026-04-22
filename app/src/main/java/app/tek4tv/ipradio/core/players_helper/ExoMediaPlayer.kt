@@ -1,23 +1,24 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
-import app.tek4tv.ipradio.MyApp
+import androidx.annotation.OptIn
+import androidx.media3.common.PlaybackException
+import androidx.media3.common.Player
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.datasource.DefaultDataSourceFactory
+import androidx.media3.datasource.okhttp.OkHttpDataSource
+import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.rtsp.RtspMediaSource
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.MediaSource
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.isInRangeTimePlay
-import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.network.ignoreAllSSLErrors
 import app.tek4tv.ipradio.utils.toCalendar
-import com.google.android.exoplayer2.ExoPlayer
-import com.google.android.exoplayer2.PlaybackException
-import com.google.android.exoplayer2.Player
-import com.google.android.exoplayer2.ext.okhttp.OkHttpDataSource
-import com.google.android.exoplayer2.source.DefaultMediaSourceFactory
-import com.google.android.exoplayer2.source.hls.HlsMediaSource
-import com.google.android.exoplayer2.upstream.DefaultDataSourceFactory
 import okhttp3.OkHttpClient
 import java.util.*
 
@@ -37,7 +38,6 @@ class ExoMediaPlayer(
     private var isPlaying = false
     private var isForceValue = false
 
-    private var dataSourceFactory: DefaultDataSourceFactory
     override fun isPlaying(): Boolean = isPlaying
 
     var handler: Handler? = null
@@ -77,17 +77,17 @@ class ExoMediaPlayer(
             isPlaying = false
             try {
                 val isStreamInTimeFrame = checkHls(currentPlayingMedia!!)
-                Log.d(TAG, "onLiveErrorVlc: Chay lai live $isForceValue")
+                Log.d(TAG, "onLiveError: Chay lai live $isForceValue")
                 if (isForceValue) {
                     if (isStreamInTimeFrame) {
                         eventListener.onPlayerError(error, true, currentPlayingMedia!!)
                         Handler(Looper.getMainLooper()).postDelayed({
                             countReplayLive++;
-                            Log.d(TAG, "onLiveErrorVlc: Chay lai live")
+                            Log.d(TAG, "onLiveError: Chay lai live")
                             playMedia(currentPlayingMedia!!, isForceValue)
-                        }, 10000)
+                        }, 5000)
                     } else {
-                        Log.d(TAG, "Stopping from reconnect")
+                        Log.d(TAG, "onPlayerError. Stopping from reconnect")
                         stop()
                     }
                 } else {
@@ -106,15 +106,20 @@ class ExoMediaPlayer(
     init {
         //tắt xác thực ssl để phát luồng m3u8
         val okHttpClient = OkHttpClient.Builder().apply {
-            //need to ignore all ssl error because the server certificate does not valid
-            //on this type of device
             ignoreAllSSLErrors()
         }.build()
-        val okHttpFactory = OkHttpDataSource.Factory(okHttpClient)
-        dataSourceFactory = DefaultDataSourceFactory(appContext, null, okHttpFactory)
+
+        val dataSourceFactory = OkHttpDataSource.Factory(okHttpClient)
+
+        // Khởi tạo ExoPlayer với MediaSourceFactory hỗ trợ đa dạng nguồn (HLS, RTSP, v.v.)
         exoPlayer = ExoPlayer.Builder(appContext)
-            .setMediaSourceFactory(DefaultMediaSourceFactory(dataSourceFactory))
+            .setMediaSourceFactory(
+                DefaultMediaSourceFactory(appContext).setDataSourceFactory(
+                    dataSourceFactory
+                )
+            )
             .build()
+
         exoPlayer.addListener(exoEventListener)
 
     }
@@ -132,7 +137,6 @@ class ExoMediaPlayer(
 //            }
             currentPlayingMedia = mediaItem
             isForceValue = isForce
-            Log.e(TAG, "Exoplayer is force $isForceValue")
             playHlsExo(mediaItem, timeStamp)
         } catch (e: Exception) {
             Log.e(TAG, "Error playing media using Exo")
@@ -140,10 +144,12 @@ class ExoMediaPlayer(
         }
     }
 
+
     private fun playHlsExo(mediaItem: MediaItem, timeStamp: Int) {
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
-        val em = com.google.android.exoplayer2.MediaItem.fromUri(mediaItem.pathBackup)
+        val em = androidx.media3.common.MediaItem.fromUri(mediaItem.pathBackup)
+
         exoPlayer.setMediaItem(em)
         exoPlayer.playWhenReady = true
         exoPlayer.prepare()

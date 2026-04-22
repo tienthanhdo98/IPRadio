@@ -28,7 +28,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         val cal_alarm = Calendar.getInstance()
 
-        cal_alarm[Calendar.HOUR_OF_DAY] = 0
+        cal_alarm[Calendar.HOUR_OF_DAY] = 1
         cal_alarm[Calendar.MINUTE] = 12
         cal_alarm[Calendar.SECOND] = 0
 
@@ -110,7 +110,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(time.timeInMillis, alarmIntent)
-        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
+        alarmManager.setAlarmClock(alarmClockInfo, alarmIntent!!)
     }
 
     private fun cancelAllListAlarm() {
@@ -146,7 +146,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
-        alarmManager.cancel(alarmIntent)
+        alarmManager.cancel(alarmIntent!!)
         alarmIntent?.cancel()
     }
 

@@ -7,7 +7,13 @@ import android.os.Looper
 import android.util.Log
 import app.tek4tv.ipradio.Secrets
 import app.tek4tv.ipradio.di.MoshiInst
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DirectMessage
+import app.tek4tv.ipradio.model.HeartbeatRequest
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MetadataModel
+import app.tek4tv.ipradio.model.PingHubRequest
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.Video
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.ui.MainActivity.Companion.isEncoder
 import app.tek4tv.ipradio.ui.MainActivity.Companion.streamingModel
@@ -24,10 +30,16 @@ import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
 import io.reactivex.Single
-import kotlinx.coroutines.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Calendar
+import java.util.Date
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -75,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v75.4.2.1f"
+    var versionName = "ECv16.4.2.1f"
 
     private var registerOnMessageListener = false
 
@@ -87,8 +99,8 @@ class HubManager(
 
     private var privateKeyStr: String
 
-
     private var serverTimeout = 0
+
     private var keepAliveInterval = 0
 
     //check ping to hub
@@ -101,16 +113,18 @@ class HubManager(
     init {
         packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
-            appContext, ConfigUtil.PROVIDER, "TEK4TV"
+            appContext, ConfigUtil.PROVIDER, "VATC"
         )!!
-        hubUrl = ConfigUtil.getString(
-            appContext,
-            ConfigUtil.URL_HUB,
-            "https://hubip-hue.tek4tv.vn/hubServer"
-        )!!
+//        hubUrl = ConfigUtil.getString(
+//            appContext,
+//            ConfigUtil.URL_HUB,
+//            Secrets().gethubhue(packageName)
+//        )!!
+        hubUrl = "https://hubip-haiphong.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
         )!!
+        Log.d("getHubToken", "getHubToken: $tokenUrl ")
         serverTimeout = ConfigUtil.getInt(
             appContext, ConfigUtil.ServerTimeout, 60000
         )
@@ -151,6 +165,7 @@ class HubManager(
 
 
             val call = authService.getToken(body, tokenUrl)
+            Log.d("getHubToken", "getHubToken: $body")
             val response = call.execute()
             if (response.isSuccessful) {
                 val token = response.body()!!.token

@@ -21,4 +21,8 @@ class Secrets {
     external fun gethubUrlBinhDinhAl(packageName: String): String
 
     external fun getgetTokenApi(packageName: String): String
+
+    external fun gethubbn(packageName: String): String
+
+    external fun gethubhue(packageName: String): String
 }

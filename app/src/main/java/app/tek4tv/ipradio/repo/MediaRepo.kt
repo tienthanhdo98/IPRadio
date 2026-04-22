@@ -122,45 +122,66 @@ class MediaRepo @Inject constructor(
         timeDividers.clear()
 
         val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
-        val jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
-        if (jsonMonthlyListData != "") {
-            val monthlyDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData)
+        var jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
+        
+        var monthlyDataList = if (jsonMonthlyListData.isNotEmpty()) {
+            scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
+        } else {
+            emptyList()
+        }
 
-            val res = if (monthlyDataList.isNullOrEmpty()) {
-                Log.d(TAG, "No monthly scenario data")
-                emptyList()
-            } else {
-                val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
-                when {
-                    todayScenario == null -> {
-                        Log.d(TAG, "No schedule for today")
-                        emptyList()
+        // Tự động khôi phục / cập nhật nếu lịch tháng chưa có lịch cho hôm nay
+        val hasToday = monthlyDataList.any { it.date == currentDate }
+        if (!hasToday) {
+            val monthlyUrl = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: ""
+            if (monthlyUrl.isNotEmpty()) {
+                Log.d(TAG, "No schedule for today found in cache. Fetching latest monthly scenario...")
+                try {
+                    updateMonthlyScenario(monthlyUrl)
+                    // Update lại dữ liệu cache sau khi tải mới
+                    jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
+                    if (jsonMonthlyListData.isNotEmpty()) {
+                        monthlyDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
                     }
+                } catch (e: Exception) {
+                    Log.e(TAG, "Error fetching monthly scenario for recovery: ${e.message}")
+                }
+            }
+        }
 
-                    isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME) -> {
-                        Log.d(TAG, "Reading playlist from local file")
-                        val localList = readItemsFromFile()
-                        localList.ifEmpty {
-                            Log.d(TAG, "Local file is empty, fallback to network")
-                            updateScenario(todayScenario.sourceUrl)
-                        }
-                    }
+        val res = if (monthlyDataList.isEmpty()) {
+            Log.d(TAG, "No monthly scenario data")
+            emptyList()
+        } else {
+            val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
 
-                    else -> {
-                        Log.d(TAG, "No local file, fallback to network")
+            when {
+                todayScenario == null -> {
+                    Log.d(TAG, "No schedule for today")
+                    emptyList()
+                }
+
+                isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME) -> {
+                    Log.d(TAG, "Reading playlist from local file")
+                    val localList = readItemsFromFile()
+                    localList.ifEmpty {
+                        Log.d(TAG, "Local file is empty, fallback to network")
                         updateScenario(todayScenario.sourceUrl)
                     }
                 }
-            }
 
-            broadcastList.clear()
-            broadcastList.addAll(res)
-            Log.d(TAG, "local ${res.size}")
-            filterMedia(broadcastList)
-            return broadcastList
-        } else {
-            return emptyList()
+                else -> {
+                    Log.d(TAG, "No local file, fallback to network")
+                    updateScenario(todayScenario.sourceUrl)
+                }
+            }
         }
+
+        broadcastList.clear()
+        broadcastList.addAll(res)
+        Log.d(TAG, "local ${res.size}")
+        filterMedia(broadcastList)
+        return broadcastList
     }
 
     private fun filterMedia(mediaList: List<MediaItem>) {

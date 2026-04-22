@@ -153,7 +153,7 @@ class MainViewModel @Inject constructor(
             Log.d("PermissionCheck", "Granting ACCESS_WIFI_STATE...")
             execSu("pm grant $packageName android.permission.ACCESS_WIFI_STATE")
         } else {
-            Log.d("PermissionCheck", "READ_PHONE_STATE already granted.")
+            Log.d("PermissionCheck", "ACCESS_WIFI_STATE already granted.")
         }
 
         if (!isPermissionGranted(context, Manifest.permission.RECORD_AUDIO)) {
@@ -164,7 +164,7 @@ class MainViewModel @Inject constructor(
         }
 
         if (!isPermissionGranted(context, Manifest.permission.CHANGE_WIFI_STATE)) {
-            Log.d("PermissionCheck", "Granting READ_PHONE_STATE...")
+            Log.d("PermissionCheck", "Granting CHANGE_WIFI_STATE...")
             execSu("pm grant $packageName android.permission.CHANGE_WIFI_STATE")
         } else {
             Log.d("PermissionCheck", "CHANGE_WIFI_STATE already granted.")

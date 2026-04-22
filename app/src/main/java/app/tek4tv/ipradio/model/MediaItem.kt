@@ -2,8 +2,8 @@ package app.tek4tv.ipradio.model
 
 import android.net.Uri
 import android.util.Log
+import androidx.core.net.toUri
 import app.tek4tv.ipradio.utils.AppConsts.TYPE_AUDIO
-import app.tek4tv.ipradio.utils.AppConsts.TYPE_IMAGE
 import app.tek4tv.ipradio.utils.AppConsts.TYPE_VIDEO
 import com.squareup.moshi.Json
 import com.squareup.moshi.JsonClass
@@ -98,7 +98,7 @@ data class MediaItem(
 //        }
 
     init {
-        pathBackup = body!!
+        pathBackup = body ?: ""
     }
 
     fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
@@ -124,14 +124,14 @@ data class MediaItem(
     fun getVlcMedia(mLibVLC: LibVLC): Media {
         if (getMediaType() == MediaType.LIVE) {
             Log.d("player", "live: $body")
-            return Media(mLibVLC, Uri.parse(body))
+            return Media(mLibVLC, prepareMediaUrl(body, false)?.toUri())
         }
         return if (body!!.isNotEmpty() && File(body!!).exists()) {
             Log.d("player", "local: $body")
-            Media(mLibVLC, Uri.parse("file://$body"))
+            Media(mLibVLC, "file://$body".toUri())
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, Uri.parse(pathBackup))
+            Media(mLibVLC, prepareMediaUrl(pathBackup, false)?.toUri())
 
         }
     }
@@ -147,6 +147,25 @@ data class MediaItem(
         //không phải files thì không tải, chỉ tải type 3 , type 4, type 2
         return !(body == "start" || body == "end") &&
                 (contentType?.id == TYPE_AUDIO || contentType?.id == TYPE_VIDEO)
+    }
+
+    fun prepareMediaUrl(originalUrl: String?, forceHttp: Boolean): String? {
+        if (originalUrl == null || originalUrl.isEmpty()) {
+            return originalUrl
+        }
+
+        var cleanedUrl: String? = originalUrl
+
+        // Xóa các dấu '//' thừa trong đường dẫn (sau tên miền).
+        // Biểu thức chính quy "(?<!:)//" có nghĩa là: tìm '//' nhưng không được đứng ngay sau dấu ':'
+        cleanedUrl = cleanedUrl!!.replace("(?<!:)//".toRegex(), "/")
+
+        // Hạ cấp từ HTTPS xuống HTTP nếu bạn muốn bỏ qua lỗi chứng chỉ (và server hỗ trợ HTTP)
+        if (forceHttp && cleanedUrl.startsWith("https://")) {
+            cleanedUrl = cleanedUrl.replaceFirst("https://".toRegex(), "http://")
+        }
+
+        return cleanedUrl
     }
 
     companion object {
@@ -202,27 +221,3 @@ data class Priority(
     @Json(name = "Value")
     val value: String? = null
 )
-
-data class Tag(
-    val destinationID: String,
-    val destinationName: String
-)
-
-
-/*
-@JsonClass(generateAdapter = true)
-data class Category(
-
-    @Json(name = "ID")
-    var id: Long = 0,
-
-    @Json(name = "Name")
-    var name: String? = null
-)
-
-
-class ResponseList {
-    @Json(name = "Playlist")
-    var playlists: List<MediaItem>? = null
-}
-*/

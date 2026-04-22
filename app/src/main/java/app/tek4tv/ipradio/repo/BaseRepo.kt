@@ -5,6 +5,8 @@ import app.tek4tv.ipradio.utils.storage.readFile
 import app.tek4tv.ipradio.utils.storage.writeFile
 import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.*
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.IOException
 
 abstract class BaseRepo<T>(
@@ -12,13 +14,12 @@ abstract class BaseRepo<T>(
 ) {
     abstract val jsonAdapter: JsonAdapter<List<T>>
 
-    var saveFileJob: Job? = null
+    private val mutex = Mutex()
 
     protected val coroutineScope = CoroutineScope(Dispatchers.IO)
 
     suspend fun saveItemsToFile(playlist: List<T>) {
-        saveFileJob?.join()
-        saveFileJob = coroutineScope.launch {
+        mutex.withLock {
             withContext(Dispatchers.IO) {
                 try {
                     val json = jsonAdapter.toJson(playlist)
@@ -28,10 +29,8 @@ abstract class BaseRepo<T>(
                     Log.e("BaseRepo", "error writing playlist!!!")
                     e.printStackTrace()
                 }
-                //saveFileJob = null
             }
         }
-        saveFileJob?.join()
     }
 
     suspend fun readItemsFromFile(): List<T> {

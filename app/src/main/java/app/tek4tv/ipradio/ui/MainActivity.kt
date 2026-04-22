@@ -96,7 +96,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     var locationTracker = LocationTracker()
 
-    private lateinit var mediaCapture: MediaCapture
+    // private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
@@ -212,14 +212,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         viewModel.grantPermissionThoughAdb(baseContext)
-        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         //if (needGrantPermission()) requestPermissions(permissions, PERMISSION_REQUEST_CODE)
 
 
-        if (ConfigUtil.isFirstRun(baseContext)) {
-            ConfigUtil.clearAppPreferences(baseContext)
-        }
+//        if (ConfigUtil.isFirstRun(baseContext)) {
+//            ConfigUtil.clearAppPreferences(baseContext)
+//        }
 
         val hubComm = object : HubComm {
             override fun forceRestartApp(countHardRestart: Int) {
@@ -253,7 +253,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
 
-        mediaCapture = MediaCapture(applicationContext, lifecycleScope)
+        //mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(baseContext, hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
@@ -314,13 +314,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
             }
         }
-        // lay thong so cua thiet bi
-        lifecycleScope.launch(Dispatchers.IO) {
-            while (true) {
-                serialPortController.updateStatus()
-                delay(5000)
-            }
-        }
+
         checkDeleteFileUpdate()
         //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
 
@@ -475,7 +469,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onDestroy()
         playerManager.onActivityDestroy()
         stopStream()
-        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+        //if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
     }
 
     override fun onStart() {
@@ -983,22 +977,22 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 //                    } else {
 //                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 //                    }
-                    val duration = responseHub.message
-                    val shouldStart = responseHub.start!! == "1"
-
-                    if (shouldStart) {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                        mediaCapture.startCaptureAudio()
-                        Log.i("kakaka", "record.... ")
-                    } else {
-                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
-                    }
-                    Timer().schedule(object : TimerTask() {
-                        override fun run() {
-                            mediaCapture.stopAudioCapture()
-                            Log.i("kakaka", "stop record.... ")
-                        }
-                    }, duration!!.toLong() * 60 * 1000)
+//                    val duration = responseHub.message
+//                    val shouldStart = responseHub.start!! == "1"
+//
+//                    if (shouldStart) {
+//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+//                        mediaCapture.startCaptureAudio()
+//                        Log.i("kakaka", "record.... ")
+//                    } else {
+//                        if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+//                    }
+//                    Timer().schedule(object : TimerTask() {
+//                        override fun run() {
+//                            mediaCapture.stopAudioCapture()
+//                            Log.i("kakaka", "stop record.... ")
+//                        }
+//                    }, duration!!.toLong() * 60 * 1000)
                 }
 
                 HubCommand.GET_RECORD -> {

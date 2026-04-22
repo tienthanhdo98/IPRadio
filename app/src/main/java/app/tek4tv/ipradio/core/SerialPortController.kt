@@ -69,7 +69,6 @@ class SerialPortController(
         val looseHubConnection = hubManager.pingCounter >= 3
 
         if (outputStream != null) {
-
             //$$,1,8,1,910,675,0,0,0,1,0,25
             //0: not internet, 1: ok , 2: internet, disconnected
             //$$,1,2,0: normal(1: be restarted neet to jump to realtime)
@@ -93,6 +92,7 @@ class SerialPortController(
                             "${cellStrength}dbm"
                         else "undefine"
                     }
+
                     "WIFI" -> "${NetworkUtils.getWifiSignalStrength(appContext)}dbm"
                     else -> "---"
                 }
@@ -109,14 +109,12 @@ class SerialPortController(
 
     private fun buildWriteMessage(functionId: String, data: String): String {
         val s = "$$,$functionId,$data,\r\n"
-        //Log.d(LOG_TAG, s)
         return s
     }
 
     private fun buildReadMessage(functionId: String, message: String): String {
         isRead = true
         val s = "$$,$functionId,$message,\r\n"
-        //Log.d(LOG_TAG, s)
         return s
     }
 
