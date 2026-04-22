@@ -53,7 +53,6 @@ object LocalWebConsole {
 
     fun updateConnectionSettings(settings: ConnectionSettings) {
         currentConnectionSettings = settings
-
     }
 
     fun updateClassD(classd: ClassDUiModel) {

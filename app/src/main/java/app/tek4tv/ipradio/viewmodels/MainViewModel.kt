@@ -124,6 +124,13 @@ class MainViewModel @Inject constructor(
         }
     }
 
+    fun updateWebsocketListLocal() {
+        viewModelScope.launch {
+            val mediaInfoWithFile = mediaInfoRepo.allMedia.first()
+            LocalWebConsole.updateMediaList(
+                mediaInfoWithFile.toMutableList().map { it.toModel() })
+        }
+    }
 
     fun getPlayerContentLocal() {
         viewModelScope.launch {

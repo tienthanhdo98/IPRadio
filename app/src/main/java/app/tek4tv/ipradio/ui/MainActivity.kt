@@ -373,9 +373,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         lifecycleScope.launch {
             viewModel.schedulerUpdated.collect {
 
-                LocalWebConsole.updateMediaList(
-                    viewModel.getScheduleList()
-                )
+//                LocalWebConsole.updateMediaList(
+//                    viewModel.getScheduleList()
+//                )
+                viewModel.updateWebsocketListLocal()
 
                 hubManager.currentMediaInfoListId = viewModel.getMediaInfoIdList()
                 viewModel.downloadMedias()
@@ -875,6 +876,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     viewModel.deleteLocalScheduler(mediaInfo)
                     viewModel.deleteMediaInfInRepo(mediaInfo)
                     playerManager.stopMediaInfo(mediaInfo)
+                    viewModel.updateWebsocketListLocal()
                 }
 
                 HubCommand.UPDATE_SCHEDULER -> {
