@@ -177,25 +177,33 @@ class HubManager(
                 }
                 getMQTTInfoJob?.cancel()
                 getMQTTInfoJob = launch {
-                    val mqttSecurity = globalProperties.mqttSecurity
-                    val mqttServer = globalProperties.mqttServer
-                    val mqttPort = globalProperties.mqttPort
-                    val protocol = if (mqttSecurity == 1) "ssl" else "tcp"
-                    val serverURI = "$protocol://$mqttServer:$mqttPort"
-
-                    mqttClient = MQTTManager(
-                        appContext,
-                        this@HubManager,
-                        serverURI,
-                        bootstrapInfo!!,
-                    )
-                    connectMqtt()
+                    createAndConnectMqtt()
                 }
             }
         }
     }
 
     fun connectMqtt() {
+        mqttClient?.connectToMQTT()
+    }
+
+    /**
+     * Tạo mới MQTTManager và connect.
+     * Gọi khi lần đầu kết nối hoặc sau khi đổi network (WiFi ↔ Mobile ↔ Ethernet).
+     */
+    private fun createAndConnectMqtt() {
+        val mqttSecurity = globalProperties.mqttSecurity
+        val mqttServer = globalProperties.mqttServer
+        val mqttPort = globalProperties.mqttPort
+        val protocol = if (mqttSecurity == 1) "ssl" else "tcp"
+        val serverURI = "$protocol://$mqttServer:$mqttPort"
+
+        mqttClient = MQTTManager(
+            appContext,
+            this@HubManager,
+            serverURI,
+            bootstrapInfo!!,
+        )
         mqttClient?.connectToMQTT()
     }
 
@@ -517,8 +525,7 @@ class HubManager(
     }
 
     override fun onConnectFailure(message: String?) {
-
-        Log.d("MediaInfo", "Initial connect failed: $message — retry in 15s")
+        Log.d("MediaInfo", "Connect failed / connection lost")
         isConnectSuccess = false
         if (!hasNotifiedDisconnected) {
             hasNotifiedDisconnected = true
@@ -526,12 +533,23 @@ class HubManager(
             hubObverse.onHubDisConnected()
         }
 
-        if (reconnectJob?.isActive == true) return
-
-        reconnectJob = coroutineScope.launch {
-            delay(15000)
-            mqttClient?.connectToMQTT()
-        }
+//        if (reconnectJob?.isActive == true) return
+//
+//        reconnectJob = coroutineScope.launch {
+//            delay(15000)
+//            if (!isActive) return@launch
+//            // Đóng client cũ hoàn toàn trước khi tạo mới.
+//            // Điều này buộc Paho mở socket mới trên network interface hiện tại,
+//            // xử lý đúng trường hợp đổi mạng (WiFi ↔ Mobile ↔ Ethernet).
+//            mqttClient?.disconnectAll()
+//            mqttClient = null
+//            if (bootstrapInfo != null) {
+//                createAndConnectMqtt()
+//            } else {
+//                // Bootstrap chưa có, khởi động lại toàn bộ flow
+//                connectToServer()
+//            }
+//        }
     }
 
     override fun onReceiveMessageSuccess(message: String) {

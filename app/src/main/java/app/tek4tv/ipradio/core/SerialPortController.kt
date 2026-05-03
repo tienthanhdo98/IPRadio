@@ -16,6 +16,9 @@ import java.io.File
 import java.io.IOException
 import java.io.InputStream
 import java.io.OutputStream
+import java.util.concurrent.ConcurrentHashMap
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.withTimeoutOrNull
 
 class SerialPortController(
     private val appContext: Context,
@@ -32,6 +35,8 @@ class SerialPortController(
     var dataFinal = StringBuffer()
     var playMode = ""
     var isUart1 = false
+
+    private val commandDeferreds = ConcurrentHashMap<String, CompletableDeferred<Boolean>>()
 
     fun connectToSerialPort(uart: String) {
         try {
@@ -153,14 +158,33 @@ class SerialPortController(
                     isUart1 = true
                     if (size > 0) {
                         val data = String(buffer, 0, size)
+                        Log.i(LOG_TAG, "readDevice: $data")
                         dataFinal.append(data)
-                        if (dataFinal.toString().endsWith("\r\n")) {
-                            val s: String = dataFinal.toString()
-                            Log.i(LOG_TAG, "readDevice: $s")
-                            if (s.startsWith("\$\$,1,8")) {
-                                deviceInfo = s
+                        val currentStr = dataFinal.toString()
+
+                        // Xử lý ngay các lệnh phản hồi nhanh (không chờ \r\n)
+                        commandDeferreds.keys().toList().forEach { funcId ->
+                            if (currentStr.contains("\$\$,1,$funcId,")) {
+                                commandDeferreds.remove(funcId)?.complete(true)
+                            } else if (currentStr.contains("\$\$,2,$funcId,")) {
+                                commandDeferreds.remove(funcId)?.complete(false)
                             }
-                            dataFinal = StringBuffer()
+                        }
+
+                        // Xử lý và dọn dẹp buffer khi có \r\n
+                        if (currentStr.contains("\r\n")) {
+                            val lines = currentStr.split("\r\n")
+                            for (line in lines) {
+                                if (line.contains("\$\$,1,8")) {
+                                    val idx = line.indexOf("\$\$,1,8")
+                                    deviceInfo = line.substring(idx)
+                                }
+                            }
+                            if (currentStr.endsWith("\r\n")) {
+                                dataFinal = StringBuffer()
+                            } else {
+                                dataFinal = StringBuffer(lines.last())
+                            }
                         }
                     }
                 } catch (e: IOException) {
@@ -190,8 +214,7 @@ class SerialPortController(
     }
 
     fun turnOnPAVod() {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().mainVolume)
-//        playMode = MODE_VOD_LIVE
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().serialVolume)
         Log.e("PA", "ON")
     }
 
@@ -264,14 +287,24 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_ADC, data)
     }
 
+    suspend fun writeADCAwait(data: String): Boolean {
+        return invokeDeviceFuncAwait(Define.FUNC_WRITE_ADC, data)
+    }
+
     fun writeMuteSpeaker(leftMute: Boolean, rightMute: Boolean) {
         val leftValue = if (leftMute) 0 else 1
         val rightValue = if (rightMute) 0 else 1
 
-        GlobalProperties.getInst().saveMuteSpeaker(leftValue, rightValue)
-
-        val data = "\$\$,17,$leftValue,$rightValue"
+        val data = "$leftValue,$rightValue"
         invokeDeviceFunc(Define.FUNC_WRITE_MUTE_SPEAKER, data)
+    }
+
+    suspend fun writeMuteSpeakerAwait(leftMute: Boolean, rightMute: Boolean): Boolean {
+        val leftValue = if (leftMute) 0 else 1
+        val rightValue = if (rightMute) 0 else 1
+
+        val data = "$leftValue,$rightValue"
+        return invokeDeviceFuncAwait(Define.FUNC_WRITE_MUTE_SPEAKER, data)
     }
 
     //    $$,3,0 Không chọn kênh
@@ -298,6 +331,15 @@ class SerialPortController(
             writeToDevice(buildWriteMessage(funcId, data))
         }
         Log.d(LOG_TAG, "invoke $funcId with $data, isRead: $isRead")
+    }
+
+    suspend fun invokeDeviceFuncAwait(funcId: String, data: String): Boolean {
+        val deferred = CompletableDeferred<Boolean>()
+        commandDeferreds[funcId] = deferred
+        invokeDeviceFunc(funcId, data)
+        return withTimeoutOrNull(3000) {
+            deferred.await()
+        } ?: false.also { commandDeferreds.remove(funcId) }
     }
 
     companion object {

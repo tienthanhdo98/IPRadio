@@ -15,6 +15,8 @@ import app.tek4tv.ipradio.model.webconsole.StatusPageData
 import app.tek4tv.ipradio.utils.GlobalProperties
 import fi.iki.elonen.NanoHTTPD
 import fi.iki.elonen.NanoHTTPD.SOCKET_READ_TIMEOUT
+import java.io.InputStream
+import java.net.Socket
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 
@@ -84,9 +86,16 @@ object LocalWebConsole {
         onRebootMira: () -> Unit,
         onRestartApp: () -> Unit,
         onFactoryReset: () -> Unit,
-        onClassDUpdate: (ClassDUiModel) -> Unit,
+        onClassDUpdate: suspend (ClassDUiModel) -> List<String>,
     ) {
         if (server != null) return
+
+        System.setProperty("java.net.preferIPv4Stack", "true")
+
+        // ✅ THÊM MỚI — tắt reverse DNS ở tầng Android
+        System.setProperty("java.net.preferIPv4Addresses", "true")
+        System.setProperty("sun.net.inetaddr.ttl", "0")
+        System.setProperty("sun.net.inetaddr.negative.ttl", "0")
 
         server = AppNanoHttpd(
             context = context,
@@ -125,8 +134,29 @@ object LocalWebConsole {
         private val onRebootMira: () -> Unit,
         private val onRestartApp: () -> Unit,
         private val onFactoryReset: () -> Unit,
-        private val onClassDUpdate: (ClassDUiModel) -> Unit,
+        private val onClassDUpdate: suspend (ClassDUiModel) -> List<String>,
     ) : NanoHTTPD(port) {
+
+        init {
+            java.security.Security.setProperty("networkaddress.cache.ttl", "0")
+            java.security.Security.setProperty("networkaddress.cache.negative.ttl", "0")
+
+        }
+
+        override fun createClientHandler(
+            finalAccept: Socket?,
+            inputStream: InputStream?
+        ): ClientHandler? {
+            if (finalAccept == null) return null
+
+            // ✅ Set timeout ngắn để tránh bị block
+            try {
+                finalAccept.soTimeout = 3000  // 3 giây thay vì 20 giây mặc định
+            } catch (_: Exception) {
+            }
+
+            return super.createClientHandler(finalAccept, inputStream)
+        }
 
         override fun serve(session: IHTTPSession): Response {
             return try {
@@ -411,7 +441,7 @@ object LocalWebConsole {
                         currentClassDData = defaultModel
 
                         // Gọi callback để thông báo xuống thiết bị MCU/Phần cứng
-                        onClassDUpdate(defaultModel)
+                        kotlinx.coroutines.runBlocking { onClassDUpdate(defaultModel) }
 
                         // Tải lại trang ClassD để hiển thị các giá trị mới
                         redirect("/class-d")
@@ -556,9 +586,10 @@ object LocalWebConsole {
                             speaker4Offset = params["speaker4_offset"]?.toIntOrNull() ?: 20,
                         )
 
-                        onClassDUpdate(model)
+                        val errors = kotlinx.coroutines.runBlocking { onClassDUpdate(model) }
+                        val errorMessage = if (errors.isNotEmpty()) errors.joinToString("<br>") else null
 
-                        html(renderClassDPage(model))
+                        html(renderClassDPage(model, errorMessage))
                     }
 
                     else -> {

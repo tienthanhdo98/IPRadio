@@ -445,13 +445,11 @@ object MiraWebConsolePages {
             else -> "-"
         }
 
-        @RequiresApi(Build.VERSION_CODES.O)
         fun formatUnixTime(seconds: Long?): String {
             if (seconds == null || seconds <= 0) return "-"
             return try {
-                val formatter = java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
-                java.time.Instant.ofEpochSecond(seconds).atZone(java.time.ZoneId.systemDefault())
-                    .format(formatter)
+                val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                formatter.format(java.util.Date(seconds * 1000L))
             } catch (_: Exception) {
                 "-"
             }
@@ -1221,11 +1219,20 @@ object MiraWebConsolePages {
         }
     """.trimIndent()
 
-    fun renderClassDPage(model: ClassDUiModel): String {
+    fun renderClassDPage(model: ClassDUiModel, errorMessage: String? = null): String {
         // Để cho các input đẹp và đồng bộ, bạn có thể tái sử dụng fieldStyle nhé,
         // ở đây tôi giữ nguyên cấu trúc cũ của bạn và cập nhật phần nút bấm.
 
+        val errorHtml = if (errorMessage != null) {
+            """
+            <div style="background-color: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin-bottom: 20px; color: #b71c1c; border-radius: 4px;">
+                <strong>Lỗi thực thi lệnh Serial:</strong><br>$errorMessage
+            </div>
+            """.trimIndent()
+        } else ""
+
         val content = """
+    $errorHtml
     <div class="section">
         <h2 class="section-title">ClassD status</h2>
         <table class="form-table">
@@ -1259,8 +1266,8 @@ object MiraWebConsolePages {
                     <td>szd (left, right)</td>
                     <td>
                         <div style="display:flex; gap:10px; max-width: 320px;">
-                            <input type="number" name="szd_left" value="${model.szdLeft}">
-                            <input type="number" name="szd_right" value="${model.szdRight}">
+                            <input type="number" name="szd_left" value="${model.szdLeft}" min="0" max="1">
+                            <input type="number" name="szd_right" value="${model.szdRight}" min="0" max="1">
                         </div>
                     </td>
                 </tr>
@@ -1269,35 +1276,35 @@ object MiraWebConsolePages {
                     <td>mute (left, right)</td>
                     <td>
                         <div style="display:flex; gap:10px; max-width: 320px;">
-                            <input type="number" name="mute_left" value="${model.muteLeft}">
-                            <input type="number" name="mute_right" value="${model.muteRight}">
+                            <input type="number" name="mute_left" value="${model.muteLeft}" min="0" max="1">
+                            <input type="number" name="mute_right" value="${model.muteRight}" min="0" max="1">
                         </div>
                     </td>
                 </tr>
 
                 <tr>
                     <td>Threshold</td>
-                    <td><input type="number" name="threshold" value="${model.threshold}" style="max-width: 320px;"></td>
+                    <td><input type="number" name="threshold" value="${model.threshold}" min="0" style="max-width: 320px;"></td>
                 </tr>
 
                 <tr>
                     <td>Speaker 1 Offset</td>
-                    <td><input type="number" name="speaker1_offset" value="${model.speaker1Offset}" style="max-width: 320px;"></td>
+                    <td><input type="number" name="speaker1_offset" value="${model.speaker1Offset}" min="0" style="max-width: 320px;"></td>
                 </tr>
 
                 <tr>
                     <td>Speaker 2 Offset</td>
-                    <td><input type="number" name="speaker2_offset" value="${model.speaker2Offset}" style="max-width: 320px;"></td>
+                    <td><input type="number" name="speaker2_offset" value="${model.speaker2Offset}" min="0" style="max-width: 320px;"></td>
                 </tr>
 
                 <tr>
                     <td>Speaker 3 Offset</td>
-                    <td><input type="number" name="speaker3_offset" value="${model.speaker3Offset}" style="max-width: 320px;"></td>
+                    <td><input type="number" name="speaker3_offset" value="${model.speaker3Offset}" min="0" style="max-width: 320px;"></td>
                 </tr>
 
                 <tr>
                     <td>Speaker 4 Offset</td>
-                    <td><input type="number" name="speaker4_offset" value="${model.speaker4Offset}" style="max-width: 320px;"></td>
+                    <td><input type="number" name="speaker4_offset" value="${model.speaker4Offset}" min="0" style="max-width: 320px;"></td>
                 </tr>
             </table>
 

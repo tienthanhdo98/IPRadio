@@ -45,7 +45,6 @@ import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
 import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
-import app.tek4tv.ipradio.utils.Utils.Companion.roundToNearestNumber
 import app.tek4tv.ipradio.utils.downloadUpdateApk
 import app.tek4tv.ipradio.utils.getStateMobileData
 import app.tek4tv.ipradio.utils.network.NetworkUtils
@@ -56,7 +55,7 @@ import app.tek4tv.ipradio.utils.setMobileDataEnabled
 import app.tek4tv.ipradio.utils.setPreferredMode
 import app.tek4tv.ipradio.utils.setWifiDataEnabled
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
-import app.tek4tv.ipradio.utils.su.EthernetStaticIpUtils
+import app.tek4tv.ipradio.utils.su.NetworkShellUtils
 import app.tek4tv.ipradio.utils.unixSecondsToCalendar
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import dagger.hilt.android.AndroidEntryPoint
@@ -97,6 +96,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private var isSelectingNetwork = false
     private var networkReselectJob: Job? = null
+    private var ipCheckJob: Job? = null
+    private var networkPeriodicJob: Job? = null
 
     private val networkCallback = object : NetworkUtils.ConnectionCallback {
         override fun onChange(netWorkState: Boolean) {
@@ -263,6 +264,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         NetworkUtils.instance.addCallback(networkCallback)
         viewModel.clearLocalMediaInfoExpired(applicationContext)
         initSettings()
+        startIpCheckTimer()
+        startNetworkPeriodicCheck()
         restartGuardManager = RestartGuardManager(globalProperties)
         globalProperties.saveAppStartTime(System.currentTimeMillis())
         viewModel.addLog(
@@ -272,6 +275,89 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         )
         Log.d("MQTTLOG", "onCreate instance=${this.hashCode()} taskId=$taskId intent=$intent")
 
+    }
+
+    private fun startNetworkPeriodicCheck() {
+        networkPeriodicJob?.cancel()
+        networkPeriodicJob = lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                delay(120_000) // Kiểm tra mỗi 2 phút
+                if (isSelectingNetwork) continue
+
+                try {
+                    val isConnected = NetworkUtils.isNetworkConnected(this@MainActivity)
+                    val prefType = globalProperties.settingsTxType
+
+                    var isPrefConnected = false
+                    when (prefType) {
+                        0 -> {
+                            val ip =
+                                NetworkUtils.getRealEthernetIp() ?: NetworkUtils.getEthernetLanIp(
+                                    this@MainActivity
+                                )
+                            isPrefConnected = !ip.isNullOrBlank()
+                        }
+
+                        1 -> {
+                            val ip = NetworkUtils.getMobileLocalIp(this@MainActivity)
+                            isPrefConnected = !ip.isNullOrBlank()
+                        }
+
+                        2 -> {
+                            val cm =
+                                getSystemService(android.content.Context.CONNECTIVITY_SERVICE) as android.net.ConnectivityManager
+                            val activeNet = cm.activeNetworkInfo
+                            isPrefConnected =
+                                activeNet != null && activeNet.type == android.net.ConnectivityManager.TYPE_WIFI && activeNet.isConnected
+                        }
+                    }
+
+                    if (!isConnected || !isPrefConnected) {
+                        Log.d(
+                            "initSettings",
+                            "Periodic check: not connected to preferred network (pref=$prefType, connected=$isConnected), running initSettings()"
+                        )
+                        launch(Dispatchers.Main) {
+                            initSettings()
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("initSettings", "Error in periodic network check", e)
+                }
+            }
+        }
+    }
+
+    private fun startIpCheckTimer() {
+        ipCheckJob?.cancel()
+        ipCheckJob = lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                delay(10000) // Kiểm tra mỗi 10 giây
+                try {
+                    // Chỉ áp dụng IP tĩnh cho Ethernet (txType != 2) hoặc khi có cấu hình localIp hợp lệ
+                    val targetIp = globalProperties.localIp
+                    if (targetIp.isNotBlank() && targetIp != "0.0.0.0") {
+                        val currentIp = NetworkUtils.getRealEthernetIp()
+                            ?: NetworkUtils.getEthernetLanIp(this@MainActivity)
+                        if (currentIp != null && currentIp.isNotBlank() && currentIp != targetIp) {
+                            Log.d(
+                                "IpCheck",
+                                "IP changed from $targetIp to $currentIp, re-applying static IP"
+                            )
+                            NetworkShellUtils.setUniversalStaticIp(
+                                targetIp,
+                                globalProperties.subnet,
+                                globalProperties.gateway,
+                                "8.8.8.8",
+                                "1.1.1.1"
+                            )
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.e("IpCheck", "Error checking IP", e)
+                }
+            }
+        }
     }
 
     private fun showMac() {
@@ -302,6 +388,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     override fun onDestroy() {
         super.onDestroy()
+        ipCheckJob?.cancel()
+        networkPeriodicJob?.cancel()
         NetworkUtils.instance.removeCallback(networkCallback)
         NetworkUtils.instance.stopNetworkListener(this)
         hubManager.disconnectAll()
@@ -470,9 +558,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private suspend fun tryUseEthernet(): Boolean {
         Log.d("initSettings", "tryUseEthernet")
-        EthernetStaticIpUtils.forceStaticIp(
-            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+        NetworkShellUtils.setUniversalStaticIp(
+            globalProperties.localIp,
+            globalProperties.subnet,
+            globalProperties.gateway,
+            "8.8.8.8",
+            "1.1.1.1"
         )
+//        EthernetStaticIpUtils.forceStaticIp(
+//            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+//        )
         setEthernetEnabled(true)
         delay(2500)
         setWifiDataEnabled(false)
@@ -601,10 +696,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             szdRight = globalProperties.classdSzdRight,
             muteLeft = globalProperties.muteSpeakerLeft,
             muteRight = globalProperties.muteSpeakerRight,
-            speaker1Offset = adcThresholds.getOrElse(0) { globalProperties.adcThresholdCh1 },
-            speaker2Offset = adcThresholds.getOrElse(1) { globalProperties.adcThresholdCh2 },
-            speaker3Offset = adcThresholds.getOrElse(2) { globalProperties.adcThresholdCh3 },
-            speaker4Offset = adcThresholds.getOrElse(3) { globalProperties.adcThresholdCh4 })
+//            speaker1Offset = adcThresholds.getOrElse(0) { globalProperties.adcThresholdCh1 },
+//            speaker2Offset = adcThresholds.getOrElse(1) { globalProperties.adcThresholdCh2 },
+//            speaker3Offset = adcThresholds.getOrElse(2) { globalProperties.adcThresholdCh3 },
+//            speaker4Offset = adcThresholds.getOrElse(3) { globalProperties.adcThresholdCh4 })
+            speaker1Offset = adcThresholds.getOrElse(3) { globalProperties.adcThresholdCh4 },
+            speaker2Offset = adcThresholds.getOrElse(2) { globalProperties.adcThresholdCh3 },
+            speaker3Offset = adcThresholds.getOrElse(1) { globalProperties.adcThresholdCh2 },
+            speaker4Offset = adcThresholds.getOrElse(0) { globalProperties.adcThresholdCh1 })
         LocalWebConsole.updateClassD(
             classD
         )
@@ -664,9 +763,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 } else {
                     // Ethernet / Mobile: apply static IP rồi reboot
                     lifecycleScope.launch(Dispatchers.IO) {
-                        EthernetStaticIpUtils.forceStaticIp(
-                            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+                        NetworkShellUtils.setUniversalStaticIp(
+                            globalProperties.localIp,
+                            globalProperties.subnet,
+                            globalProperties.gateway,
+                            "8.8.8.8",
+                            "1.1.1.1"
                         )
+//                        EthernetStaticIpUtils.forceStaticIp(
+//                            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+//                        )
                     }
                 }
 
@@ -755,7 +861,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
                 val runningList = (deviceStatus?.audioStatus ?: emptyList()).take(4).map { it == 1 }
                     .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
-                val errorList = (deviceStatus?.errorStatus ?: emptyList()).take(4).map { it == 1 }
+                val errorList = (deviceStatus?.errorStatus ?: emptyList()).take(4).map { it == 0 }
                     .let { if (it.size < 4) it + List(4 - it.size) { false } else it }
 
                 val isFmPlaying = hubManager.currentMediaItem?.type == 2
@@ -784,9 +890,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             },
             onResetConnection = {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    EthernetStaticIpUtils.forceStaticIp(
-                        globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+                    NetworkShellUtils.setUniversalStaticIp(
+                        globalProperties.localIp,
+                        globalProperties.subnet,
+                        globalProperties.gateway,
+                        "8.8.8.8",
+                        "1.1.1.1"
                     )
+//                    EthernetStaticIpUtils.forceStaticIp(
+//                        globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
+//                    )
                 }
                 lifecycleScope.launch {
                     delay(5000)
@@ -830,25 +943,26 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             },
             onClassDUpdate = { classD ->
                 Log.d("webconsole", "onClassDUpdate")
+                val errors = mutableListOf<String>()
                 globalProperties.apply {
                     saveClassDThreshold(classD.threshold)
                     saveClassDSzdLeft(classD.szdLeft)
                     saveClassDSzdRight(classD.szdRight)
-                    saveMuteSpeaker(classD.muteLeft, classD.muteRight)
-                    updateSpeakerMute(classD.muteLeft, classD.muteRight)
+                    
+                    if (!updateSpeakerMute(classD.monitorChannel, classD.muteLeft, classD.muteRight)) {
+                        errors.add("Lệnh Mute thất bại (17)")
+                    }
                     saveAdcThresholds(
                         classD.speaker1Offset,
                         classD.speaker2Offset,
                         classD.speaker3Offset,
                         classD.speaker4Offset
                     )
-                    updateADC(
-                        classD.speaker1Offset,
-                        classD.speaker2Offset,
-                        classD.speaker3Offset,
-                        classD.speaker4Offset
-                    )
+                    if (!updateADC(classD.speaker1Offset, classD.speaker2Offset, classD.speaker3Offset, classD.speaker4Offset)) {
+                        errors.add("Lệnh cập nhật ADC thất bại (21)")
+                    }
                 }
+                errors
             })
     }
 
@@ -950,9 +1064,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         val data = responseHub.settingConfig
                         if (data?.mainVolume != null) {
                             globalProperties.saveMainVolume(data.mainVolume.toString())
-                            changeVolume(
-                                roundToNearestNumber(data.mainVolume)
-                            )
+                            changeVolume(data.mainVolume)
                         }
                         if (data?.fmVolume != null) {
                             serialPortController.writeVolumeTuner(data.fmVolume.toString())
@@ -963,8 +1075,15 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 //ETH
                                 0 -> {
                                     lifecycleScope.launch {
-                                        EthernetStaticIpUtils.forceStaticIp(
+//                                        EthernetStaticIpUtils.forceStaticIp(
+//                                            globalProperties.localIp,
+//                                            globalProperties.gateway,
+//                                            "8.8.8.8",
+//                                            "1.1.1.1"
+//                                        )
+                                        NetworkShellUtils.setUniversalStaticIp(
                                             globalProperties.localIp,
+                                            globalProperties.subnet,
                                             globalProperties.gateway,
                                             "8.8.8.8",
                                             "1.1.1.1"
@@ -1031,6 +1150,27 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                     }
                                 }
                             }
+                            // Sync networkType mới vào webconsole để trang /config-settings hiển thị đúng
+                            LocalWebConsole.updateConnectionSettings(
+                                app.tek4tv.ipradio.model.webconsole.ConnectionSettings(
+                                    localIp = globalProperties.localIp,
+                                    subnet = globalProperties.subnet,
+                                    gateway = globalProperties.gateway,
+                                    mqttSecurity = globalProperties.mqttSecurity.toString(),
+                                    mqttServer = globalProperties.mqttServer,
+                                    mqttPort = globalProperties.mqttPort.toString(),
+                                    networkType = data.txtype.toString(),
+                                    simSelection = (data.sim ?: globalProperties.settingsSimType).toString(),
+                                    mobileDataMode = (data.mobileMode ?: globalProperties.settingsSimMode).toString(),
+                                    activation = globalProperties.settingsDisable.toString(),
+                                    normalVolume = globalProperties.mainVolume,
+                                    fmVolume = globalProperties.fmVolume,
+                                    fmAutoStop = globalProperties.fmAutoStop.toString(),
+                                    fmAutoThreshold = globalProperties.fmThreshold,
+                                    wifiSsid = globalProperties.wifiSsid,
+                                    wifiPassword = globalProperties.wifiPassword
+                                )
+                            )
                         }
 
                     }
@@ -1248,36 +1388,78 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
 
-    fun updateADC(offset1: Int, offset2: Int, offset3: Int, offset4: Int) {
-        GlobalProperties.getInst().saveAdcThresholds(
-            ch1 = offset1, ch2 = offset2, ch3 = offset3, ch4 = offset4
-        )
+    suspend fun updateADC(offset1: Int, offset2: Int, offset3: Int, offset4: Int): Boolean {
+        val oldCh1 = globalProperties.adcThresholdCh1
+        val oldCh2 = globalProperties.adcThresholdCh2
+        val oldCh3 = globalProperties.adcThresholdCh3
+        val oldCh4 = globalProperties.adcThresholdCh4
+
+        if (oldCh1 == offset1 && oldCh2 == offset2 && oldCh3 == offset3 && oldCh4 == offset4) {
+            return true
+        }
+
         val data = "${offset1}-${offset2}-${offset3}-${offset4}"
-        serialPortController.writeADC(data)
+        val success = serialPortController.writeADCAwait(data)
+        if (success) {
+            GlobalProperties.getInst().saveAdcThresholds(
+                ch1 = offset1, ch2 = offset2, ch3 = offset3, ch4 = offset4
+            )
+        }
+        return success
     }
 
-    fun updateSpeakerMute(muteLeft: Int, muteRight: Int) {
-        val leftMute = when (muteLeft) {
-            0 -> true   // Mute Left
-            1 -> false  // Unmute Left
-            else -> throw IllegalArgumentException("muteLeft chỉ nhận 0 hoặc 1")
+    suspend fun updateSpeakerMute(monitorChannel: String, muteLeftInput: Int, muteRightInput: Int): Boolean {
+        // Đọc giá trị phần cứng hiện tại đã lưu
+        val oldLeftMute = globalProperties.muteSpeakerLeft == 0
+        val oldRightMute = globalProperties.muteSpeakerRight == 0
+
+        var newLeftMute = oldLeftMute
+        var newRightMute = oldRightMute
+
+        if (muteLeftInput == 0 && muteRightInput == 0) {
+            // Mute kênh được chọn
+            if (monitorChannel == "CH 1-2") {
+                newLeftMute = true
+            } else if (monitorChannel == "CH 2-4") {
+                newRightMute = true
+            }
+        } else if (muteLeftInput == 1 && muteRightInput == 1) {
+            // Unmute kênh được chọn
+            if (monitorChannel == "CH 1-2") {
+                newLeftMute = false
+            } else if (monitorChannel == "CH 2-4") {
+                newRightMute = false
+            }
         }
 
-        val rightMute = when (muteRight) {
-            0 -> true   // Mute Right
-            1 -> false  // Unmute Right
-            else -> throw IllegalArgumentException("muteRight chỉ nhận 0 hoặc 1")
+        if (newLeftMute == oldLeftMute && newRightMute == oldRightMute) {
+            return true // Không thay đổi gì, báo thành công luôn
         }
 
-        serialPortController.writeMuteSpeaker(
-            leftMute = leftMute, rightMute = rightMute
+        val success = serialPortController.writeMuteSpeakerAwait(
+            leftMute = newLeftMute, rightMute = newRightMute
         )
+        
+        if (success) {
+            // Lưu lại trạng thái phần cứng mới nhất nếu lệnh gửi thành công
+            globalProperties.saveMuteSpeaker(if (newLeftMute) 0 else 1, if (newRightMute) 0 else 1)
+        }
+        
+        return success
     }
 
-    private fun changeVolume(volumeValue: Int) {
+    /**
+     * Đặt âm lượng Android tương đối theo thang 0–100 từ server.
+     * Quy đổi: androidVol = round(serverValue / 100.0 * maxStreamVolume)
+     * Ví dụ: server gửi 95, maxVol=15 → round(95/100*15) = round(14.25) = 14
+     */
+    private fun changeVolume(serverVolume: Int) {
         val audioManager = getSystemService(AUDIO_SERVICE) as AudioManager
-
-        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, volumeValue, 0)
+        val maxVol = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
+        val clamped = serverVolume.coerceIn(0, 100)
+        val androidVol = (clamped / 100.0 * maxVol).toInt().coerceIn(0, maxVol)
+        Log.d("Volume", "changeVolume: server=$serverVolume → android=$androidVol (max=$maxVol)")
+        audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, androidVol, 0)
     }
 
     private fun setMaxVolume() {
