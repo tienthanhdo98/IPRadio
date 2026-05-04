@@ -151,6 +151,59 @@ object LocalWebConsole {
 
         }
 
+        // Lớp bọc Socket để chặn NanoHTTPD thực hiện reverse DNS lookup (gây chậm 1 phút)
+        private class FastDnsSocket(private val delegate: Socket) : Socket() {
+            override fun getInetAddress(): java.net.InetAddress {
+                val addr = delegate.inetAddress
+                return try {
+                    // Cung cấp sẵn hostAddress làm hostName, chặn getHostName() gọi DNS request
+                    java.net.InetAddress.getByAddress(addr.hostAddress, addr.address)
+                } catch (e: Exception) {
+                    addr
+                }
+            }
+
+            override fun getInputStream() = delegate.inputStream
+            override fun getOutputStream() = delegate.outputStream
+            override fun getPort() = delegate.port
+            override fun getLocalPort() = delegate.localPort
+            override fun getRemoteSocketAddress() = delegate.remoteSocketAddress
+            override fun getLocalSocketAddress() = delegate.localSocketAddress
+            override fun getChannel() = delegate.channel
+            override fun bind(bindpoint: java.net.SocketAddress?) = delegate.bind(bindpoint)
+            override fun connect(endpoint: java.net.SocketAddress?) = delegate.connect(endpoint)
+            override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) = delegate.connect(endpoint, timeout)
+            override fun getLocalAddress() = delegate.localAddress
+            override fun setTcpNoDelay(on: Boolean) { delegate.tcpNoDelay = on }
+            override fun getTcpNoDelay() = delegate.tcpNoDelay
+            override fun setSoLinger(on: Boolean, linger: Int) { delegate.setSoLinger(on, linger) }
+            override fun getSoLinger() = delegate.soLinger
+            override fun sendUrgentData(data: Int) = delegate.sendUrgentData(data)
+            override fun setOOBInline(on: Boolean) { delegate.oobInline = on }
+            override fun getOOBInline() = delegate.oobInline
+            override fun setSoTimeout(timeout: Int) { delegate.soTimeout = timeout }
+            override fun getSoTimeout() = delegate.soTimeout
+            override fun setSendBufferSize(size: Int) { delegate.sendBufferSize = size }
+            override fun getSendBufferSize() = delegate.sendBufferSize
+            override fun setReceiveBufferSize(size: Int) { delegate.receiveBufferSize = size }
+            override fun getReceiveBufferSize() = delegate.receiveBufferSize
+            override fun setKeepAlive(on: Boolean) { delegate.keepAlive = on }
+            override fun getKeepAlive() = delegate.keepAlive
+            override fun setTrafficClass(tc: Int) { delegate.trafficClass = tc }
+            override fun getTrafficClass() = delegate.trafficClass
+            override fun setReuseAddress(on: Boolean) { delegate.reuseAddress = on }
+            override fun getReuseAddress() = delegate.reuseAddress
+            override fun close() = delegate.close()
+            override fun shutdownInput() = delegate.shutdownInput()
+            override fun shutdownOutput() = delegate.shutdownOutput()
+            override fun toString() = delegate.toString()
+            override fun isConnected() = delegate.isConnected
+            override fun isBound() = delegate.isBound
+            override fun isClosed() = delegate.isClosed
+            override fun isInputShutdown() = delegate.isInputShutdown
+            override fun isOutputShutdown() = delegate.isOutputShutdown
+        }
+
         override fun createClientHandler(
             finalAccept: Socket?,
             inputStream: InputStream?
@@ -160,13 +213,13 @@ object LocalWebConsole {
             // Cập nhật hoạt động ngay khi client mở socket kết nối
             LocalWebConsole.lastActiveTimeMs = System.currentTimeMillis()
 
-            // ✅ Set timeout ngắn để tránh bị block
             try {
                 finalAccept.soTimeout = 3000  // 3 giây thay vì 20 giây mặc định
             } catch (_: Exception) {
             }
 
-            return super.createClientHandler(finalAccept, inputStream)
+            val wrappedSocket = FastDnsSocket(finalAccept)
+            return super.createClientHandler(wrappedSocket, inputStream)
         }
 
         override fun serve(session: IHTTPSession): Response {
