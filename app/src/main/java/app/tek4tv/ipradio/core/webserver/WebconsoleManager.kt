@@ -49,6 +49,14 @@ object LocalWebConsole {
     @Volatile
     private var currentClassDData: ClassDUiModel = ClassDUiModel()
 
+    @Volatile
+    var lastActiveTimeMs: Long = 0L
+
+    fun isWebConsoleActive(): Boolean {
+        // 15 minutes timeout
+        return System.currentTimeMillis() - lastActiveTimeMs < 15 * 60 * 1000
+    }
+
     fun updateBasicInfo(info: DeviceBasicInfo) {
         deviceBasicInfo = info
     }
@@ -149,6 +157,9 @@ object LocalWebConsole {
         ): ClientHandler? {
             if (finalAccept == null) return null
 
+            // Cập nhật hoạt động ngay khi client mở socket kết nối
+            LocalWebConsole.lastActiveTimeMs = System.currentTimeMillis()
+
             // ✅ Set timeout ngắn để tránh bị block
             try {
                 finalAccept.soTimeout = 3000  // 3 giây thay vì 20 giây mặc định
@@ -159,6 +170,7 @@ object LocalWebConsole {
         }
 
         override fun serve(session: IHTTPSession): Response {
+            LocalWebConsole.lastActiveTimeMs = System.currentTimeMillis()
             return try {
                 val uri = session.uri ?: "/"
                 val method = session.method
@@ -587,7 +599,8 @@ object LocalWebConsole {
                         )
 
                         val errors = kotlinx.coroutines.runBlocking { onClassDUpdate(model) }
-                        val errorMessage = if (errors.isNotEmpty()) errors.joinToString("<br>") else null
+                        val errorMessage =
+                            if (errors.isNotEmpty()) errors.joinToString("<br>") else null
 
                         html(renderClassDPage(model, errorMessage))
                     }
@@ -619,6 +632,7 @@ object LocalWebConsole {
 //            return cookieHeader.split(";").map { it.trim() }.firstOrNull { it.startsWith("$name=") }
 //                ?.substringAfter("=")
 //        }
+
         private fun getCookie(session: IHTTPSession, name: String): String? {
             val cookieHeader = session.headers["cookie"] ?: return null
             return cookieHeader.split(";").map { it.trim() }

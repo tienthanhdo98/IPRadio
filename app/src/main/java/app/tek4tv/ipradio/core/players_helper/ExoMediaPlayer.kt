@@ -192,7 +192,12 @@ class ExoMediaPlayer(
             val uri = if (localFile.exists() && localFile.isFile) {
                 Uri.fromFile(localFile)
             } else {
-                url.toUri()
+                val backupUrl = mediaItem.pathBackup
+                if (backupUrl.isNotBlank()) {
+                    backupUrl.toUri()
+                } else {
+                    url.toUri()
+                }
             }
 
             resetPlayState()

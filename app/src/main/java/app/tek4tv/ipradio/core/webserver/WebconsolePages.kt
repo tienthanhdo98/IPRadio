@@ -1225,6 +1225,9 @@ object MiraWebConsolePages {
 
         val errorHtml = if (errorMessage != null) {
             """
+            <script>
+                alert("${errorMessage.replace("<br>", "\\n")}");
+            </script>
             <div style="background-color: #ffebee; border-left: 5px solid #f44336; padding: 15px; margin-bottom: 20px; color: #b71c1c; border-radius: 4px;">
                 <strong>Lỗi thực thi lệnh Serial:</strong><br>$errorMessage
             </div>

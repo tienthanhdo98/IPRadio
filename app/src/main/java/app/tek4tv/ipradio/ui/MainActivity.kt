@@ -558,21 +558,47 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private suspend fun tryUseEthernet(): Boolean {
         Log.d("initSettings", "tryUseEthernet")
-        NetworkShellUtils.setUniversalStaticIp(
-            globalProperties.localIp,
-            globalProperties.subnet,
-            globalProperties.gateway,
-            "8.8.8.8",
-            "1.1.1.1"
-        )
+        
+        val targetIp = globalProperties.localIp
+        if (targetIp.isNotBlank() && targetIp != "0.0.0.0") {
+            val currentIp = NetworkUtils.getRealEthernetIp() ?: NetworkUtils.getEthernetLanIp(this@MainActivity)
+            if (currentIp != targetIp) {
+                Log.d("initSettings", "tryUseEthernet: IP changed from $currentIp to $targetIp, applying static IP...")
+                NetworkShellUtils.setUniversalStaticIp(
+                    targetIp,
+                    globalProperties.subnet,
+                    globalProperties.gateway,
+                    "8.8.8.8",
+                    "1.1.1.1"
+                )
+                delay(2500) // Đợi card mạng khởi động lại
+            } else {
+                Log.d("initSettings", "tryUseEthernet: IP is already $targetIp, skipping reset")
+            }
+        }
+        
 //        EthernetStaticIpUtils.forceStaticIp(
 //            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
 //        )
         setEthernetEnabled(true)
-        delay(2500)
         setWifiDataEnabled(false)
         setMobileDataEnabled(false)
-        return NetworkUtils.getEthernetLanIp(this@MainActivity) != null
+        
+        repeat(5) {
+            delay(2000)
+            val ethIp = NetworkUtils.getEthernetLanIp(this@MainActivity)
+            val isValidated = NetworkUtils.instance.getCurrentConnectedState(this@MainActivity)
+            val isWebConsoleActive = LocalWebConsole.isWebConsoleActive()
+            
+            Log.d("initSettings", "tryUseEthernet: ethIp=$ethIp, validated=$isValidated, webConsoleActive=$isWebConsoleActive")
+            
+            if (ethIp != null && (isValidated || isWebConsoleActive)) {
+                return true
+            }
+        }
+        
+        Log.d("initSettings", "tryUseEthernet: ethernet không có mạng (internet)")
+        return false
     }
 
     private suspend fun tryUseSim(): Boolean {
@@ -618,8 +644,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             val mobileIp = NetworkUtils.getMobileLocalIp(this@MainActivity)
             Log.d("initSettings", "tryUseSim: mobileIp=$mobileIp")
             delay(1000)
+//            if (mobileIp != null) {
+//                setEthernetEnabled(false)
+//                return true
+//            }
+            if (mobileIp == null) {
+                setMobileDataEnabled(true)
+            }
             if (mobileIp != null) {
-                setEthernetEnabled(false)
                 return true
             }
         }
@@ -631,18 +663,21 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private suspend fun tryUseWifi(): Boolean {
         Log.d("initSettings", "tryUseWifi")
         setWifiDataEnabled(true)
-        delay(1000)
+        setMobileDataEnabled(false)
+        delay(2000)
 
         val ssid = globalProperties.wifiSsid
         val pass = globalProperties.wifiPassword
 
         if (ssid.isNotBlank()) {
             Log.d("initSettings", "tryUseWifi: connecting to SSID=$ssid")
+            Log.d("initSettings", "tryUseWifi: connecting to SSID=$pass")
+            delay(30000)
             connectWifi(ssid, pass)
-            delay(4000) // chờ kết nối WiFi
+            delay(30000) // chờ kết nối WiFi
         } else {
             Log.d("initSettings", "tryUseWifi: no SSID configured, chờ auto-reconnect")
-            delay(2000)
+            delay(3000)
         }
 
         val connected = NetworkUtils.isNetworkConnected(this@MainActivity)
@@ -948,9 +983,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     saveClassDThreshold(classD.threshold)
                     saveClassDSzdLeft(classD.szdLeft)
                     saveClassDSzdRight(classD.szdRight)
-                    
-                    if (!updateSpeakerMute(classD.monitorChannel, classD.muteLeft, classD.muteRight)) {
-                        errors.add("Lệnh Mute thất bại (17)")
+
+                    if (!updateSpeakerMute(
+                            classD.monitorChannel,
+                            classD.muteLeft,
+                            classD.muteRight
+                        )
+                    ) {
+                        errors.add("Gửi lệnh mute (left, right) thất bại")
                     }
                     saveAdcThresholds(
                         classD.speaker1Offset,
@@ -958,8 +998,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         classD.speaker3Offset,
                         classD.speaker4Offset
                     )
-                    if (!updateADC(classD.speaker1Offset, classD.speaker2Offset, classD.speaker3Offset, classD.speaker4Offset)) {
-                        errors.add("Lệnh cập nhật ADC thất bại (21)")
+                    if (!updateADC(
+                            classD.speaker1Offset,
+                            classD.speaker2Offset,
+                            classD.speaker3Offset,
+                            classD.speaker4Offset
+                        )
+                    ) {
+                        errors.add("Gửi lệnh cập nhật ADC thất bại")
                     }
                 }
                 errors
@@ -1143,7 +1189,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                     lifecycleScope.launch {
                                         setWifiDataEnabled(true)
                                         setMobileDataEnabled(false)
-                                        setEthernetEnabled(false)
+//                                        setEthernetEnabled(false)
                                         globalProperties.saveSettingConfig(responseHub.settingConfig)
                                         delay(3000)
                                         serialPortController.hardRestart()
@@ -1152,7 +1198,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                             }
                             // Sync networkType mới vào webconsole để trang /config-settings hiển thị đúng
                             LocalWebConsole.updateConnectionSettings(
-                                app.tek4tv.ipradio.model.webconsole.ConnectionSettings(
+                                ConnectionSettings(
                                     localIp = globalProperties.localIp,
                                     subnet = globalProperties.subnet,
                                     gateway = globalProperties.gateway,
@@ -1160,8 +1206,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                     mqttServer = globalProperties.mqttServer,
                                     mqttPort = globalProperties.mqttPort.toString(),
                                     networkType = data.txtype.toString(),
-                                    simSelection = (data.sim ?: globalProperties.settingsSimType).toString(),
-                                    mobileDataMode = (data.mobileMode ?: globalProperties.settingsSimMode).toString(),
+                                    simSelection = (data.sim
+                                        ?: globalProperties.settingsSimType).toString(),
+                                    mobileDataMode = (data.mobileMode
+                                        ?: globalProperties.settingsSimMode).toString(),
                                     activation = globalProperties.settingsDisable.toString(),
                                     normalVolume = globalProperties.mainVolume,
                                     fmVolume = globalProperties.fmVolume,
@@ -1408,7 +1456,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         return success
     }
 
-    suspend fun updateSpeakerMute(monitorChannel: String, muteLeftInput: Int, muteRightInput: Int): Boolean {
+    suspend fun updateSpeakerMute(
+        monitorChannel: String,
+        muteLeftInput: Int,
+        muteRightInput: Int
+    ): Boolean {
         // Đọc giá trị phần cứng hiện tại đã lưu
         val oldLeftMute = globalProperties.muteSpeakerLeft == 0
         val oldRightMute = globalProperties.muteSpeakerRight == 0
@@ -1439,12 +1491,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         val success = serialPortController.writeMuteSpeakerAwait(
             leftMute = newLeftMute, rightMute = newRightMute
         )
-        
+
         if (success) {
             // Lưu lại trạng thái phần cứng mới nhất nếu lệnh gửi thành công
             globalProperties.saveMuteSpeaker(if (newLeftMute) 0 else 1, if (newRightMute) 0 else 1)
         }
-        
+
         return success
     }
 

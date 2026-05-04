@@ -54,23 +54,6 @@ class SerialPortController(
         inputStream = serialPort!!.inputStream
         outputStream = serialPort!!.outputStream
 
-//        coroutineScope.launch(Dispatchers.IO) {
-//            while (true) {
-//                updateStatus()
-//                delay(5000)
-//            }
-//        }
-//
-//
-//        if (serialPort != null && inputStream != null && outputStream != null) {
-//            coroutineScope.launch(Dispatchers.IO) {
-//                while (true) {
-//                    onWatchDog()
-//                    delay(5000)
-//                }
-//            }
-//        }
-
         coroutineScope.launch(Dispatchers.IO) {
             var watchdogTick = 0
             var statusTick = 0
@@ -158,7 +141,7 @@ class SerialPortController(
                     isUart1 = true
                     if (size > 0) {
                         val data = String(buffer, 0, size)
-                        Log.i(LOG_TAG, "readDevice: $data")
+
                         dataFinal.append(data)
                         val currentStr = dataFinal.toString()
 
@@ -186,6 +169,7 @@ class SerialPortController(
                                 dataFinal = StringBuffer(lines.last())
                             }
                         }
+                        Log.i(LOG_TAG, "readDevice: $dataFinal")
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()
@@ -291,14 +275,11 @@ class SerialPortController(
         return invokeDeviceFuncAwait(Define.FUNC_WRITE_ADC, data)
     }
 
-    fun writeMuteSpeaker(leftMute: Boolean, rightMute: Boolean) {
-        val leftValue = if (leftMute) 0 else 1
-        val rightValue = if (rightMute) 0 else 1
 
-        val data = "$leftValue,$rightValue"
-        invokeDeviceFunc(Define.FUNC_WRITE_MUTE_SPEAKER, data)
-    }
-
+    //    $$,2,0,0 Mute cả 2 kênh
+//    $$,2,0,1 Mute Left, Unmute Right
+//    $$,2,1,0 UnMute Left, Mute Right
+//    $$,2,1,1 Unmute cả 2 kênh
     suspend fun writeMuteSpeakerAwait(leftMute: Boolean, rightMute: Boolean): Boolean {
         val leftValue = if (leftMute) 0 else 1
         val rightValue = if (rightMute) 0 else 1
@@ -316,13 +297,6 @@ class SerialPortController(
         invokeDeviceFunc(Define.FUNC_WRITE_STREAM_BACK, speakerPos, true)
     }
 
-    //    $$,2,0,0 Mute cả 2 kênh
-//    $$,2,0,1 Mute Left, Unmute Right
-//    $$,2,1,0 UnMute Left, Mute Right
-//    $$,2,1,1 Unmute cả 2 kênh
-    fun setMuteSpeak(leftSpeak: String, rightSpeak: String) {
-        invokeDeviceFunc(Define.FUNC_WRITE_STREAM_BACK, "$leftSpeak,$rightSpeak", true)
-    }
 
     fun invokeDeviceFunc(funcId: String, data: String, isRead: Boolean = false) {
         if (isRead) {
