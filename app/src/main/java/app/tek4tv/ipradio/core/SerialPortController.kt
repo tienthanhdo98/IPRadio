@@ -144,7 +144,7 @@ class SerialPortController(
 
                         dataFinal.append(data)
                         val currentStr = dataFinal.toString()
-
+                        Log.i(LOG_TAG, "readDevice: $currentStr")
                         // Xử lý ngay các lệnh phản hồi nhanh (không chờ \r\n)
                         commandDeferreds.keys().toList().forEach { funcId ->
                             if (currentStr.contains("\$\$,1,$funcId,")) {
@@ -169,7 +169,7 @@ class SerialPortController(
                                 dataFinal = StringBuffer(lines.last())
                             }
                         }
-                        Log.i(LOG_TAG, "readDevice: $dataFinal")
+
                     }
                 } catch (e: IOException) {
                     e.printStackTrace()

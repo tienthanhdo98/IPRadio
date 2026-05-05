@@ -425,5 +425,29 @@ class NetworkUtils private constructor() {
                 appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             wifiManager.isWifiEnabled = enable
         }
+
+        fun bindProcessToTransport(context: Context, transport: Int): Boolean {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            for (network in cm.allNetworks) {
+                val caps = cm.getNetworkCapabilities(network)
+                if (caps != null && caps.hasTransport(transport) && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)) {
+                    return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        cm.bindProcessToNetwork(network)
+                    } else {
+                        ConnectivityManager.setProcessDefaultNetwork(network)
+                    }
+                }
+            }
+            return false
+        }
+        
+        fun clearProcessNetworkBinding(context: Context) {
+            val cm = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                cm.bindProcessToNetwork(null)
+            } else {
+                ConnectivityManager.setProcessDefaultNetwork(null)
+            }
+        }
     }
 }

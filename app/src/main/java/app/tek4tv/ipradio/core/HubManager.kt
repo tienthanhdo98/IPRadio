@@ -79,7 +79,7 @@ class HubManager(
     var currentMediaItem: MediaFile? = null
     var currentMediaInfoListId: Set<Long>? = null
 
-    var versionName = "1.0.3"
+    var versionName = "1.0.4"
 
 
     var isConnectSuccess = false

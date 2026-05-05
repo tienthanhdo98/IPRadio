@@ -119,25 +119,25 @@ public class NetworkShellUtils {
         commands.add("ip -4 addr flush dev " + iface);
 
         // 4. Dọn route cũ
-        commands.add("ip route flush table main || true");
-        commands.add("ip route flush table legacy_network || true");
-        commands.add("ip route flush table " + iface + " || true");
-        commands.add("ip route flush table local_network || true");
+        commands.add("ip route flush dev " + iface + " table main || true");
+        commands.add("ip route flush dev " + iface + " table legacy_network || true");
+        commands.add("ip route flush dev " + iface + " table " + iface + " || true");
+        commands.add("ip route flush dev " + iface + " table local_network || true");
 
         // 5. Áp dụng IP mới
         commands.add("ip addr add " + ip + "/" + prefixLength + " dev " + iface);
 
         // 6. Thiết lập routing
         commands.add("ip route replace " + routeSubnet + " dev " + iface + " src " + ip);
-        commands.add("ip route replace default via " + gateway + " dev " + iface);
-
         commands.add("ip route replace " + routeSubnet + " dev " + iface + " src " + ip + " table legacy_network");
-        commands.add("ip route replace default via " + gateway + " dev " + iface + " table legacy_network");
-
         commands.add("ip route replace " + routeSubnet + " dev " + iface + " src " + ip + " table " + iface);
-        commands.add("ip route replace default via " + gateway + " dev " + iface + " table " + iface);
-
         commands.add("ip route replace " + routeSubnet + " dev " + iface + " src " + ip + " table local_network");
+
+        if (gateway != null && !gateway.trim().isEmpty() && !gateway.equals("0.0.0.0")) {
+            commands.add("ip route replace default via " + gateway + " dev " + iface);
+            commands.add("ip route replace default via " + gateway + " dev " + iface + " table legacy_network");
+            commands.add("ip route replace default via " + gateway + " dev " + iface + " table " + iface);
+        }
 
         // 7. DNS/Gateway cho Android cũ
         if (dns1 != null && !dns1.trim().isEmpty()) {
@@ -150,7 +150,9 @@ public class NetworkShellUtils {
             commands.add("setprop net." + iface + ".dns2 " + dns2);
         }
 
-        commands.add("setprop net." + iface + ".gw " + gateway);
+        if (gateway != null && !gateway.trim().isEmpty() && !gateway.equals("0.0.0.0")) {
+            commands.add("setprop net." + iface + ".gw " + gateway);
+        }
 
         // 8. Log command
         for (String cmd : commands) {
@@ -194,19 +196,16 @@ public class NetworkShellUtils {
 
         // 3) Main table
         commands.add("ip route replace " + subnet + " dev " + interfaceName + " src " + ip);
-        commands.add("ip route replace default via " + gateway + " dev " + interfaceName);
-
-        // 4) Android tables quan trọng trên box này
         commands.add("ip route replace " + subnet + " dev " + interfaceName + " src " + ip + " table legacy_network");
-        commands.add("ip route replace default via " + gateway + " dev " + interfaceName + " table legacy_network");
-
         commands.add("ip route replace " + subnet + " dev " + interfaceName + " src " + ip + " table eth0");
-        commands.add("ip route replace default via " + gateway + " dev " + interfaceName + " table eth0");
-
         commands.add("ip route replace " + subnet + " dev " + interfaceName + " src " + ip + " table local_network");
 
-        // 5) DNS / gateway properties
-        commands.add("setprop net." + interfaceName + ".gw " + gateway);
+        if (gateway != null && !gateway.trim().isEmpty() && !gateway.equals("0.0.0.0")) {
+            commands.add("ip route replace default via " + gateway + " dev " + interfaceName);
+            commands.add("ip route replace default via " + gateway + " dev " + interfaceName + " table legacy_network");
+            commands.add("ip route replace default via " + gateway + " dev " + interfaceName + " table eth0");
+            commands.add("setprop net." + interfaceName + ".gw " + gateway);
+        }
 
         if (dns1 != null && !dns1.trim().isEmpty()) {
             commands.add("setprop net.dns1 " + dns1);
@@ -264,26 +263,26 @@ public class NetworkShellUtils {
         commands.add("ip -4 addr flush dev " + iface);
 
         // 3) Flush route các table Android hay dùng trên box này
-        commands.add("ip route flush table main || true");
-        commands.add("ip route flush table legacy_network || true");
-        commands.add("ip route flush table " + iface + " || true");
-        commands.add("ip route flush table local_network || true");
+        commands.add("ip route flush dev " + iface + " table main || true");
+        commands.add("ip route flush dev " + iface + " table legacy_network || true");
+        commands.add("ip route flush dev " + iface + " table " + iface + " || true");
+        commands.add("ip route flush dev " + iface + " table local_network || true");
 
         // 4) Add IP mới
         commands.add("ip addr add " + ip + "/" + prefixLength + " dev " + iface);
 
         // 5) Main table
         commands.add("ip route replace " + subnet + " dev " + iface + " src " + ip);
-        commands.add("ip route replace default via " + gateway + " dev " + iface);
-
-        // 6) Android policy tables
         commands.add("ip route replace " + subnet + " dev " + iface + " src " + ip + " table legacy_network");
-        commands.add("ip route replace default via " + gateway + " dev " + iface + " table legacy_network");
-
         commands.add("ip route replace " + subnet + " dev " + iface + " src " + ip + " table " + iface);
-        commands.add("ip route replace default via " + gateway + " dev " + iface + " table " + iface);
-
         commands.add("ip route replace " + subnet + " dev " + iface + " src " + ip + " table local_network");
+
+        if (gateway != null && !gateway.trim().isEmpty() && !gateway.equals("0.0.0.0")) {
+            commands.add("ip route replace default via " + gateway + " dev " + iface);
+            commands.add("ip route replace default via " + gateway + " dev " + iface + " table legacy_network");
+            commands.add("ip route replace default via " + gateway + " dev " + iface + " table " + iface);
+            commands.add("setprop net." + iface + ".gw " + gateway);
+        }
 
         // 7) DNS properties
         if (dns1 != null && !dns1.trim().isEmpty()) {
@@ -294,7 +293,6 @@ public class NetworkShellUtils {
             commands.add("setprop net.dns2 " + dns2);
             commands.add("setprop net." + iface + ".dns2 " + dns2);
         }
-        commands.add("setprop net." + iface + ".gw " + gateway);
 
         // 8) Dump để debug
         commands.add("ip address show dev " + iface);

@@ -86,6 +86,7 @@ object LocalWebConsole {
         context: Context,
         globalProperties: GlobalProperties,
         onConnectionUpdate: (ConnectionSettings) -> Unit,
+        onSettingsUpdate: (ConnectionSettings) -> Unit,
         onMediaAction: (MediaActionData) -> Unit,
         onGetStatusData: () -> StatusPageData,
         onGetPlayerStatus: () -> app.tek4tv.ipradio.model.webconsole.PlayerStatusData,
@@ -110,6 +111,7 @@ object LocalWebConsole {
             globalProperties = globalProperties,
             port = 8080,
             onConnectionUpdate = onConnectionUpdate,
+            onSettingsUpdate = onSettingsUpdate,
             onMediaAction = onMediaAction,
             onGetStatusData = onGetStatusData,
             onGetPlayerStatus = onGetPlayerStatus,
@@ -134,6 +136,7 @@ object LocalWebConsole {
         private val globalProperties: GlobalProperties,
         port: Int,
         private val onConnectionUpdate: (ConnectionSettings) -> Unit,
+        private val onSettingsUpdate: (ConnectionSettings) -> Unit,
         private val onMediaAction: (MediaActionData) -> Unit,
         private val onGetStatusData: () -> StatusPageData,
         private val onGetPlayerStatus: () -> app.tek4tv.ipradio.model.webconsole.PlayerStatusData,
@@ -432,16 +435,22 @@ object LocalWebConsole {
                                 ?: currentConnectionSettings.wifiPassword
                         )
 
+                        val hasChanged = conn != currentConnectionSettings
                         currentConnectionSettings = conn
-                        onConnectionUpdate(conn)
 
                         if (uri == "/update-settings") {
+                            if (hasChanged) {
+                                onSettingsUpdate(conn)
+                            }
                             val wifiList =
                                 app.tek4tv.ipradio.utils.network.NetworkUtils.getAvailableWifiNetworks(
                                     context
                                 )
                             html(MiraWebConsolePages.renderSettingsPage(conn, wifiList))
                         } else {
+                            if (hasChanged) {
+                                onConnectionUpdate(conn)
+                            }
                             html(renderConnectionPage(deviceBasicInfo, conn))
                         }
 
@@ -651,7 +660,14 @@ object LocalWebConsole {
                             speaker4Offset = params["speaker4_offset"]?.toIntOrNull() ?: 20,
                         )
 
-                        val errors = kotlinx.coroutines.runBlocking { onClassDUpdate(model) }
+                        val hasChanged = model != currentClassDData
+                        currentClassDData = model
+
+                        val errors = if (hasChanged) {
+                            kotlinx.coroutines.runBlocking { onClassDUpdate(model) }
+                        } else {
+                            emptyList()
+                        }
                         val errorMessage =
                             if (errors.isNotEmpty()) errors.joinToString("<br>") else null
 

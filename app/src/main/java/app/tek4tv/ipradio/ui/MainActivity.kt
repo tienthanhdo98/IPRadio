@@ -344,10 +344,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 "IpCheck",
                                 "IP changed from $targetIp to $currentIp, re-applying static IP"
                             )
+                            val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                             NetworkShellUtils.setUniversalStaticIp(
                                 targetIp,
                                 globalProperties.subnet,
-                                globalProperties.gateway,
+                                gateway,
                                 "8.8.8.8",
                                 "1.1.1.1"
                             )
@@ -558,16 +559,21 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     private suspend fun tryUseEthernet(): Boolean {
         Log.d("initSettings", "tryUseEthernet")
-        
+
         val targetIp = globalProperties.localIp
         if (targetIp.isNotBlank() && targetIp != "0.0.0.0") {
-            val currentIp = NetworkUtils.getRealEthernetIp() ?: NetworkUtils.getEthernetLanIp(this@MainActivity)
+            val currentIp =
+                NetworkUtils.getRealEthernetIp() ?: NetworkUtils.getEthernetLanIp(this@MainActivity)
             if (currentIp != targetIp) {
-                Log.d("initSettings", "tryUseEthernet: IP changed from $currentIp to $targetIp, applying static IP...")
+                Log.d(
+                    "initSettings",
+                    "tryUseEthernet: IP changed from $currentIp to $targetIp, applying static IP..."
+                )
+                val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                 NetworkShellUtils.setUniversalStaticIp(
                     targetIp,
                     globalProperties.subnet,
-                    globalProperties.gateway,
+                    gateway,
                     "8.8.8.8",
                     "1.1.1.1"
                 )
@@ -576,27 +582,33 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 Log.d("initSettings", "tryUseEthernet: IP is already $targetIp, skipping reset")
             }
         }
-        
+
+        // Clear any previous process binding so Ethernet becomes default again
+        NetworkUtils.clearProcessNetworkBinding(this@MainActivity)
+
 //        EthernetStaticIpUtils.forceStaticIp(
 //            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
 //        )
         setEthernetEnabled(true)
         setWifiDataEnabled(false)
         setMobileDataEnabled(false)
-        
+
         repeat(5) {
             delay(2000)
             val ethIp = NetworkUtils.getEthernetLanIp(this@MainActivity)
             val isValidated = NetworkUtils.instance.getCurrentConnectedState(this@MainActivity)
             val isWebConsoleActive = LocalWebConsole.isWebConsoleActive()
-            
-            Log.d("initSettings", "tryUseEthernet: ethIp=$ethIp, validated=$isValidated, webConsoleActive=$isWebConsoleActive")
-            
+
+            Log.d(
+                "initSettings",
+                "tryUseEthernet: ethIp=$ethIp, validated=$isValidated, webConsoleActive=$isWebConsoleActive"
+            )
+
             if (ethIp != null && (isValidated || isWebConsoleActive)) {
                 return true
             }
         }
-        
+
         Log.d("initSettings", "tryUseEthernet: ethernet không có mạng (internet)")
         return false
     }
@@ -652,6 +664,12 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 setMobileDataEnabled(true)
             }
             if (mobileIp != null) {
+                // Delete default route from eth0 to ensure internet traffic goes through SIM
+                kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                    app.tek4tv.ipradio.utils.su.NetworkShellUtils.executeSuCommands(arrayOf("ip route del default dev eth0"))
+                }
+                val bound = NetworkUtils.bindProcessToTransport(this@MainActivity, android.net.NetworkCapabilities.TRANSPORT_CELLULAR)
+                Log.d("initSettings", "tryUseSim: process bound to cellular = $bound")
                 return true
             }
         }
@@ -682,6 +700,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         val connected = NetworkUtils.isNetworkConnected(this@MainActivity)
         Log.d("initSettings", "tryUseWifi: connected=$connected")
+        if (connected) {
+            // Delete default route from eth0 to ensure internet traffic goes through WiFi
+            kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
+                app.tek4tv.ipradio.utils.su.NetworkShellUtils.executeSuCommands(arrayOf("ip route del default dev eth0"))
+            }
+            val bound = NetworkUtils.bindProcessToTransport(this@MainActivity, android.net.NetworkCapabilities.TRANSPORT_WIFI)
+            Log.d("initSettings", "tryUseWifi: process bound to wifi = $bound")
+        }
         return connected
     }
 
@@ -798,16 +824,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 } else {
                     // Ethernet / Mobile: apply static IP rồi reboot
                     lifecycleScope.launch(Dispatchers.IO) {
+                        val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                         NetworkShellUtils.setUniversalStaticIp(
                             globalProperties.localIp,
                             globalProperties.subnet,
-                            globalProperties.gateway,
+                            gateway,
                             "8.8.8.8",
                             "1.1.1.1"
                         )
-//                        EthernetStaticIpUtils.forceStaticIp(
-//                            globalProperties.localIp, globalProperties.gateway, "8.8.8.8", "1.1.1.1"
-//                        )
                     }
                 }
 
@@ -815,6 +839,50 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     delay(5000)
                     Log.e("webconsole", "Rebooting....")
                     serialPortController.hardRestart()
+                }
+            },
+            onSettingsUpdate = { connData ->
+                Log.d("webconsole", "Đã nhận cấu hình Settings mới: $connData")
+
+                val settingConfig = McuSettingsData(
+                    txtype = connData.networkType?.toInt(),
+                    sim = connData.simSelection?.toInt(),
+                    mobileMode = connData.mobileDataMode?.toInt(),
+                    disabled = connData.activation?.toInt(),
+                    mainVolume = connData.normalVolume?.toInt(),
+                    fmVolume = connData.fmVolume?.toInt(),
+                    fmAuto = connData.fmAutoStop?.toInt(),
+                    fmThreshold = connData.fmAutoThreshold?.toInt()
+                )
+                globalProperties.saveSettingConfig(settingConfig)
+                globalProperties.saveWifiConfig(
+                    connData.wifiSsid ?: "", connData.wifiPassword ?: ""
+                )
+
+                // apply volume
+                val mainVolume = connData.normalVolume?.toIntOrNull()
+                if (mainVolume != null) {
+                    globalProperties.saveMainVolume(mainVolume.toString())
+                    changeVolume(mainVolume)
+                }
+
+                // apply fm volume
+                val fmVolume = connData.fmVolume?.toIntOrNull()
+                if (fmVolume != null) {
+                    serialPortController.writeVolumeTuner(fmVolume.toString())
+                }
+
+                val networkType = globalProperties.settingsTxType.toString()
+                if (networkType == "2") {
+                    // Nếu đang dùng WiFi và đổi Settings (có thể là SSID/Pass) thì kết nối lại
+                    val ssid = globalProperties.wifiSsid
+                    val pass = globalProperties.wifiPassword
+                    if (ssid.isNotBlank()) {
+                        Log.d("webconsole", "Connecting to WiFi from Settings: $ssid")
+                        lifecycleScope.launch(Dispatchers.IO) {
+                            connectWifi(ssid, pass)
+                        }
+                    }
                 }
             },
             onMediaAction = { action ->
@@ -925,10 +993,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             },
             onResetConnection = {
                 lifecycleScope.launch(Dispatchers.IO) {
+                    val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                     NetworkShellUtils.setUniversalStaticIp(
                         globalProperties.localIp,
                         globalProperties.subnet,
-                        globalProperties.gateway,
+                        gateway,
                         "8.8.8.8",
                         "1.1.1.1"
                     )
@@ -1127,10 +1196,11 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 //                                            "8.8.8.8",
 //                                            "1.1.1.1"
 //                                        )
+                                        val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                                         NetworkShellUtils.setUniversalStaticIp(
                                             globalProperties.localIp,
                                             globalProperties.subnet,
-                                            globalProperties.gateway,
+                                            gateway,
                                             "8.8.8.8",
                                             "1.1.1.1"
                                         )

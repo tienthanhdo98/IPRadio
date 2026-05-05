@@ -15,10 +15,11 @@ class MyApp : Application() {
         instance = this
         //a7
         val globalProperties = app.tek4tv.ipradio.utils.GlobalProperties.getInst()
+        val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
         NetworkShellUtils.setUniversalStaticIp(
             globalProperties.localIp,
             globalProperties.subnet,
-            globalProperties.gateway,
+            gateway,
             "8.8.8.8",
             "1.1.1.1"
         )

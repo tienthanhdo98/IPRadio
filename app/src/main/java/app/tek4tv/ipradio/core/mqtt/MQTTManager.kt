@@ -36,7 +36,9 @@ class MQTTManager(
     private var isConnecting = false
     private var reconnectJob: Job? = null
     private var currentReconnectDelay = 2000L
-    private val MAX_RECONNECT_DELAY = 60000L
+
+    //private val MAX_RECONNECT_DELAY = 60000L
+    private val MAX_RECONNECT_DELAY = 6000L
 
     init {
         mqttClient = MqttAndroidClient(context, serverURI, clientID)
@@ -53,6 +55,45 @@ class MQTTManager(
                 isConnecting = false
                 startReconnectLogic()
                 // Báo HubManager để trigger reconnect thủ công (tạo lại client mới trên network mới)
+                connectEventListener.onConnectFailure(cause?.message)
+            }
+
+            override fun deliveryComplete(token: IMqttDeliveryToken?) {
+            }
+
+            override fun connectComplete(reconnect: Boolean, serverURI: String?) {
+                Log.d(TAG, "Connection connectComplete. Reconnect: $reconnect")
+
+                isConnecting = false
+                reconnectJob?.cancel()
+                currentReconnectDelay = 2000L
+
+                channels?.forEach { subscribe(it.id!!) }
+                connectEventListener.onConnectSuccess()
+            }
+        })
+    }
+
+    private fun recreateClient() {
+        try {
+            mqttClient?.unregisterResources()
+        } catch (e: Exception) {
+            Log.d(TAG, "recreateClient unregister error: ${e.message}")
+        }
+
+        mqttClient = MqttAndroidClient(context, serverURI, clientID)
+
+        mqttClient?.setCallback(object : MqttCallbackExtended {
+            override fun messageArrived(topic: String?, message: MqttMessage?) {
+                Log.d(TAG, "Receive message: ${message.toString()} from topic: $topic")
+                connectEventListener.onReceiveMessageSuccess(message.toString())
+            }
+
+            override fun connectionLost(cause: Throwable?) {
+                Log.d(TAG, "Connection lost: ${cause?.message}")
+                cause?.printStackTrace()
+                isConnecting = false
+                startReconnectLogic()
                 connectEventListener.onConnectFailure(cause?.message)
             }
 
@@ -144,8 +185,13 @@ class MQTTManager(
                 // Tạm dừng trong nền (không block app)
                 delay(currentReconnectDelay)
 
-                // Tiến hành gọi lại hàm connect của bạn
-                connectToMQTT()
+                if (!isConnecting) {
+                    // Tạo lại client để bind vào network interface mới nếu mạng vừa đổi
+                    recreateClient()
+
+                    // Tiến hành gọi lại hàm connect
+                    connectToMQTT()
+                }
 
                 // Tăng thời gian chờ cho lần sau gấp đôi (Exponential Backoff)
                 // Lần lượt sẽ là: 2s -> 4s -> 8s -> 16s -> 32s -> 60s -> 60s...
