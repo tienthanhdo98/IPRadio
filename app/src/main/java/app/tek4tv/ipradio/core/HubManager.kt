@@ -68,10 +68,10 @@ class HubManager(
 
     lateinit var hubObverse: IHubObserve
 
-    //    val deviceImei = "656565656565"
-//    val verifyCode = "656565656565"
-    val deviceImei = "6565656565652"
-    val verifyCode = "6565656565652"
+    val deviceImei = "656565656565"
+    val verifyCode = "656565656565"
+//    val deviceImei = "6565656565652"
+//    val verifyCode = "6565656565652"
 
 
     var pingCounter = 0
@@ -278,22 +278,14 @@ class HubManager(
         val spkerrValue = calculateSpkerr(
             runningList = runningList, errorList = errorList
         )
-        val conn = when (globalProperties.settingsTxType) {
-            0 -> {
-                0
-            }
-
-            1 -> {
-                getModeMobileData()
-            }
-
-            2 -> {
-                2
-            }
-
-            else -> {
-                0
-            }
+        val conn = when (NetworkUtils.getNetworkClass(appContext)) {
+            "ENET" -> 0
+            "WIFI" -> 1
+            "2G" -> 2
+            "3G" -> 3
+            "4G" -> 4
+            "5G" -> 5
+            else -> 0
         }
         val status = McuStatusData(
             conn = conn,

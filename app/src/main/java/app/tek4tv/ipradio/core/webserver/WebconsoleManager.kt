@@ -175,26 +175,55 @@ object LocalWebConsole {
             override fun getChannel() = delegate.channel
             override fun bind(bindpoint: java.net.SocketAddress?) = delegate.bind(bindpoint)
             override fun connect(endpoint: java.net.SocketAddress?) = delegate.connect(endpoint)
-            override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) = delegate.connect(endpoint, timeout)
+            override fun connect(endpoint: java.net.SocketAddress?, timeout: Int) =
+                delegate.connect(endpoint, timeout)
+
             override fun getLocalAddress() = delegate.localAddress
-            override fun setTcpNoDelay(on: Boolean) { delegate.tcpNoDelay = on }
+            override fun setTcpNoDelay(on: Boolean) {
+                delegate.tcpNoDelay = on
+            }
+
             override fun getTcpNoDelay() = delegate.tcpNoDelay
-            override fun setSoLinger(on: Boolean, linger: Int) { delegate.setSoLinger(on, linger) }
+            override fun setSoLinger(on: Boolean, linger: Int) {
+                delegate.setSoLinger(on, linger)
+            }
+
             override fun getSoLinger() = delegate.soLinger
             override fun sendUrgentData(data: Int) = delegate.sendUrgentData(data)
-            override fun setOOBInline(on: Boolean) { delegate.oobInline = on }
+            override fun setOOBInline(on: Boolean) {
+                delegate.oobInline = on
+            }
+
             override fun getOOBInline() = delegate.oobInline
-            override fun setSoTimeout(timeout: Int) { delegate.soTimeout = timeout }
+            override fun setSoTimeout(timeout: Int) {
+                delegate.soTimeout = timeout
+            }
+
             override fun getSoTimeout() = delegate.soTimeout
-            override fun setSendBufferSize(size: Int) { delegate.sendBufferSize = size }
+            override fun setSendBufferSize(size: Int) {
+                delegate.sendBufferSize = size
+            }
+
             override fun getSendBufferSize() = delegate.sendBufferSize
-            override fun setReceiveBufferSize(size: Int) { delegate.receiveBufferSize = size }
+            override fun setReceiveBufferSize(size: Int) {
+                delegate.receiveBufferSize = size
+            }
+
             override fun getReceiveBufferSize() = delegate.receiveBufferSize
-            override fun setKeepAlive(on: Boolean) { delegate.keepAlive = on }
+            override fun setKeepAlive(on: Boolean) {
+                delegate.keepAlive = on
+            }
+
             override fun getKeepAlive() = delegate.keepAlive
-            override fun setTrafficClass(tc: Int) { delegate.trafficClass = tc }
+            override fun setTrafficClass(tc: Int) {
+                delegate.trafficClass = tc
+            }
+
             override fun getTrafficClass() = delegate.trafficClass
-            override fun setReuseAddress(on: Boolean) { delegate.reuseAddress = on }
+            override fun setReuseAddress(on: Boolean) {
+                delegate.reuseAddress = on
+            }
+
             override fun getReuseAddress() = delegate.reuseAddress
             override fun close() = delegate.close()
             override fun shutdownInput() = delegate.shutdownInput()
@@ -435,22 +464,22 @@ object LocalWebConsole {
                                 ?: currentConnectionSettings.wifiPassword
                         )
 
-                        val hasChanged = conn != currentConnectionSettings
+//                        val hasChanged = conn != currentConnectionSettings
                         currentConnectionSettings = conn
 
                         if (uri == "/update-settings") {
-                            if (hasChanged) {
-                                onSettingsUpdate(conn)
-                            }
+//                            if (hasChanged) {
+                            onSettingsUpdate(conn)
+//                            }
                             val wifiList =
                                 app.tek4tv.ipradio.utils.network.NetworkUtils.getAvailableWifiNetworks(
                                     context
                                 )
                             html(MiraWebConsolePages.renderSettingsPage(conn, wifiList))
                         } else {
-                            if (hasChanged) {
-                                onConnectionUpdate(conn)
-                            }
+//                            if (hasChanged) {
+                            onConnectionUpdate(conn)
+//                            }
                             html(renderConnectionPage(deviceBasicInfo, conn))
                         }
 

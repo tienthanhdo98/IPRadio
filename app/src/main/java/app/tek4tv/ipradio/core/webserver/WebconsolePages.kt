@@ -101,7 +101,7 @@ object MiraWebConsolePages {
         <div class="section">
             <h2 class="section-title">LAN settings</h2>
             <table class="form-table">
-                <tr><td>Local IP address</td><td><input type="text" name="local_ip" value="${data.localIp ?: "192.168.11.103"}"></td></tr>
+                <tr><td>Local IP address</td><td><input type="text" name="local_ip" value="${data.localIp ?: "192.168.11.102"}"></td></tr>
                 <tr><td>Subnet</td><td><input type="text" name="subnet" value="${data.subnet ?: "255.255.255.0"}"></td></tr>
                 <tr><td>Gateway</td><td><input type="text" name="gateway" value="${data.gateway ?: "192.168.11.1"}"></td></tr>
             </table>
@@ -448,7 +448,8 @@ object MiraWebConsolePages {
         fun formatUnixTime(seconds: Long?): String {
             if (seconds == null || seconds <= 0) return "-"
             return try {
-                val formatter = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
+                val formatter =
+                    java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault())
                 formatter.format(java.util.Date(seconds * 1000L))
             } catch (_: Exception) {
                 "-"

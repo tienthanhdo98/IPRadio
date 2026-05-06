@@ -179,7 +179,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         //Lỗi luồng live
         override fun onPlayError(mediaItem: MediaFile?) {
             // hubManager.currentMediaItem = null
-//            serialPortController.turnOffPA()
+            serialPortController.turnOffPA()
             if (playerManager.playMode == PLAY_MODE_TEST) {
                 LocalWebConsole.updateMediaStatusPlaying(0)
             }
@@ -344,7 +344,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                                 "IpCheck",
                                 "IP changed from $targetIp to $currentIp, re-applying static IP"
                             )
-                            val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
+                            val gateway =
+                                if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                             NetworkShellUtils.setUniversalStaticIp(
                                 targetIp,
                                 globalProperties.subnet,
@@ -569,7 +570,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                     "initSettings",
                     "tryUseEthernet: IP changed from $currentIp to $targetIp, applying static IP..."
                 )
-                val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
+                val gateway =
+                    if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                 NetworkShellUtils.setUniversalStaticIp(
                     targetIp,
                     globalProperties.subnet,
@@ -668,7 +670,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                     app.tek4tv.ipradio.utils.su.NetworkShellUtils.executeSuCommands(arrayOf("ip route del default dev eth0"))
                 }
-                val bound = NetworkUtils.bindProcessToTransport(this@MainActivity, android.net.NetworkCapabilities.TRANSPORT_CELLULAR)
+                val bound = NetworkUtils.bindProcessToTransport(
+                    this@MainActivity,
+                    android.net.NetworkCapabilities.TRANSPORT_CELLULAR
+                )
                 Log.d("initSettings", "tryUseSim: process bound to cellular = $bound")
                 return true
             }
@@ -705,7 +710,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
                 app.tek4tv.ipradio.utils.su.NetworkShellUtils.executeSuCommands(arrayOf("ip route del default dev eth0"))
             }
-            val bound = NetworkUtils.bindProcessToTransport(this@MainActivity, android.net.NetworkCapabilities.TRANSPORT_WIFI)
+            val bound = NetworkUtils.bindProcessToTransport(
+                this@MainActivity,
+                android.net.NetworkCapabilities.TRANSPORT_WIFI
+            )
             Log.d("initSettings", "tryUseWifi: process bound to wifi = $bound")
         }
         return connected
@@ -824,7 +832,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                 } else {
                     // Ethernet / Mobile: apply static IP rồi reboot
                     lifecycleScope.launch(Dispatchers.IO) {
-                        val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
+                        val gateway =
+                            if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                         NetworkShellUtils.setUniversalStaticIp(
                             globalProperties.localIp,
                             globalProperties.subnet,
@@ -993,7 +1002,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             },
             onResetConnection = {
                 lifecycleScope.launch(Dispatchers.IO) {
-                    val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
+                    val gateway =
+                        if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                     NetworkShellUtils.setUniversalStaticIp(
                         globalProperties.localIp,
                         globalProperties.subnet,
@@ -1196,7 +1206,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 //                                            "8.8.8.8",
 //                                            "1.1.1.1"
 //                                        )
-                                        val gateway = if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
+                                        val gateway =
+                                            if (globalProperties.settingsTxType == 0) globalProperties.gateway else ""
                                         NetworkShellUtils.setUniversalStaticIp(
                                             globalProperties.localIp,
                                             globalProperties.subnet,

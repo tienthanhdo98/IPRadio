@@ -55,11 +55,11 @@ class GlobalProperties {
     val CLASSD_SZD_RIGHT = "CLASSD_SZD_RIGHT"
 
 
-    var adcThresholdRaw = "18-18-18-18"
-    var adcThresholdCh1 = 18
-    var adcThresholdCh2 = 18
-    var adcThresholdCh3 = 18
-    var adcThresholdCh4 = 18
+    var adcThresholdRaw = "20-20-20-20"
+    var adcThresholdCh1 = 20
+    var adcThresholdCh2 = 20
+    var adcThresholdCh3 = 20
+    var adcThresholdCh4 = 20
     var classdThreshold = 10
     var classdSzdLeft = 0
     var classdSzdRight = 0
@@ -99,9 +99,9 @@ class GlobalProperties {
     val SETTINGS_SUBNET = "SETTINGS_SUBNET"
     val SETTINGS_GATEWAY = "SETTINGS_GATEWAY"
 
-    var localIp = "192.168.1.231"
+    var localIp = "192.168.11.102"
     var subnet = "255.255.255.0"
-    var gateway = "192.168.1.1"
+    var gateway = "192.168.11.1"
 
 
     init {
@@ -142,20 +142,22 @@ class GlobalProperties {
         wifiPassword = ConfigUtil.getString(appContext, SETTINGS_WIFI_PASSWORD, "") ?: ""
 
         localIp =
-            ConfigUtil.getString(appContext, SETTINGS_LOCAL_IP, "192.168.1.231") ?: "192.168.1.231"
+            ConfigUtil.getString(appContext, SETTINGS_LOCAL_IP, "192.168.11.102")
+                ?: "192.168.11.102"
         subnet =
             ConfigUtil.getString(appContext, SETTINGS_SUBNET, "255.255.255.0") ?: "255.255.255.0"
-        gateway = ConfigUtil.getString(appContext, SETTINGS_GATEWAY, "192.168.1.1") ?: "192.168.1.1"
+        gateway =
+            ConfigUtil.getString(appContext, SETTINGS_GATEWAY, "192.168.11.1") ?: "192.168.11.1"
 
-        adminPassword = ConfigUtil.getString(appContext, ADMIN_PASSWORD, "1") ?: "1"
+        adminPassword = ConfigUtil.getString(appContext, ADMIN_PASSWORD, "mgw") ?: "mgw"
 
         //adc
         adcThresholdRaw =
             ConfigUtil.getString(appContext, ADC_THRESHOLD_RAW, adcThresholdRaw) ?: adcThresholdRaw
-        adcThresholdCh1 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH1, 18)
-        adcThresholdCh2 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH2, 18)
-        adcThresholdCh3 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH3, 18)
-        adcThresholdCh4 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH4, 18)
+        adcThresholdCh1 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH1, 20)
+        adcThresholdCh2 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH2, 20)
+        adcThresholdCh3 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH3, 20)
+        adcThresholdCh4 = ConfigUtil.getInt(appContext, ADC_THRESHOLD_CH4, 20)
         //
         muteSpeakerLeft = ConfigUtil.getInt(appContext, MUTE_SPEAKER_LEFT, 1)
         muteSpeakerRight = ConfigUtil.getInt(appContext, MUTE_SPEAKER_RIGHT, 1)
@@ -323,9 +325,9 @@ class GlobalProperties {
         mqttServer = "aiot.mobifone.vn"
         mqttSecurity = 1
         mqttPort = 6668
-        localIp = "192.168.1.231"
+        localIp = "192.168.11.102"
         subnet = "255.255.255.0"
-        gateway = "192.168.1.1"
+        gateway = "192.168.11.1"
 
         //
     }
@@ -342,11 +344,11 @@ class GlobalProperties {
         ConfigUtil.removeSharef(appContext, CLASSD_SZD_RIGHT)
         ConfigUtil.removeSharef(appContext, MUTE_SPEAKER_LEFT)
         ConfigUtil.removeSharef(appContext, MUTE_SPEAKER_RIGHT)
-        adcThresholdRaw = "18-18-18-18"
-        adcThresholdCh1 = 18
-        adcThresholdCh2 = 18
-        adcThresholdCh3 = 18
-        adcThresholdCh4 = 18
+        adcThresholdRaw = "20-20-20-20"
+        adcThresholdCh1 = 20
+        adcThresholdCh2 = 20
+        adcThresholdCh3 = 20
+        adcThresholdCh4 = 20
         muteSpeakerLeft = 1
         muteSpeakerRight = 1
         classdThreshold = 10
