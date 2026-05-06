@@ -7,14 +7,11 @@ import android.content.pm.PackageManager
 import android.media.AudioManager
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.provider.Settings
 import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -29,15 +26,34 @@ import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
-import app.tek4tv.ipradio.model.*
+import app.tek4tv.ipradio.model.DataValueModel
+import app.tek4tv.ipradio.model.ForceMedia
+import app.tek4tv.ipradio.model.MediaItem
+import app.tek4tv.ipradio.model.MediaType
+import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.model.StreamingModel
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.*
+import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
-import app.tek4tv.ipradio.utils.media.MediaCapture
+import app.tek4tv.ipradio.utils.GlobalProperties
+import app.tek4tv.ipradio.utils.HubCommand
+import app.tek4tv.ipradio.utils.LogUtils
+import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.checkDeleteFileUpdate
+import app.tek4tv.ipradio.utils.downloadUpdateApk
+import app.tek4tv.ipradio.utils.getCurrentTime
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.storage.*
+import app.tek4tv.ipradio.utils.secToReadable
+import app.tek4tv.ipradio.utils.setMobileDataEnabled
+import app.tek4tv.ipradio.utils.setWifeDataEnabled
+import app.tek4tv.ipradio.utils.storage.AppStorageManager
+import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
+import app.tek4tv.ipradio.utils.storage.RECORDED_AUDIO_FOLDER_NAME
+import app.tek4tv.ipradio.utils.storage.deleteAFileInFolder
+import app.tek4tv.ipradio.utils.storage.isFileExisted
+import app.tek4tv.ipradio.utils.storage.readFile
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
@@ -51,7 +67,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
 import java.io.IOException
-import java.util.*
+import java.util.Calendar
 import javax.inject.Inject
 
 
@@ -96,14 +112,12 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     var locationTracker = LocationTracker()
 
-    // private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
 
 
     private val globalProperties = GlobalProperties.getInst()
 
-    //    private val UART_S0_NAME = "/dev/ttyS0"
     private val UART_S1_NAME = "/dev/ttyS1"
     private val UART_S4_NAME = "/dev/ttyS4"
     private lateinit var binding: ActivityMainBinding
@@ -128,9 +142,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             hubManager.curMediaName = ""
             hubManager.currentMediaItem = null
             //chi dung cho ban nam dinh
-            Handler(Looper.getMainLooper()).postDelayed({
-                serialPortController.turnOffPA()
-            }, 1500)
+//            Handler(Looper.getMainLooper()).postDelayed({
+//                serialPortController.turnOffPA()
+//            }, 1500)
         }
 
         //Phát FM
@@ -186,10 +200,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             val displayName = mediaItem?.title ?: ""
             hubManager.curMediaName = displayName
 
-            if (mediaItem?.getMediaType() != MediaType.FM) {
-                serialPortController.turnOnPAVod()
-                Log.i("onPlayMediaSuccess", "log media: success ${mediaItem?.title}")
-            }
+            serialPortController.turnOnPAVod()
+
             val paState = if (serialPortController.playMode != SerialPortController.MODE_NONE) "1"
             else "0"
             if (mediaItem != null) {
@@ -274,12 +286,13 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
-        ) //PlayerManager(applicationContext, viewModel, rootLayout)
+        )
         playerManager.playerManagerListener = playerCallback
 
         NetworkUtils.instance.startNetworkListener(this)
 
         initHubConnect()
+
         registerObservers()
 
         appStorageManager = AppStorageManager(applicationContext)
@@ -320,20 +333,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     }
 
-    private fun checkDeleteFileUpdate() {
-        try {
-            val destination = getDestinationApk()
-            val file = File(destination)
-            if (file.exists()) {
-                file.delete()
-                Log.d("deletefile", "checkDeleteFileUpdate: delete success")
-            } else {
-                Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
-            }
-        } catch (e: Exception) {
-            Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
-        }
-    }
 
     private fun getSteamInfo() {
         urlStream = ConfigUtil.getString(
@@ -460,7 +459,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     override fun onStop() {
         super.onStop()
-        playerManager.onActivityStop()
+        playerManager.onActivityDestroy()
         stopStream()
         cancelAllAlarm()
     }
@@ -469,7 +468,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         super.onDestroy()
         playerManager.onActivityDestroy()
         stopStream()
-        //if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+        cancelAllAlarm()
     }
 
     override fun onStart() {
@@ -503,7 +502,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
             MediaScheduleReceiver.ACTION_CHECKHUB_RESET -> {
                 lifecycleScope.launch {
-                    mediaScheduler.cancelAllScheduledListAlarm()
+                    mediaScheduler.cancelAllAlarm()
                     val monthlyScenarioUrl = ConfigUtil.getString(
                         applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, ""
                     ) ?: ""
@@ -575,7 +574,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             mediaScheduler.scheduleAllAlarms()
 
             playerManager.startFirstTimeFrame()
+
             sendLogDataHub()
+
             //all load done, check
             viewModel.checkPlaylist(appStorageManager)
         }
@@ -602,64 +603,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
             val responseHub = hubManager.responseHub
 
-            //  val isImei = Utils.getDeviceId(applicationContext) == responseHub.imei
 
-            // if (!isImei) return
-            // Log.d("PLAYLIST_INFO", "command $command ")
             when (command) {
-                HubCommand.UPDATE_DESTINATION -> {
-                    val mess = responseHub.message ?: return
-                    Log.i("config_config", "updateconfig $mess")
-
-                    val listInfoConfig = mess.split(",")
-
-                    val newResponseHub = ResponseHub().apply {
-                        listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
-                            volume = it
-                            serialPortController.writeForceSetVolume(it)
-                            globalProperties.setTempVolume(it)
-                        }
-                        listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
-                            lat = it.toFloat()
-                        }
-                        listInfoConfig.getOrNull(2)?.takeIf { it != "null" }?.let {
-                            lng = it.toFloat()
-                        }
-                        listInfoConfig.getOrNull(3)?.takeIf { it != "null" }?.let {
-                            destinationId = it
-                        }
-                        listInfoConfig.getOrNull(4)?.takeIf { it != "null" }?.let {
-                            destinationName = it
-                        }
-                        listInfoConfig.getOrNull(5)?.takeIf { it != "null" }?.let {
-                            deviceName = it
-                        }
-                    }
-
-                    listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let {
-                        ConfigUtil.putString(applicationContext, ConfigUtil.PROVIDER, it)
-                        hubManager.providerValue = it
-                    }
-
-                    listInfoConfig.getOrNull(7)?.takeIf { it != "null" }?.let {
-                        ConfigUtil.putInt(
-                            applicationContext, ConfigUtil.Minute_TURN_ON_PA, it.toInt()
-                        )
-                    }
-
-                    listInfoConfig.getOrNull(8)?.takeIf { it != "null" }?.let {
-                        ConfigUtil.putInt(applicationContext, ConfigUtil.ServerTimeout, it.toInt())
-                    }
-
-                    listInfoConfig.getOrNull(9)?.takeIf { it != "null" }?.let {
-                        ConfigUtil.putInt(
-                            applicationContext, ConfigUtil.KeepAliveInterval, it.toInt()
-                        )
-                    }
-
-                    globalProperties.saveProperties(newResponseHub)
-                }
-
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
                     //  //add at 4.1.3d
@@ -765,6 +710,59 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
                 }
 
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message ?: return
+                    Log.i("config_config", "updateconfig $mess")
+
+                    val listInfoConfig = mess.split(",")
+
+                    val newResponseHub = ResponseHub().apply {
+                        listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
+                            volume = it
+                            serialPortController.writeForceSetVolume(it)
+                            globalProperties.setTempVolume(it)
+                        }
+                        listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
+                            lat = it.toFloat()
+                        }
+                        listInfoConfig.getOrNull(2)?.takeIf { it != "null" }?.let {
+                            lng = it.toFloat()
+                        }
+                        listInfoConfig.getOrNull(3)?.takeIf { it != "null" }?.let {
+                            destinationId = it
+                        }
+                        listInfoConfig.getOrNull(4)?.takeIf { it != "null" }?.let {
+                            destinationName = it
+                        }
+                        listInfoConfig.getOrNull(5)?.takeIf { it != "null" }?.let {
+                            deviceName = it
+                        }
+                    }
+
+                    listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putString(applicationContext, ConfigUtil.PROVIDER, it)
+                        hubManager.providerValue = it
+                    }
+
+                    listInfoConfig.getOrNull(7)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(
+                            applicationContext, ConfigUtil.Minute_TURN_ON_PA, it.toInt()
+                        )
+                    }
+
+                    listInfoConfig.getOrNull(8)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.ServerTimeout, it.toInt())
+                    }
+
+                    listInfoConfig.getOrNull(9)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putInt(
+                            applicationContext, ConfigUtil.KeepAliveInterval, it.toInt()
+                        )
+                    }
+
+                    globalProperties.saveProperties(newResponseHub)
+                }
+
                 HubCommand.TURN_ON_PA -> {
                     val mess = responseHub.message!!.toInt()
                     if (mess == 0) {
@@ -825,6 +823,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                             playerManager.resetPlayMode()
                             lifecycleScope.launch {
                                 viewModel.mediaRepo.clearPlaylist()
+                                viewModel.mediaRepo.clearMonthlyLocalData()
                             }
                         }
                         //Tam dung

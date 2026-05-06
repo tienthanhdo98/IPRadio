@@ -11,6 +11,20 @@ import android.util.Log
 import app.tek4tv.ipradio.core.SerialPortController
 import java.io.File
 
+fun checkDeleteFileUpdate() {
+    try {
+        val destination = getDestinationApk()
+        val file = File(destination)
+        if (file.exists()) {
+            file.delete()
+            Log.d("deletefile", "checkDeleteFileUpdate: delete success")
+        } else {
+            Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
+        }
+    } catch (e: Exception) {
+        Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
+    }
+}
 
 fun getDestinationApk(): String {
     var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)

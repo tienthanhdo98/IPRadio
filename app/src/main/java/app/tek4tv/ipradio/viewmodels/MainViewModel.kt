@@ -27,13 +27,22 @@ import javax.inject.Inject
 class MainViewModel @Inject constructor(
     internal val mediaRepo: MediaRepo
 ) : ViewModel() {
-    val content = MutableLiveData<Pair<List<MediaItem>, List<String>>>()
+    val content = MutableLiveData<List<MediaItem>>()
 
     private var getContentJob: Job? = null
 
 
     var currentMedia: MediaItem? = null
     private var checkPlaylistJob: Job? = null
+
+
+    fun updateMonthlyScenario(url: String) {
+        mediaRepo.clearMonthlyLocalData()
+        viewModelScope.launch {
+            mediaRepo.safeUpdateMonthlyScenario(url)
+            getPlayerContent()
+        }
+    }
 
     fun getPlayerContent() {
         viewModelScope.launch {
@@ -45,7 +54,7 @@ class MainViewModel @Inject constructor(
             getContentJob = launch {
                 val mediaList = mediaRepo.getScenario()
 
-                content.value = Pair(mediaList, listOf())
+                content.value = mediaList
 
                 getContentJob = null
             }
@@ -64,6 +73,7 @@ class MainViewModel @Inject constructor(
         }
     }
 
+
     fun downloadMedias() {
         viewModelScope.launch {
             mediaRepo.startDownloadMedia()
@@ -72,13 +82,6 @@ class MainViewModel @Inject constructor(
 
     fun stopDownloadMedia() {
         mediaRepo.stopDownloadMedia()
-    }
-
-    fun updateMonthlyScenario(url: String) {
-        viewModelScope.launch {
-            mediaRepo.safeUpdateMonthlyScenario(url)
-            getPlayerContent()
-        }
     }
 
     fun isUsageStatsPermissionGranted(context: Context): Boolean {

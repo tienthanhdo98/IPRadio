@@ -87,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "ECv16.4.2.1f"
+    var versionName = "v16.4.2.1g"
 
     private var registerOnMessageListener = false
 

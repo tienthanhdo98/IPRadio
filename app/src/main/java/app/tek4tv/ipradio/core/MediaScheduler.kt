@@ -147,7 +147,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         Log.d("alarmx", "Cancel $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
         alarmManager.cancel(alarmIntent!!)
-        alarmIntent?.cancel()
+        alarmIntent.cancel()
     }
 
     private fun getScheduleListIntent(
@@ -165,7 +165,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
     }
 
-    private fun getScheduleForceMediaIntent(flag: Int): PendingIntent? {
+    private fun getScheduleForceMediaIntent(): PendingIntent? {
         val hasForceMedia = ConfigUtil.getBool(appContext, ConfigUtil.HAVE_FORCE_MEDIA, false)
         if (!hasForceMedia) return null
 
@@ -173,11 +173,11 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
 
-        return PendingIntent.getBroadcast(appContext, -69, intent, flag)
+        return PendingIntent.getBroadcast(appContext, -69, intent, FLAG_IMMUTABLE)
     }
 
     fun scheduleForceMediaAlarm() {
-        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+        val alarmIntent = getScheduleForceMediaIntent() ?: return
 
         val fmValue = ConfigUtil.getString(appContext, ConfigUtil.FORCE_MEDIA, "")
 
@@ -198,7 +198,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     }
 
     fun turnOnPAAlarms(mediaRepo: MediaRepo, alarmValue: Int) {
-
         Log.i("alarm", "turnOnPAAlarms: start")
         val scheduledList = mediaRepo.scheduledList
         val intent = Intent(appContext, MediaScheduleReceiver::class.java).apply {
@@ -220,15 +219,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
 
             val dateFormat = SimpleDateFormat("dd/MM/yyyy HH:mm:ss")
             Log.i("ádsadsad", "turnOnPAAlarms: ${dateFormat.format(start)}")
-
         }
-
-
     }
 
     private fun cancelForceMediaAlarm() {
         Log.d("alarmx", "cancel force")
-        val alarmIntent = getScheduleForceMediaIntent(FLAG_IMMUTABLE) ?: return
+        val alarmIntent = getScheduleForceMediaIntent() ?: return
         alarmManager.cancel(alarmIntent)
         alarmIntent.cancel()
     }
@@ -238,17 +234,10 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         setCheckHubAndResetAlarms()
     }
 
-    fun cancelAllScheduledListAlarm() {
-        cancelAllListAlarm()
-    }
 
     fun cancelAllAlarm() {
-        if (ForceMedia.hasValidForceMedia(appContext)) {
-            Log.d("alarmx", "Cancel cancelForceMediaAlarm")
-            cancelForceMediaAlarm()
-        } else {
-            Log.d("alarmx", "Cancel cancelAllScheduledListAlarm")
-            cancelAllScheduledListAlarm()
-        }
+        cancelForceMediaAlarm()
+        cancelAllListAlarm()
+
     }
 }

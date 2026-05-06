@@ -9,7 +9,7 @@ import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_MODIFY_TIME_PLAYLIST
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_DATA
-import app.tek4tv.ipradio.utils.media.DownloadHelper2
+import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_URL
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.isFileExisted
 import com.downloader.Error
@@ -28,7 +28,8 @@ import kotlinx.coroutines.sync.withPermit
 import kotlinx.coroutines.withContext
 import java.io.File
 import java.text.SimpleDateFormat
-import java.util.*
+import java.util.Date
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -50,7 +51,6 @@ class MediaRepo @Inject constructor(
     var scheduledList = LinkedHashMap<String, List<MediaItem>>()
     var timeDividers = LinkedHashMap<String, List<MediaItem>>()
 
-    private val downloadHelper = DownloadHelper2.getInstance()
     val numberFileDownloadAtOnce = 2
 
     private val mediaStoragePath = appContext.filesDir.path
@@ -67,9 +67,10 @@ class MediaRepo @Inject constructor(
     ) {
         repeat(retryCount) { attempt ->
             try {
+                clearPlaylist()
                 updateMonthlyScenario(url)
                 return // thành công → thoát luôn
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 if (attempt < retryCount - 1) delay(delayMillis)
             }
         }
@@ -81,21 +82,24 @@ class MediaRepo @Inject constructor(
             val fetchResult = playlistService.getMonthlyPlaylist(url)
 
             if (!fetchResult.isSuccessful) return
+
             val monthScenario = fetchResult.body() ?: return
+
             ConfigUtil.putString(
                 appContext,
                 KEY_MODIFY_TIME_PLAYLIST,
                 monthScenario.first().ppdatedAt
             )
             //4.1.6e luu du lieu cua lich thang
-            val monthlyScenarioData = scheduleMonthlyAdapter.toJson(fetchResult.body())
+            val monthlyScenarioData = scheduleMonthlyAdapter.toJson(monthScenario)
+
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_DATA,
                 monthlyScenarioData
             )
 
-            val currentDate = SimpleDateFormat("dd-MM-yyyy").format(Date())
+            val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
 
             val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
 
@@ -113,8 +117,25 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    suspend fun clearPlaylist() {
-        saveItemsToFile(listOf())
+    private suspend fun updateScenario(scheduleDayUrl: String): List<MediaItem> {
+        var result = listOf<MediaItem>()
+
+        try {
+            val res = playlistService.getPlaylist(scheduleDayUrl)
+            if (res.isSuccessful) {
+                val resBody = res.body()
+                if (resBody != null) {
+                    result = resBody
+                    saveItemsToFile(result)
+                }
+            } else {
+                Log.e("yee", "Lịch rỗng rồi")
+            }
+        } catch (e: Exception) {
+            Log.e("yee", e.toString())
+        }
+
+        return result
     }
 
     suspend fun getScenario(): List<MediaItem> {
@@ -122,8 +143,9 @@ class MediaRepo @Inject constructor(
         timeDividers.clear()
 
         val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+
         var jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
-        
+
         var monthlyDataList = if (jsonMonthlyListData.isNotEmpty()) {
             scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
         } else {
@@ -133,15 +155,21 @@ class MediaRepo @Inject constructor(
         // Tự động khôi phục / cập nhật nếu lịch tháng chưa có lịch cho hôm nay
         val hasToday = monthlyDataList.any { it.date == currentDate }
         if (!hasToday) {
-            val monthlyUrl = ConfigUtil.getString(appContext, ConfigUtil.MONTHLY_SCENARIO_URL, "") ?: ""
+            val monthlyUrl =
+                ConfigUtil.getString(appContext, MONTHLY_SCENARIO_URL, "") ?: ""
             if (monthlyUrl.isNotEmpty()) {
-                Log.d(TAG, "No schedule for today found in cache. Fetching latest monthly scenario...")
+                Log.d(
+                    TAG,
+                    "No schedule for today found in cache. Fetching latest monthly scenario..."
+                )
                 try {
                     updateMonthlyScenario(monthlyUrl)
                     // Update lại dữ liệu cache sau khi tải mới
-                    jsonMonthlyListData = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
+                    jsonMonthlyListData =
+                        ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
                     if (jsonMonthlyListData.isNotEmpty()) {
-                        monthlyDataList = scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
+                        monthlyDataList =
+                            scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
                     }
                 } catch (e: Exception) {
                     Log.e(TAG, "Error fetching monthly scenario for recovery: ${e.message}")
@@ -209,103 +237,15 @@ class MediaRepo @Inject constructor(
 
     }
 
-    private suspend fun updateScenario(listUrl: String): List<MediaItem> {
-        var result = listOf<MediaItem>()
 
-        try {
-            val res = playlistService.getPlaylist(listUrl)
-            if (res.isSuccessful) {
-                val resBody = res.body()
-                if (resBody != null) {
-                    result = resBody
-                    saveItemsToFile(result)
-                }
-            } else {
-                Log.e("yee", "Lịch rỗng rồi")
-            }
-        } catch (e: Exception) {
-            Log.e("yee", e.toString())
-        }
-
-        return result
+    suspend fun clearPlaylist() {
+        saveItemsToFile(listOf())
     }
 
-
-//    fun startDownloadMedia() {
-//        if (broadcastList.isEmpty()) return
-//
-//        broadcastList.forEach {
-//            downloadAMediaItem(it)
-//        }
-//    }
-//
-//    private fun getConfigExtension(): String? {
-//        return ConfigUtil.getString(appContext, ConfigUtil.KEY_EXTEND_FILE, "mp3#aac#wav#wma#ac3")
-//    }
-//
-//    fun downloadAMediaItem(it: MediaItem) {
-//        //1 - bản tin ký tự
-//        //2 - bản tin hình ảnh
-//        //3 - bản tin âm thanh
-//        //4 - Bản tin video
-//        //5 - Bản tin trực tiếp
-//        //6 - Bản tin FM
-//        //7 - Bản tin ghi âm trực tiếp
-//        //không phải files thì không tải, chỉ tải type 3 , type 4
-//        if (it.contentType?.value != "4" && it.contentType?.value != "3") return
-//
-//        //xác định có là file hay không, lấy đuôi file
-//        val extMedia = File(it.body).extension
-//
-//        if (extMedia.isEmpty()) return
-//        val isFile = getConfigExtension()!!.contains(extMedia)
-//
-//        if (!isFile) return
-//
-//        val url = it.body
-//        //if (url.isEmpty() || !url.startsWith("http")) return
-//
-//        val fileName = getFileNameFromUrl(url!!)
-//        if (isFileExisted(mediaStoragePath, fileName)) {
-//            //handle broken path
-//            if (it.body != "$mediaStoragePath/$fileName") {
-//                it.body = "$mediaStoragePath/$fileName"
-//                coroutineScope.launch {
-//                    saveItemsToFile(broadcastList)
-//                }
-//            }
-//
-//            return
-//        }
-//
-//        Log.d("download item", url)
-//
-//        downloadHelper.addToQueue(DownloadItem().apply {
-//            itDownloadUrl = url
-//            itStoragePath = mediaStoragePath
-//            itFileName = fileName
-//            priority = 0
-//            downloadListener = object : OnDownloadListener {
-//                override fun onDownloadComplete() {
-//                    it.pathBackup = it.body!!
-//                    it.body = "$mediaStoragePath/$fileName"
-//
-//                    coroutineScope.launch {
-//                        saveItemsToFile(broadcastList)
-//                    }
-//
-//                    Log.d("downloadcomplete", it.body!!)
-//                }
-//
-//                override fun onError(error: com.downloader.Error?) {
-//                    Log.d("downloaderror", it.body!!)
-//                }
-//
-//            }
-//        })
-//    }
-//
-//    /
+    fun clearMonthlyLocalData() {
+        ConfigUtil.removeSharef(appContext, MONTHLY_SCENARIO_DATA)
+        ConfigUtil.removeSharef(appContext, MONTHLY_SCENARIO_URL)
+    }
 
 
     private val allowedExt by lazy {
