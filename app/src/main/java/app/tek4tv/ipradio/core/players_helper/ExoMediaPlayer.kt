@@ -199,6 +199,8 @@ class ExoMediaPlayer(
                     url.toUri()
                 }
             }
+            
+            Log.d(TAG, "playFile resolved URI: $uri (local exists: ${localFile.exists()})")
 
             resetPlayState()
             exoPlayer.setMediaItem(com.google.android.exoplayer2.MediaItem.fromUri(uri))

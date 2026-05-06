@@ -198,22 +198,22 @@ class NetworkUtils private constructor() {
         fun getRealEthernetIp(): String? {
             try {
                 // Lấy danh sách toàn bộ các cổng mạng hiện có dưới kernel
-                val interfaces: MutableList<NetworkInterface> = Collections.list<NetworkInterface?>(
-                    NetworkInterface.getNetworkInterfaces()
-                )
+                val networkInterfaces = NetworkInterface.getNetworkInterfaces() ?: return null
+                val interfaces: MutableList<NetworkInterface> = Collections.list<NetworkInterface?>(networkInterfaces)
 
                 for (intf in interfaces) {
+                    if (intf == null) continue
                     // Tìm đúng cổng mạng dây (thường là eth0)
-                    if (intf.getName().equals("eth0", ignoreCase = true)) {
+                    if (intf.name.equals("eth0", ignoreCase = true)) {
                         // Lấy danh sách các IP đang được gán cho cổng này
-
-                        val addrs: MutableList<InetAddress> =
-                            Collections.list<InetAddress?>(intf.getInetAddresses())
+                        val inetAddresses = intf.inetAddresses ?: continue
+                        val addrs: MutableList<InetAddress> = Collections.list<InetAddress?>(inetAddresses)
 
                         for (addr in addrs) {
+                            if (addr == null) continue
                             // Bỏ qua địa chỉ loopback (127.0.0.1) và chỉ lấy IPv4
-                            if (!addr.isLoopbackAddress() && addr is Inet4Address) {
-                                return addr.getHostAddress() // Trả về IP tĩnh bạn vừa set
+                            if (!addr.isLoopbackAddress && addr is Inet4Address) {
+                                return addr.hostAddress // Trả về IP tĩnh bạn vừa set
                             }
                         }
                     }

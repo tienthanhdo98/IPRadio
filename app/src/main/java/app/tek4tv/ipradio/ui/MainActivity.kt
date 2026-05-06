@@ -131,6 +131,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
             Log.d("MediaInfo", "onTimeOver: come")
             serialPortController.turnOffPA()
             //serialPortController.writeForceSetVolume(globalProperties.mainVolume)
+            playerManager.resetPlayMode()
             hubManager.currentMediaItem = null
         }
 
