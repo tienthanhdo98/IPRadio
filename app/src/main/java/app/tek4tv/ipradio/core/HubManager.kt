@@ -68,8 +68,10 @@ class HubManager(
 
     lateinit var hubObverse: IHubObserve
 
-    val deviceImei = "656565656565"
-    val verifyCode = "656565656565"
+    //    val deviceImei = "656565656565"
+//    val verifyCode = "656565656565"
+    val deviceImei = "6565656565652"
+    val verifyCode = "6565656565652"
 
 
     var pingCounter = 0
@@ -79,7 +81,7 @@ class HubManager(
     var currentMediaItem: MediaFile? = null
     var currentMediaInfoListId: Set<Long>? = null
 
-    var versionName = "1.0.4"
+    var versionName = "1.0.5"
 
 
     var isConnectSuccess = false

@@ -38,7 +38,7 @@ class MQTTManager(
     private var currentReconnectDelay = 2000L
 
     //private val MAX_RECONNECT_DELAY = 60000L
-    private val MAX_RECONNECT_DELAY = 6000L
+    private val MAX_RECONNECT_DELAY = 30000L
 
     init {
         mqttClient = MqttAndroidClient(context, serverURI, clientID)

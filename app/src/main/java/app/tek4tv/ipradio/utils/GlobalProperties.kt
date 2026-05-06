@@ -65,7 +65,7 @@ class GlobalProperties {
     var classdSzdRight = 0
 
     val ADMIN_PASSWORD = "ADMIN_PASSWORD"
-    var adminPassword = "1"
+    var adminPassword = "mgw"
 
     //
     val MUTE_SPEAKER_LEFT = "MUTE_SPEAKER_LEFT"
