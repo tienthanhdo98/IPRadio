@@ -30,6 +30,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
@@ -93,6 +94,14 @@ class MediaRepo @Inject constructor(
             //4.1.6e luu du lieu cua lich thang
             val monthlyScenarioData = scheduleMonthlyAdapter.toJson(monthScenario)
 
+            try {
+                val logFile = File(appContext.filesDir, "monthly_schedule_log.txt")
+                val logContent = "Time: ${Date()}\nURL: $url\nResponse: $monthlyScenarioData\n\n"
+                logFile.appendText(logContent)
+            } catch (e: Exception) {
+                Log.e(TAG, "Error writing log file: ${e.message}")
+            }
+
             ConfigUtil.putString(
                 appContext,
                 MONTHLY_SCENARIO_DATA,
@@ -118,21 +127,38 @@ class MediaRepo @Inject constructor(
     }
 
     private suspend fun updateScenario(scheduleDayUrl: String): List<MediaItem> {
+        Log.e(TAG, "updateScenario: start")
         var result = listOf<MediaItem>()
 
         try {
             val res = playlistService.getPlaylist(scheduleDayUrl)
+            Log.e(TAG, "updateScenario: ${res.body()}")
             if (res.isSuccessful) {
                 val resBody = res.body()
                 if (resBody != null) {
                     result = resBody
+
+                    try {
+                        val dailyScenarioData = jsonAdapter.toJson(result)
+                        val logFile = File(appContext.filesDir, "monthly_schedule_log.txt")
+                        val logContent =
+                            "Time: ${Date()}\nURL: $scheduleDayUrl\nResponse: $dailyScenarioData\n\n"
+                        logFile.appendText(logContent)
+                    } catch (e: Exception) {
+                        Log.e(TAG, "Error writing daily log file: ${e.message}")
+                    }
+
                     saveItemsToFile(result)
+
+                    val currentDate =
+                        SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+                    ConfigUtil.putString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, currentDate)
                 }
             } else {
-                Log.e("yee", "Lịch rỗng rồi")
+                Log.e(TAG, "updateScenario: Lịch rỗng rồi")
             }
         } catch (e: Exception) {
-            Log.e("yee", e.toString())
+            Log.e(TAG, "updateScenario error ${e.toString()}")
         }
 
         return result
@@ -190,10 +216,21 @@ class MediaRepo @Inject constructor(
                 }
 
                 isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME) -> {
-                    Log.d(TAG, "Reading playlist from local file")
-                    val localList = readItemsFromFile()
-                    localList.ifEmpty {
-                        Log.d(TAG, "Local file is empty, fallback to network")
+                    val savedDate =
+                        ConfigUtil.getString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, "")
+                    if (savedDate == currentDate) {
+                        Log.d(TAG, "Reading playlist from local file (Date match)")
+                        val localList = readItemsFromFile()
+                        localList.ifEmpty {
+                            Log.d(TAG, "Local file is empty, fallback to network")
+                            updateScenario(todayScenario.sourceUrl)
+                        }
+                    } else {
+                        Log.d(
+                            TAG,
+                            "Local file date mismatch ($savedDate != $currentDate), fallback to network"
+                        )
+                        Log.d(TAG, "Update from url: ${todayScenario.sourceUrl}")
                         updateScenario(todayScenario.sourceUrl)
                     }
                 }
@@ -284,32 +321,35 @@ class MediaRepo @Inject constructor(
 
         if (indices.isEmpty()) return@withContext
 
-        //Group by filename để tránh download trùng
-        val indicesByFilename = indices.groupBy { idx ->
-            val url = broadcastList[idx].body ?: ""
-            URLUtil.guessFileName(url, null, null)
+        //Group by URL để tránh download trùng và tránh đè file khác URL nhưng trùng tên
+        val indicesByUrl = indices.groupBy { idx ->
+            broadcastList[idx].body ?: UUID.randomUUID().toString()
         }
         // Log warning nếu có duplicate
-        indicesByFilename.forEach { (filename, idxList) ->
+        indicesByUrl.forEach { (url, idxList) ->
             if (idxList.size > 1) {
-                Log.w(TAG, "Duplicate filename detected: $filename (${idxList.size} items)")
+                Log.w(TAG, "Duplicate URL detected: $url (${idxList.size} items)")
             }
         }
 
         val sem = kotlinx.coroutines.sync.Semaphore(parallelism)
 
-        // Chỉ download MỖI FILE MỘT LẦN, sau đó apply cho tất cả items trùng
-        val resultsByFilename = indicesByFilename.map { (filename, idxList) ->
+        // Chỉ download MỖI URL MỘT LẦN, sau đó apply cho tất cả items trùng
+        val resultsByUrl = indicesByUrl.map { (url, idxList) ->
             async {
                 sem.withPermit {
                     // Lấy item đầu tiên để download
                     val firstIdx = idxList.first()
                     val item = broadcastList[firstIdx]
 
+                    val guessedName = URLUtil.guessFileName(url, null, null)
+                    val safeFileName = "${url.md5()}_$guessedName"
+
                     val updated = downloadAndTransform(
                         item = item,
                         mediaStoragePath = mediaStoragePath,
                         isAllowedExt = isAllowedExtension,
+                        safeFileName = safeFileName
                     )
                     // Trả về tất cả indices với cùng kết quả
                     idxList.map { it to updated }
@@ -319,7 +359,7 @@ class MediaRepo @Inject constructor(
 
         // Ghi lại tuần tự để tránh race condition
         try {
-            for ((idx, updated) in resultsByFilename) {
+            for ((idx, updated) in resultsByUrl) {
                 broadcastList[idx] = updated
             }
         } catch (e: Exception) {
@@ -335,15 +375,15 @@ class MediaRepo @Inject constructor(
         item: MediaItem,
         mediaStoragePath: String,
         isAllowedExt: (String) -> Boolean,
+        safeFileName: String
     ): MediaItem {
         val url = item.body ?: return item
         if (!URLUtil.isNetworkUrl(url)) return item
 
-        val fileName = URLUtil.guessFileName(url, null, null)
-        val localPath = File(mediaStoragePath, fileName).path
+        val localPath = File(mediaStoragePath, safeFileName).path
 
         // Lọc extension
-        val ext = fileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
+        val ext = safeFileName.substringAfterLast('.', "").lowercase(Locale.ROOT)
         if (ext.isBlank() || !isAllowedExt(ext)) return item
 
         val originalBody = item.body // giữ URL gốc để set pathBackup
@@ -365,7 +405,7 @@ class MediaRepo @Inject constructor(
         }
 
         // 4. Tải file
-        val ok = prDownloadOnce(url, mediaStoragePath, fileName)
+        val ok = prDownloadOnce(url, mediaStoragePath, safeFileName)
 
         // 5. Đợi một chút để file được flush (workaround PRDownloader timing issue)
         if (ok) {
@@ -482,5 +522,11 @@ class MediaRepo @Inject constructor(
         } catch (e: Exception) {
             Log.e(TAG, "Error while stopping downloads: ${e.message}")
         }
+    }
+
+    private fun String.md5(): String {
+        val md = java.security.MessageDigest.getInstance("MD5")
+        val digested = md.digest(toByteArray())
+        return digested.joinToString("") { "%02x".format(it) }
     }
 }

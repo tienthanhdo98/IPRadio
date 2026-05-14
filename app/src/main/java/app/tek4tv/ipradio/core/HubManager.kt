@@ -87,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v16.4.2.1g"
+    var versionName = "v16.4.2.1h"
 
     private var registerOnMessageListener = false
 
@@ -118,7 +118,7 @@ class HubManager(
 //        hubUrl = ConfigUtil.getString(
 //            appContext,
 //            ConfigUtil.URL_HUB,
-//            Secrets().gethubhue(packageName)
+//            Secrets().gethubha(packageName)
 //        )!!
         hubUrl = "https://hubip-haiphong.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
