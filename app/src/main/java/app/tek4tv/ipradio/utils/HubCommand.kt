@@ -26,6 +26,7 @@ object HubCommand {
     const val SWITCH_MODE_FM = "SWITCH_MODE_FM"
     const val GET_LOCATION = "GET_LOCATION"
     const val UPDATE_VERSION = "UPDATE_VERSION"
+    const val UPDATE_DESTINATION = "UPDATE_DESTINATION"
     const val PONG = "PONG"
     const val SET_TIME_OVER = "SET_TIME_OVER"
     const val SET_TIME_ON = "SET_TIME_ON"

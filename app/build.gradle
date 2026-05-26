@@ -25,7 +25,7 @@ android {
         minSdkVersion 23
         targetSdkVersion 28
         versionCode 12
-        versionName "3.1.2b"
+        versionName "3.1.2d"
 
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
 
@@ -105,15 +105,13 @@ dependencies {
     implementation "androidx.fragment:fragment-ktx:1.2.5"
 
     //prdownloader
-    implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.1'
+    implementation 'com.github.amitshekhariitbhu:PRDownloader:1.0.2'
 
     implementation 'commons-net:commons-net:3.7.2'
 
     implementation 'com.google.android.exoplayer:exoplayer-core:2.13.3'
     implementation 'com.google.android.exoplayer:exoplayer-hls:2.13.3'
     implementation 'com.google.android.exoplayer:extension-okhttp:2.13.3'
-
-
 
 
 }

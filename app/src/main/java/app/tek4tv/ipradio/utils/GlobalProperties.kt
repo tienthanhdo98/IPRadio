@@ -3,6 +3,8 @@ package app.tek4tv.ipradio.utils
 import android.content.Context
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.model.ResponseHub
+import app.tek4tv.ipradio.utils.ConfigUtil.PROVIDER
+import app.tek4tv.ipradio.utils.ConfigUtil.VERSION_NAME
 
 class GlobalProperties {
 
@@ -32,6 +34,8 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
+    var providerValue: String = "VATC"
+    var versionName: String = "3.1.2d"
 
     init {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
@@ -45,6 +49,8 @@ class GlobalProperties {
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV").toString()
+        versionName = ConfigUtil.getString(appContext, VERSION_NAME, "3.1.2d").toString()
     }
 
     fun saveProperties(responseHub: ResponseHub) {

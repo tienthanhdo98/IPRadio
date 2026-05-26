@@ -96,12 +96,7 @@ fun downloadUpdateApk(
                 Log.d("install", "failed root")
                 e.printStackTrace()
             }
-
-
-
-
         }
-
 
     }
 

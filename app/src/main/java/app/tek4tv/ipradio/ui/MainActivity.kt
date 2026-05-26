@@ -35,7 +35,6 @@ import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.FtpUtils
 import app.tek4tv.ipradio.utils.network.LocationTracker
 import app.tek4tv.ipradio.utils.network.NetworkUtils
-import app.tek4tv.ipradio.utils.network.NetworkUtils.Companion.getNetworkClass
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import app.tek4tv.ipradio.viewmodels.MainViewModel
 import com.microsoft.signalr.HubConnectionBuilder
@@ -305,8 +304,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private fun showMac() {
         val tvMacAdress = findViewById<TextView>(R.id.tvMac)
         val imei = Utils.getDeviceId(this)
-        tvMacAdress.text = "$imei - Ver: ${hubManager.versionName}"
-
+        tvMacAdress.text = "$imei - Ver: ${globalProperties.versionName}"
     }
 
 
@@ -505,7 +503,46 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         downloadUpdateApk(responseHub.message!!, this, serialPortController)
                     }
                 }
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message ?: return
+                    Log.i("config_config", "updateconfig $mess")
 
+                    val listInfoConfig = mess.split(",")
+
+                    val newResponseHub = ResponseHub().apply {
+                        listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
+                            volume = it
+                            serialPortController.writeForceSetVolume(mess)
+                        }
+                        listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
+                            lat = it.toFloat()
+                        }
+                        listInfoConfig.getOrNull(2)?.takeIf { it != "null" }?.let {
+                            lng = it.toFloat()
+                        }
+                        listInfoConfig.getOrNull(3)?.takeIf { it != "null" }?.let {
+                            destinationId = it
+                        }
+                        listInfoConfig.getOrNull(4)?.takeIf { it != "null" }?.let {
+                            destinationName = it
+                        }
+                        listInfoConfig.getOrNull(5)?.takeIf { it != "null" }?.let {
+                            deviceName = it
+                        }
+                    }
+
+                    listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putString(applicationContext, ConfigUtil.PROVIDER, it)
+                        globalProperties.providerValue = it
+                    }
+                    listInfoConfig.getOrNull(7)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putString(applicationContext, ConfigUtil.VERSION_NAME, it)
+                        globalProperties.versionName = it
+                    }
+
+
+                    globalProperties.saveProperties(newResponseHub)
+                }
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
                     playerManager.stopAllPlayer()

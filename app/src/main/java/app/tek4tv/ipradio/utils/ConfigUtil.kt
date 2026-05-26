@@ -16,6 +16,8 @@ object ConfigUtil {
     const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
     const val URL_TOKEN = "URL_TOKEN"
+    const val PROVIDER = "PROVIDER"
+    const val VERSION_NAME = "VERSION_NAME"
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         val editor = sharedPref.edit()
@@ -75,6 +77,18 @@ object ConfigUtil {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
         return sharedPref.getFloat(key, defaultValue)
     }
+
+    fun putInt(context: Context, key: String?, value: Int) {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        val editor = sharedPref.edit()
+        editor.putInt(key, value)
+        editor.apply()
+    }
+    fun getInt(context: Context, key: String, defaultValue: Int): Int {
+        val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
+        return sharedPref.getInt(key, defaultValue)
+    }
+
 
     fun checkSharef(context: Context, key: String): Boolean {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

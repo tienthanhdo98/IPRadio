@@ -14,6 +14,7 @@ import android.os.Build
 import android.os.Process
 import android.telephony.*
 import android.util.Log
+import androidx.annotation.RequiresApi
 import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.MutableLiveData
@@ -165,9 +166,27 @@ class NetworkUtils private constructor() {
         fun getCellSignalStrengthInDbm(context: Context): Int {
             try {
                 val tm = context.getSystemService(Context.TELEPHONY_SERVICE) as TelephonyManager
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Log.d("SignalStrength", "getCellSignalStrengthInDbm ${tm.signalStrength}")
+                }
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                    Log.d(
+                        "SignalStrength",
+                        "getCellSignalStrengthInDbm ${tm.signalStrength?.level}"
+                    )
+                }
 
+//                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+//                    Log.d(
+//                        "SignalStrength",
+//                        "getCellSignalStrengthInDbm ${tm.signalStrength?.}"
+//                    )
+//                }
                 val cellInfo = tm.allCellInfo[0]
-
+                Log.d(
+                    "SignalStrength",
+                    "getCellSignalStrengthInDbm ${cellInfo}"
+                )
                 if (cellInfo != null) {
                     return when (cellInfo) {
                         is CellInfoLte -> cellInfo.cellSignalStrength.dbm
@@ -250,9 +269,9 @@ class NetworkUtils private constructor() {
             }
         }
 
-        fun setWifiEnable(appContext: Context, enable : Boolean)
-        {
-            val wifiManager = appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
+        fun setWifiEnable(appContext: Context, enable: Boolean) {
+            val wifiManager =
+                appContext.applicationContext.getSystemService(Context.WIFI_SERVICE) as WifiManager
             wifiManager.isWifiEnabled = enable
         }
     }
