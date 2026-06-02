@@ -109,6 +109,9 @@ class HubManager(
     var providerValue = ""
     var packageName = ""
 
+    private var lastMessageKey: String = ""
+    private var lastMessageTime: Long = 0L
+
 
     init {
         packageName = appContext.packageName
@@ -290,6 +293,16 @@ class HubManager(
                     Log.d("message receive", message ?: "")
                     var meessDe = ""
                     var needDecrypt = false
+
+                    val currentCommand = command?.trim() ?: ""
+                    val currentTime = System.currentTimeMillis()
+                    val messageKey = currentCommand
+                    if (messageKey == lastMessageKey && (currentTime - lastMessageTime) < 1500) {
+                        Log.d(LOG_TAG, "Bỏ qua bản tin trùng lặp: $currentCommand")
+                        return@post
+                    }
+                    lastMessageKey = messageKey
+                    lastMessageTime = currentTime
 
                     if (command != null && message != null) {
                         when (command) {

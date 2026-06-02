@@ -41,8 +41,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(moshi: Moshi): Retrofit = Retrofit.Builder().baseUrl(NetworkUtils.BASE_URL)
-//        .client(okHttpClient)
-        .client(getUnsafeOkHttpClient())
+        .client(okHttpClient)
+        //.client(getUnsafeOkHttpClient())
         .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
         .addCallAdapterFactory(CoroutineCallAdapterFactory()).build()
 
