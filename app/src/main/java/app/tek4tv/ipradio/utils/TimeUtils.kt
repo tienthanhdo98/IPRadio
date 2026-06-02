@@ -61,10 +61,13 @@ fun toCalendar(time: String): Calendar {
             set(Calendar.HOUR_OF_DAY, t[0])
             set(Calendar.MINUTE, t[1])
             set(Calendar.SECOND, t[2])
+            set(Calendar.MILLISECOND, 0)
         }
     } catch (e: Exception) {
         Log.d("toCalendar()", e.message!!)
-        Calendar.getInstance()
+        Calendar.getInstance().apply {
+            set(Calendar.MILLISECOND, 0)
+        }
     }
 }
 
