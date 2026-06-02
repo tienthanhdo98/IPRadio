@@ -16,6 +16,11 @@ import retrofit2.Retrofit
 import retrofit2.converter.moshi.MoshiConverterFactory
 import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
+import java.security.SecureRandom
+import java.security.cert.X509Certificate
+import javax.net.ssl.SSLContext
+import javax.net.ssl.TrustManager
+import javax.net.ssl.X509TrustManager
 
 
 @Module
@@ -36,8 +41,8 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideRetrofit(moshi: Moshi): Retrofit = Retrofit.Builder().baseUrl(NetworkUtils.BASE_URL)
-        .client(okHttpClient)
-        //.client(getUnsafeOkHttpClient())
+//        .client(okHttpClient)
+        .client(getUnsafeOkHttpClient())
         .addConverterFactory(MoshiConverterFactory.create(moshi).asLenient())
         .addCallAdapterFactory(CoroutineCallAdapterFactory()).build()
 
@@ -54,4 +59,43 @@ object NetworkModule {
     @Provides
     @Singleton
     fun provideLogService(retrofit: Retrofit): LogService = retrofit.create(LogService::class.java)
+
+    fun getUnsafeOkHttpClient(): OkHttpClient {
+        return try {
+            // TrustManager "tin tất cả"
+            val trustAllCerts = arrayOf<TrustManager>(
+                object : X509TrustManager {
+                    override fun checkClientTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun checkServerTrusted(
+                        chain: Array<out X509Certificate>?,
+                        authType: String?
+                    ) {
+                    }
+
+                    override fun getAcceptedIssuers(): Array<X509Certificate> {
+                        return arrayOf()
+                    }
+                }
+            )
+
+            val sslContext = SSLContext.getInstance("TLS")
+            sslContext.init(null, trustAllCerts, SecureRandom())
+
+            OkHttpClient.Builder()
+                .sslSocketFactory(
+                    sslContext.socketFactory,
+                    trustAllCerts[0] as X509TrustManager
+                )
+                .hostnameVerifier { _, _ -> true } // bỏ qua kiểm tra tên miền (tuỳ chọn)
+                .build()
+
+        } catch (e: Exception) {
+            throw RuntimeException(e)
+        }
+    }
 }

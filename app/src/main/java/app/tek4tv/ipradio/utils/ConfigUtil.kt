@@ -9,13 +9,10 @@ import androidx.core.content.edit
 object ConfigUtil {
     const val PREFERENCE_FILE_NAME = "vn.tek4tv.radioip"
 
-    //const val ACTION_SCHEDULED = "vn.tek4tv.radioip"
     const val HAVE_FORCE_MEDIA = "HAVE_FORCE_MEDIA"
     const val FORCE_MEDIA = "FORCE_MEDIA"
     const val MONTHLY_SCENARIO_URL = "MONTHLY_SCENARIO_URL"
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
-    const val DISCONNECT_START_TIME = "DISCONNECT_START_TIME"
-    const val DISCONNECT_STATE = "DISCONNECT_STATE"
     const val URL_HUB = "URL_HUB"
     const val PROVIDER = "PROVIDER"
     const val URL_TOKEN = "URL_TOKEN"
@@ -72,9 +69,9 @@ object ConfigUtil {
 
     fun putInt(context: Context, key: String?, value: Int) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putInt(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putInt(key, value)
+        }
     }
 
     fun getInt(context: Context, key: String, defaultValue: Int): Int {
@@ -90,9 +87,9 @@ object ConfigUtil {
 
     fun putBool(context: Context, key: String, value: Boolean) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putBoolean(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putBoolean(key, value)
+        }
     }
 
     fun getBool(context: Context, key: String, defaultValue: Boolean): Boolean {
@@ -102,9 +99,9 @@ object ConfigUtil {
 
     fun putFloat(context: Context, key: String?, value: Float) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        val editor = sharedPref.edit()
-        editor.putFloat(key, value)
-        editor.apply()
+        sharedPref.edit {
+            putFloat(key, value)
+        }
     }
 
     fun getFloat(context: Context, key: String, defaultValue: Float): Float {
@@ -123,7 +120,7 @@ object ConfigUtil {
 
     fun removeSharef(context: Context, key: String) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)
-        sharedPref.edit().remove(key).apply()
+        sharedPref.edit { remove(key) }
     }
 
     fun isFirstRun(context: Context): Boolean {

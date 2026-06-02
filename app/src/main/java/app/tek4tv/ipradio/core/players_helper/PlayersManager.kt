@@ -41,10 +41,6 @@ class PlayersManager(
     private val vlcPlayer: IMediaPlayer = VlcMediaPlayer(appContext, this)
     private var currentPlayingMedia: MediaItem? = null
 
-    /**
-     * The timestamp when a media begin to play
-     * **/
-    private var mediaStartTime = 0L
 
     /**
      * -2 for force media
@@ -79,7 +75,6 @@ class PlayersManager(
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
-        mediaStartTime = Calendar.getInstance().timeInMillis
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
@@ -210,7 +205,6 @@ class PlayersManager(
                 MediaType.FM -> {
                     var currentTimeStamp = 0
                     if (timeStamp >= 0) currentTimeStamp = timeStamp
-                    mediaStartTime = Calendar.getInstance().timeInMillis
                     playerManagerListener?.onPlayTuner(mediaItem)
                     if (playMode != PLAY_MODE_FORCE) {
                         handlerFMPlayer?.removeCallbacksAndMessages(null)
@@ -302,7 +296,6 @@ class PlayersManager(
         val startTimeOfMedia = toCalendar(mediaItem.fixTime!!)
         val now = Calendar.getInstance()
         return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-
     }
 
     fun stopPlaylist(cancelListKey: String) {

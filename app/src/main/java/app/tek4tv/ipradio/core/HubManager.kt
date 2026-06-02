@@ -87,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v16.4.2.1h"
+    var versionName = "v19.4.2.2"
 
     private var registerOnMessageListener = false
 
@@ -113,14 +113,9 @@ class HubManager(
     init {
         packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
-            appContext, ConfigUtil.PROVIDER, "VATC"
+            appContext, ConfigUtil.PROVIDER, "TEK4TV"
         )!!
-//        hubUrl = ConfigUtil.getString(
-//            appContext,
-//            ConfigUtil.URL_HUB,
-//            Secrets().gethubha(packageName)
-//        )!!
-        hubUrl = "https://hubip-haiphong.tek4tv.vn/hubServer"
+        hubUrl = "https://hubip-phutho.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
         )!!
@@ -165,7 +160,7 @@ class HubManager(
 
 
             val call = authService.getToken(body, tokenUrl)
-            Log.d("getHubToken", "getHubToken: $body")
+
             val response = call.execute()
             if (response.isSuccessful) {
                 val token = response.body()!!.token
@@ -255,7 +250,7 @@ class HubManager(
                 Log.e(LOG_TAG, "Trying to reconnect... $i")
                 pingCounter++
             }
-            Log.d(LOG_TAG, "$connectionId")
+            Log.d(LOG_TAG, connectionId)
             onMessage()
             startPingTimer()
             startPingDataTimer()
@@ -487,15 +482,15 @@ class HubManager(
     }
 
     private suspend fun checkConnection() {
-        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
-            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
-
-            hubComm.forceRestartApp(countForHardRestart)
-        }
-        if (pingCounter >= 3) {
+//        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
+//            val countForHardRestart = ConfigUtil.getInt(appContext, ConfigUtil.CountForHardReset, 0)
+//
+//            hubComm.forceRestartApp(countForHardRestart)
+//        }
+        if (pingCounter >= 4) {
             Log.e(LOG_TAG, "Losed hub connection")
             hubToken = null
-            //Try to reconnect to hub
+            pingCounter = 0
             openConnection()
         }
     }

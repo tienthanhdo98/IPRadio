@@ -207,14 +207,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             if (mediaItem != null) {
                 logUtils.logMediaStart(mediaItem, 0, globalProperties.volume, paState)
             }
-            if (globalProperties.logEnabled) {
-                try {
-                    viewModel.currentMedia = mediaItem
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                }
-            }
-
         }
     }
 
@@ -265,7 +257,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         logUtils = LogUtils.getInst()
         logUtils.logService = logService
 
-        //mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(baseContext, hubComm, authService) { command, message ->
             handleFromCommandServer(command, message)
@@ -447,9 +438,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     }
 
     private fun showMac() {
-        val tvMacAdress = findViewById<TextView>(R.id.tvMac)
+        val tvMacAddress = findViewById<TextView>(R.id.tvMac)
         val imei = hubManager.deviceImei
-        tvMacAdress.text = buildString {
+        tvMacAddress.text = buildString {
             append(imei)
             append(" - Ver: ")
             append(hubManager.versionName)
@@ -618,7 +609,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     ConfigUtil.putString(
                         applicationContext, ConfigUtil.MONTHLY_SCENARIO_URL, mess
                     ) //lưu dữ link vào local storage cho việc lặp lịch vào hôm sau
-
                     // lưu thời gian cập nhật lịch để gửi log
                     val currentTime = Calendar.getInstance().time.time / 1000
                     ConfigUtil.putString(
@@ -764,13 +754,24 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.TURN_ON_PA -> {
-                    val mess = responseHub.message!!.toInt()
-                    if (mess == 0) {
-                        serialPortController.turnOnPAVod()
+                    val mess = responseHub.message
+                    try {
+                        val value = mess?.toIntOrNull()
+                        when (value) {
+                            0 -> serialPortController.turnOnPAVod()
+                            1 -> serialPortController.turnOffPA()
+                            null -> {
+                                // mess không phải là số
+                                Log.e("HubCommand", "Message is not a valid number: $mess")
+                            }
 
-                    } else {
-                        serialPortController.turnOffPA()
-
+                            else -> {
+                                // mess là số nhưng không phải 0 hoặc 1
+                                Log.w("HubCommand", "Unexpected PA control value: $value")
+                            }
+                        }
+                    } catch (e: Exception) {
+                        Log.e("HubCommand", "Error parsing PA command: ${e.message}")
                     }
                 }
 
@@ -861,7 +862,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                                     connectionId, HubCommand.PLAYLIST_INFO, dataFromPlaylist
                                 )
                             }
-                        } catch (e: IOException) {
+                        } catch (_: IOException) {
                             Log.e("readplaylist", "error reading playlist!!!")
                         }
                     }
@@ -1052,9 +1053,9 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
             }
 
-            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS && globalProperties.logEnabled) {
-                logUtils.logHubCommand(command, responseHub.message ?: "")
-            }
+//            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {
+//                logUtils.logHubCommand(command, responseHub.message ?: "")
+//            }
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
         }
@@ -1076,7 +1077,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             val audio = getSystemService(AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Log.e("Main", "Error setting max volume")
         }
     }

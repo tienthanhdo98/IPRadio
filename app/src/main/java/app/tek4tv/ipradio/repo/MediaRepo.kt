@@ -63,49 +63,63 @@ class MediaRepo @Inject constructor(
 
     suspend fun safeUpdateMonthlyScenario(
         url: String,
-        retryCount: Int = 3,
-        delayMillis: Long = 5 * 60 * 1000
-    ) {
-        repeat(retryCount) { attempt ->
+        retryCount: Int = 15,
+        delaySeconds: Long = 10L // Giá trị x(s) cấu hình mặc định là 10 giây
+    ): Boolean {
+        val baseDelayMillis = delaySeconds * 1000L
+        val maxDelayMillis = 30 * 1000L // Giới hạn tối đa 1 phút (60,000ms)
+
+        for (attempt in 0 until retryCount) {
             try {
-                clearPlaylist()
-                updateMonthlyScenario(url)
-                return // thành công → thoát luôn
-            } catch (_: Exception) {
-                if (attempt < retryCount - 1) delay(delayMillis)
+                val isSuccess = updateMonthlyScenario(url)
+                if (isSuccess) return true
+
+                Log.e(TAG, "Tải lịch thất bại (lần ${attempt + 1})")
+                if (attempt < retryCount - 1) {
+                    // Tính toán thời gian delay dựa trên số lần thử (attempt chạy từ 0 đến 14)
+                    val currentDelay = if (attempt < 10) {
+                        baseDelayMillis // 10 lần đầu: delay cố định x(s)
+                    } else {
+                        maxDelayMillis // Từ lần thứ 11 trở đi (attempt >= 10): delay 1 phút
+                    }
+
+                    // Thêm một chút jitter ngẫu nhiên (0 - 1s) để tránh trùng lặp request
+                    val jitter = (Math.random() * 1000).toLong()
+                    val finalDelay = currentDelay + jitter
+
+                    Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại...")
+                    delay(finalDelay)
+                }
+
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi hệ thống khi tải lịch (lần ${attempt + 1}): ${e.message}")
+                if (attempt < retryCount - 1) {
+                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
+                    val jitter = (Math.random() * 1000).toLong()
+                    delay(currentDelay + jitter)
+                }
             }
         }
+        return false
     }
 
-    private suspend fun updateMonthlyScenario(url: String) {
+    private suspend fun updateMonthlyScenario(url: String): Boolean {
         try {
             Log.e(TAG, "updateMonthlyScenario")
             val fetchResult = playlistService.getMonthlyPlaylist(url)
 
-            if (!fetchResult.isSuccessful) return
+            if (!fetchResult.isSuccessful) return false
 
-            val monthScenario = fetchResult.body() ?: return
+            val monthScenario = fetchResult.body() ?: return false
 
             ConfigUtil.putString(
-                appContext,
-                KEY_MODIFY_TIME_PLAYLIST,
-                monthScenario.first().ppdatedAt
+                appContext, KEY_MODIFY_TIME_PLAYLIST, monthScenario.first().ppdatedAt
             )
             //4.1.6e luu du lieu cua lich thang
             val monthlyScenarioData = scheduleMonthlyAdapter.toJson(monthScenario)
 
-            try {
-                val logFile = File(appContext.filesDir, "monthly_schedule_log.txt")
-                val logContent = "Time: ${Date()}\nURL: $url\nResponse: $monthlyScenarioData\n\n"
-                logFile.appendText(logContent)
-            } catch (e: Exception) {
-                Log.e(TAG, "Error writing log file: ${e.message}")
-            }
-
             ConfigUtil.putString(
-                appContext,
-                MONTHLY_SCENARIO_DATA,
-                monthlyScenarioData
+                appContext, MONTHLY_SCENARIO_DATA, monthlyScenarioData
             )
 
             val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
@@ -120,9 +134,10 @@ class MediaRepo @Inject constructor(
                 saveItemsToFile(listOf())
                 Log.e(TAG, "Không có lịch trong ngày")
             }
-
+            return true
         } catch (e: Exception) {
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
+            return false
         }
     }
 
@@ -137,16 +152,6 @@ class MediaRepo @Inject constructor(
                 val resBody = res.body()
                 if (resBody != null) {
                     result = resBody
-
-                    try {
-                        val dailyScenarioData = jsonAdapter.toJson(result)
-                        val logFile = File(appContext.filesDir, "monthly_schedule_log.txt")
-                        val logContent =
-                            "Time: ${Date()}\nURL: $scheduleDayUrl\nResponse: $dailyScenarioData\n\n"
-                        logFile.appendText(logContent)
-                    } catch (e: Exception) {
-                        Log.e(TAG, "Error writing daily log file: ${e.message}")
-                    }
 
                     saveItemsToFile(result)
 
@@ -181,12 +186,10 @@ class MediaRepo @Inject constructor(
         // Tự động khôi phục / cập nhật nếu lịch tháng chưa có lịch cho hôm nay
         val hasToday = monthlyDataList.any { it.date == currentDate }
         if (!hasToday) {
-            val monthlyUrl =
-                ConfigUtil.getString(appContext, MONTHLY_SCENARIO_URL, "") ?: ""
+            val monthlyUrl = ConfigUtil.getString(appContext, MONTHLY_SCENARIO_URL, "") ?: ""
             if (monthlyUrl.isNotEmpty()) {
                 Log.d(
-                    TAG,
-                    "No schedule for today found in cache. Fetching latest monthly scenario..."
+                    TAG, "No schedule for today found in cache. Fetching latest monthly scenario..."
                 )
                 try {
                     updateMonthlyScenario(monthlyUrl)
@@ -208,7 +211,6 @@ class MediaRepo @Inject constructor(
             emptyList()
         } else {
             val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
-
             when {
                 todayScenario == null -> {
                     Log.d(TAG, "No schedule for today")
@@ -281,7 +283,6 @@ class MediaRepo @Inject constructor(
 
     fun clearMonthlyLocalData() {
         ConfigUtil.removeSharef(appContext, MONTHLY_SCENARIO_DATA)
-        ConfigUtil.removeSharef(appContext, MONTHLY_SCENARIO_URL)
     }
 
 
@@ -444,9 +445,7 @@ class MediaRepo @Inject constructor(
 
                 // Chỉ xóa file nếu là file của download này (check bằng timestamp gần đây)
                 try {
-                    if (targetFile.exists() &&
-                        System.currentTimeMillis() - targetFile.lastModified() < 5000
-                    ) {
+                    if (targetFile.exists() && System.currentTimeMillis() - targetFile.lastModified() < 5000) {
                         targetFile.delete()
                         Log.e(TAG, "deleted corrupted file: ${targetFile.absolutePath}")
                     }

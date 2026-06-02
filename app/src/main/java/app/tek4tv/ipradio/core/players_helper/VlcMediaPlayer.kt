@@ -10,7 +10,6 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
-import app.tek4tv.ipradio.utils.isInRangeTimePlay
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
 import org.videolan.libvlc.MediaPlayer
@@ -103,10 +102,11 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
         if (isForce) {
             playLiveStream(mediaItem, timeStamp)
         } else {
-            // playFile(mediaItem, timeStamp)
-            if (isInRangeTimePlay()) {
-                playFile(mediaItem, timeStamp)
-            }
+            playFile(mediaItem, timeStamp)
+            //Chi phai phong
+//            if (isInRangeTimePlay()) {
+//                playFile(mediaItem, timeStamp)
+//            }
         }
         currentMedia = mediaItem
 

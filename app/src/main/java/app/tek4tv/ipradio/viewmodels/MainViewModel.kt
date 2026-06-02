@@ -31,8 +31,6 @@ class MainViewModel @Inject constructor(
 
     private var getContentJob: Job? = null
 
-
-    var currentMedia: MediaItem? = null
     private var checkPlaylistJob: Job? = null
 
 
@@ -46,7 +44,7 @@ class MainViewModel @Inject constructor(
 
     fun getPlayerContent() {
         viewModelScope.launch {
-            getContentJob?.join()
+//            getContentJob?.join()
 
             //cancel media check here
             checkPlaylistJob?.cancel()

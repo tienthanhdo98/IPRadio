@@ -54,7 +54,7 @@ class LogUtils private constructor() {
      private val deviceStatusDb : DatabaseReference
      private val networkDb : DatabaseReference*/
     private val imei = Utils.getDeviceId(appContext)
-    
+
     private val mediaReportAdapter = MoshiInst.moshi.adapter(MediaRecord::class.java)
     private val timeframeReportAdapter = MoshiInst.moshi.adapter(TimeFrameRecord::class.java)
     private val hubStateReportAdapter = MoshiInst.moshi.adapter(HubStateRecord::class.java)
@@ -144,6 +144,7 @@ class LogUtils private constructor() {
             sourceReference = mediaItem.sourceReference,
             provider = providerValue,
         )
+
         val str = getRecordStr(reportObj)
 
         if (str != null)
@@ -220,7 +221,6 @@ class LogUtils private constructor() {
                 e.printStackTrace()
             }
         }
-
 
     }
 

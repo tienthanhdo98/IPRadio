@@ -28,11 +28,10 @@ class GlobalProperties {
     var nameDevice = ""
     var destinationName = ""
     var destinationId = ""
-    var logEnabled = false
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "VATC"
+    var providerValue: String = "TEK4TV"
 
 
     init {
@@ -40,18 +39,17 @@ class GlobalProperties {
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H24.119") ?: "H24.119"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H44.166") ?: "H44.166"
         destinationName =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Đặc khu Cát Hải")
-                ?: "Đặc khu Cát Hải"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Đặc khu Cát Hải")
-            ?: "TB Đặc khu Cát Hải"
-        logEnabled = ConfigUtil.getBool(appContext, DEFAULT_LOG_ENABLE, false)
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Tam Sơn")
+                ?: "Phường Tam Sơn"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Phường Tam Sơn")
+            ?: "Phường Tam Sơn"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getString(appContext, PROVIDER, "VATC") ?: "VATC"
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
     }
 
     fun saveProperties(responseHub: ResponseHub) {
@@ -83,11 +81,6 @@ class GlobalProperties {
         if (responseHub.destinationName != "" && responseHub.destinationName != null) {
             ConfigUtil.putString(appContext, DEFAULT_DESTINATION_NAME, responseHub.destinationName)
             destinationName = responseHub.destinationName ?: ""
-        }
-
-        if (responseHub.logEnabled != null) {
-            ConfigUtil.putBool(appContext, DEFAULT_LOG_ENABLE, responseHub.logEnabled!!)
-            logEnabled = responseHub.logEnabled!!
         }
 
         if (responseHub.resumeFromStart != null) {
