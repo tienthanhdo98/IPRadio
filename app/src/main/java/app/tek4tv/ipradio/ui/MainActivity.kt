@@ -145,6 +145,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 //            Handler(Looper.getMainLooper()).postDelayed({
 //                serialPortController.turnOffPA()
 //            }, 1500)
+//            }, 1500)
         }
 
         //Phát FM

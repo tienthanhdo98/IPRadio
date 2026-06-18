@@ -87,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v19.4.2.2"
+    var versionName = "v61.4.2.2a"
 
     private var registerOnMessageListener = false
 
@@ -500,7 +500,7 @@ class HubManager(
 //
 //            hubComm.forceRestartApp(countForHardRestart)
 //        }
-        if (pingCounter >= 4) {
+        if (pingCounter >= 3) {
             Log.e(LOG_TAG, "Losed hub connection")
             hubToken = null
             pingCounter = 0

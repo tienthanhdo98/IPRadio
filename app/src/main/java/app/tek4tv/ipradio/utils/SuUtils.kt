@@ -34,6 +34,23 @@ fun execSu(command: String): Int {
     }
 }
 
+fun reboot() {
+    val proc = Runtime.getRuntime()
+        .exec(arrayOf("su", "0", "reboot"))
+    val output = proc.inputStream.bufferedReader().readText()
+    val error = proc.errorStream.bufferedReader().readText()
+    val exitCode = proc.waitFor()
+
+    Log.d("reboot", "exitCode: $exitCode")
+    Log.d("reboot", "output: $output")
+    Log.d("reboot", "error: $error")
+
+    if (output.contains("Success", ignoreCase = true)) {
+        Log.d("reboot", "Cài thành công")
+    } else {
+        Log.d("reboot", "Thất bại: $output / $error")
+    }
+}
 
 @Throws(java.lang.Exception::class)
 fun setMobileDataEnabled(enableOrDisable: Boolean) {

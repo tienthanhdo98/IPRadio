@@ -169,6 +169,37 @@ class MediaRepo @Inject constructor(
         return result
     }
 
+    suspend fun safeUpdateScenario(
+        url: String,
+        retryCount: Int = 15,
+        delaySeconds: Long = 10L
+    ): List<MediaItem> {
+        val baseDelayMillis = delaySeconds * 1000L
+        val maxDelayMillis = 30 * 1000L
+
+        for (attempt in 0 until retryCount) {
+            try {
+                val result = updateScenario(url)
+                if (result.isNotEmpty()) return result
+
+                Log.e(TAG, "Tải lịch ngày thất bại (lần ${attempt + 1})")
+                if (attempt < retryCount - 1) {
+                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
+                    val jitter = (Math.random() * 1000).toLong()
+                    delay(currentDelay + jitter)
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Lỗi hệ thống khi tải lịch ngày (lần ${attempt + 1}): ${e.message}")
+                if (attempt < retryCount - 1) {
+                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
+                    val jitter = (Math.random() * 1000).toLong()
+                    delay(currentDelay + jitter)
+                }
+            }
+        }
+        return emptyList()
+    }
+
     suspend fun getScenario(): List<MediaItem> {
         scheduledList.clear()
         timeDividers.clear()
@@ -192,7 +223,7 @@ class MediaRepo @Inject constructor(
                     TAG, "No schedule for today found in cache. Fetching latest monthly scenario..."
                 )
                 try {
-                    updateMonthlyScenario(monthlyUrl)
+                    safeUpdateMonthlyScenario(monthlyUrl)
                     // Update lại dữ liệu cache sau khi tải mới
                     jsonMonthlyListData =
                         ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
@@ -225,7 +256,7 @@ class MediaRepo @Inject constructor(
                         val localList = readItemsFromFile()
                         localList.ifEmpty {
                             Log.d(TAG, "Local file is empty, fallback to network")
-                            updateScenario(todayScenario.sourceUrl)
+                            safeUpdateScenario(todayScenario.sourceUrl)
                         }
                     } else {
                         Log.d(
@@ -233,13 +264,13 @@ class MediaRepo @Inject constructor(
                             "Local file date mismatch ($savedDate != $currentDate), fallback to network"
                         )
                         Log.d(TAG, "Update from url: ${todayScenario.sourceUrl}")
-                        updateScenario(todayScenario.sourceUrl)
+                        safeUpdateScenario(todayScenario.sourceUrl)
                     }
                 }
 
                 else -> {
                     Log.d(TAG, "No local file, fallback to network")
-                    updateScenario(todayScenario.sourceUrl)
+                    safeUpdateScenario(todayScenario.sourceUrl)
                 }
             }
         }

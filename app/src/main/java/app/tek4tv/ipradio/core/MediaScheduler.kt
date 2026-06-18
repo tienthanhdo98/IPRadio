@@ -90,13 +90,6 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
     private fun setAlarmForList(
         listKey: String, requestCode: Int, time: Calendar, shouldEndPlaying: Boolean = false
     ) {
-        val isAlarmWorking = getScheduleListIntent(
-            listKey, requestCode,
-            PendingIntent.FLAG_NO_CREATE, shouldEndPlaying
-        )
-
-        if (isAlarmWorking != null) return
-
         Log.d("alarmx", "Set $shouldEndPlaying $listKey - $requestCode")
         val alarmIntent = getScheduleListIntent(listKey, requestCode, 0, shouldEndPlaying)
 

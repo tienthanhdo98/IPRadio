@@ -42,8 +42,8 @@ class GlobalProperties {
         destinationName =
             ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Tam Sơn")
                 ?: "Phường Tam Sơn"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Phường Tam Sơn")
-            ?: "Phường Tam Sơn"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Phường Tam Sơn")
+            ?: "TB Phường Tam Sơn"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
