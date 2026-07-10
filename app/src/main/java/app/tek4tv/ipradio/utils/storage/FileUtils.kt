@@ -71,10 +71,9 @@ fun isFolderExisted(storagePath: String): Boolean {
 }
 
 
-
 fun getAllFileNameInFolder(storagePath: String): List<String> {
     return try {
-        Log.d("filex",storagePath)
+        Log.d("filex", storagePath)
         val folder = File(storagePath)
         val audio = listOf("mp3")
         folder.listFiles().filter { file -> file.isFile && audio.any { file.name.endsWith(it) } }
@@ -119,7 +118,8 @@ fun deleteAllFileInFolder(path: String) {
         e.printStackTrace()
     }
 }
-fun deleteAFileInFolder(path: String,filename : String) {
+
+fun deleteAFileInFolder(path: String, filename: String) {
     val folder = File(path)
     try {
         for (f in folder.listFiles()) {
@@ -132,29 +132,21 @@ fun deleteAFileInFolder(path: String,filename : String) {
     }
 }
 
-fun getFileNameFromUrl(url: String): String {
-    var fileName = File(Uri.parse(url).path).name
-    val slash = fileName.lastIndexOf("\\")
-
-    if (slash != -1) {
-        fileName = fileName.substring(slash + 1)
-    }
-    return fileName
-}
-
 enum class SwapType {
     FrontToBack, BackToFront
 }
+
 enum class SwapEncryptDecryptMode {
     Encrypt, Decrypt, None
 }
+
 private val secret = "hklong-hklonghkl"
 private val key = secret.toByteArray(StandardCharsets.UTF_8)
 private val iv = ByteArray(16) { 0x00.toByte() }
 
 //a.mp4
 @RequiresApi(Build.VERSION_CODES.O)
-fun doSwap(path: String?, swapType: SwapType,mode: SwapEncryptDecryptMode) {
+fun doSwap(path: String?, swapType: SwapType, mode: SwapEncryptDecryptMode) {
     if (path == null) {
         throw IllegalArgumentException("Require path.")
     }
@@ -198,16 +190,21 @@ fun doSwap(path: String?, swapType: SwapType,mode: SwapEncryptDecryptMode) {
                             bytesRead.coerceAtMost(bytesRemaining.toInt())
                         )
                     }
+
                     SwapEncryptDecryptMode.Decrypt -> {
                         Log.d("Devoeas", "doSwap: ${decrypt(buffer, key, iv)?.size}")
-                        Log.d("Devoeas", "doSwap: ${minOf(bytesRead.toLong(), bytesRemaining).toInt()}")
+                        Log.d(
+                            "Devoeas",
+                            "doSwap: ${minOf(bytesRead.toLong(), bytesRemaining).toInt()}"
+                        )
                         outputFs.write(
                             decrypt(buffer, key, iv),
                             0,
                             bytesRead.coerceAtMost(bytesRemaining.toInt())
                         )
-                    //  outputFs.write(decrypt(buffer.copyOfRange(0, bytesRead), key, iv), 0, minOf(bytesRead.toLong(), bytesRemaining).toInt())
+                        //  outputFs.write(decrypt(buffer.copyOfRange(0, bytesRead), key, iv), 0, minOf(bytesRead.toLong(), bytesRemaining).toInt())
                     }
+
                     SwapEncryptDecryptMode.None -> {
                         outputFs.write(buffer, 0, minOf(bytesRead.toLong(), bytesRemaining).toInt())
                     }

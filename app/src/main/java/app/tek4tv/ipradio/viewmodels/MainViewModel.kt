@@ -21,6 +21,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 @HiltViewModel
@@ -33,30 +34,90 @@ class MainViewModel @Inject constructor(
 
     private var checkPlaylistJob: Job? = null
 
+    private var retryJob: Job? = null
+
 
     fun updateMonthlyScenario(url: String) {
         mediaRepo.clearMonthlyLocalData()
         viewModelScope.launch {
             mediaRepo.safeUpdateMonthlyScenario(url)
-            getPlayerContent()
+            getPlayerContent(isFromUpdateMonthly = true)
         }
     }
 
-    fun getPlayerContent() {
+    fun getPlayerContent(isFromUpdateMonthly: Boolean = false) {
         viewModelScope.launch {
 
             getContentJob?.cancel()
             checkPlaylistJob?.cancel()
 
             getContentJob = launch {
-                val mediaList = mediaRepo.getScenario()
+                val mediaList = mediaRepo.getScenario(isFromUpdateMonthly)
 
                 content.value = mediaList
+
+                if (mediaList.isNotEmpty()) {
+                    Log.d("MEDIA_REPO", "Successfully loaded schedule, canceling retry job if any.")
+                    retryJob?.cancel()
+                    retryJob = null
+                } else {
+                    if (mediaRepo.lastUpdateFailed) {
+                        Log.w(
+                            "MEDIA_REPO",
+                            "Schedule is empty due to update failure, starting or maintaining retry job."
+                        )
+                        startScheduleRetryLoop()
+                    } else {
+                        Log.d(
+                            "MEDIA_REPO",
+                            "Schedule is empty but fetch was successful (no schedule for today). Canceling retry job."
+                        )
+                        retryJob?.cancel()
+                        retryJob = null
+                    }
+                }
 
                 getContentJob = null
             }
         }
     }
+
+    private fun startScheduleRetryLoop() {
+        if (retryJob?.isActive == true) return
+
+        retryJob = viewModelScope.launch(Dispatchers.IO) {
+            var attempt = 0
+            val maxAttempts = 40
+            while (isActive && attempt < maxAttempts) {
+                // Tăng dần thời gian chờ
+                val delayMinutes = when {
+                    attempt < 10 -> 3L   // 2 phút/lần
+                    attempt < 15 -> 5L //  5 phút/lần
+                    attempt < 20 -> 10L //  10 phút/lần
+                    else -> 20L         // 20 phút/lần
+                }
+
+                val delayMillis = delayMinutes * 60 * 1000L
+                Log.d(
+                    "MEDIA_REPO",
+                    "Retry in ${delayMinutes}min (attempt ${attempt + 1}/$maxAttempts)"
+                )
+                delay(delayMillis)
+                val mediaList = mediaRepo.getScenario()
+                withContext(Dispatchers.Main) {
+                    content.value = mediaList
+
+                    if (mediaList.isNotEmpty()) {
+                        Log.d("MEDIA_REPO", "Successfully loaded schedule, breaking retry loop.")
+                        retryJob?.cancel() // Có dữ liệu thì tự hủy vòng lặp
+                        attempt = 0
+                    }
+                }
+                attempt++
+            }
+        }
+    }
+
 
     fun checkPlaylist(appStorageManager: AppStorageManager) {
         checkPlaylistJob?.cancel()

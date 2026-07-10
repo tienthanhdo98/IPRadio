@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.utils
 import android.annotation.SuppressLint
 import android.content.Context
 import android.os.Environment
+import android.provider.Settings
 import androidx.core.content.ContextCompat
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.Types
@@ -25,14 +26,24 @@ class Utils {
         const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
         const val GET_RECORD = "GET_RECORD"
 
-        @SuppressLint("HardwareIds")
+        //        @SuppressLint("HardwareIds")
+//        fun getDeviceId(context: Context): String {
+//            var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
+//            if (deviceId == null) {
+//                deviceId = getMacAddr()
+//                ConfigUtil.putString(context, DEVICE_ID, deviceId)
+//            }
+//            return deviceId
+//        }
         fun getDeviceId(context: Context): String {
             var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
             if (deviceId == null) {
-                deviceId = getMacAddr()
+                // Lấy ANDROID_ID làm định danh thay thế cho MAC
+                deviceId =
+                    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
                 ConfigUtil.putString(context, DEVICE_ID, deviceId)
             }
-            return deviceId
+            return deviceId ?: "unknown"
         }
 
         fun getMacAddr(): String {

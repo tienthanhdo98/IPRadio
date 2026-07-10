@@ -31,6 +31,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         cal_alarm[Calendar.HOUR_OF_DAY] = 0
         cal_alarm[Calendar.MINUTE] = 15
         cal_alarm[Calendar.SECOND] = 0
+        cal_alarm[Calendar.MILLISECOND] = 0
 
         val date = Calendar.getInstance().time
         var alarmDate = cal_alarm.time
@@ -40,7 +41,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         }
         alarmDate = cal_alarm.time
 
-        Log.d("alarmx", "Set check hub reset once day ${alarmDate}")
+        Log.d("alarmx", "Set check hub reset once day $alarmDate")
 
         val alarmClockInfo = AlarmManager.AlarmClockInfo(cal_alarm.timeInMillis, alarmIntent)
         alarmManager.setAlarmClock(alarmClockInfo, alarmIntent)
@@ -52,7 +53,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
         for (i in scheduledList.keys.indices) {
             val period = scheduledList.keys.elementAt(i)
             //setAlarmsForFrame(period)
-            var isNewDayStarted = false
+
             val requestCode = mediaRepo.timeDividers[period]!![0].id
             val endRequestCode = mediaRepo.timeDividers[period]!![1].id
 

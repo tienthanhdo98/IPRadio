@@ -56,61 +56,114 @@ class MediaRepo @Inject constructor(
 
     private val mediaStoragePath = appContext.filesDir.path
 
+    var lastUpdateFailed: Boolean = false
+        private set
+
 
     private val scheduleMonthlyAdapter: JsonAdapter<List<ScheduleDay>> = moshi.adapter(
         Types.newParameterizedType(List::class.java, ScheduleDay::class.java)
     )
 
+
     suspend fun safeUpdateMonthlyScenario(
         url: String,
-        retryCount: Int = 15,
-        delaySeconds: Long = 10L // Giá trị x(s) cấu hình mặc định là 10 giây
+        retryCount: Int = 5,
+        delaySeconds: Long = 10L,
+        maxDelaySeconds: Long = 180L // 2 phút
     ): Boolean {
-        val baseDelayMillis = delaySeconds * 1000L
-        val maxDelayMillis = 30 * 1000L // Giới hạn tối đa 1 phút (60,000ms)
+        val baseDelayMillis = delaySeconds * 1000L // 21,000ms
+        val maxDelayMillis = maxDelaySeconds * 1000L // 180,000ms
 
         for (attempt in 0 until retryCount) {
             try {
+                // Gọi API cập nhật lịch
                 val isSuccess = updateMonthlyScenario(url)
+
+                // Nếu thành công, thoát hàm ngay
                 if (isSuccess) return true
 
-                Log.e(TAG, "Tải lịch thất bại (lần ${attempt + 1})")
-                if (attempt < retryCount - 1) {
-                    // Tính toán thời gian delay dựa trên số lần thử (attempt chạy từ 0 đến 14)
-                    val currentDelay = if (attempt < 10) {
-                        baseDelayMillis // 10 lần đầu: delay cố định x(s)
-                    } else {
-                        maxDelayMillis // Từ lần thứ 11 trở đi (attempt >= 10): delay 1 phút
-                    }
+                // Log thất bại
+                Log.e(TAG, "Tải lịch thất bại (lần ${attempt + 1}/${retryCount})")
 
-                    // Thêm một chút jitter ngẫu nhiên (0 - 1s) để tránh trùng lặp request
+                // Nếu chưa phải lần thử cuối cùng
+                if (attempt < retryCount - 1) {
+                    // Exponential Backoff: 20s → 40s → 80s → 160s
+                    // Dùng phép dịch bit: baseDelay * 2^attempt
+                    val exponentialDelay = baseDelayMillis * (1L shl attempt)
+
+                    // Giới hạn delay không vượt quá maxDelayMillis
+                    val currentDelay = minOf(exponentialDelay, maxDelayMillis)
+
+                    // Thêm jitter (0-1s) để tránh thundering herd
                     val jitter = (Math.random() * 1000).toLong()
                     val finalDelay = currentDelay + jitter
 
-                    Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại...")
+                    Log.d(
+                        TAG,
+                        "Chờ ${finalDelay / 1000f} giây trước khi thử lại (lần ${attempt + 1})..."
+                    )
                     delay(finalDelay)
                 }
 
             } catch (e: Exception) {
-                Log.e(TAG, "Lỗi hệ thống khi tải lịch (lần ${attempt + 1}): ${e.message}")
+                // Xử lý ngoại lệ (timeout, mất mạng, v.v.)
+                Log.e(
+                    TAG,
+                    "Lỗi hệ thống khi tải lịch (lần ${attempt + 1}/${retryCount}): ${e.message}"
+                )
+
+                // Nếu chưa phải lần thử cuối cùng
                 if (attempt < retryCount - 1) {
-                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
+                    // Exponential Backoff cho cả trường hợp exception
+                    val exponentialDelay = baseDelayMillis * (1L shl attempt)
+                    val currentDelay = minOf(exponentialDelay, maxDelayMillis)
                     val jitter = (Math.random() * 1000).toLong()
-                    delay(currentDelay + jitter)
+                    val finalDelay = currentDelay + jitter
+
+                    Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại do lỗi...")
+                    delay(finalDelay)
                 }
             }
         }
+
+        // Thất bại sau tất cả các lần thử
+        Log.e(TAG, "Tải lịch thất bại sau $retryCount lần thử")
         return false
     }
 
+
     private suspend fun updateMonthlyScenario(url: String): Boolean {
         try {
+            if (url.isEmpty() || url == "") {
+                Log.e(TAG, "updateMonthlyScenario thiết bị đang không có lịch")
+                lastUpdateFailed = false
+                clearMonthlyLocalData()
+                saveItemsToFile(listOf())
+                return true
+            }
             Log.e(TAG, "updateMonthlyScenario")
             val fetchResult = playlistService.getMonthlyPlaylist(url)
 
-            if (!fetchResult.isSuccessful) return false
+            if (!fetchResult.isSuccessful) {
+                Log.e(TAG, "updateMonthlyScenario failed")
+                lastUpdateFailed = true
+                return false
+            }
 
-            val monthScenario = fetchResult.body() ?: return false
+            val monthScenario = fetchResult.body() ?: run {
+                lastUpdateFailed = true
+                return false
+            }
+
+            if (monthScenario.isEmpty()) {
+                Log.e(TAG, "updateMonthlyScenario thiết bị đang nhận lịch []")
+                lastUpdateFailed = false
+                clearMonthlyLocalData()
+                saveItemsToFile(listOf())
+                return true
+            }
+
+            lastUpdateFailed = false
 
             ConfigUtil.putString(
                 appContext, KEY_MODIFY_TIME_PLAYLIST, monthScenario.first().ppdatedAt
@@ -128,7 +181,7 @@ class MediaRepo @Inject constructor(
 
             if (dayScenario != null) {
                 Log.e(TAG, "có lịch trong ngày: update")
-                updateScenario(dayScenario.sourceUrl)
+                safeUpdateScenario(dayScenario.sourceUrl)
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
@@ -136,6 +189,7 @@ class MediaRepo @Inject constructor(
             }
             return true
         } catch (e: Exception) {
+            lastUpdateFailed = true
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
             return false
         }
@@ -149,6 +203,7 @@ class MediaRepo @Inject constructor(
             val res = playlistService.getPlaylist(scheduleDayUrl)
             Log.e(TAG, "updateScenario: ${res.body()}")
             if (res.isSuccessful) {
+                lastUpdateFailed = false
                 val resBody = res.body()
                 if (resBody != null) {
                     result = resBody
@@ -160,9 +215,11 @@ class MediaRepo @Inject constructor(
                     ConfigUtil.putString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, currentDate)
                 }
             } else {
+                lastUpdateFailed = true
                 Log.e(TAG, "updateScenario: Lịch rỗng rồi")
             }
         } catch (e: Exception) {
+            lastUpdateFailed = true
             Log.e(TAG, "updateScenario error ${e.toString()}")
         }
 
@@ -171,36 +228,76 @@ class MediaRepo @Inject constructor(
 
     suspend fun safeUpdateScenario(
         url: String,
-        retryCount: Int = 15,
-        delaySeconds: Long = 10L
+        retryCount: Int = 5,
+        delaySeconds: Long = 10L,
+        maxDelaySeconds: Long = 180L // 1 phút
     ): List<MediaItem> {
-        val baseDelayMillis = delaySeconds * 1000L
-        val maxDelayMillis = 30 * 1000L
+        val baseDelayMillis = delaySeconds * 1000L // 10,000ms
+        val maxDelayMillis = maxDelaySeconds * 1000L // 60,000ms
 
         for (attempt in 0 until retryCount) {
             try {
+                // Gọi API cập nhật lịch ngày
                 val result = updateScenario(url)
-                if (result.isNotEmpty()) return result
 
-                Log.e(TAG, "Tải lịch ngày thất bại (lần ${attempt + 1})")
-                if (attempt < retryCount - 1) {
-                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
-                    val jitter = (Math.random() * 1000).toLong()
-                    delay(currentDelay + jitter)
+                // Nếu có dữ liệu, thoát hàm ngay
+                if (result.isNotEmpty()) {
+                    Log.d(TAG, "Tải lịch ngày thành công (lần ${attempt + 1}/${retryCount})")
+                    return result
                 }
-            } catch (e: Exception) {
-                Log.e(TAG, "Lỗi hệ thống khi tải lịch ngày (lần ${attempt + 1}): ${e.message}")
+
+                // Log thất bại (result rỗng)
+                Log.e(
+                    TAG, "Tải lịch ngày thất bại - dữ liệu rỗng (lần ${attempt + 1}/${retryCount})"
+                )
+
+                // Nếu chưa phải lần thử cuối cùng
                 if (attempt < retryCount - 1) {
-                    val currentDelay = if (attempt < 10) baseDelayMillis else maxDelayMillis
+                    // Exponential Backoff: 10s → 20s → 40s → 80s (giới hạn 60s)
+                    // Dùng phép dịch bit: baseDelay * 2^attempt
+                    val exponentialDelay = baseDelayMillis * (1L shl attempt)
+
+                    // Giới hạn delay không vượt quá maxDelayMillis
+                    val currentDelay = minOf(exponentialDelay, maxDelayMillis)
+
+                    // Thêm jitter (0-1s) để tránh thundering herd
                     val jitter = (Math.random() * 1000).toLong()
-                    delay(currentDelay + jitter)
+                    val finalDelay = currentDelay + jitter
+
+                    Log.d(
+                        TAG,
+                        "Chờ ${finalDelay / 1000f} giây trước khi thử lại (lần ${attempt + 1})..."
+                    )
+                    delay(finalDelay)
+                }
+
+            } catch (e: Exception) {
+                // Xử lý ngoại lệ (timeout, mất mạng, v.v.)
+                Log.e(
+                    TAG,
+                    "Lỗi hệ thống khi tải lịch ngày (lần ${attempt + 1}/${retryCount}): ${e.message}"
+                )
+
+                // Nếu chưa phải lần thử cuối cùng
+                if (attempt < retryCount - 1) {
+                    // Exponential Backoff cho cả trường hợp exception
+                    val exponentialDelay = baseDelayMillis * (1L shl attempt)
+                    val currentDelay = minOf(exponentialDelay, maxDelayMillis)
+                    val jitter = (Math.random() * 1000).toLong()
+                    val finalDelay = currentDelay + jitter
+
+                    Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại do lỗi...")
+                    delay(finalDelay)
                 }
             }
         }
+
+        // Thất bại sau tất cả các lần thử
+        Log.e(TAG, "Tải lịch ngày thất bại sau $retryCount lần thử")
         return emptyList()
     }
 
-    suspend fun getScenario(): List<MediaItem> {
+    suspend fun getScenario(isFromUpdateMonthly: Boolean = false): List<MediaItem> {
         scheduledList.clear()
         timeDividers.clear()
 
@@ -242,35 +339,60 @@ class MediaRepo @Inject constructor(
             emptyList()
         } else {
             val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
-            when {
-                todayScenario == null -> {
-                    Log.d(TAG, "No schedule for today")
-                    emptyList()
-                }
-
-                isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME) -> {
-                    val savedDate =
-                        ConfigUtil.getString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, "")
-                    if (savedDate == currentDate) {
-                        Log.d(TAG, "Reading playlist from local file (Date match)")
-                        val localList = readItemsFromFile()
-                        localList.ifEmpty {
-                            Log.d(TAG, "Local file is empty, fallback to network")
-                            safeUpdateScenario(todayScenario.sourceUrl)
+            if (todayScenario == null) {
+                Log.d(TAG, "No schedule for today")
+                emptyList()
+            } else {
+                val isOnline =
+                    app.tek4tv.ipradio.utils.network.NetworkUtils.isNetworkConnected(appContext)
+                val hasLocalCache = isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)
+                val savedDate = ConfigUtil.getString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, "")
+                val isLocalCacheValidForToday = hasLocalCache && (savedDate == currentDate)
+             
+                if (isLocalCacheValidForToday) {
+                    if (isOnline && !isFromUpdateMonthly) {
+                        Log.d(
+                            TAG,
+                            "Online First: Network is connected. Fetching latest scenario from network..."
+                        )
+                        val onlineList = safeUpdateScenario(todayScenario.sourceUrl)
+                        if (onlineList.isNotEmpty()) {
+                            Log.d(TAG, "Successfully updated scenario from network.")
+                            onlineList
+                        } else {
+                            Log.d(
+                                TAG,
+                                "Network fetch returned empty/failed. Fallback to local cache."
+                            )
+                            readItemsFromFile()
                         }
                     } else {
                         Log.d(
                             TAG,
-                            "Local file date mismatch ($savedDate != $currentDate), fallback to network"
+                            "Offline or bypassed: Fallback to local cache immediately (isOnline=$isOnline, isFromUpdateMonthly=$isFromUpdateMonthly)."
                         )
-                        Log.d(TAG, "Update from url: ${todayScenario.sourceUrl}")
-                        safeUpdateScenario(todayScenario.sourceUrl)
+                        readItemsFromFile()
                     }
-                }
-
-                else -> {
-                    Log.d(TAG, "No local file, fallback to network")
-                    safeUpdateScenario(todayScenario.sourceUrl)
+                } else {
+                    // Không có cache cho ngày hôm nay, bắt buộc phải kéo từ mạng (kể cả khi isOnline là false do mạng đang khởi động/chờ)
+                    Log.d(
+                        TAG,
+                        "No local cache for today. Must fetch from network (isOnline=$isOnline)..."
+                    )
+                    val onlineList = safeUpdateScenario(todayScenario.sourceUrl)
+                    if (onlineList.isNotEmpty()) {
+                        Log.d(
+                            TAG,
+                            "Successfully fetched scenario from network (no local cache was present)."
+                        )
+                        onlineList
+                    } else {
+                        Log.w(
+                            TAG,
+                            "Failed to fetch scenario from network and no local cache is available."
+                        )
+                        emptyList()
+                    }
                 }
             }
         }
@@ -375,7 +497,21 @@ class MediaRepo @Inject constructor(
                     val item = broadcastList[firstIdx]
 
                     val guessedName = URLUtil.guessFileName(url, null, null)
-                    val safeFileName = "${url.md5()}_$guessedName"
+                    // Fix: Nếu guessedName không có extension (VD: URL dạng query param ?type=.mp3),
+                    // thì trích extension từ query param "type" trong URL
+                    val safeFileName = if (guessedName.contains('.')) {
+                        "${url.md5()}_$guessedName"
+                    } else {
+                        val typeParam = android.net.Uri.parse(url).getQueryParameter("type")
+                            ?.trimStart('.')
+                        if (!typeParam.isNullOrBlank()) {
+                            Log.d(TAG, "Extension from 'type' query param: $typeParam | url: $url")
+                            "${url.md5()}_$guessedName.$typeParam"
+                        } else {
+                            "${url.md5()}_$guessedName"
+                        }
+                    }
+                    Log.d(TAG, "safeFileName: $safeFileName")
 
                     val updated = downloadAndTransform(
                         item = item,

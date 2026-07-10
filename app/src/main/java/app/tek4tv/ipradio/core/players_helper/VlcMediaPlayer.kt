@@ -4,6 +4,7 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.net.toUri
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItem
@@ -12,6 +13,7 @@ import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import java.util.Calendar
 
@@ -88,7 +90,7 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     init {
         val args = ArrayList<String>()
         //bật log vlc
-//        args.add("-vvv")
+        args.add("-vvv")
         args.add("--network-caching=150")
         mLibVLC = LibVLC(appContext, args)
         vlcPlayer = CustomPlayer(mLibVLC)
@@ -281,7 +283,21 @@ class VlcMediaPlayer(appContext: Context, private val playerEventListener: IPlay
     }
 
     override fun playTest() {
+//        val media = Media(
+//            mLibVLC,
+//            "https://gialai-ttn.lcsa.vn/site/get-resource?code=QV3qM15wNJAPdRrAVdGyOXpZKnW068&type=.mp3".toUri()
+//        )
+        val media = Media(
+            mLibVLC,
+            "https://gialai-ttn.lcsa.vn/site/get-resource?code=0jrG7YBDXMVyb87nWavAZEJ24gNqxl".toUri()
+        )
+//        val media = Media(
+//            mLibVLC,
+//            "https://binhdinh-ttn.lcsa.vn/site/get-resource?code=nE4Jq3R9OjoQeZgM6apZVg8lNDM7PA&type=.mp3".toUri()
+//        )
 
+
+        vlcPlayer.play(media)
     }
 }
 

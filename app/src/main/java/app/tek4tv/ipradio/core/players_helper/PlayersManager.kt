@@ -413,6 +413,10 @@ class PlayersManager(
         playMode = PLAY_MODE_INIT//"0"
     }
 
+    fun playTest() {
+        vlcPlayer.playTest()
+    }
+
 
     companion object {
         const val PLAY_MODE_FORCE = "-2"

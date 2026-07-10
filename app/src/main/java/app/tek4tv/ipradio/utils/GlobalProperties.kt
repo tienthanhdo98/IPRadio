@@ -30,25 +30,28 @@ class GlobalProperties {
     var resumeFromStart = false
     var lat: Float = 0f
     var lng: Float = 0f
-    var providerValue: String = "TEK4TV"
+    var providerValue: String = "VATC"
 
 
     init {
+
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
         destinationId =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H44.166") ?: "H44.166"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H21.237") ?: "H21.237"
         destinationName =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Phường Tam Sơn")
-                ?: "Phường Tam Sơn"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Phường Tam Sơn")
-            ?: "TB Phường Tam Sơn"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã An Toàn")
+                ?: "Xã An Toàn"
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã An Toàn")
+            ?: "TB Xã An Toàn"
         resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
         lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
         lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
         userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getString(appContext, PROVIDER, "TEK4TV") ?: "TEK4TV"
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, "VATC") ?: "VATC"
+
+
     }
 
     fun saveProperties(responseHub: ResponseHub) {

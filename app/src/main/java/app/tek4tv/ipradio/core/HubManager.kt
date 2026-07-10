@@ -87,7 +87,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v61.4.2.2a"
+    var versionName = "v16.4.2.2a"
 
     private var registerOnMessageListener = false
 
@@ -116,9 +116,9 @@ class HubManager(
     init {
         packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
-            appContext, ConfigUtil.PROVIDER, "TEK4TV"
+            appContext, ConfigUtil.PROVIDER, "VATC"
         )!!
-        hubUrl = "https://hubip-phutho.tek4tv.vn/hubServer"
+        hubUrl = "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
         )!!

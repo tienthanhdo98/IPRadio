@@ -23,7 +23,7 @@ class SerialPortController(
     private var inputStream: InputStream? = null
     private var outputStream: OutputStream? = null
 
-    private val deviceMac = Utils.getMacAddr()
+    private val deviceMac = Utils.getDeviceId(appContext)
 
     private var isRead = false
 

@@ -323,6 +323,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         checkDeleteFileUpdate()
         //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
 
+//        lifecycleScope.launch(Dispatchers.Main) {
+//            delay(5000)
+//            playerManager.playTest()
+//        }
     }
 
 

@@ -86,19 +86,18 @@ data class MediaItem(
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
+    @Json(name = "PathBackup")
+    var pathBackup: String = ""
+
     ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
 
-    var pathBackup: String = ""
-//        set(value) {
-//            if (value.startsWith("http"))
-//                field = value
-//        }
-
     init {
-        pathBackup = body ?: ""
+        if (pathBackup.isEmpty()) {
+            pathBackup = body ?: ""
+        }
     }
 
     fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
