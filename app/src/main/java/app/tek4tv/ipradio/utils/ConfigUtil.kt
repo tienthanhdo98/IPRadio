@@ -32,6 +32,18 @@ object ConfigUtil {
     const val KEY_MODIFY_TIME_PLAYLIST = "KEY_MODIFY_TIME_PLAYLIST"
     const val MONTHLY_SCENARIO_DATA = "MONTHLY_SCENARIO_DATA"
     const val PLAYLIST_LOCAL_DATE = "PLAYLIST_LOCAL_DATE"
+    
+    // Keys from GlobalProperties
+    const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
+    const val DEFAULT_PI_CODE = "DEFAULT_PI_CODE"
+    const val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
+    const val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
+    const val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
+    const val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
+    const val NAME_DEVICE = "NAME_DEVICE"
+    const val LATITUDE = "LATITUDE"
+    const val LONGTITUDE = "LONGTITUDE"
+    const val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

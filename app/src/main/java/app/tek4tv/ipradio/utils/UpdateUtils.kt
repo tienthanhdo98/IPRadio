@@ -74,9 +74,9 @@ fun downloadUpdateApk(
             try {
                 //pm install -r /storage/emulated/0/Download/ipradio.apk
                 val command = "pm install -r $finalDestination"
-//                val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-                val proc = Runtime.getRuntime()
-                    .exec(arrayOf("su", "0", "pm", "install", "-r", finalDestination))
+                val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
+//                val proc = Runtime.getRuntime()
+//                    .exec(arrayOf("su", "0", "pm", "install", "-r", finalDestination))
                 val test = proc.waitFor() // Error is here.
                 Log.d("install", test.toString() + "")
                 Thread.sleep(30000)

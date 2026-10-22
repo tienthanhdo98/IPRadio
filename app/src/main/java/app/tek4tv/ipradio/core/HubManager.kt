@@ -25,6 +25,7 @@ import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.decryptData
 import app.tek4tv.ipradio.utils.crypto.encryptData
 import app.tek4tv.ipradio.utils.crypto.xorString
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
@@ -87,7 +88,7 @@ class HubManager(
     var currentMediaItem: MediaItem? = null
     var curMediaName = ""
 
-    var versionName = "v16.4.2.2a"
+    var versionName = GlobalProperties.Defaults.VERSION_NAME
 
     private var registerOnMessageListener = false
 
@@ -116,30 +117,36 @@ class HubManager(
     init {
         packageName = appContext.packageName
         providerValue = ConfigUtil.getString(
-            appContext, ConfigUtil.PROVIDER, "VATC"
+            appContext, ConfigUtil.PROVIDER, GlobalProperties.Defaults.PROVIDER_VALUE
         )!!
-        hubUrl = "https://hubip-alpha-binhdinh.tek4tv.vn/hubServer"
-        tokenUrl = ConfigUtil.getString(
-            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
-        )!!
-        Log.d("getHubToken", "getHubToken: $tokenUrl ")
+        hubUrl = ConfigUtil.getString(
+            appContext,
+            ConfigUtil.URL_HUB,
+            "https://hubip-lamdong-alpha-qltt.tek4tv.vn/hubServer"
+        ) ?: "https://hubip-lamdong-alpha-qltt.tek4tv.vn/hubServer"
+        tokenUrl = "https://gateway-alpha-qltt.tek4tv.vn/api/v2/oauth/token"
         serverTimeout = ConfigUtil.getInt(
             appContext, ConfigUtil.ServerTimeout, 60000
         )
         keepAliveInterval = ConfigUtil.getInt(
             appContext, ConfigUtil.KeepAliveInterval, 30000
         )
-        hubConnection = HubConnectionBuilder.create(hubUrl).withAccessTokenProvider(Single.defer {
-            if (hubToken != null) {
-                Single.just(hubToken)
-            } else {
-                val token = getHubToken()
-                if (token != null) {
-                    hubToken = token
-                    Single.just(token)
-                } else Single.error(Exception())
+        hubConnection = HubConnectionBuilder.create(hubUrl)
+            .setHttpClientBuilderCallback { builder ->
+                CaCertHelper.buildConfiguredOkHttpClient(builder, appContext)
             }
-        }).withTransport(TransportEnum.WEBSOCKETS).build()
+            .withAccessTokenProvider(Single.defer {
+                val currentToken = hubToken
+                if (currentToken != null) {
+                    Single.just(currentToken)
+                } else {
+                    val token = getHubToken()
+                    if (token != null) {
+                        hubToken = token
+                        Single.just(token)
+                    } else Single.error(Exception())
+                }
+            }).withTransport(TransportEnum.WEBSOCKETS).build()
         hubConnection.serverTimeout = serverTimeout.toLong()
         hubConnection.keepAliveInterval = keepAliveInterval.toLong()
 
@@ -148,55 +155,51 @@ class HubManager(
 
     //lấy token từ hub
     private fun getHubToken(): String? {
-        return try {
-            // Encrypted json variable name
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
-
-            val body = mapOf(
-                String(xorString(u, packageName.reversed())) to authInfo[0],
-                String(xorString(p, packageName.reversed())) to authInfo[1]
-            )
-
-
-            val call = authService.getToken(body, tokenUrl)
-
-            val response = call.execute()
-            if (response.isSuccessful) {
-                val token = response.body()!!.token
-//                val token = response.body()!!.noiDung.token
-                token
-            } else {
-                null
-            }
-        } catch (e: Exception) {
-            e.printStackTrace()
-            null
-        }
+        return getHubToken(tokenUrl)
     }
 
     //check
-    fun getHubToken(urlToken: String): String? {
+//    fun getHubToken(urlToken: String): String? {
+//        return try {
+//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+//
+//            // Thông tin xác thực lưu trong thư viện
+////            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
+//            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
+//
+//            val body = mapOf(
+//                String(xorString(u, packageName.reversed())) to authInfo[0],
+//                String(xorString(p, packageName.reversed())) to authInfo[1]
+//            )
+//
+//            val call = authService.getToken(body, urlToken)
+//            val response = call.execute()
+//            if (response.isSuccessful) {
+//                val token = response.body()!!.token
+//                token
+//            } else {
+//                null
+//            }
+//        } catch (e: Exception) {
+//            e.printStackTrace()
+//            null
+//        }
+//    }
+    fun getHubToken(urlToken: String? = null): String? {
         return try {
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            // Thông tin xác thực lưu trong thư viện
-            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
+            val endpoint = urlToken ?: "https://gateway-alpha-qltt.tek4tv.vn/api/v2/oauth/token"
 
             val body = mapOf(
-                String(xorString(u, packageName.reversed())) to authInfo[0],
-                String(xorString(p, packageName.reversed())) to authInfo[1]
+                "Username" to "alpha_lamdong",
+                "Password" to "042abd7d-e4aa-40a0-9ec0-7cf54168a65e"
             )
 
-            val call = authService.getToken(body, tokenUrl)
+            val call = authService.getToken(body, endpoint)
             val response = call.execute()
+
             if (response.isSuccessful) {
-                val token = response.body()!!.token
-                token
+                response.body()?.noiDung?.token
             } else {
                 null
             }

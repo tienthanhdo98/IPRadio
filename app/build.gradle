@@ -71,6 +71,9 @@ android {
         // but continue the build even when errors are found:
         abortOnError false
     }
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 //kapt {
 //    correctErrorTypes true
@@ -86,14 +89,16 @@ dependencies {
     implementation 'androidx.constraintlayout:constraintlayout:2.0.4'
     implementation 'androidx.security:security-crypto-ktx:1.1.0-alpha02'
     implementation 'com.google.android.gms:play-services-basement:18.0.0'
+    testImplementation 'junit:junit:4.13.2'
     androidTestImplementation 'androidx.test.ext:junit:1.1.2'
     androidTestImplementation 'androidx.test.espresso:espresso-core:3.3.0'
     implementation "androidx.activity:activity-ktx:1.6.1"
 
-    implementation 'org.videolan.android:libvlc-all:3.4.2'
+    implementation 'org.videolan.android:libvlc-all:3.6.3'
     //implementation fileTree(include: ['*.aar'], dir: 'libs')
 
     implementation 'com.microsoft.signalr:signalr:5.0.1'
+    implementation 'io.reactivex.rxjava3:rxjava:3.1.5'
 
     // 2. Moshi
     def moshi_version = "1.15.1"

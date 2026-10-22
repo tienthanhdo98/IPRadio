@@ -11,8 +11,8 @@ object HubCommand {
     const val UPDATE_MONTHLY_LIST = "UPDATE_MONTHLY_LIST"
     const val NEXT = "NEXT"
     const val PREVIEW = "PREVIEW"
-    const val TURN_ON_PA= "TURN_ON_PA"
-    const val TURN_OFF_PA= "TURN_OFF_PA"
+    const val TURN_ON_PA = "TURN_ON_PA"
+    const val TURN_OFF_PA = "TURN_OFF_PA"
     const val CONTROL_MEDIA = "CONTROL_MEDIA"
     const val JUMP = "JUMP"
     const val LIVE = "LIVE"
@@ -62,4 +62,5 @@ object HubCommand {
     const val JOIN_GROUP = "JoinGroup"
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
+    const val UPDATE_CA_CERT = "UPDATE_CA_CERT"
 }

@@ -13,7 +13,6 @@ import app.tek4tv.ipradio.model.MediaRecord
 import app.tek4tv.ipradio.model.TimeFrameRecord
 import app.tek4tv.ipradio.model.toJson
 import app.tek4tv.ipradio.network.LogService
-import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.storage.createFolder
 import app.tek4tv.ipradio.utils.storage.isFolderExisted
 import kotlinx.coroutines.CoroutineScope

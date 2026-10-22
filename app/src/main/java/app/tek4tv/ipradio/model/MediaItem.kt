@@ -100,8 +100,8 @@ data class MediaItem(
         }
     }
 
-    fun getFileName() = if (body!!.startsWith("http")) File(Uri.parse(body).path).name
-    else File("file://$body").name
+    fun getFileName() = if (body?.startsWith("http") == true) File(Uri.parse(body).path).name
+    else File("file://${body ?: ""}").name
 
     fun getMediaType(): MediaType {
         return when (type) {
@@ -121,17 +121,19 @@ data class MediaItem(
 //    }
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
+        val currentBody = body
         if (getMediaType() == MediaType.LIVE) {
-            Log.d("player", "live: $body")
-            return Media(mLibVLC, prepareMediaUrl(body, false)?.toUri())
+            Log.d("player", "live: $currentBody")
+            val url = prepareMediaUrl(currentBody, false) ?: ""
+            return Media(mLibVLC, url.toUri())
         }
-        return if (body!!.isNotEmpty() && File(body!!).exists()) {
-            Log.d("player", "local: $body")
-            Media(mLibVLC, "file://$body".toUri())
+        return if (!currentBody.isNullOrEmpty() && File(currentBody).exists()) {
+            Log.d("player", "local: $currentBody")
+            Media(mLibVLC, "file://$currentBody".toUri())
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, prepareMediaUrl(pathBackup, false)?.toUri())
-
+            val onlineUrl = prepareMediaUrl(pathBackup, false) ?: ""
+            Media(mLibVLC, onlineUrl.toUri())
         }
     }
 
@@ -158,6 +160,11 @@ data class MediaItem(
         // Xóa các dấu '//' thừa trong đường dẫn (sau tên miền).
         // Biểu thức chính quy "(?<!:)//" có nghĩa là: tìm '//' nhưng không được đứng ngay sau dấu ':'
         cleanedUrl = cleanedUrl!!.replace("(?<!:)//".toRegex(), "/")
+
+        // Mã hóa ký tự '#' thành '%23' để tránh VLC và HTTP client cắt cụt đường dẫn xem như fragment
+        if (cleanedUrl.contains("#")) {
+            cleanedUrl = cleanedUrl.replace("#", "%23")
+        }
 
         // Hạ cấp từ HTTPS xuống HTTP nếu bạn muốn bỏ qua lỗi chứng chỉ (và server hỗ trợ HTTP)
         if (forceHttp && cleanedUrl.startsWith("https://")) {

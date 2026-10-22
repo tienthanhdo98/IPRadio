@@ -78,12 +78,21 @@ class PlayersManager(
     }
 
     override fun onMediaEndReached(mediaItem: MediaItem?) {
-        onMediaStopPlaying()
-        playNextMedia()
+        if (playMode == PLAY_MODE_FORCE) {
+            stopForceMedia()
+        } else {
+            onMediaStopPlaying()
+            playNextMedia()
+        }
     }
 
     override fun onMediaForceEndReached(mediaItem: MediaItem?) {
-        stopForceMedia()
+        if (playMode == PLAY_MODE_FORCE) {
+            stopForceMedia()
+        } else {
+            onMediaStopPlaying()
+            playNextMedia()
+        }
     }
 
 
@@ -186,16 +195,16 @@ class PlayersManager(
             currentPlayingMedia = mediaItem
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
-                    if (mediaItem.body!!.contains("m3u8")) {
-                        playLiveStream(mediaItem, false, timeStamp)
+                    // play live o trong lich
+                    if (mediaItem.contentType?.value == "5" ||
+                        mediaItem.contentType?.id == 5 ||
+                        mediaItem.body?.contains("m3u8") == true
+                    ) {
+                        vlcPlayer.playMedia(mediaItem, true, timeStamp)
                     } else {
-                        // play live o trong lich
-                        if (mediaItem.contentType?.value == "5") {
-                            vlcPlayer.playMedia(mediaItem, true, timeStamp)
-                        } else {
-                            vlcPlayer.playMedia(mediaItem, false, timeStamp)
-                        }
+                        vlcPlayer.playMedia(mediaItem, false, timeStamp)
                     }
+
                 }
 
                 MediaType.LIVE -> {
@@ -292,10 +301,11 @@ class PlayersManager(
     }
 
     private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
-        //với force media, fixtime dc gán là start time
-        val startTimeOfMedia = toCalendar(mediaItem.fixTime!!)
+        val startStr = mediaItem.start ?: mediaItem.startTime ?: mediaItem.fixTime ?: "00:00:00"
+        val startTimeOfMedia = toCalendar(startStr)
         val now = Calendar.getInstance()
-        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+        val elapsed = ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
+        return if (elapsed > 0) elapsed else 0
     }
 
     fun stopPlaylist(cancelListKey: String) {

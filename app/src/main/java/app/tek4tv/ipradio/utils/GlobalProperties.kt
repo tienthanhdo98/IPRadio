@@ -4,52 +4,74 @@ import android.content.Context
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.model.ResponseHub
 import app.tek4tv.ipradio.utils.ConfigUtil.PROVIDER
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_DESTINATION_ID
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_DESTINATION_NAME
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_PI_CODE
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_PS_NAME
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_RESUME_FROM_START
+import app.tek4tv.ipradio.utils.ConfigUtil.DEFAULT_VOLUME
+import app.tek4tv.ipradio.utils.ConfigUtil.LATITUDE
+import app.tek4tv.ipradio.utils.ConfigUtil.LONGTITUDE
+import app.tek4tv.ipradio.utils.ConfigUtil.NAME_DEVICE
+import app.tek4tv.ipradio.utils.ConfigUtil.USER_NAME_CONTROLLER
 
 class GlobalProperties {
 
     private val appContext: Context = MyApp.instance!!.applicationContext
 
-    val DEFAULT_VOLUME = "DEFAULT_VOLUME"
-    val DEFAULT_PI_CODE = "DEFAULT_PI_CODE"
-    val DEFAULT_PS_NAME = "DEFAULT_PS_NAME"
-    val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
-    val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
-    val DEFAULT_RESUME_FROM_START = "DEFAULT_RESUME_FROM_START"
-    val NAME_DEVICE = "NAME_DEVICE"
-    val LATITUDE = "LATITUDE"
-    val LONGTITUDE = "LONGTITUDE"
-    val USER_NAME_CONTROLLER = "USER_NAME_CONTROLLER"
+    object Defaults {
+        const val VERSION_NAME = "v37.4.2.2d"
+        const val VOLUME = "100"
+        const val PI_CODE = "0"
+        const val PS_NAME = "AAA"
+        const val DESTINATION_ID = "H41.220"
+        const val DESTINATION_NAME = "Phường Cửa Lò"
+        const val NAME_DEVICE = "TB Phường Cửa Lò"
+        const val RESUME_FROM_START = false
+        const val LAT = 0f
+        const val LNG = 0f
+        const val USER_NAME_CONTROLLER = ""
+        const val PROVIDER_VALUE = "VATC"
+    }
 
-    var volume = "100"
-    var userNameController = ""
-    var piCode = "0"
-    var psName = "AAA"
-    var nameDevice = ""
-    var destinationName = ""
-    var destinationId = ""
-    var resumeFromStart = false
-    var lat: Float = 0f
-    var lng: Float = 0f
-    var providerValue: String = "VATC"
+    var volume = Defaults.VOLUME
+    var userNameController = Defaults.USER_NAME_CONTROLLER
+    var piCode = Defaults.PI_CODE
+    var psName = Defaults.PS_NAME
+    var nameDevice = Defaults.NAME_DEVICE
+    var destinationName = Defaults.DESTINATION_NAME
+    var destinationId = Defaults.DESTINATION_ID
+    var resumeFromStart = Defaults.RESUME_FROM_START
+    var lat: Float = Defaults.LAT
+    var lng: Float = Defaults.LNG
+    var providerValue: String = Defaults.PROVIDER_VALUE
 
 
     init {
 
-        volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
-        piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
-        psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+        volume =
+            ConfigUtil.getString(appContext, DEFAULT_VOLUME, Defaults.VOLUME) ?: Defaults.VOLUME
+        piCode =
+            ConfigUtil.getString(appContext, DEFAULT_PI_CODE, Defaults.PI_CODE) ?: Defaults.PI_CODE
+        psName =
+            ConfigUtil.getString(appContext, DEFAULT_PS_NAME, Defaults.PS_NAME) ?: Defaults.PS_NAME
         destinationId =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, "H21.237") ?: "H21.237"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_ID, Defaults.DESTINATION_ID)
+                ?: Defaults.DESTINATION_ID
         destinationName =
-            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, "Xã An Toàn")
-                ?: "Xã An Toàn"
-        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã An Toàn")
-            ?: "TB Xã An Toàn"
-        resumeFromStart = ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, false)
-        lat = ConfigUtil.getFloat(appContext, LATITUDE, 0f)
-        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, 0f)
-        userNameController = ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, "") ?: ""
-        providerValue = ConfigUtil.getString(appContext, PROVIDER, "VATC") ?: "VATC"
+            ConfigUtil.getString(appContext, DEFAULT_DESTINATION_NAME, Defaults.DESTINATION_NAME)
+                ?: Defaults.DESTINATION_NAME
+        nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, Defaults.NAME_DEVICE)
+            ?: Defaults.NAME_DEVICE
+        resumeFromStart =
+            ConfigUtil.getBool(appContext, DEFAULT_RESUME_FROM_START, Defaults.RESUME_FROM_START)
+        lat = ConfigUtil.getFloat(appContext, LATITUDE, Defaults.LAT)
+        lng = ConfigUtil.getFloat(appContext, LONGTITUDE, Defaults.LNG)
+        userNameController =
+            ConfigUtil.getString(appContext, USER_NAME_CONTROLLER, Defaults.USER_NAME_CONTROLLER)
+                ?: Defaults.USER_NAME_CONTROLLER
+        providerValue = ConfigUtil.getString(appContext, PROVIDER, Defaults.PROVIDER_VALUE)
+            ?: Defaults.PROVIDER_VALUE
 
 
     }

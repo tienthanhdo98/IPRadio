@@ -24,6 +24,7 @@ import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
 import app.tek4tv.ipradio.libs.RtspOnlyAudioTek
 import app.tek4tv.ipradio.model.DataValueModel
@@ -35,6 +36,7 @@ import app.tek4tv.ipradio.model.StreamingModel
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.network.LogService
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.CrashHandler
 import app.tek4tv.ipradio.utils.CrashHandler.Companion.restartApp
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.HubCommand
@@ -217,7 +219,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
         viewModel.grantPermissionThoughAdb(baseContext)
-        //Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
+        Thread.setDefaultUncaughtExceptionHandler(CrashHandler(this))
 
         //if (needGrantPermission()) requestPermissions(permissions, PERMISSION_REQUEST_CODE)
 
@@ -321,12 +323,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         }
 
         checkDeleteFileUpdate()
-        //doSwap("/data/data/app.tek4tv.ipradio/files/tt3.mp3",SwapType.FrontToBack,SwapEncryptDecryptMode.Decrypt)
 
-//        lifecycleScope.launch(Dispatchers.Main) {
-//            delay(5000)
-//            playerManager.playTest()
-//        }
     }
 
 
@@ -634,73 +631,103 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     val mess = responseHub.message!!
                     Log.d("message handle", mess)
                     val listValue = mess.split(",")
-                    val urlHub = listValue[0]
-                    val urlToken = listValue[1]
+                    val urlHub = listValue[0].trim()
+                    val urlToken = listValue[1].trim()
                     if (listValue.size >= 3 && listValue[2] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.PROVIDER, listValue[2]
+                            applicationContext, ConfigUtil.PROVIDER, listValue[2].trim()
                         )
                     }
                     if (listValue.size >= 4 && listValue[3] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.URL_STREAM, listValue[3]
+                            applicationContext, ConfigUtil.URL_STREAM, listValue[3].trim()
                         )
                     }
                     if (listValue.size >= 5 && listValue[4] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.USER_NAME_STREAM, listValue[4]
+                            applicationContext, ConfigUtil.USER_NAME_STREAM, listValue[4].trim()
                         )
                     }
                     if (listValue.size >= 6 && listValue[5] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.PASSWORD_STREAM, listValue[5]
+                            applicationContext, ConfigUtil.PASSWORD_STREAM, listValue[5].trim()
                         )
                     }
                     if (listValue.size >= 7 && listValue[6] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.PROTOCOL_STREAM, listValue[6]
+                            applicationContext, ConfigUtil.PROTOCOL_STREAM, listValue[6].trim()
                         )
                     }
                     if (listValue.size >= 8 && listValue[7] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.BITRATE_STREAM, listValue[7]
+                            applicationContext, ConfigUtil.BITRATE_STREAM, listValue[7].trim()
                         )
                     }
                     if (listValue.size >= 9 && listValue[8] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.SAMPLERATE_STREAM, listValue[8]
+                            applicationContext, ConfigUtil.SAMPLERATE_STREAM, listValue[8].trim()
                         )
                     }
                     if (listValue.size >= 10 && listValue[9] != "null") {
                         ConfigUtil.putString(
-                            applicationContext, ConfigUtil.KEY_EXTEND_FILE, listValue[9]
+                            applicationContext, ConfigUtil.KEY_EXTEND_FILE, listValue[9].trim()
+                        )
+                    }
+
+                    if (urlHub.isNotEmpty() && urlHub != "null") {
+                        ConfigUtil.putString(
+                            applicationContext, ConfigUtil.URL_HUB, urlHub
+                        )
+                    }
+                    if (urlToken.isNotEmpty() && urlToken != "null") {
+                        ConfigUtil.putString(
+                            applicationContext, ConfigUtil.URL_TOKEN, urlToken
                         )
                     }
 
                     val hubConnection =
-                        HubConnectionBuilder.create(urlHub).withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else Single.error(Exception())
-                        }).withTransport(TransportEnum.WEBSOCKETS).build()
+                        HubConnectionBuilder.create(urlHub)
+                            .setHttpClientBuilderCallback { builder ->
+                                CaCertHelper.buildConfiguredOkHttpClient(
+                                    builder,
+                                    applicationContext
+                                )
+                            }
+                            .withAccessTokenProvider(Single.defer {
+                                val token = hubManager.getHubToken(urlToken)
+                                if (token != null) {
+                                    Single.just(token)
+                                } else Single.error(Exception("Cannot get hub token"))
+                            }).withTransport(TransportEnum.WEBSOCKETS).build()
                     lifecycleScope.launch {
                         val id = hubManager.openConnection2(hubConnection)
+                        try {
+                            hubConnection.stop().blockingAwait()
+                        } catch (e: Exception) {
+                            Log.e(
+                                "UPDATE_CONFIG",
+                                "Error stopping test hub connection: ${e.message}"
+                            )
+                        }
                         if (id != null) {
-                            ConfigUtil.putString(
-                                applicationContext, ConfigUtil.URL_HUB, urlHub
+                            Log.i(
+                                "UPDATE_CONFIG",
+                                "Connect test success with id=$id, restarting..."
                             )
-                            ConfigUtil.putString(
-                                applicationContext, ConfigUtil.URL_TOKEN, urlToken
-                            )
-                            delay(60000)
-                            serialPortController.hardRestart()
-
-                        } else {
                             delay(2000)
                             serialPortController.hardRestart()
+                            delay(3000)
+                            restartApp(MyApp.instance!!, this@MainActivity)
+                        } else {
+                            Log.e(
+                                "UPDATE_CONFIG",
+                                "Connect test failed (id is null), restarting to apply config..."
+                            )
+                            delay(2000)
+                            serialPortController.hardRestart()
+                            delay(3000)
+                            restartApp(MyApp.instance!!, this@MainActivity)
                         }
-
                     }
 
                 }
@@ -761,8 +788,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 HubCommand.TURN_ON_PA -> {
                     val mess = responseHub.message
                     try {
-                        val value = mess?.toIntOrNull()
-                        when (value) {
+                        when (val value = mess?.toIntOrNull()) {
                             0 -> serialPortController.turnOnPAVod()
                             1 -> serialPortController.turnOffPA()
                             null -> {
@@ -1056,6 +1082,18 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     viewModel.getPlayerContent()
                 }
 
+                HubCommand.UPDATE_CA_CERT -> {
+                    val hubInput = responseHub.message ?: message
+                    if (hubInput.isNotBlank()) {
+                        Log.i("HubCommand", "Nhận lệnh nạp CA cert từ Hub: $hubInput")
+                        CaCertHelper.handleHubCaInputAsync(
+                            applicationContext,
+                            hubInput
+                        )
+                    } else {
+                        Log.w("HubCommand", "Lệnh UPDATE_CA nhận message rỗng")
+                    }
+                }
             }
 
 //            if (command != HubCommand.PONG && command != HubCommand.UPDATE_STATUS) {

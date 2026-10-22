@@ -26,26 +26,16 @@ class Utils {
         const val GET_MEDIA_PATH = "GET_MEDIA_PATH"
         const val GET_RECORD = "GET_RECORD"
 
-        //        @SuppressLint("HardwareIds")
-//        fun getDeviceId(context: Context): String {
-//            var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
-//            if (deviceId == null) {
-//                deviceId = getMacAddr()
-//                ConfigUtil.putString(context, DEVICE_ID, deviceId)
-//            }
-//            return deviceId
-//        }
+        @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
             var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
             if (deviceId == null) {
-                // Lấy ANDROID_ID làm định danh thay thế cho MAC
-                deviceId =
-                    Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+                deviceId = getMacAddr()
                 ConfigUtil.putString(context, DEVICE_ID, deviceId)
             }
-            return deviceId ?: "unknown"
+            return deviceId
         }
-
+        
         fun getMacAddr(): String {
             try {
                 val all: List<NetworkInterface> =

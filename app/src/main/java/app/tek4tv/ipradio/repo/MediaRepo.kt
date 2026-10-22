@@ -10,6 +10,7 @@ import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.ConfigUtil.KEY_MODIFY_TIME_PLAYLIST
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_DATA
 import app.tek4tv.ipradio.utils.ConfigUtil.MONTHLY_SCENARIO_URL
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.isFileExisted
 import com.downloader.Error
@@ -591,17 +592,17 @@ class MediaRepo @Inject constructor(
         }
     }
 
-    private suspend fun prDownloadOnce(
+    private suspend fun prDownloadSingleAttempt(
         url: String, dirPath: String, fileName: String
-    ): Boolean = suspendCancellableCoroutine { cont ->
-        val request = PRDownloader.download(url, dirPath, fileName).build()
+    ): Pair<Boolean, Error?> = suspendCancellableCoroutine { cont ->
+        val safeUrl = if (url.contains("#")) url.replace("#", "%23") else url
+        val request = PRDownloader.download(safeUrl, dirPath, fileName).build()
         val targetFile = File(dirPath, fileName)
-        Log.e(TAG, "start download $url")
-        // Bắt đầu tải và lấy downloadId để có thể cancel
+        Log.e(TAG, "start download $safeUrl")
         val downloadId = request.start(object : OnDownloadListener {
             override fun onDownloadComplete() {
                 Log.e(TAG, "download $url success")
-                if (cont.isActive) cont.resume(true)
+                if (cont.isActive) cont.resume(Pair(true, null))
             }
 
             override fun onError(error: Error?) {
@@ -620,7 +621,7 @@ class MediaRepo @Inject constructor(
                     Log.e(TAG, "failed to delete file: ${e.message}")
                 }
 
-                if (cont.isActive) cont.resume(false)
+                if (cont.isActive) cont.resume(Pair(false, error))
             }
         })
 
@@ -629,13 +630,40 @@ class MediaRepo @Inject constructor(
             try {
                 Log.e(TAG, "start download $url cancel")
                 PRDownloader.cancel(downloadId)
-                // Xóa file nếu bị cancel
                 if (targetFile.exists()) {
                     targetFile.delete()
                 }
             } catch (_: Throwable) {
             }
         }
+    }
+
+    private suspend fun prDownloadOnce(
+        url: String, dirPath: String, fileName: String
+    ): Boolean {
+        val (ok, error) = prDownloadSingleAttempt(url, dirPath, fileName)
+        if (ok) return true
+
+        val ex = error?.connectionException
+        val isSsl = ex is javax.net.ssl.SSLException ||
+                ex?.cause is javax.net.ssl.SSLException ||
+                error?.serverErrorMessage?.contains("CertPathValidatorException", ignoreCase = true) == true ||
+                ex?.message?.contains("CertPathValidatorException", ignoreCase = true) == true ||
+                ex?.message?.contains("Trust anchor", ignoreCase = true) == true
+
+        if (isSsl) {
+            Log.w(TAG, "Tải file $url thất bại do lỗi SSL. Đang tự động kéo CA cert...")
+            val certSaved = withContext(Dispatchers.IO) {
+                CaCertHelper.fetchAndSaveCertFromUrl(appContext, url, force = true)
+            }
+            if (certSaved) {
+                Log.i(TAG, "Đã lưu CA cert cho $url thành công. Đang thử tải lại file...")
+                CaCertHelper.setupGlobalConfiguredSsl(appContext)
+                val (retryOk, _) = prDownloadSingleAttempt(url, dirPath, fileName)
+                return retryOk
+            }
+        }
+        return false
     }
 
 
