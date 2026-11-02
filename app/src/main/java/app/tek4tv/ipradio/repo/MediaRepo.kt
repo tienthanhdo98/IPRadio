@@ -3,6 +3,7 @@ package app.tek4tv.ipradio.repo
 import android.content.Context
 import android.util.Log
 import android.webkit.URLUtil
+import androidx.core.net.toUri
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.ScheduleDay
 import app.tek4tv.ipradio.network.PlaylistService
@@ -35,12 +36,13 @@ import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.coroutines.resume
+import kotlin.time.Duration.Companion.milliseconds
 
 @Singleton
 class MediaRepo @Inject constructor(
     private val playlistService: PlaylistService,
     moshi: Moshi,
-    @ApplicationContext private val appContext: Context
+    @param:ApplicationContext private val appContext: Context
 ) : BaseRepo<MediaItem>(fileStoragePath = "${appContext.filesDir.path}/$PLAYLIST_FILE_NAME") {
 
     override val jsonAdapter: JsonAdapter<List<MediaItem>> = moshi.adapter(
@@ -103,7 +105,7 @@ class MediaRepo @Inject constructor(
                         TAG,
                         "Chờ ${finalDelay / 1000f} giây trước khi thử lại (lần ${attempt + 1})..."
                     )
-                    delay(finalDelay)
+                    delay(finalDelay.milliseconds)
                 }
 
             } catch (e: Exception) {
@@ -122,7 +124,7 @@ class MediaRepo @Inject constructor(
                     val finalDelay = currentDelay + jitter
 
                     Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại do lỗi...")
-                    delay(finalDelay)
+                    delay(finalDelay.milliseconds)
                 }
             }
         }
@@ -269,7 +271,7 @@ class MediaRepo @Inject constructor(
                         TAG,
                         "Chờ ${finalDelay / 1000f} giây trước khi thử lại (lần ${attempt + 1})..."
                     )
-                    delay(finalDelay)
+                    delay(finalDelay.milliseconds)
                 }
 
             } catch (e: Exception) {
@@ -288,7 +290,7 @@ class MediaRepo @Inject constructor(
                     val finalDelay = currentDelay + jitter
 
                     Log.d(TAG, "Chờ ${finalDelay / 1000f} giây trước khi thử lại do lỗi...")
-                    delay(finalDelay)
+                    delay(finalDelay.milliseconds)
                 }
             }
         }
@@ -321,7 +323,10 @@ class MediaRepo @Inject constructor(
                     TAG, "No schedule for today found in cache. Fetching latest monthly scenario..."
                 )
                 try {
-                    safeUpdateMonthlyScenario(monthlyUrl)
+                    val updateSuccess = safeUpdateMonthlyScenario(monthlyUrl)
+                    if (!updateSuccess) {
+                        lastUpdateFailed = true
+                    }
                     // Update lại dữ liệu cache sau khi tải mới
                     jsonMonthlyListData =
                         ConfigUtil.getString(appContext, MONTHLY_SCENARIO_DATA, "") ?: ""
@@ -330,13 +335,17 @@ class MediaRepo @Inject constructor(
                             scheduleMonthlyAdapter.fromJson(jsonMonthlyListData) ?: emptyList()
                     }
                 } catch (e: Exception) {
+                    lastUpdateFailed = true
                     Log.e(TAG, "Error fetching monthly scenario for recovery: ${e.message}")
                 }
+            } else {
+                lastUpdateFailed = true
             }
         }
 
         val res = if (monthlyDataList.isEmpty()) {
             Log.d(TAG, "No monthly scenario data")
+            lastUpdateFailed = true
             emptyList()
         } else {
             val todayScenario = monthlyDataList.firstOrNull { it.date == currentDate }
@@ -349,7 +358,7 @@ class MediaRepo @Inject constructor(
                 val hasLocalCache = isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)
                 val savedDate = ConfigUtil.getString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, "")
                 val isLocalCacheValidForToday = hasLocalCache && (savedDate == currentDate)
-             
+
                 if (isLocalCacheValidForToday) {
                     if (isOnline && !isFromUpdateMonthly) {
                         Log.d(
@@ -503,7 +512,7 @@ class MediaRepo @Inject constructor(
                     val safeFileName = if (guessedName.contains('.')) {
                         "${url.md5()}_$guessedName"
                     } else {
-                        val typeParam = android.net.Uri.parse(url).getQueryParameter("type")
+                        val typeParam = url.toUri().getQueryParameter("type")
                             ?.trimStart('.')
                         if (!typeParam.isNullOrBlank()) {
                             Log.d(TAG, "Extension from 'type' query param: $typeParam | url: $url")
@@ -578,7 +587,7 @@ class MediaRepo @Inject constructor(
 
         // 5. Đợi một chút để file được flush (workaround PRDownloader timing issue)
         if (ok) {
-            delay(200) // 100ms buffer
+            delay(200.milliseconds) // 100ms buffer
         }
         // 6. Verify file sau khi tải
         val isValid = file.exists() && file.length() > 100
@@ -647,7 +656,10 @@ class MediaRepo @Inject constructor(
         val ex = error?.connectionException
         val isSsl = ex is javax.net.ssl.SSLException ||
                 ex?.cause is javax.net.ssl.SSLException ||
-                error?.serverErrorMessage?.contains("CertPathValidatorException", ignoreCase = true) == true ||
+                error?.serverErrorMessage?.contains(
+                    "CertPathValidatorException",
+                    ignoreCase = true
+                ) == true ||
                 ex?.message?.contains("CertPathValidatorException", ignoreCase = true) == true ||
                 ex?.message?.contains("Trust anchor", ignoreCase = true) == true
 

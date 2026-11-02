@@ -43,11 +43,11 @@ class PlayersManager(
 
 
     /**
-     * -2 for force media
-     * 0 for init
+     * -2 for force media (PLAY_MODE_FORCE)
+     * "" for idle / init / stopped (PLAY_MODE_IDLE)
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_IDLE
 
     /**
      * List of media for a timeframe
@@ -114,6 +114,16 @@ class PlayersManager(
             val t = period.split("-")
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
+            if (start.after(end)) {
+                // Khung giờ qua nửa đêm (VD: 23:00 - 01:00)
+                if (now < end.timeInMillis) {
+                    // Sau nửa đêm (rạng sáng), start thuộc về ngày hôm qua
+                    start.add(Calendar.DAY_OF_MONTH, -1)
+                } else {
+                    // Trước nửa đêm (tối), end thuộc về ngày mai
+                    end.add(Calendar.DAY_OF_MONTH, 1)
+                }
+            }
             if (now in start.timeInMillis..end.timeInMillis) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
@@ -149,7 +159,7 @@ class PlayersManager(
     }
 
     fun playNextMedia() {
-        if (playMode == "") return
+        if (playMode == PLAY_MODE_IDLE) return
         vlcPlayer.stop()
         playlistIndex++
         try {
@@ -177,6 +187,10 @@ class PlayersManager(
         vlcPlayer.resume()
     }
 
+    fun isPlaying(): Boolean {
+        return vlcPlayer.isPlaying() || handlerFMPlayer != null
+    }
+
 
     private fun playMediaByIndex(index: Int, timeStamp: Int = 0) {
         try {
@@ -202,7 +216,12 @@ class PlayersManager(
                     ) {
                         vlcPlayer.playMedia(mediaItem, true, timeStamp)
                     } else {
-                        vlcPlayer.playMedia(mediaItem, false, timeStamp)
+                        val finalTimeStamp = if (playMode == PLAY_MODE_FORCE && timeStamp == 0) {
+                            calculateResumeLivePoint(mediaItem)
+                        } else {
+                            timeStamp
+                        }
+                        vlcPlayer.playMedia(mediaItem, false, finalTimeStamp)
                     }
 
                 }
@@ -221,6 +240,7 @@ class PlayersManager(
                         handlerFMPlayer?.postDelayed(
                             {
                                 Log.e(LOGTAG, "Player FM start")
+                                handlerFMPlayer = null
                                 onMediaEndReached(mediaItem)
                                 Log.e(LOGTAG, "Player FM stop")
                             },
@@ -248,6 +268,7 @@ class PlayersManager(
 
     fun stopAllPlayer() {
         handlerFMPlayer?.removeCallbacksAndMessages(null)
+        handlerFMPlayer = null
         vlcPlayer.stop()
     }
 
@@ -310,7 +331,7 @@ class PlayersManager(
 
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
-        playMode = ""
+        playMode = PLAY_MODE_IDLE
         stopAllPlayer()
 
         //check time over
@@ -319,6 +340,9 @@ class PlayersManager(
     }
 
     private fun stopTimeFrame() {
+        stopAllPlayer()
+        playMode = PLAY_MODE_IDLE
+        isTimeOver = true
         playerManagerListener?.onTimeOver()
         Log.d("turnPA", "onTimeOver: stop time frame")
     }
@@ -327,6 +351,7 @@ class PlayersManager(
         if (playMode != PLAY_MODE_FORCE) return
 
         stopAllPlayer()
+        playMode = PLAY_MODE_IDLE
         onMediaStopPlaying()
         playerManagerListener?.onEndForceMedia()
 //        playerManagerListener?.onTimeOver()
@@ -410,17 +435,23 @@ class PlayersManager(
     }
 
     fun onActivityDestroy() {
+        stopAllPlayer()
         vlcPlayer.release()
     }
 
     fun stopAndEndTimeFrame() {
-        vlcPlayer.stop()
+        stopAllPlayer()
+        playMode = PLAY_MODE_IDLE
         isTimeOver = true
         playerManagerListener?.onTimeOver()
     }
 
     fun resetPlayMode() {
-        playMode = PLAY_MODE_INIT//"0"
+        playMode = PLAY_MODE_IDLE
+    }
+
+    fun isIdle(): Boolean {
+        return playMode == PLAY_MODE_IDLE
     }
 
     fun playTest() {
@@ -430,7 +461,7 @@ class PlayersManager(
 
     companion object {
         const val PLAY_MODE_FORCE = "-2"
-        const val PLAY_MODE_INIT = "0"
+        const val PLAY_MODE_IDLE = ""
         const val LOGTAG = "player"
         var currentPlaylist = listOf<MediaItem>()
         var handlerLivePlayer: Handler? = null

@@ -34,6 +34,9 @@ android {
                 cppFlags ""
             }
         }
+        ndk {
+            abiFilters "armeabi-v7a", "arm64-v8a" // Loại bỏ x86 và x86_64
+        }
     }
 
     buildTypes {
@@ -73,6 +76,12 @@ android {
     }
     testOptions {
         unitTests.returnDefaultValues = true
+    }
+    
+    packagingOptions {
+        jniLibs {
+            useLegacyPackaging = true // hoặc false
+        }
     }
 }
 //kapt {
@@ -124,11 +133,11 @@ dependencies {
 
     implementation 'commons-net:commons-net:3.7.2'
 
-    implementation "androidx.media3:media3-exoplayer:$media3_version"
-    implementation "androidx.media3:media3-exoplayer-hls:$media3_version"
-    implementation "androidx.media3:media3-ui:$media3_version"
-    implementation("androidx.media3:media3-exoplayer-rtsp:$media3_version")
-    implementation("androidx.media3:media3-datasource-okhttp:$media3_version")
+//    implementation "androidx.media3:media3-exoplayer:$media3_version"
+//    implementation "androidx.media3:media3-exoplayer-hls:$media3_version"
+//    implementation "androidx.media3:media3-ui:$media3_version"
+//    implementation("androidx.media3:media3-exoplayer-rtsp:$media3_version")
+//    implementation("androidx.media3:media3-datasource-okhttp:$media3_version")
 
 
     implementation 'com.github.pedroSG94.rtmp-rtsp-stream-client-java:rtplibrary:2.1.8'

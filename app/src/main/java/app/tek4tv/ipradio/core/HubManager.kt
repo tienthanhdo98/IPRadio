@@ -41,6 +41,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -52,6 +53,7 @@ class HubManager(
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) {
+    var onHubConnectedListener: (() -> Unit)? = null
     private val LOG_TAG = "HubManager"
 
     //10p
@@ -227,11 +229,16 @@ class HubManager(
     }
 
     //end check
+    fun isHubConnected(): Boolean {
+        return hubConnection.connectionState == com.microsoft.signalr.HubConnectionState.CONNECTED
+    }
+
     /**
      * bắt đầu kết nối dend hub
      * **/
     fun connectToHub() {
-        if (!firstConnect) return
+        if (isHubConnected()) return
+        if (openNewConnectionJob?.isActive == true) return
 
         openNewConnectionJob?.cancel()
         openNewConnectionJob = coroutineScope.launch {
@@ -260,7 +267,12 @@ class HubManager(
             onMessage()
             startPingTimer()
             startPingDataTimer()
-            //notifyHubConnected()
+            pingCounter = 0
+            try {
+                onHubConnectedListener?.invoke()
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Error invoking onHubConnectedListener: ${e.message}")
+            }
             openNewConnectionJob = null
         }
     }
@@ -420,7 +432,7 @@ class HubManager(
         pingDataJob = coroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 sendPingData()
-                delay(PING_DATA_INTERVAL)
+                delay(PING_DATA_INTERVAL.milliseconds)
             }
         }
     }

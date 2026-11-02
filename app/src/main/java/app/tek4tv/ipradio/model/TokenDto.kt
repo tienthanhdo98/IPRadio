@@ -2,16 +2,6 @@ package app.tek4tv.ipradio.model
 
 import com.squareup.moshi.Json
 
-//data class TokenDto(
-//    @Json(name = "Token")
-//    val token: String? = "",
-//    @Json(name = "Message")
-//    val message: String? = "",
-//
-//    @Json(name = "ExpirationTime")
-//    val expirationTime: Long? = 0,
-//)
-//
 data class TokenDto(
     @Json(name = "NoiDung")
     val noiDung: NoiDung,
