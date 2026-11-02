@@ -230,7 +230,7 @@ object CaCertHelper {
                 .build()
 
             client.newCall(request).execute().use { response ->
-                certs = response.handshake?.peerCertificates
+                certs = response.handshake()?.peerCertificates()
             }
         } catch (e: Exception) {
             Log.w(
@@ -450,8 +450,8 @@ object CaCertHelper {
                     .build()
                 val request = Request.Builder().url(trimmed).build()
                 client.newCall(request).execute().use { response ->
-                    if (response.isSuccessful && response.body != null) {
-                        val bytes = response.body!!.bytes()
+                    if (response.isSuccessful && response.body() != null) {
+                        val bytes = response.body()!!.bytes()
                         val text = String(bytes, Charsets.UTF_8)
                         if (text.contains("-----BEGIN CERTIFICATE-----", ignoreCase = true)) {
                             // Tự động lọc bỏ Private Key nếu file có chứa, chỉ lưu các khối Certificate
@@ -473,7 +473,7 @@ object CaCertHelper {
                     } else {
                         Log.e(
                             TAG,
-                            "Hub Command: Tải file cert thất bại, HTTP code: ${response.code}"
+                            "Hub Command: Tải file cert thất bại, HTTP code: ${response.code()}"
                         )
                         false
                     }
@@ -683,8 +683,8 @@ object CaCertHelper {
 
                 val targetContext = context ?: MyApp.instance
                 if (isSsl && targetContext != null) {
-                    val urlStr = request.url.toString()
-                    val host = request.url.host
+                    val urlStr = request.url().toString()
+                    val host = request.url().host()
                     Log.w(
                         TAG,
                         "SslRetryInterceptor: Lỗi SSL khi gọi API ($host): ${e.message}. Tự động tải CA cert..."

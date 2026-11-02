@@ -65,8 +65,14 @@ class SerialPortController(
         }
     }
 
+    var isPlayingProvider: (() -> Boolean)? = null
+    var lastPipsData: String = ""
+    var lastTunerData: String = ""
+
     private fun onWatchDog() {
-        val looseHubConnection = hubManager.pingCounter >= 3
+        val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
+        val isHubConnected = hubManager.isHubConnected()
+        val looseHubConnection = onAir && (!isHubConnected || hubManager.pingCounter >= 3)
 
         if (outputStream != null) {
             //$$,1,8,1,910,675,0,0,0,1,0,25
@@ -75,12 +81,11 @@ class SerialPortController(
             //$$,1,8,1,910,675,5,0,0,1,0,28: 1: fm/am, fm freq, am freq, vol, audio source, pa, mute/unmute, external mic, tempareture
             //$$,1,9,software version, device versionnải
             try {
-                val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
                 //0: không có mạng
                 //1: có mạng, kết nối được đến hub
-                //2: không xác định
+                //2: không xác định (mất kết nối hub)
                 var param = if (onAir) "1" else "0"
-                if (onAir && looseHubConnection) {
+                if (looseHubConnection) {
                     param = "2"
                 }
                 //Log.d(LOG_TAG, "status: $param")
@@ -138,6 +143,24 @@ class SerialPortController(
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
                                 volume = if (list.size > 5) list[5] else ""
+                                val paState = if (list.size > 7) list[7] else ""
+
+                                val isActuallyPlaying = isPlayingProvider?.invoke() ?: false
+                                if (isActuallyPlaying) {
+                                    // Tự động đồng bộ và kích hoạt lại PA/Volume nếu MCU đang báo tắt trong khi app đang phát
+                                    if (paState == "0" || volume == "0") {
+                                        syncPAState()
+                                    }
+                                } else {
+                                    // Player ĐÃ DỪNG, nhưng MCU báo PA đang bật ("1") hoặc playMode chưa về MODE_NONE -> Cưỡng bức dập tắt PA ngay
+                                    if (paState == "1" || (playMode != MODE_NONE && playMode.isNotEmpty())) {
+                                        Log.w(
+                                            LOG_TAG,
+                                            "Player đã dừng nhưng PA vẫn mở (paState=$paState, mode=$playMode) -> Tắt PA an toàn"
+                                        )
+                                        turnOffPA()
+                                    }
+                                }
                             }
                             dataFinal = StringBuffer()
                         }
@@ -194,9 +217,10 @@ class SerialPortController(
     }
 
     fun turnOnPAVod() {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, GlobalProperties.getInst().volume)
+        val vol = GlobalProperties.getInst().volume.takeIf { it.isNotEmpty() && it != "0" } ?: "100"
+        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_VOD_LIVE, vol)
         playMode = MODE_VOD_LIVE
-        Log.e("PA", "ON")
+        Log.e("PA", "ON with volume: $vol")
     }
 
     fun writeForceSetVolume(data: String) {
@@ -216,7 +240,7 @@ class SerialPortController(
     }
 
     fun setTimeOver() {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+        turnOffPA()
     }
 
     fun setTimeOn(data: String) {
@@ -238,14 +262,50 @@ class SerialPortController(
     }
 
     fun playTunerLiveForce(data: String) {
+        lastTunerData = data
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER_FORCE, data)
+        playMode = MODE_TUNER
+        Log.e("PA", "TUNER FORCE")
     }
 
     fun playTuner(pipsData: String, tunerData: String) {
+        lastPipsData = pipsData
+        lastTunerData = tunerData
         invokeDeviceFunc(Define.FUNC_WRITE_SETUP_PI_PS_NAME, pipsData, true)
         invokeDeviceFunc(Define.FUNC_WRITE_PLAY_TUNER, tunerData)
         playMode = MODE_TUNER
         Log.e("PA", "TUNER")
+    }
+
+    fun syncPAState() {
+        val isActuallyPlaying = isPlayingProvider?.invoke() ?: false
+        if (!isActuallyPlaying) {
+            // Player đã dừng phát: đảm bảo dập tắt PA nếu trước đó đang bật
+            if (playMode != MODE_NONE && playMode.isNotEmpty()) {
+                turnOffPA()
+            }
+            return
+        }
+
+        when (playMode) {
+            MODE_VOD_LIVE -> {
+                Log.w(
+                    LOG_TAG,
+                    "Đang phát VOD/Live nhưng MCU báo PA/Volume tắt -> Kích hoạt lại PA & Volume"
+                )
+                turnOnPAVod()
+            }
+
+            MODE_TUNER -> {
+                Log.w(
+                    LOG_TAG,
+                    "Đang phát Tuner FM/AM nhưng MCU báo PA/Volume tắt -> Kích hoạt lại Tuner PA & Volume"
+                )
+                if (lastPipsData.isNotEmpty() && lastTunerData.isNotEmpty()) {
+                    playTuner(lastPipsData, lastTunerData)
+                }
+            }
+        }
     }
 
     companion object {

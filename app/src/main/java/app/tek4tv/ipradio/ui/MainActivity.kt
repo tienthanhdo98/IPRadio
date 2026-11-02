@@ -181,6 +181,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            serialPortController.turnOffPA()
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
         }
@@ -277,13 +278,47 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         hubManager.onMessageListener = { command, message ->
             handleFromCommandServer(command, message)
         }
+        var lastHubScheduleSyncTime = 0L
+        hubManager.onHubConnectedListener = {
+            val now = System.currentTimeMillis()
+            if (now - lastHubScheduleSyncTime >= 5 * 60 * 1000L) {
+                lastHubScheduleSyncTime = now
+                lifecycleScope.launch(Dispatchers.Main) {
+                    val isScheduleEmpty = viewModel.content.value.isNullOrEmpty()
+                    val isNotStarted = playerManager.isIdle()
+                    if (isNotStarted && isScheduleEmpty && !playerManager.isPlaying() && !ForceMedia.hasValidForceMedia(applicationContext)) {
+                        Log.i("MainActivity", "Hub connected & schedule is empty -> fetching schedule now")
+                        startPlayingMedia()
+                    }
+                }
+            }
+        }
 
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
         )
         playerManager.playerManagerListener = playerCallback
+        serialPortController.isPlayingProvider = { playerManager.isPlaying() }
 
         NetworkUtils.instance.startNetworkListener(this)
+        NetworkUtils.instance.addCallback(object : NetworkUtils.ConnectionCallback {
+            override fun onChange(netWorkState: Boolean) {
+                if (netWorkState) {
+                    Log.i("MainActivity", "Network connected -> reconnect Hub & sync playback/PA")
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        hubManager.connectToHub()
+                        val isScheduleEmpty = viewModel.content.value.isNullOrEmpty()
+                        val isNotStarted = playerManager.isIdle()
+
+                        if (isNotStarted && isScheduleEmpty && !playerManager.isPlaying()) {
+                            startPlayingMedia()
+                        } else {
+                            serialPortController.syncPAState()
+                        }
+                    }
+                }
+            }
+        })
 
         initHubConnect()
 
@@ -452,13 +487,15 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     override fun onStop() {
         super.onStop()
-        playerManager.onActivityDestroy()
+        serialPortController.turnOffPA()
+        playerManager.onActivityStop()
         stopStream()
         cancelAllAlarm()
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        serialPortController.turnOffPA()
         playerManager.onActivityDestroy()
         stopStream()
         cancelAllAlarm()
@@ -600,6 +637,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             when (command) {
                 HubCommand.UPDATE_MONTHLY_LIST -> {
                     val mess = responseHub.message!!
+                    serialPortController.turnOffPA()
                     //  //add at 4.1.3d
 //                    playerManager.stopTimeFrame() //dừng khung thời gian đã setup trước
                     playerManager.stopAllPlayer() //dừng trạng thái tất cả player hiện tại
@@ -1076,10 +1114,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.STOP_FORCE -> {
+                    serialPortController.turnOffPA()
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContent()
+                    startPlayingMedia()
                 }
 
                 HubCommand.UPDATE_CA_CERT -> {

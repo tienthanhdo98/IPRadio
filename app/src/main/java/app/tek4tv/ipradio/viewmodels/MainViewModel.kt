@@ -16,6 +16,7 @@ import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.execSu
 import app.tek4tv.ipradio.utils.storage.AppStorageManager
 import dagger.hilt.android.lifecycle.HiltViewModel
+import java.io.File
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -50,6 +51,8 @@ class MainViewModel @Inject constructor(
 
             getContentJob?.cancel()
             checkPlaylistJob?.cancel()
+            retryJob?.cancel()
+            retryJob = null
 
             getContentJob = launch {
                 val mediaList = mediaRepo.getScenario(isFromUpdateMonthly)
@@ -64,17 +67,15 @@ class MainViewModel @Inject constructor(
                     if (mediaRepo.lastUpdateFailed) {
                         Log.w(
                             "MEDIA_REPO",
-                            "Schedule is empty due to update failure, starting or maintaining retry job."
+                            "Schedule is empty due to update failure, starting or maintaining periodic check."
                         )
-                        startScheduleRetryLoop()
                     } else {
                         Log.d(
                             "MEDIA_REPO",
-                            "Schedule is empty but fetch was successful (no schedule for today). Canceling retry job."
+                            "Schedule is empty (no schedule for today). Starting periodic check in case schedule is updated later."
                         )
-                        retryJob?.cancel()
-                        retryJob = null
                     }
+                    startScheduleRetryLoop()
                 }
 
                 getContentJob = null
@@ -87,20 +88,13 @@ class MainViewModel @Inject constructor(
 
         retryJob = viewModelScope.launch(Dispatchers.IO) {
             var attempt = 0
-            val maxAttempts = 40
-            while (isActive && attempt < maxAttempts) {
-                // Tăng dần thời gian chờ
-                val delayMinutes = when {
-                    attempt < 10 -> 3L   // 2 phút/lần
-                    attempt < 15 -> 5L //  5 phút/lần
-                    attempt < 20 -> 10L //  10 phút/lần
-                    else -> 20L         // 20 phút/lần
-                }
-
+            while (isActive) {
+                attempt++
+                val delayMinutes = 30L
                 val delayMillis = delayMinutes * 60 * 1000L
                 Log.d(
                     "MEDIA_REPO",
-                    "Retry in ${delayMinutes}min (attempt ${attempt + 1}/$maxAttempts)"
+                    "Periodic schedule check in ${delayMinutes}min (cycle $attempt)"
                 )
                 delay(delayMillis)
                 val mediaList = mediaRepo.getScenario()
@@ -108,12 +102,11 @@ class MainViewModel @Inject constructor(
                     content.value = mediaList
 
                     if (mediaList.isNotEmpty()) {
-                        Log.d("MEDIA_REPO", "Successfully loaded schedule, breaking retry loop.")
-                        retryJob?.cancel() // Có dữ liệu thì tự hủy vòng lặp
-                        attempt = 0
+                        Log.d("MEDIA_REPO", "Successfully loaded schedule, breaking periodic retry loop.")
+                        retryJob?.cancel()
+                        retryJob = null
                     }
                 }
-                attempt++
             }
         }
     }
@@ -159,15 +152,30 @@ class MainViewModel @Inject constructor(
     private fun clearDatastore(appStorageManager: AppStorageManager) {
         //limit free data 1 gb
         val limit = 1000000000
-        //limit free data 500 mb
-        //val limit = 524288000
         val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
         if (totalStorage - usedStorage <= limit) {
-            Log.d("clearDatastore", "clearDatastore: Must Clear")
-            appStorageManager.deleteAllMedia()
+            Log.d("clearDatastore", "clearDatastore: Dung lượng trống thấp -> Dọn dẹp file cũ/rác")
+            appStorageManager.deleteAllLog()
+            appStorageManager.deleteAllRecord()
+
+            // Bảo vệ các file media của lịch hôm nay, chỉ xóa các file media cũ không còn trong lịch
+            val currentMediaFiles = mediaRepo.broadcastList.mapNotNull { it.body }.toSet()
+            appStorageManager.getAllMediaPath().forEach { filePath ->
+                if (!currentMediaFiles.contains(filePath)) {
+                    try {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            file.delete()
+                            Log.d("clearDatastore", "Đã xóa file media cũ không dùng: $filePath")
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
         } else {
-            Log.d("clearDatastore", "clearDatastore: Dont have to clear")
+            Log.d("clearDatastore", "clearDatastore: Dung lượng đủ, không cần dọn dẹp")
         }
     }
 

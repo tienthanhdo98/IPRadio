@@ -26,6 +26,16 @@ object NetworkModule {
 
     // Cấu hình OkHttpClient an toàn với chứng chỉ CA đã nạp (không bypass SSL)
     var okHttpClient: OkHttpClient = CaCertHelper.buildConfiguredOkHttpClient()
+        .newBuilder()
+        // 1. Kết nối mạng: Cho phép thử lại nếu mạng chập chờn
+        .retryOnConnectionFailure(true)
+        .connectTimeout(15, TimeUnit.SECONDS)
+        // 2. Server xử lý chậm: Tăng thời gian chờ dữ liệu
+        .readTimeout(60, TimeUnit.SECONDS)
+        .writeTimeout(60, TimeUnit.SECONDS)
+        // 3. Chốt chặn tổng thể: Ngăn leak resource và treo UI
+        .callTimeout(90, TimeUnit.SECONDS)
+        .build()
 
     @Provides
     @Singleton

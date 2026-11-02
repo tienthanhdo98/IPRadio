@@ -41,6 +41,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
+import kotlin.time.Duration.Companion.milliseconds
 
 /**
  * Manager hub connection: Connect to hub, ping,
@@ -52,6 +53,7 @@ class HubManager(
     private val authService: AuthService,
     var onMessageListener: (command: String?, message: String?) -> Unit,
 ) {
+    var onHubConnectedListener: (() -> Unit)? = null
     private val LOG_TAG = "HubManager"
 
     //10p
@@ -122,9 +124,16 @@ class HubManager(
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-lamdong-alpha-qltt.tek4tv.vn/hubServer"
-        ) ?: "https://hubip-lamdong-alpha-qltt.tek4tv.vn/hubServer"
-        tokenUrl = "https://gateway-alpha-qltt.tek4tv.vn/api/v2/oauth/token"
+            "https://hubip-phutho.tek4tv.vn/hubServer"
+        ) ?: "https://hubip-phutho.tek4tv.vn/hubServer"
+//        hubUrl = ConfigUtil.getString(
+//            appContext,
+//            ConfigUtil.URL_HUB,
+//            "https://hubip-bacninh.tek4tv.vn/hubServer"
+//        ) ?: "https://hubip-bacninh.tek4tv.vn/hubServer"
+        tokenUrl = ConfigUtil.getString(
+            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
+        )!!
         serverTimeout = ConfigUtil.getInt(
             appContext, ConfigUtil.ServerTimeout, 60000
         )
@@ -159,47 +168,25 @@ class HubManager(
     }
 
     //check
-//    fun getHubToken(urlToken: String): String? {
-//        return try {
-//            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-//            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-//
-//            // Thông tin xác thực lưu trong thư viện
-////            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
-//            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
-//
-//            val body = mapOf(
-//                String(xorString(u, packageName.reversed())) to authInfo[0],
-//                String(xorString(p, packageName.reversed())) to authInfo[1]
-//            )
-//
-//            val call = authService.getToken(body, urlToken)
-//            val response = call.execute()
-//            if (response.isSuccessful) {
-//                val token = response.body()!!.token
-//                token
-//            } else {
-//                null
-//            }
-//        } catch (e: Exception) {
-//            e.printStackTrace()
-//            null
-//        }
-//    }
-    fun getHubToken(urlToken: String? = null): String? {
+    fun getHubToken(urlToken: String): String? {
         return try {
-            val endpoint = urlToken ?: "https://gateway-alpha-qltt.tek4tv.vn/api/v2/oauth/token"
+            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
+            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
+
+            // Thông tin xác thực lưu trong thư viện
+//            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
+            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
 
             val body = mapOf(
-                "Username" to "alpha_lamdong",
-                "Password" to "042abd7d-e4aa-40a0-9ec0-7cf54168a65e"
+                String(xorString(u, packageName.reversed())) to authInfo[0],
+                String(xorString(p, packageName.reversed())) to authInfo[1]
             )
 
-            val call = authService.getToken(body, endpoint)
+            val call = authService.getToken(body, urlToken)
             val response = call.execute()
-
             if (response.isSuccessful) {
-                response.body()?.noiDung?.token
+                val token = response.body()!!.token
+                token
             } else {
                 null
             }
@@ -208,6 +195,7 @@ class HubManager(
             null
         }
     }
+
 
     suspend fun openConnection2(hubConnection: HubConnection): String? {
         //open connection on another thread
@@ -227,11 +215,16 @@ class HubManager(
     }
 
     //end check
+    fun isHubConnected(): Boolean {
+        return hubConnection.connectionState == com.microsoft.signalr.HubConnectionState.CONNECTED
+    }
+
     /**
      * bắt đầu kết nối dend hub
      * **/
     fun connectToHub() {
-        if (!firstConnect) return
+        if (isHubConnected()) return
+        if (openNewConnectionJob?.isActive == true) return
 
         openNewConnectionJob?.cancel()
         openNewConnectionJob = coroutineScope.launch {
@@ -257,10 +250,15 @@ class HubManager(
                 pingCounter++
             }
             Log.d(LOG_TAG, connectionId)
+            pingCounter = 0
             onMessage()
             startPingTimer()
             startPingDataTimer()
-            //notifyHubConnected()
+            try {
+                onHubConnectedListener?.invoke()
+            } catch (e: Exception) {
+                Log.e(LOG_TAG, "Error invoking onHubConnectedListener: ${e.message}")
+            }
             openNewConnectionJob = null
         }
     }
@@ -420,7 +418,7 @@ class HubManager(
         pingDataJob = coroutineScope.launch(Dispatchers.IO) {
             while (true) {
                 sendPingData()
-                delay(PING_DATA_INTERVAL)
+                delay(PING_DATA_INTERVAL.milliseconds)
             }
         }
     }

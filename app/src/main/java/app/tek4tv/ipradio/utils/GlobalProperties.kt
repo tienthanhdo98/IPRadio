@@ -20,18 +20,23 @@ class GlobalProperties {
     private val appContext: Context = MyApp.instance!!.applicationContext
 
     object Defaults {
-        const val VERSION_NAME = "v37.4.2.2d"
+        const val VERSION_NAME = "v19.4.2.2f"
         const val VOLUME = "100"
         const val PI_CODE = "0"
         const val PS_NAME = "AAA"
-        const val DESTINATION_ID = "H41.220"
-        const val DESTINATION_NAME = "Phường Cửa Lò"
-        const val NAME_DEVICE = "TB Phường Cửa Lò"
+
+        const val DESTINATION_ID = "H44.126"
+        const val DESTINATION_NAME = "Xã Trí Đám"
+        const val NAME_DEVICE = "TB Xã Trí Đám"
+
+        //        const val DESTINATION_ID = "H05.167"
+//        const val DESTINATION_NAME = "Xã Dương Hưu"
+//        const val NAME_DEVICE = "TB Xã Dương Hưu"
         const val RESUME_FROM_START = false
         const val LAT = 0f
         const val LNG = 0f
         const val USER_NAME_CONTROLLER = ""
-        const val PROVIDER_VALUE = "VATC"
+        const val PROVIDER_VALUE = "TEK4TV"
     }
 
     var volume = Defaults.VOLUME

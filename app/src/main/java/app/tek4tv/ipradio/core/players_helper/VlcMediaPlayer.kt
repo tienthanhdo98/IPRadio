@@ -1,9 +1,11 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.util.Log
+import androidx.core.net.toUri
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.LOGTAG
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.handlerLivePlayer
 import app.tek4tv.ipradio.model.MediaItem
@@ -13,18 +15,18 @@ import app.tek4tv.ipradio.utils.getDurationInSecond
 import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
+import org.videolan.libvlc.Media
 import org.videolan.libvlc.MediaPlayer
 import java.io.File
 import java.util.Calendar
 
 class VlcMediaPlayer(
-    private val appContext: Context,
-    private val playerEventListener: IPlayerEventListener
+    private val appContext: Context, private val playerEventListener: IPlayerEventListener
 ) : IMediaPlayer {
     private var mLibVLC: LibVLC
     private var vlcPlayer: CustomPlayer
     private var currentMedia: MediaItem? = null
-    private var isCurrentMediaForce = false
+    private var isLiveMode = false
 
     private var isPlaying = false
     private var lastError = -1
@@ -53,7 +55,7 @@ class VlcMediaPlayer(
             MediaPlayer.Event.EndReached -> {
                 val media = currentMedia
                 if (media != null) {
-                    val isFile = media.getMediaType() == MediaType.FILE && !isCurrentMediaForce
+                    val isFile = media.getMediaType() == MediaType.FILE && !isLiveMode
 
                     if (isFile) {
                         val isStreamEarlyEnd = checkTimeFrameStream(media)
@@ -91,15 +93,14 @@ class VlcMediaPlayer(
                 // Tự động kiểm tra và tải SSL cert của domain nếu gặp lỗi HTTPS
                 CaCertHelper.extractHttpsUrl(currentMedia)?.let { httpsUrl ->
                     Log.i(
-                        TAG,
-                        "Phát hiện lỗi phát HTTPS: $httpsUrl -> Đang tự động lấy SSL cert..."
+                        TAG, "Phát hiện lỗi phát HTTPS: $httpsUrl -> Đang tự động lấy SSL cert..."
                     )
                     CaCertHelper.fetchAndSaveCertFromUrlAsync(appContext, httpsUrl, force = true)
                 }
 
                 val media = currentMedia
                 if (media != null) {
-                    val isFile = media.getMediaType() == MediaType.FILE && !isCurrentMediaForce
+                    val isFile = media.getMediaType() == MediaType.FILE && !isLiveMode
                     if (isFile) {
                         Log.e(TAG, "EncounteredError File: ${media.title}")
                         checkStreamError()
@@ -112,6 +113,10 @@ class VlcMediaPlayer(
                 lastError = event
             }
 
+            MediaPlayer.Event.Paused, MediaPlayer.Event.Stopped -> {
+                isPlaying = false
+            }
+
             else -> {
             }
         }
@@ -122,7 +127,7 @@ class VlcMediaPlayer(
 
         val args = ArrayList<String>()
         // Bật log vlc
-        args.add("-vvv")
+//        args.add("-vvv")
         args.add("--network-caching=1500")
         args.add("--gnutls-dir-trust=${caDir.absolutePath}")
         mLibVLC = LibVLC(appContext, args)
@@ -144,7 +149,7 @@ class VlcMediaPlayer(
         }
 
         currentMedia = mediaItem
-        isCurrentMediaForce = isForce
+        isLiveMode = isForce
 
         // Kiểm tra và nạp trước SSL certificate nếu là luồng HTTPS
         CaCertHelper.extractHttpsUrl(mediaItem)?.let { httpsUrl ->
@@ -160,6 +165,7 @@ class VlcMediaPlayer(
 
     override fun pause() {
         vlcPlayer.pause()
+        isPlaying = false
     }
 
     override fun resume() {
@@ -178,7 +184,7 @@ class VlcMediaPlayer(
     private fun playLiveStream(mediaItem: MediaItem, timeStamp: Int) {
         Log.i(
             TAG,
-            "vlc play live: time stamp $timeStamp, duration: ${mediaItem.duration}, title: ${mediaItem.title}"
+            "vlc play live: time stamp $timeStamp, contentType: ${mediaItem.contentType?.value} duration: ${mediaItem.duration}, title: ${mediaItem.title}"
         )
         var currentTimeStamp = 0
         if (timeStamp >= 0) currentTimeStamp = timeStamp
@@ -187,7 +193,7 @@ class VlcMediaPlayer(
         if (totalDurationSec <= 0) {
             Log.e(TAG, "Luồng Live không có duration hợp lệ (${mediaItem.duration}) -> Dừng phát")
             stop()
-            if (currentMedia?.getMediaType() == MediaType.FILE && !isCurrentMediaForce) {
+            if (currentMedia?.getMediaType() == MediaType.FILE && !isLiveMode) {
                 playerEventListener.onMediaEndReached(mediaItem)
             } else {
                 playerEventListener.onMediaForceEndReached(mediaItem)
@@ -202,7 +208,7 @@ class VlcMediaPlayer(
                 "Luồng Live đã hết thời lượng phát (${currentTimeStamp}s >= ${totalDurationSec}s) -> Kết thúc ngay"
             )
             stop()
-            if (currentMedia?.getMediaType() == MediaType.FILE && !isCurrentMediaForce) {
+            if (currentMedia?.getMediaType() == MediaType.FILE && !isLiveMode) {
                 playerEventListener.onMediaEndReached(mediaItem)
             } else {
                 playerEventListener.onMediaForceEndReached(mediaItem)
@@ -211,6 +217,10 @@ class VlcMediaPlayer(
         }
 
         val stream = mediaItem.getVlcMedia(mLibVLC)
+        if (currentTimeStamp > 0 && isAudioFile(mediaItem)) {
+            Log.i(TAG, "Resume file âm thanh khẩn cấp tại: ${currentTimeStamp}s")
+            stream.addOption(":start-time=$currentTimeStamp")
+        }
         vlcPlayer.play(stream)
         Log.i(LOGTAG, "Player vlc live start")
 
@@ -223,19 +233,67 @@ class VlcMediaPlayer(
                 Log.i(TAG, "Hết thời lượng Live (${totalDurationSec}s) -> Dừng phát")
                 vlcPlayer.stop()
                 isPlaying = false
-                if (mediaItem.getMediaType() == MediaType.FILE && !isCurrentMediaForce) {
+                if (mediaItem.getMediaType() == MediaType.FILE && !isLiveMode) {
                     playerEventListener.onMediaEndReached(mediaItem)
                 } else {
                     playerEventListener.onMediaForceEndReached(mediaItem)
                 }
-            },
-            delayMillis
+            }, delayMillis
         )
+    }
+
+    private fun isAudioFile(mediaItem: MediaItem): Boolean {
+        val rawBody = mediaItem.body ?: ""
+        val url = rawBody.lowercase().trim()
+        if (url.isEmpty()) return false
+
+        // 1. Nếu là file cục bộ đã tải về máy -> Chắc chắn là file âm thanh
+        if (File(rawBody).exists() || url.startsWith("file://") || url.contains("/files/")) {
+            return true
+        }
+
+        // 2. Chặn toàn bộ các giao thức Live streaming
+        val liveProtocols = listOf(
+            "rtsp://", "rtsps://",
+            "rtmp://", "rtmps://",
+            "srt://", "mms://", "mmsh://"
+        )
+        if (liveProtocols.any { url.startsWith(it) }) {
+            return false
+        }
+
+        // 3. Chặn theo ContentType của hệ thống (5: LIVE, 6: FM)
+        if (mediaItem.contentType?.value == "5" || mediaItem.contentType?.id == 5 ||
+            mediaItem.contentType?.value == "6" || mediaItem.contentType?.id == 6
+        ) {
+            return false
+        }
+
+        // 4. Chặn các định dạng danh sách phát luồng trực tiếp (HLS, DASH, HTTP-FLV)
+        if (url.contains(".m3u8") || url.contains(".mpd") || url.contains(".flv")) {
+            return false
+        }
+
+        // 5. Kiểm tra đuôi file âm thanh thực sự (loại trừ query string nếu có)
+        val pathWithoutQuery = try {
+            val uri = url.toUri()
+            uri.path?.lowercase() ?: url.substringBefore("?")
+        } catch (e: Exception) {
+            url.substringBefore("?")
+        }
+
+        val audioExtensions = listOf(
+            ".mp3", ".wav", ".aac", ".m4a", ".ogg", ".oga", ".flac", ".wma", ".opus"
+        )
+        val hasAudioExtension =
+            audioExtensions.any { pathWithoutQuery.endsWith(it) || url.contains(it) }
+
+        return hasAudioExtension
     }
 
     // Check xem có đang trong giờ phát luồng live hay không
     private fun checkLiveStream(mediaItem: MediaItem): Boolean =
-        checkLiveStream(mediaItem)
+        Companion.checkLiveStream(mediaItem)
 
     // Check xem file VOD có bị ngắt giữa chừng hay không
     private fun checkTimeFrameStream(mediaItem: MediaItem): Boolean =
@@ -250,12 +308,10 @@ class VlcMediaPlayer(
             if (isStillInTimeFrame && countReplayFile < 10) {
                 isPlaying = false
                 playerEventListener.onPlayerError(
-                    VlcException("Stream file failed!"),
-                    true,
-                    media
+                    VlcException("Stream file failed!"), true, media
                 )
                 val timeStamp2 = calculateResumePoint(media)
-                val wasForce = isCurrentMediaForce
+                val wasForce = isLiveMode
 
                 retryRunnable?.let { retryHandler.removeCallbacks(it) }
                 retryRunnable = Runnable {
@@ -306,9 +362,7 @@ class VlcMediaPlayer(
             if (isStillInTime && countReplayLive < 5) {
                 isPlaying = false
                 playerEventListener.onPlayerError(
-                    VlcException("Stream live failed!"),
-                    true,
-                    media
+                    VlcException("Stream live failed!"), true, media
                 )
                 val resumeTime = calculateResumePoint(media)
 
@@ -328,8 +382,7 @@ class VlcMediaPlayer(
 
             } else {
                 Log.w(
-                    TAG,
-                    "onLiveErrorVlc dừng retry: hết giờ hoặc quá 5 lần (${countReplayLive}/5)"
+                    TAG, "onLiveErrorVlc dừng retry: hết giờ hoặc quá 5 lần (${countReplayLive}/5)"
                 )
                 retryRunnable?.let { retryHandler.removeCallbacks(it) }
                 retryRunnable = null
@@ -351,12 +404,12 @@ class VlcMediaPlayer(
             vlcPlayer.stop()
             isPlaying = false
             currentMedia = null
-            isCurrentMediaForce = false
+            isLiveMode = false
         } catch (e: Exception) {
             Log.e(TAG, "stop error: $e")
             isPlaying = false
             currentMedia = null
-            isCurrentMediaForce = false
+            isLiveMode = false
         }
     }
 
@@ -369,9 +422,15 @@ class VlcMediaPlayer(
     }
 
     override fun playTest() {
+        //val urlTest=""
+        // Kiểm tra và nạp trước SSL certificate nếu là luồng HTTPS
+//        CaCertHelper.ensureCertForUrlAsync(
+//            appContext,
+//            urlTest
+//        )
 //        val media = Media(
 //            mLibVLC,
-//            "".toUri()
+//           urlTest.toUri()
 //        )
 //        vlcPlayer.play(media)
     }
@@ -390,8 +449,7 @@ class VlcMediaPlayer(
         }
 
         fun calculateResumePoint(
-            mediaItem: MediaItem,
-            now: Calendar = Calendar.getInstance()
+            mediaItem: MediaItem, now: Calendar = Calendar.getInstance()
         ): Int {
             val startTime = getMediaStartTime(mediaItem)
             val elapsed = ((now.timeInMillis - startTime.timeInMillis) / 1000).toInt()
@@ -421,7 +479,7 @@ class VlcMediaPlayer(
             return isStillInTime
         }
 
-        // Check xem file VOD có bị ngắt giữa chừng hay không
+        // Check xem file VOD0 có bị ngắt giữa chừng hay không
         fun checkTimeFrameStream(
             mediaItem: MediaItem,
             currentMediaBody: String? = null,
