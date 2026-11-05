@@ -16,6 +16,7 @@ import com.squareup.picasso.Picasso
 import java.io.File
 
 
+@Deprecated("Đã được thay thế bởi ExoMediaPlayer (hỗ trợ phát ảnh trực tiếp qua Media3 setImageDurationMs)")
 class ImagePlayer(
     private val playerEventListener: IPlayerEventListener,
     private val imageLayout: ImageView,

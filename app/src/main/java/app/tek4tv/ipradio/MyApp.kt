@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio
+﻿package app.tek4tv.ipradio
 
 import android.app.Application
 import android.util.Log
@@ -22,6 +22,7 @@ class MyApp : Application() {
     override fun onCreate() {
         super.onCreate()
         instance = this
+        app.tek4tv.ipradio.utils.network.CaCertHelper.setupGlobalConfiguredSsl(applicationContext)
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "device")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD, "Device@123")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "Username")
@@ -34,7 +35,7 @@ class MyApp : Application() {
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_HUB,
-            "https://hubdi-longan.tek4tv.vn/hubServer"
+            "https://hubdi-nghean.tek4tv.vn/hubServer"
         )
         hubManager = HubManager(applicationContext, authService)
         hubManager.connectToHub()

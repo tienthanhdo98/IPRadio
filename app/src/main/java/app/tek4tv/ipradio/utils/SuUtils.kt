@@ -1,22 +1,30 @@
-package app.tek4tv.ipradio.utils
+﻿package app.tek4tv.ipradio.utils
 
 import android.util.Log
 import java.io.DataOutputStream
 import java.io.IOException
 
-fun execSu(command: String) {
-    try {
-        val process = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-        val os = DataOutputStream(process.outputStream)
-        os.writeBytes(command + "\n")
-        os.flush()
-        os.writeBytes("exit\n")
-        os.flush()
+fun execSu(command: String): Int {
+    return try {
+        val process = Runtime.getRuntime().exec("su")
+        DataOutputStream(process.outputStream).use { os ->
+            os.writeBytes(command + "\n")
+            os.writeBytes("exit\n")
+            os.flush()
+        }
         process.waitFor()
-        os.close()
     } catch (e: Exception) {
-        Log.e("execSu", e.message ?: "")
-        e.printStackTrace()
+        Log.e("execSu", "Error: ${e.message}", e)
+        -1
+    }
+}
+
+fun reboot() {
+    try {
+        val proc = Runtime.getRuntime().exec(arrayOf("su", "0", "reboot"))
+        proc.waitFor()
+    } catch (e: Exception) {
+        Log.e("reboot", "reboot error: ${e.message}")
     }
 }
 

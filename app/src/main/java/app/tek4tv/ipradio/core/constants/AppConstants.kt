@@ -10,7 +10,7 @@ object AppConstants {
     //
     const val PROVIDER_DEFAULT_NAME = "TEK4TV"
     const val DEVICE_DEFAULT_NAME = "Digital Device"
-    const val DESTINATION_DEFAULT_NAME = "Xã Cần Đước"
-    const val DESTINATION_DEFAULT_ID = "H53.179"
+    const val DESTINATION_DEFAULT_NAME = "Phường Cửa Lò"
+    const val DESTINATION_DEFAULT_ID = "H41.220"
 
 }

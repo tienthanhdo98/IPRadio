@@ -138,6 +138,28 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private val handler = Handler(Looper.getMainLooper())
     private var scrollRunnable: Runnable? = null
 
+    private var lastScheduleRetryTime: Long = 0L
+
+    private val networkCallback = object : NetworkUtils.ConnectionCallback {
+        override fun onChange(netWorkState: Boolean) {
+            Log.d("MainActivity", "Network state changed: $netWorkState")
+            if (netWorkState) {
+                hubManager.connectToHub()
+
+                val now = System.currentTimeMillis()
+                if (now - lastScheduleRetryTime > 5 * 60 * 1000L) {
+                    val currentContent = viewModel.content.value
+                    val isScheduleEmpty = currentContent == null || currentContent.first.isEmpty()
+                    if (isScheduleEmpty && playerManager.isIdle()) {
+                        lastScheduleRetryTime = now
+                        Log.i("MainActivity", "Network back and schedule is empty -> fetching schedule")
+                        startPlayingMedia()
+                    }
+                }
+            }
+        }
+    }
+
     // event media
     private val playerCallback = object : IPlayerManagerListener {
         override fun onTimeOver() {
@@ -170,6 +192,7 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            serialPortController.turnOffPA()
             hubManager.currentMediaItem = null
             ForceMedia.deleteForeMediaPref(applicationContext)
             Log.d("LiveLog", "onEndForceMedia current $typeScreen")
@@ -201,13 +224,8 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
             if (mediaItem == null) return
             Log.d("onPlayMediaLog", "onPlayMediaSuccess: ${mediaItem.title} ")
-            if (mediaItem.contentType?.id == 2) {
-                exoVideoLayout.visibility = View.INVISIBLE
-                imgHolder.visibility = View.VISIBLE
-            } else {
-                exoVideoLayout.visibility = View.VISIBLE
-                imgHolder.visibility = View.INVISIBLE
-            }
+            exoVideoLayout.visibility = View.VISIBLE
+            imgHolder.visibility = View.GONE
 
             hubManager.playlistIndex = playerManager.playlistIndex
             hubManager.currentMediaItem = mediaItem
@@ -310,6 +328,21 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
         playerManager.playerManagerListener = playerCallback
 
         NetworkUtils.instance.startNetworkListener(this)
+        serialPortController.isPlayingProvider = { playerManager.isPlaying() }
+        NetworkUtils.instance.addCallback(networkCallback)
+
+        hubManager.onHubConnectedListener = {
+            val now = System.currentTimeMillis()
+            if (now - lastScheduleRetryTime > 5 * 60 * 1000L) {
+                val currentContent = viewModel.content.value
+                val isScheduleEmpty = currentContent == null || currentContent.first.isEmpty()
+                if (isScheduleEmpty && playerManager.isIdle()) {
+                    lastScheduleRetryTime = now
+                    Log.i("MainActivity", "Hub reconnected and schedule is empty -> fetching schedule")
+                    startPlayingMedia()
+                }
+            }
+        }
         alarmListener = this
 
         appStorageManager = AppStorageManager(applicationContext)
@@ -390,13 +423,14 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
     private fun startAutoScroll() {
+        scrollRunnable?.let { handler.removeCallbacks(it) }
 
-        val speed = 1 // Tốc độ cuộn (số pixel mỗi lần chạy)
-        val interval: Long = 50 // Khoảng thời gian giữa mỗi lần cuộn (ms)
+        val speed = 1
+        val interval: Long = 50
 
         scrollRunnable = object : Runnable {
             override fun run() {
-                recyclerView.scrollBy(0, speed) // Cuộn theo trục Y (dọc)
+                recyclerView.scrollBy(0, speed)
                 handler.postDelayed(this, interval)
             }
         }
@@ -406,8 +440,13 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     private fun showLeftArea(listMedia: List<MediaItem>) {
         adapter = AutoScrollAdapter(listMedia, resources)
         recyclerView.adapter = adapter
-        recyclerView.visibility = View.VISIBLE
-        startAutoScroll()
+        if (adapter.itemCount > 0) {
+            recyclerView.visibility = View.VISIBLE
+            startAutoScroll()
+        } else {
+            recyclerView.visibility = View.INVISIBLE
+            scrollRunnable?.let { handler.removeCallbacks(it) }
+        }
     }
 
 
@@ -430,6 +469,10 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
 
     override fun onDestroy() {
         Log.e("monthlyinfo", "onDestroy ")
+        serialPortController.turnOffPA()
+        NetworkUtils.instance.removeCallback(networkCallback)
+        hubManager.onHubConnectedListener = null
+        serialPortController.isPlayingProvider = null
 
         handler.removeCallbacksAndMessages(null)
         playerManager.onActivityDestroy()
@@ -541,7 +584,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
     }
 
 
+        private var lastStartPlayingMediaTime = 0L
+    private val START_PLAYING_MEDIA_DEBOUNCE_MS = 3000L
+
     private fun startPlayingMedia() {
+        val now = System.currentTimeMillis()
+        if (now - lastStartPlayingMediaTime < START_PLAYING_MEDIA_DEBOUNCE_MS) {
+            Log.d("startPlayingMedia", "startPlayingMedia bá»‹ bá» qua do debounce (< ${START_PLAYING_MEDIA_DEBOUNCE_MS}ms)")
+            return
+        }
+        lastStartPlayingMediaTime = now
         viewModel.getPlayerContent()
     }
 
@@ -647,12 +699,16 @@ class MainActivity : AppCompatActivity(), AlarmListener, IHubObserve {
                         )
                     }
                     val hubConnection =
-                        HubConnectionBuilder.create(urlHub).withAccessTokenProvider(Single.defer {
-                            val token = hubManager.getHubToken(urlToken)
-                            if (token != null) {
-                                Single.just(token)
-                            } else Single.error(Exception())
-                        }).withTransport(TransportEnum.WEBSOCKETS).build()
+                        HubConnectionBuilder.create(urlHub)
+                            .setHttpClientBuilderCallback { builder ->
+                                app.tek4tv.ipradio.utils.network.CaCertHelper.buildConfiguredOkHttpClient(builder, applicationContext)
+                            }
+                            .withAccessTokenProvider(Single.defer {
+                                val token = hubManager.getHubToken(urlToken)
+                                if (token != null) {
+                                    Single.just(token)
+                                } else Single.error(Exception())
+                            }).withTransport(TransportEnum.WEBSOCKETS).build()
                     lifecycleScope.launch {
                         val id = hubManager.openConnection2(hubConnection)
                         if (id != null) {

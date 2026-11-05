@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+﻿package app.tek4tv.ipradio.utils
 
 import android.util.Log
 import java.io.DataOutputStream
@@ -16,13 +16,16 @@ fun toCalendar(time: String): Calendar {
     return try {
         Calendar.getInstance().apply {
             val t = time.split(":").map { it.toInt() }
-            set(Calendar.HOUR_OF_DAY, t[0])
-            set(Calendar.MINUTE, t[1])
-            set(Calendar.SECOND, t[2])
+            if (t.isNotEmpty()) set(Calendar.HOUR_OF_DAY, t[0])
+            if (t.size > 1) set(Calendar.MINUTE, t[1]) else set(Calendar.MINUTE, 0)
+            if (t.size > 2) set(Calendar.SECOND, t[2]) else set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
         }
     } catch (e: Exception) {
-        Log.d("toCalendar()", e.message!!)
-        Calendar.getInstance()
+        Log.w("toCalendar()", "Error parsing time '$time': ${e.message}")
+        Calendar.getInstance().apply {
+            set(Calendar.MILLISECOND, 0)
+        }
     }
 }
 

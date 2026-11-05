@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+﻿package app.tek4tv.ipradio.utils
 
 import android.content.Context
 import android.content.SharedPreferences
@@ -21,6 +21,7 @@ object ConfigUtil {
     const val DEFAULT_ANDROID_VOLUME = "DEFAULT_ANDROID_VOLUME"
     const val DEFAULT_VOLUME = "DEFAULT_VOLUME"
     const val TIME_UPDATE_MONTHLY_SCENARIO = "TIME_UPDATE_MONTHLY_SCENARIO"
+        const val PLAYLIST_LOCAL_DATE = "PLAYLIST_LOCAL_DATE"
     const val PHOTO_HOLDER_URL = "PHOTO_HOLDER_URL"
 
     fun putString(context: Context, key: String?, value: String?) {

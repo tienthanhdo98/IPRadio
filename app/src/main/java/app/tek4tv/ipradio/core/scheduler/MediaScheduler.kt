@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.core.scheduler
+﻿package app.tek4tv.ipradio.core.scheduler
 
 import android.app.AlarmManager
 import android.app.AlarmManager.AlarmClockInfo
@@ -111,7 +111,12 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             putExtra(MediaScheduleReceiver.SCHEDULED_LIST_KEY, listKey)
         }
 
-        return PendingIntent.getBroadcast(appContext, requestCode, intent, flag)
+        val effectiveFlag = if (flag == 0) {
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        } else {
+            flag
+        }
+        return PendingIntent.getBroadcast(appContext, requestCode, intent, effectiveFlag)
     }
 
 
@@ -150,7 +155,7 @@ class MediaScheduler(private val appContext: Context, private val mediaRepo: Med
             action = MediaScheduleReceiver.ACTION_END_FORCE_MEDIA
         }
         val alarmIntent =
-            PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT)
+            PendingIntent.getBroadcast(appContext, requestEndForce, intent, FLAG_UPDATE_CURRENT or FLAG_IMMUTABLE)
         Log.d("alarmx", "schedule force end : ${forceMedia.end}")
         val mediaEndTimeInMillis = Calendar.getInstance().apply {
             time = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").parse(forceMedia.end)

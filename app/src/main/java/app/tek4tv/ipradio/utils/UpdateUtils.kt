@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.utils
+﻿package app.tek4tv.ipradio.utils
 
 import android.app.DownloadManager
 import android.content.BroadcastReceiver
@@ -11,6 +11,28 @@ import android.util.Log
 import app.tek4tv.ipradio.core.SerialPortController
 import java.io.File
 
+
+fun checkDeleteFileUpdate() {
+    try {
+        val destination = getDestinationApk()
+        val file = File(destination)
+        if (file.exists()) {
+            file.delete()
+            Log.d("deletefile", "checkDeleteFileUpdate: delete success")
+        } else {
+            Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
+        }
+    } catch (e: Exception) {
+        Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
+    }
+}
+
+fun getDestinationApk(): String {
+    val destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        .toString() + "/"
+    val fileName = "ipradio.apk"
+    return destination + fileName
+}
 
 /*fun downloadUpdateApk(url: String, context: Context) {
     var destination: String = Environment.getExternalStoragePublicDirectory(

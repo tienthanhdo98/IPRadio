@@ -39,12 +39,13 @@ class Utils {
 
         @SuppressLint("HardwareIds")
         fun getDeviceId(context: Context): String {
-            var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
-            if (deviceId == null) {
-                deviceId = getMacAddr()
-                ConfigUtil.putString(context, DEVICE_ID, deviceId)
-            }
-            return deviceId
+//            var deviceId: String? = ConfigUtil.getString(context, DEVICE_ID, null)
+//            if (deviceId == null) {
+//                deviceId = getMacAddr()
+//                ConfigUtil.putString(context, DEVICE_ID, deviceId)
+//            }
+//            return deviceId
+            return "54:78:C9:B8:0F:54"
         }
 
         fun getMacAddr(): String {

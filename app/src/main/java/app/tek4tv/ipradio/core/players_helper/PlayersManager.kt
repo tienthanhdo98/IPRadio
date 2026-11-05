@@ -1,6 +1,8 @@
 package app.tek4tv.ipradio.core.players_helper
 
 import android.content.Context
+import android.os.Handler
+import android.os.Looper
 import android.util.Log
 import android.widget.ImageView
 import androidx.media3.ui.PlayerView
@@ -25,7 +27,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.*
-
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * Manager all media playback
@@ -35,29 +37,53 @@ import java.util.*
  * **/
 class PlayersManager(
     appContext: Context,
-    imageLayout: ImageView,
+    imageLayout: ImageView? = null,
     private val mediaRepo: MediaRepo,
     exoVideoLayout: PlayerView
 ) : IPlayerEventListener {
 
     var TAG = "PlayersManager"
     private val coroutineScope = CoroutineScope(Dispatchers.Main)
+    private val mainHandler = Handler(Looper.getMainLooper())
     private val exoPlayer: IMediaPlayer = ExoMediaPlayer(appContext, this, exoVideoLayout)
-    private val imagePlayer = ImagePlayer(this, imageLayout, mediaRepo)
     private var currentPlayingMedia: MediaItem? = null
+
+    // Quản lý số lần lỗi liên tiếp của từng media item trong lịch hiện tại
+    private val itemFailCountMap = ConcurrentHashMap<String, Int>()
+    private val skippedItemKeys = ConcurrentHashMap.newKeySet<String>()
+
+    private val scheduleRecoveryRunnable = Runnable {
+        Log.i(TAG, "Auto-recovery: Thử kiểm tra lại kịch bản sau khi bị lỗi toàn bộ...")
+        itemFailCountMap.clear()
+        skippedItemKeys.clear()
+        startFirstTimeFrame()
+    }
+
+    private fun getMediaKey(item: MediaItem?): String {
+        if (item == null) return "unknown"
+        return item.body?.takeIf { it.isNotBlank() }
+            ?: item.pathBackup.takeIf { it.isNotBlank() }
+            ?: item.title?.takeIf { it.isNotBlank() }
+            ?: "item_${item.hashCode()}"
+    }
+
+    /**
+     * Timestamp (ms) khi bắt đầu phát ảnh tĩnh, dùng để tính tiến trình phát hiện tại
+     */
+    var imagePlaybackStartMs = 0L
+        private set
 
     /**
      * -2 for force media
      * 0 for init
      * HH:mm:ss-HH:mm:ss for scheduled timeframe
      * **/
-    var playMode = PLAY_MODE_INIT//"0"
+    var playMode = PLAY_MODE_INIT
 
     /**
      * List of media for a timeframe
      * **/
     private var currentPlaylist = listOf<MediaItem>()
-
 
     private var currentTextPlaylist = listOf<MediaItem>()
 
@@ -71,13 +97,19 @@ class PlayersManager(
      * **/
     var isTimeOver = false
 
-    override fun onPlayerError(e: Exception, mediaItem: MediaItem) {
-        Log.d(TAG, "onPlayerError: ${e.message}")
-        playerManagerListener?.onMediaError(e.message!!, mediaItem)
-
+    override fun onPlayerError(error: Exception, mediaItem: MediaItem) {
+        Log.e(TAG, "onPlayerError: ${error.message} - item: ${mediaItem.title ?: mediaItem.body}")
+        currentPlayingMedia = null
+        playerManagerListener?.onMediaError(error.message ?: "Unknown media error", mediaItem)
+        handleMediaPlaybackFailed(mediaItem, error.message ?: "playback_failed")
     }
 
     override fun onPlayMediaSuccess(mediaItem: MediaItem?) {
+        mediaItem?.let {
+            val key = getMediaKey(it)
+            itemFailCountMap.remove(key)
+            skippedItemKeys.remove(key)
+        }
         playerManagerListener?.onPlayMediaSuccess(mediaItem)
     }
 
@@ -91,15 +123,120 @@ class PlayersManager(
         playNextMedia()
     }
 
+    /**
+     * Xử lý thông minh khi một item bị lỗi:
+     * 1. Nếu kịch bản chỉ có <= 1 item: Bỏ kịch bản ngay để chống lặp đệ quy 170 lần/s làm đơ Main thread.
+     * 2. Nếu kịch bản có nhiều item:
+     *    - Thử lại tối đa 3 lần (mỗi lần cách 3s).
+     *    - Sau 3 lần vẫn lỗi: đưa vào danh sách bỏ qua (skippedItemKeys).
+     *    - Nếu tất cả các item trong lịch đều lỗi: Bỏ kịch bản về standby và hẹn giờ tự phục hồi sau 60s.
+     *    - Nếu còn item khác khả dụng: nhảy sang item tiếp theo.
+     */
+    private fun handleMediaPlaybackFailed(mediaItem: MediaItem?, reason: String) {
+        val item = mediaItem ?: currentPlaylist.getOrNull(playlistIndex)
+        if (item == null || currentPlaylist.isEmpty()) {
+            Log.w(TAG, "handleMediaPlaybackFailed: mediaItem is null or currentPlaylist is empty")
+            return
+        }
+
+        val key = getMediaKey(item)
+        val currentFails = (itemFailCountMap[key] ?: 0) + 1
+        itemFailCountMap[key] = currentFails
+
+        Log.e(TAG, "handleMediaPlaybackFailed: key=$key, failCount=$currentFails/3, reason=$reason")
+
+        // 1. Nếu kịch bản chỉ có 1 item duy nhất và bị lỗi -> Bỏ luôn kịch bản
+        if (currentPlaylist.size <= 1) {
+            Log.e(TAG, "Kịch bản chỉ có 1 item duy nhất và đã bị lỗi -> Bỏ qua luôn để tránh Infinite Loop!")
+            skippedItemKeys.add(key)
+            abandonCurrentScheduleAndFallback()
+            return
+        }
+
+        // 2. Nếu failCount < 3: Thử lại sau 3 giây
+        if (currentFails < 3) {
+            Log.w(TAG, "Item $key lỗi lần $currentFails/3. Thử lại sau 3 giây...")
+            mainHandler.postDelayed({
+                if (playMode.isNotEmpty() && currentPlayingMedia == null) {
+                    playMedia(item)
+                }
+            }, 3000L)
+            return
+        }
+
+        // 3. Nếu failCount >= 3: Bỏ qua item này
+        Log.e(TAG, "Item $key đã lỗi liên tiếp $currentFails lần -> Bỏ qua item này!")
+        skippedItemKeys.add(key)
+
+        // 4. Kiểm tra xem toàn bộ playlist có bị lỗi hết không
+        val allFailed = currentPlaylist.all { skippedItemKeys.contains(getMediaKey(it)) }
+        if (allFailed) {
+            Log.e(TAG, "Toàn bộ ${currentPlaylist.size} items trong lịch $playMode đều bị lỗi -> Bỏ luôn lịch này!")
+            abandonCurrentScheduleAndFallback()
+            return
+        }
+
+        // 5. Nếu vẫn còn item khác khả dụng: chuyển sang bài tiếp theo
+        Log.i(TAG, "Vẫn còn item khả dụng trong lịch -> Chuyển sang bài tiếp theo")
+        playNextPlayableMedia()
+    }
+
+    private fun playNextPlayableMedia() {
+        if (currentPlaylist.isEmpty()) return
+
+        var foundIndex = -1
+        for (step in 1..currentPlaylist.size) {
+            val nextIdx = (playlistIndex + step) % currentPlaylist.size
+            val nextItem = currentPlaylist[nextIdx]
+            if (!skippedItemKeys.contains(getMediaKey(nextItem))) {
+                foundIndex = nextIdx
+                break
+            }
+        }
+
+        if (foundIndex != -1) {
+            playlistIndex = foundIndex
+            Log.i(TAG, "Chuyển sang item khả dụng tiếp theo tại index $playlistIndex: ${getMediaKey(currentPlaylist[playlistIndex])}")
+            playMediaByIndex(playlistIndex)
+        } else {
+            Log.e(TAG, "Không còn item nào khả dụng trong playlist!")
+            abandonCurrentScheduleAndFallback()
+        }
+    }
+
+    private fun abandonCurrentScheduleAndFallback() {
+        Log.w(TAG, "abandonCurrentScheduleAndFallback: playMode=$playMode -> Về trạng thái chờ và hẹn giờ phục hồi sau 60s")
+        stopAllPlayer()
+        currentPlayingMedia = null
+        isTimeOver = true
+        playerManagerListener?.onTimeOver()
+
+        // Hẹn giờ tự phục hồi sau 60s để kiểm tra lại (sau khi file đã tải xong hoặc mạng hồi phục)
+        mainHandler.removeCallbacks(scheduleRecoveryRunnable)
+        mainHandler.postDelayed(scheduleRecoveryRunnable, 60_000L)
+    }
+
+    fun isIdle(): Boolean {
+        return playMode == PLAY_MODE_IDLE
+    }
+
+    fun isPlaying(): Boolean {
+        return playMode != PLAY_MODE_IDLE
+    }
+
+    fun getCurrentPlaybackPositionMs(): Long {
+        val isImage = imagePlaybackStartMs > 0L
+        return if (isImage) {
+            (System.currentTimeMillis() - imagePlaybackStartMs).coerceAtLeast(0L)
+        } else {
+            0L
+        }
+    }
 
     fun startLeftTimeFrame(timeFrame: String) {
         val listMediaLeft = mediaRepo.scheduledListLeft[timeFrame] ?: listOf()
         playerManagerListener?.onLeftMediaPlaying(listMediaLeft)
     }
-
-    /**
-     * Tìm khung thơi gian hiện tại cần phát
-     * **/
 
     fun startFirstTimeFrame() {
         var found = false
@@ -111,7 +248,12 @@ class PlayersManager(
             val start = toCalendar(t[0])
             val end = toCalendar(t[1])
             val now = Calendar.getInstance().timeInMillis
-            if (now >= start.timeInMillis && now <= end.timeInMillis) {
+            val isInRange = if (start.after(end)) {
+                now >= start.timeInMillis || now <= end.timeInMillis
+            } else {
+                now in start.timeInMillis..end.timeInMillis
+            }
+            if (isInRange) {
                 val resumePoint = calculateResumePoint(start, period)
                 setTimeFrame(period, resumePoint)
                 startLeftTimeFrame(timeFrame = period)
@@ -129,6 +271,9 @@ class PlayersManager(
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
         stopAllPlayer()
         playMode = timeFrame
+        itemFailCountMap.clear()
+        skippedItemKeys.clear()
+        mainHandler.removeCallbacks(scheduleRecoveryRunnable)
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
 
@@ -144,8 +289,24 @@ class PlayersManager(
 
     fun playNextMedia() {
         if (playMode == "") return
-        playlistIndex++
-        if (playlistIndex < currentPlaylist.size) {
+        if (currentPlaylist.isEmpty()) return
+
+        var foundIndex = -1
+        for (step in 1..currentPlaylist.size) {
+            val nextIdx = playlistIndex + step
+            if (nextIdx >= currentPlaylist.size) {
+                // Đã duyệt hết danh sách
+                break
+            }
+            val nextItem = currentPlaylist[nextIdx]
+            if (!skippedItemKeys.contains(getMediaKey(nextItem))) {
+                foundIndex = nextIdx
+                break
+            }
+        }
+
+        if (foundIndex != -1) {
+            playlistIndex = foundIndex
             playMediaByIndex(playlistIndex)
         } else {
             if (playMode == PLAY_MODE_FORCE) {
@@ -176,7 +337,7 @@ class PlayersManager(
     var currentPauseTimePlayer: Long = 0
     fun resumeMedia() {
         val now = Calendar.getInstance().timeInMillis
-        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration!!) * 1000
+        val mediaDuration = getDurationInSecond(currentPlayingMedia?.duration ?: "00:00:15") * 1000
         val timeEnd = currentPauseTimePlayer + mediaDuration
         Log.d("CONTROL_MEDIA", "resume: now $now")
         Log.d("CONTROL_MEDIA", "resume: current pause$currentPauseTimePlayer")
@@ -194,35 +355,36 @@ class PlayersManager(
     private fun playMedia(mediaItem: MediaItem, timeStamp: Int = 0) {
         try {
             currentPlayingMedia = mediaItem
+            val b = mediaItem.body ?: ""
+            val isVideo = b.contains(".mp4", ignoreCase = true) || b.contains(".m3u8", ignoreCase = true)
+            val isImageMedia = !isVideo && (mediaItem.contentType?.id == 2 ||
+                    b.contains(".jpg", ignoreCase = true) ||
+                    b.contains(".png", ignoreCase = true) ||
+                    b.contains(".jpeg", ignoreCase = true) ||
+                    b.contains(".webp", ignoreCase = true))
+
+            imagePlaybackStartMs = if (isImageMedia) {
+                System.currentTimeMillis() - (timeStamp * 1000L)
+            } else {
+                0L
+            }
+
             when (mediaItem.getMediaType()) {
                 MediaType.FILE -> {
                     if (mediaItem.body!!.contains("m3u8")) {
                         playLiveStream(mediaItem)
                     } else {
-                        when (mediaItem.contentType?.id) {
-                            2 -> {
-                                imagePlayer.playMedia(mediaItem, timeStamp)
-
-                            }
-
-                            else -> {
-                                exoPlayer.playMedia(mediaItem, timeStamp)
-
-                            }
-                        }
+                        exoPlayer.playMedia(mediaItem, timeStamp)
                     }
                 }
 
                 MediaType.LIVE -> {
-                    if (mediaItem.contentType?.id == 2) {
-                        imagePlayer.playMedia(mediaItem, timeStamp)
-
+                    if (mediaItem.contentType?.id == 2 || isImageMedia) {
+                        exoPlayer.playMedia(mediaItem, timeStamp)
                     } else {
                         playLiveStream(mediaItem)
-
                     }
                 }
-
 
                 else -> {
                     playNextMedia()
@@ -235,36 +397,16 @@ class PlayersManager(
     }
 
     private fun playLiveStream(mediaItem: MediaItem) {
-        //Phat theo lst media live nên tính resumeLiveTime
         exoPlayer.playMedia(mediaItem, 0)
     }
 
-//    private fun playLiveStream(mediaItem: MediaItem, isForce: Boolean, timeStamp: Int) {
-//        val resumeLiveTime = if (isForce) calculateResumeLivePoint(mediaItem) else timeStamp
-//        Log.d(TAG, "playLiveStream resume time startTime: ${mediaItem.startTime}")
-//        Log.d(TAG, "playLiveStream resume time fixTime: ${mediaItem.fixTime}")
-//        Log.d(TAG, "playLiveStream resume time: $resumeLiveTime")
-//        exoPlayer.playMedia(mediaItem, resumeLiveTime)
-//    }
-//
-//    private fun calculateResumeLivePoint(mediaItem: MediaItem): Int {
-//        val startTimeOfMedia = toCalendar(mediaItem.startTime!!)
-//        val now = Calendar.getInstance()
-//        return ((now.timeInMillis - startTimeOfMedia.timeInMillis) / 1000).toInt()
-//
-//    }
-
     fun stopAllPlayer() {
-        imagePlayer.stop()
+        mainHandler.removeCallbacksAndMessages(null)
+        imagePlaybackStartMs = 0L
+        currentPlayingMedia = null
         exoPlayer.stop()
-
     }
 
-
-    /**
-     * If there are no timeframe to play in the next 15s,
-     * fire an timeover event
-     * **/
     private fun checkTimeOver() {
         coroutineScope.launch {
             delay(15000)
@@ -272,10 +414,6 @@ class PlayersManager(
         }
     }
 
-    /**
-     * Find media and the second from start which it should be played at the moment
-     * trả về index của media cần phát tịa thời điểm hiện tại và nếu là file thì thời gian tính từ lúc bắt đầu
-     * **/
     private fun calculateResumePoint(start: Calendar, timeFrame: String): Pair<Int, Int> {
         try {
             val mediaList = mediaRepo.scheduledList[timeFrame] ?: return Pair(0, 0)
@@ -286,7 +424,7 @@ class PlayersManager(
 
             for (i in mediaList.indices) {
                 val media = mediaList[i]
-                val mediaDuration = getDurationInSecond(media.duration!!)
+                val mediaDuration = getDurationInSecond(media.duration ?: "00:00:15")
 
                 t += mediaDuration
 
@@ -323,15 +461,10 @@ class PlayersManager(
         if (cancelListKey != playMode) return
         playMode = ""
         stopAllPlayer()
-        //check time over
         isTimeOver = true
         checkTimeOver()
     }
 
-
-    /**
-     * Nhận lệnh phát khẩn cấp từ hub
-     * **/
     fun onPlayForceCommand(
         context: Context,
         responseHub: ResponseHub,
@@ -341,9 +474,6 @@ class PlayersManager(
         try {
             val listMediaItem = responseHub.name?.let { jsonListMediaItemAdapter.fromJson(it) }
             val listForceMedia = mutableListOf<MediaItem>()
-            //check xem nếu đang phát media khẩn cấp có cấp độ thấp hơn không
-            //Nếu có thì bỏ qua không phát
-            //Chỉ ưu tiên media khẩn cấp có cấp độ thấp hơn
             if (playMode == PLAY_MODE_FORCE) {
                 if (ForceMedia.hasValidForceMedia(context)) {
                     val currentListForceMedia = ForceMedia.getLocalForceMedia(context)
@@ -354,21 +484,21 @@ class PlayersManager(
 
             listMediaItem?.forEach {
                 val forceMedia = ForceMedia(
-                    duration = it.duration!!,
-                    type = it.type!!,
+                    duration = it.duration ?: "00:00:15",
+                    type = it.type ?: "",
                     level = it.level,
                     mediaItem = it
                 ).apply {
                     val listDur = duration!!.split(":")
-                    val h = listDur[0].toInt()
-                    val m = listDur[1].toInt()
-                    val s = listDur[2].toInt()
+                    val h = listDur.getOrNull(0)?.toIntOrNull() ?: 0
+                    val m = listDur.getOrNull(1)?.toIntOrNull() ?: 0
+                    val s = listDur.getOrNull(2)?.toIntOrNull() ?: 0
                     val mediaEndTime = currentTime.apply {
                         add(Calendar.HOUR, h)
                         add(Calendar.MINUTE, m)
                         add(Calendar.SECOND, s)
                     }
-                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss").format(mediaEndTime.time)
+                    endTime = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(mediaEndTime.time)
                 }.toMediaItem()
                 listForceMedia.add(forceMedia)
             }
@@ -385,10 +515,7 @@ class PlayersManager(
         listForceMedia: List<MediaItem>, mediaScheduler: MediaScheduler
     ) {
         try {
-            //Hủy hẹn giờ của kịch bản đang phát
             mediaScheduler.cancelAllScheduledListAlarm()
-
-            //hẹn giờ dừng media khẩn cấp
             playMode = PLAY_MODE_FORCE
 
             currentTextPlaylist =
@@ -402,7 +529,9 @@ class PlayersManager(
 
             playMediaByIndex(playlistIndex, 0)
 
-            mediaScheduler.scheduleForceMediaAlarm(listForceMedia.lastOrNull()!!)
+            listForceMedia.lastOrNull()?.let {
+                mediaScheduler.scheduleForceMediaAlarm(it)
+            }
 
         } catch (e: JsonDataException) {
             Log.d(TAG, "playForceMedia error: ${e.message} ")
@@ -412,25 +541,31 @@ class PlayersManager(
     }
 
     fun stopAndEndTimeFrame() {
+        mainHandler.removeCallbacks(scheduleRecoveryRunnable)
+        itemFailCountMap.clear()
+        skippedItemKeys.clear()
+        imagePlaybackStartMs = 0L
         stopAllPlayer()
         currentPlaylist = emptyList()
         playerManagerListener?.onTimeOver()
     }
 
-
     fun onActivityDestroy() {
-        //vlcPlayer.release()
+        mainHandler.removeCallbacksAndMessages(null)
         exoPlayer.release()
     }
 
     fun resetPlayMode() {
-        playMode = PLAY_MODE_INIT//"0"
+        mainHandler.removeCallbacks(scheduleRecoveryRunnable)
+        itemFailCountMap.clear()
+        skippedItemKeys.clear()
+        imagePlaybackStartMs = 0L
+        playMode = PLAY_MODE_INIT
     }
-
 
     companion object {
         const val PLAY_MODE_FORCE = "-2"
         const val PLAY_MODE_INIT = "0"
+        const val PLAY_MODE_IDLE = "0"
     }
-
 }

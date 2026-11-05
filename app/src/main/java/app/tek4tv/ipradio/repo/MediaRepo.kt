@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.repo
+﻿package app.tek4tv.ipradio.repo
 
 import android.content.Context
 import android.util.Log
@@ -8,6 +8,7 @@ import app.tek4tv.ipradio.core.constants.AppConstants.RIGHT_AREA
 import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.network.PlaylistService
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.GlobalProperties.Companion.TYPE_SCREEN_KEY
 import app.tek4tv.ipradio.utils.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.getFileNameFromUrl
@@ -51,6 +52,12 @@ class MediaRepo @Inject constructor(
     val mediaStoragePath: String = appContext.filesDir.path
 
     var isRescheduleSuccess = false
+    var lastUpdateFailed = false
+
+    suspend fun safeUpdateScenario(url: String): List<MediaItem> {
+        val list = getDayScenario(url)
+        return if (list.isNotEmpty()) list else readItemsFromFile()
+    }
 
 
     suspend fun getMonthlyScenario(url: String) {
@@ -113,22 +120,75 @@ class MediaRepo @Inject constructor(
         return result
     }
 
-    suspend fun getDataDayScenario(): List<MediaItem> {
+    suspend fun getDataDayScenario(isFromUpdateMonthly: Boolean = false): List<MediaItem> {
         scheduledList.clear()
         scheduledListLeft.clear()
 
-        val result = if (isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)) {
-            Log.d(TAG, "read local ")
-            readItemsFromFile()
-        } else listOf()
+        val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+        val savedDate = ConfigUtil.getString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, "")
+        val hasLocalCache = isFileExisted(mediaStoragePath, PLAYLIST_FILE_NAME)
+        val isLocalCacheValidForToday = hasLocalCache && (savedDate == currentDate)
+
+        val isOnline = NetworkUtils.isNetworkConnected(appContext)
+        val monthlyUrl = ConfigUtil.getStringEncrypt(appContext, ConfigUtil.MONTHLY_SCENARIO_URL) ?: ""
+
+        val result: List<MediaItem> = if (isLocalCacheValidForToday) {
+            if (isOnline && !isFromUpdateMonthly && monthlyUrl.isNotEmpty()) {
+                Log.d(TAG, "Online First: Fetching latest scenario from network...")
+                val onlineList = tryFetchTodayScenario(monthlyUrl)
+                if (onlineList.isNotEmpty()) {
+                    lastUpdateFailed = false
+                    onlineList
+                } else {
+                    lastUpdateFailed = true
+                    Log.d(TAG, "Network fetch failed. Fallback to local cache.")
+                    readItemsFromFile()
+                }
+            } else {
+                lastUpdateFailed = false
+                Log.d(TAG, "Using local cache for today.")
+                readItemsFromFile()
+            }
+        } else {
+            if (monthlyUrl.isNotEmpty()) {
+                Log.d(TAG, "No local cache for today. Fetching from network...")
+                val onlineList = tryFetchTodayScenario(monthlyUrl)
+                if (onlineList.isNotEmpty()) {
+                    lastUpdateFailed = false
+                    onlineList
+                } else {
+                    lastUpdateFailed = true
+                    emptyList()
+                }
+            } else {
+                lastUpdateFailed = false
+                readItemsFromFile()
+            }
+        }
 
         broadcastList.clear()
-
         broadcastList.addAll(result)
-
         filterMedia(broadcastList)
 
         return broadcastList
+    }
+
+    private suspend fun tryFetchTodayScenario(monthlyUrl: String): List<MediaItem> {
+        return try {
+            val fetchResult = retryWithBackoff { playlistService.getMonthlyPlaylist(monthlyUrl) }
+            val monthScenario = fetchResult?.body() ?: return emptyList()
+            val currentDate = SimpleDateFormat("dd-MM-yyyy", Locale.getDefault()).format(Date())
+            val dayScenario = monthScenario.firstOrNull { it.date == currentDate }
+            if (dayScenario != null) {
+                ConfigUtil.putInt(appContext, TYPE_SCREEN_KEY, dayScenario.broadcastRegionDigital.toInt())
+                getDayScenario(dayScenario.sourceUrl)
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "tryFetchTodayScenario error: ${e.message}")
+            emptyList()
+        }
     }
 
     private fun filterMedia(mediaList: List<MediaItem>) {
@@ -183,7 +243,13 @@ class MediaRepo @Inject constructor(
 
         val url = it.body
 
-        val fileName = getFileNameFromUrl(url!!)
+        val baseFileName = getFileNameFromUrl(url!!)
+        val fileName = if (!baseFileName.contains(".")) {
+            val typeParam = android.net.Uri.parse(url).getQueryParameter("type")?.trimStart('.')
+            if (!typeParam.isNullOrBlank()) "${baseFileName}.$typeParam" else baseFileName
+        } else {
+            baseFileName
+        }
 
         if (isFileExisted(mediaStoragePath, fileName)) {
             //handle broken path

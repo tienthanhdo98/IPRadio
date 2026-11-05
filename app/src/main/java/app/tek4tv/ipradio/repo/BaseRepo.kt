@@ -5,6 +5,7 @@ import app.tek4tv.ipradio.utils.readFile
 import app.tek4tv.ipradio.utils.writeFile
 import com.squareup.moshi.JsonAdapter
 import kotlinx.coroutines.*
+import java.io.File
 
 abstract class BaseRepo<T>(
     protected val fileStoragePath: String
@@ -23,27 +24,31 @@ abstract class BaseRepo<T>(
                 Log.d("writefile", "$from $fileStoragePath")
                 writeFile(fileStoragePath, json)
             } catch (e: Exception) {
-                Log.e("BaseRepo", "error writing playlist")
+                Log.e("BaseRepo", "error writing playlist", e)
                 e.printStackTrace()
             }
-            //saveFileJob = null
-
         }
         saveFileJob?.join()
     }
 
     suspend fun readItemsFromFile(): List<T> {
-
         var result = listOf<T>()
 
         withContext(Dispatchers.IO) {
             try {
                 val contentFromFile = readFile(fileStoragePath)
+                if (contentFromFile.isBlank() || contentFromFile.all { it == '\u0000' }) {
+                    if (contentFromFile.isNotEmpty()) {
+                        Log.e("BaseRepo", "File playlist ($fileStoragePath) bị hỏng hoặc chứa toàn ký tự null do sập nguồn. Xóa file hỏng để tự phục hồi.")
+                        try { File(fileStoragePath).delete() } catch (_: Exception) {}
+                    }
+                    return@withContext
+                }
                 result = jsonAdapter.fromJson(contentFromFile) ?: listOf()
             } catch (e: Exception) {
-                Log.e("BaseRepo", "error reading playlist")
+                Log.e("BaseRepo", "error reading playlist: ${e.message}. Xóa file hỏng: $fileStoragePath")
+                try { File(fileStoragePath).delete() } catch (_: Exception) {}
             }
-
         }
         return result
     }

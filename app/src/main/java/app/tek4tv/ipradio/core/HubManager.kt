@@ -17,6 +17,7 @@ import app.tek4tv.ipradio.utils.crypto.b64Decode
 import app.tek4tv.ipradio.utils.crypto.xorString
 import app.tek4tv.ipradio.utils.media.MediaCapture
 import app.tek4tv.ipradio.utils.network.NetworkUtils
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import com.microsoft.signalr.HubConnection
 import com.microsoft.signalr.HubConnectionBuilder
 import com.microsoft.signalr.TransportEnum
@@ -81,10 +82,20 @@ class HubManager(
 
     private var firstConnect = true
 
+    var onHubConnectedListener: (() -> Unit)? = null
+
+    fun isHubConnected(): Boolean {
+        return hubConnection.connectionState == com.microsoft.signalr.HubConnectionState.CONNECTED
+    }
+
     private var hubUrl = ""
 
     private var packageName = ""
 
+
+        private var lastMessageKey = ""
+    private var lastMessageTime = 0L
+    private val COMMAND_DEDUP_INTERVAL_MS = 1500L
 
     private val _messageStateFlow = MutableSharedFlow<Pair<String?, String?>?>(0)
     val messageStateFlow: SharedFlow<Pair<String?, String?>?> = _messageStateFlow
@@ -106,6 +117,9 @@ class HubManager(
         ).toString()
 
         hubConnection = HubConnectionBuilder.create(hubUrl)
+            .setHttpClientBuilderCallback { builder ->
+                CaCertHelper.buildConfiguredOkHttpClient(builder, appContext)
+            }
             .withAccessTokenProvider(Single.defer {
                 if (hubToken != null) {
                     Single.just(hubToken)
@@ -210,16 +224,22 @@ class HubManager(
      * bắt đầu kết nối dend hub
      * **/
     fun connectToHub() {
-        if (!firstConnect) return
+        if (isHubConnected()) {
+            Log.d(TAG, "Hub is already connected")
+            return
+        }
 
-        openNewConnectionJob?.cancel()
+        if (openNewConnectionJob?.isActive == true) {
+            Log.d(TAG, "Connection attempt already in progress")
+            return
+        }
+
         openNewConnectionJob = coroutineScope.launch {
             var connectionId = openConnection()
 
             var i = 0
 
             while (connectionId == null) {
-                //Quá 100 lần không kết nối được lên hub thì hởi động lại app
                 if (i >= CONNECT_COUNTER_LIMIT) {
                     hubComm.forceRestartApp()
                 }
@@ -229,9 +249,15 @@ class HubManager(
                 Log.e(TAG, "Trying to reconnect... $i")
             }
             Log.d(TAG, "$connectionId")
+            isConnectSuccess = true
+            pingCounter = 0
             onMessage()
             startPingTimer()
-            //notifyHubConnected()
+            try {
+                onHubConnectedListener?.invoke()
+            } catch (e: Exception) {
+                Log.e(TAG, "Error invoking onHubConnectedListener: ${e.message}")
+            }
             openNewConnectionJob = null
         }
     }
@@ -256,9 +282,29 @@ class HubManager(
      * Nhận lệnh từ hub
      * **/
     private fun onMessage() {
+        try {
+            hubConnection.remove("ReceiveMessage")
+        } catch (e: Exception) {
+            // Ignore
+        }
         hubConnection.on("ReceiveMessage", { command: String?, message: String? ->
             try {
                 mainHandler.post {
+                    val currentCommand = command?.trim() ?: ""
+                    val currentMessage = message?.trim() ?: ""
+                    val currentTime = System.currentTimeMillis()
+                    val messageKey = "$currentCommand:$currentMessage"
+
+                    // Cháº·n báº£n tin trÃ¹ng láº·p dá»“n dáº­p trong 1.5s (trá»« PONG Ä‘á»ƒ duy trÃ¬ keep-alive)
+                    if (currentCommand.isNotEmpty() && currentCommand != HubCommand.PONG) {
+                        if (messageKey == lastMessageKey && (currentTime - lastMessageTime) < COMMAND_DEDUP_INTERVAL_MS) {
+                            Log.w(TAG, "Bá» qua báº£n tin trÃ¹ng láº·p dá»“n dáº­p (< ${COMMAND_DEDUP_INTERVAL_MS}ms): $currentCommand")
+                            return@post
+                        }
+                        lastMessageKey = messageKey
+                        lastMessageTime = currentTime
+                    }
+
                     Log.d("command", command ?: "")
                     Log.d("message", message ?: "")
                     var messDe = ""
@@ -432,7 +478,7 @@ class HubManager(
 //        if (pingCounter >= CONNECT_COUNTER_LIMIT) {
 //            hubComm.forceRestartApp()
 //        }
-        if (pingCounter >= 2) {
+        if (pingCounter >= 4) {
             hubObverse.onHubDisConnected()
             isConnectSuccess = false
             firstConnect = true
@@ -440,7 +486,7 @@ class HubManager(
             hubToken = null
             Log.e(TAG, "Hub Disconnected")
             //Try to reconnect to hub
-            openConnection()
+            connectToHub()
         }
     }
 

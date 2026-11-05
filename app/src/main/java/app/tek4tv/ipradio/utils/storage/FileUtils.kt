@@ -20,23 +20,40 @@ fun isFileExisted(storagePath: String, fileName: String): Boolean {
 
 @Throws(IOException::class)
 suspend fun readFile(filePath: String): String {
-    return withContext(Dispatchers.IO)
-    {
-        val br = BufferedReader(FileReader(filePath))
-
-        val res = br.lineSequence().toList().joinToString(separator = "")
-        br.close()
-        res
+    return withContext(Dispatchers.IO) {
+        val file = File(filePath)
+        if (!file.exists()) return@withContext ""
+        file.readText(Charsets.UTF_8)
     }
 }
 
 @Throws(IOException::class)
 suspend fun writeFile(filePath: String, content: String) {
-    withContext(Dispatchers.IO)
-    {
-        val bw = BufferedWriter(FileWriter(filePath))
-        bw.write(content)
-        bw.close()
+    withContext(Dispatchers.IO) {
+        val targetFile = File(filePath)
+        val tempFile = File("${filePath}.tmp")
+        try {
+            FileOutputStream(tempFile).use { fos ->
+                fos.write(content.toByteArray(Charsets.UTF_8))
+                fos.flush()
+                fos.fd.sync() // Ép dữ liệu từ Page Cache xuống chip nhớ vật lý (flash eMMC)
+            }
+            // Atomic rename: Tráo đổi file nguyên tử để ngăn ngừa file bị trống/hỏng khi sập nguồn
+            if (!tempFile.renameTo(targetFile)) {
+                if (targetFile.exists()) {
+                    targetFile.delete()
+                }
+                if (!tempFile.renameTo(targetFile)) {
+                    tempFile.copyTo(targetFile, overwrite = true)
+                    tempFile.delete()
+                }
+            }
+        } catch (e: Exception) {
+            if (tempFile.exists()) {
+                tempFile.delete()
+            }
+            throw e
+        }
     }
 }
 
@@ -58,11 +75,11 @@ fun isFolderExisted(storagePath: String): Boolean {
 
 fun getAllFileNameInFolder(storagePath: String): List<String> {
     return try {
-        Log.d("filex",storagePath)
+        Log.d("filex", storagePath)
         val folder = File(storagePath)
         val audio = listOf("mp3")
-        folder.listFiles().filter { file -> file.isFile && audio.any { file.name.endsWith(it) } }
-            .map { it.name }
+        folder.listFiles()?.filter { file -> file.isFile && audio.any { file.name.endsWith(it) } }
+            ?.map { it.name } ?: listOf()
     } catch (e: Exception) {
         e.printStackTrace()
         listOf()
@@ -72,7 +89,7 @@ fun getAllFileNameInFolder(storagePath: String): List<String> {
 
 fun getAllFilePathInFolder(storagePath: String): List<String> {
     val folder = File(storagePath)
-    return folder.listFiles().filter { it.isFile }.map { it.path }
+    return folder.listFiles()?.filter { it.isFile }?.map { it.path } ?: listOf()
 }
 
 fun getFolderSize(path: String): Long {
@@ -80,9 +97,11 @@ fun getFolderSize(path: String): Long {
 
     return try {
         var size = 0L
-
-        for (f in folder.listFiles()) {
-            if (f.isFile) size += f.length()
+        val files = folder.listFiles()
+        if (files != null) {
+            for (f in files) {
+                if (f.isFile) size += f.length()
+            }
         }
 
         size
@@ -95,20 +114,27 @@ fun getFolderSize(path: String): Long {
 fun deleteAllFileInFolder(path: String) {
     val folder = File(path)
     try {
-        for (f in folder.listFiles()) {
-            if (f.isFile) f.delete()
+        val files = folder.listFiles()
+        if (files != null) {
+            for (f in files) {
+                if (f.isFile) f.delete()
+            }
         }
 
     } catch (e: Exception) {
         e.printStackTrace()
     }
 }
-fun deleteAFileInFolder(path: String,filename : String) {
+
+fun deleteAFileInFolder(path: String, filename: String) {
     val folder = File(path)
     try {
-        for (f in folder.listFiles()) {
-            if (f.name == filename)
-                f.delete()
+        val files = folder.listFiles()
+        if (files != null) {
+            for (f in files) {
+                if (f.name == filename)
+                    f.delete()
+            }
         }
 
     } catch (e: Exception) {
@@ -117,12 +143,16 @@ fun deleteAFileInFolder(path: String,filename : String) {
 }
 
 fun getFileNameFromUrl(url: String): String {
-    var fileName = File(Uri.parse(url).path).name
-    val slash = fileName.lastIndexOf("\\")
-
-    if (slash != -1) {
-        fileName = fileName.substring(slash + 1)
+    if (url.isBlank()) return ""
+    return try {
+        val parsedPath = Uri.parse(url).path ?: url
+        var fileName = File(parsedPath).name
+        val slash = fileName.lastIndexOf("\\")
+        if (slash != -1) {
+            fileName = fileName.substring(slash + 1)
+        }
+        fileName
+    } catch (e: Exception) {
+        url.substringAfterLast('/')
     }
-    return fileName
 }
-

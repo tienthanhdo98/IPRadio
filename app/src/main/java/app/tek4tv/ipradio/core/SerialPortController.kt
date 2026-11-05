@@ -1,4 +1,4 @@
-package app.tek4tv.ipradio.core
+﻿package app.tek4tv.ipradio.core
 
 import android.content.Context
 import android.telephony.CellSignalStrength
@@ -66,26 +66,24 @@ class SerialPortController(
 
     }
 
+    var isPlayingProvider: (() -> Boolean)? = null
+    var lastPipsData: String = ""
+    var lastTunerData: String = ""
+
     private fun onWatchDog() {
-        val looseHubConnection = hubManager.pingCounter >= 3
+        val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
+        val isHubConnected = hubManager.isHubConnected()
+        val looseHubConnection = onAir && (!isHubConnected || hubManager.pingCounter >= 3)
 
         if (outputStream != null) {
-
-            //$$,1,8,1,910,675,0,0,0,1,0,25
-            //0: not internet, 1: ok , 2: internet, disconnected
-            //$$,1,2,0: normal(1: be restarted neet to jump to realtime)
-            //$$,1,8,1,910,675,5,0,0,1,0,28: 1: fm/am, fm freq, am freq, vol, audio source, pa, mute/unmute, external mic, tempareture
-            //$$,1,9,software version, device versionnải
             try {
-                val onAir: Boolean = NetworkUtils.isNetworkConnected(appContext)
-                //0: không có mạng
-                //1: có mạng, kết nối được đến hub
-                //2: không xác định
+                //0: khÃ´ng cÃ³ máº¡ng
+                //1: cÃ³ máº¡ng, káº¿t ná»‘i Ä‘Æ°á»£c Ä‘áº¿n hub
+                //2: khÃ´ng xÃ¡c Ä‘á»‹nh (máº¥t káº¿t ná»‘i hub)
                 var param = if (onAir) "1" else "0"
-                if (onAir && looseHubConnection) {
+                if (looseHubConnection) {
                     param = "2"
                 }
-                //Log.d(LOG_TAG, "status: $param")
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
                 val strength = when (networkClass) {
                     "2G", "3G", "4G" -> {
@@ -140,6 +138,24 @@ class SerialPortController(
 
                             if (s.contains("\$\$,1,8")) {
                                 deviceInfo = s
+                                val list = s.split(",")
+                                volume = if (list.size > 5) list[5] else ""
+                                val paState = if (list.size > 7) list[7] else ""
+
+                                val isActuallyPlaying = isPlayingProvider?.invoke() ?: false
+                                if (isActuallyPlaying) {
+                                    if (paState == "0" || volume == "0") {
+                                        syncPAState()
+                                    }
+                                } else {
+                                    if (paState == "1" || (playMode != MODE_NONE && playMode.isNotEmpty())) {
+                                        Log.w(
+                                            LOG_TAG,
+                                            "Player Ä‘Ã£ dá»«ng nhÆ°ng PA váº«n má»Ÿ (paState=$paState, mode=$playMode) -> Táº¯t PA an toÃ n"
+                                        )
+                                        turnOffPA()
+                                    }
+                                }
                             }
                             dataFinal = StringBuffer()
                         }
@@ -221,7 +237,7 @@ class SerialPortController(
     }
 
     fun setTimeOver() {
-        invokeDeviceFunc(Define.FUNC_WRITE_PLAY_NO_SOURCE, "", true)
+        turnOffPA()
     }
 
     fun setTimeOn(data: String) {
@@ -253,6 +269,35 @@ class SerialPortController(
         Log.e("PA", "TUNER")
     }
 
+    fun syncPAState() {
+        val isActuallyPlaying = isPlayingProvider?.invoke() ?: false
+        if (!isActuallyPlaying) {
+            if (playMode != MODE_NONE && playMode.isNotEmpty()) {
+                turnOffPA()
+            }
+            return
+        }
+
+        when (playMode) {
+            MODE_VOD_LIVE -> {
+                Log.w(
+                    LOG_TAG,
+                    "Äang phÃ¡t VOD/Live nhÆ°ng MCU bÃ¡o PA/Volume táº¯t -> KÃ­ch hoáº¡t láº¡i PA & Volume"
+                )
+                turnOnPAVod()
+            }
+
+            MODE_TUNER -> {
+                Log.w(
+                    LOG_TAG,
+                    "Äang phÃ¡t Tuner FM/AM nhÆ°ng MCU bÃ¡o PA/Volume táº¯t -> KÃ­ch hoáº¡t láº¡i Tuner PA & Volume"
+                )
+                if (lastPipsData.isNotEmpty() && lastTunerData.isNotEmpty()) {
+                    playTuner(lastPipsData, lastTunerData)
+                }
+            }
+        }
+    }
     companion object {
         const val MODE_VOD_LIVE = "MODE_VOD_LIVE"
         const val MODE_TUNER = "MODE_TUNER"
