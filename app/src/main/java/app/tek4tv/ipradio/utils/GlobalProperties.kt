@@ -20,18 +20,15 @@ class GlobalProperties {
     private val appContext: Context = MyApp.instance!!.applicationContext
 
     object Defaults {
-        const val VERSION_NAME = "v19.4.2.2f"
+        const val VERSION_NAME = "v67.4.2.2f"
         const val VOLUME = "100"
         const val PI_CODE = "0"
         const val PS_NAME = "AAA"
 
-        const val DESTINATION_ID = "H44.126"
-        const val DESTINATION_NAME = "Xã Trí Đám"
-        const val NAME_DEVICE = "TB Xã Trí Đám"
+        const val DESTINATION_ID = "H01.108"
+        const val DESTINATION_NAME = "xã Vĩnh Hậu"
+        const val NAME_DEVICE = "TB Xã Vĩnh Hậu"
 
-        //        const val DESTINATION_ID = "H05.167"
-//        const val DESTINATION_NAME = "Xã Dương Hưu"
-//        const val NAME_DEVICE = "TB Xã Dương Hưu"
         const val RESUME_FROM_START = false
         const val LAT = 0f
         const val LNG = 0f

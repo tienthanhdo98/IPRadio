@@ -8,5 +8,5 @@ data class ScheduleDay(
     @Json(name = "Link")
     var sourceUrl: String = "",
     @Json(name = "UpdatedAt")
-    var ppdatedAt: String = ""
+    var updatedAt: String = ""
 )

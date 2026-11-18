@@ -79,6 +79,12 @@ class HubManager(
 
     var pingCounter = 0
 
+    // Cờ đánh dấu server Token API tek4tv có gọi được không
+    // true = Internet thực sự có (gọi được API tek4tv)
+    // false = Không gọi được API → mất Internet thực tế (SIM hết cước, mất mạng...)
+    @Volatile
+    var isTokenReachable = false
+
     private var hubConnection: HubConnection
 
     //current response Hub
@@ -124,13 +130,8 @@ class HubManager(
         hubUrl = ConfigUtil.getString(
             appContext,
             ConfigUtil.URL_HUB,
-            "https://hubip-phutho.tek4tv.vn/hubServer"
-        ) ?: "https://hubip-phutho.tek4tv.vn/hubServer"
-//        hubUrl = ConfigUtil.getString(
-//            appContext,
-//            ConfigUtil.URL_HUB,
-//            "https://hubip-bacninh.tek4tv.vn/hubServer"
-//        ) ?: "https://hubip-bacninh.tek4tv.vn/hubServer"
+            "https://hubip-angiang.tek4tv.vn/hubServer"
+        ) ?: "https://hubip-angiang.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
             appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
         )!!
@@ -185,12 +186,15 @@ class HubManager(
             val call = authService.getToken(body, urlToken)
             val response = call.execute()
             if (response.isSuccessful) {
+                isTokenReachable = true
                 val token = response.body()!!.token
                 token
             } else {
+                isTokenReachable = true // Server trả response (dù lỗi 4xx/5xx) = Internet vẫn có
                 null
             }
         } catch (e: Exception) {
+            isTokenReachable = false // Exception (timeout, DNS fail, SSL fail) = mất Internet
             e.printStackTrace()
             null
         }
