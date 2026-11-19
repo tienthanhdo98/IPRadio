@@ -24,6 +24,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 @HiltViewModel
 class MainViewModel @Inject constructor(
@@ -96,13 +97,16 @@ class MainViewModel @Inject constructor(
                     "MEDIA_REPO",
                     "Periodic schedule check in ${delayMinutes}min (cycle $attempt)"
                 )
-                delay(delayMillis)
+                delay(delayMillis.milliseconds)
                 val mediaList = mediaRepo.getScenario()
                 withContext(Dispatchers.Main) {
                     content.value = mediaList
 
                     if (mediaList.isNotEmpty()) {
-                        Log.d("MEDIA_REPO", "Successfully loaded schedule, breaking periodic retry loop.")
+                        Log.d(
+                            "MEDIA_REPO",
+                            "Successfully loaded schedule, breaking periodic retry loop."
+                        )
                         retryJob?.cancel()
                         retryJob = null
                     }

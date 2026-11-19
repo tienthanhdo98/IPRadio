@@ -281,8 +281,14 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 lifecycleScope.launch(Dispatchers.Main) {
                     val isScheduleEmpty = viewModel.content.value.isNullOrEmpty()
                     val isNotStarted = playerManager.isIdle()
-                    if (isNotStarted && isScheduleEmpty && !playerManager.isPlaying() && !ForceMedia.hasValidForceMedia(applicationContext)) {
-                        Log.i("MainActivity", "Hub connected & schedule is empty -> fetching schedule now")
+                    if (isNotStarted && isScheduleEmpty && !playerManager.isPlaying() && !ForceMedia.hasValidForceMedia(
+                            applicationContext
+                        )
+                    ) {
+                        Log.i(
+                            "MainActivity",
+                            "Hub connected & schedule is empty -> fetching schedule now"
+                        )
                         startPlayingMedia()
                     }
                 }
@@ -800,9 +806,10 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.CONTROL_MEDIA -> {
-                    //0,1,2,3
-                    //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
-                    val mess = responseHub.message!!.toInt()
+                    try {
+                        //0,1,2,3
+                        //{"IMEI":"18:93:7F:E5:F5:77","Message":"0"}
+                        val mess = responseHub.message!!.toInt()
 //                    if (playerManager.playMode != PLAY_MODE_FORCE) {
 //                        when (mess) {
 //                            //dung phat tat ca
@@ -832,44 +839,47 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 //                            //Phát tiếp nội dung dừng trước đó
 //                            3 -> {
 //                                if (!playerManager.isTimeOver) {
-//                                    playerManager.resume()
+//                                      playerManager.resume()
 //                                }
 //                            }
 //                        }
 //                    }
-                    //bacninh
-                    when (mess) {
-                        //dung phat tat ca
-                        0 -> {
+                        //bacninh
+                        when (mess) {
+                            //dung phat tat ca
+                            0 -> {
 //                                playerManager.stopAllPlayer()
 //                                playerManager.resetPlayMode()
-                            cancelAllAlarm()
-                            playerManager.stopAndEndTimeFrame()
-                            playerManager.resetPlayMode()
-                            lifecycleScope.launch {
-                                viewModel.mediaRepo.clearPlaylist()
-                                viewModel.mediaRepo.clearMonthlyLocalData()
+                                cancelAllAlarm()
+                                playerManager.stopAndEndTimeFrame()
+                                playerManager.resetPlayMode()
+                                lifecycleScope.launch {
+                                    viewModel.mediaRepo.clearPlaylist()
+                                    viewModel.mediaRepo.clearMonthlyLocalData()
+                                }
+                            }
+                            //Tam dung
+                            2 -> {
+                                playerManager.pausePlayer()
+                            }
+                            //chuyen sang ban tin tiep
+                            1 -> {
+                                Log.d(
+                                    "CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isTimeOver}"
+                                )
+                                if (!playerManager.isTimeOver) {
+                                    playerManager.playNextMedia()
+                                }
+                            }
+                            //Phát tiếp nội dung dừng trước đó
+                            3 -> {
+                                if (!playerManager.isTimeOver) {
+                                    playerManager.resume()
+                                }
                             }
                         }
-                        //Tam dung
-                        2 -> {
-                            playerManager.pausePlayer()
-                        }
-                        //chuyen sang ban tin tiep
-                        1 -> {
-                            Log.d(
-                                "CONTROL_MEDIA", "isInTimeFrame: ${playerManager.isTimeOver}"
-                            )
-                            if (!playerManager.isTimeOver) {
-                                playerManager.playNextMedia()
-                            }
-                        }
-                        //Phát tiếp nội dung dừng trước đó
-                        3 -> {
-                            if (!playerManager.isTimeOver) {
-                                playerManager.resume()
-                            }
-                        }
+                    } catch (e: Exception) {
+                        Log.e("HubCommand", "Error processing CONTROL_MEDIA: ${e.message}")
                     }
                 }
 

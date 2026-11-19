@@ -31,7 +31,7 @@ class GlobalProperties {
         const val LAT = 0f
         const val LNG = 0f
         const val USER_NAME_CONTROLLER = ""
-        const val PROVIDER_VALUE = "VATC"
+        const val PROVIDER_VALUE = "TEK4TV"
     }
 
     var volume = Defaults.VOLUME

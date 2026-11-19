@@ -169,7 +169,7 @@ class MediaRepo @Inject constructor(
             lastUpdateFailed = false
 
             ConfigUtil.putString(
-                appContext, KEY_MODIFY_TIME_PLAYLIST, monthScenario.first().ppdatedAt
+                appContext, KEY_MODIFY_TIME_PLAYLIST, monthScenario.first().updatedAt
             )
             //4.1.6e luu du lieu cua lich thang
             val monthlyScenarioData = scheduleMonthlyAdapter.toJson(monthScenario)
@@ -188,6 +188,7 @@ class MediaRepo @Inject constructor(
             } else {
                 //In case there are no scenario for today, don't play anythings
                 saveItemsToFile(listOf())
+                ConfigUtil.putString(appContext, ConfigUtil.PLAYLIST_LOCAL_DATE, currentDate)
                 Log.e(TAG, "Không có lịch trong ngày")
             }
             return true

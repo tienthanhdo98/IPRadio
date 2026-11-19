@@ -81,12 +81,14 @@ class SerialPortController(
             //$$,1,8,1,910,675,5,0,0,1,0,28: 1: fm/am, fm freq, am freq, vol, audio source, pa, mute/unmute, external mic, tempareture
             //$$,1,9,software version, device versionnải
             try {
-                //0: không có mạng
+                //0: không có mạng (hoặc SIM hết cước - API tek4tv cũng không gọi được)
                 //1: có mạng, kết nối được đến hub
-                //2: không xác định (mất kết nối hub)
+                //2: có mạng (API tek4tv vẫn gọi được), nhưng mất kết nối hub
                 var param = if (onAir) "1" else "0"
                 if (looseHubConnection) {
-                    param = "2"
+                    // Phân biệt: mất Hub nhưng API vẫn gọi được = Hub sập ("2")
+                    //            mất Hub và API cũng lỗi = mất Internet thực sự ("0")
+                    param = if (hubManager.isTokenReachable) "2" else "0"
                 }
                 //Log.d(LOG_TAG, "status: $param")
                 val networkClass = NetworkUtils.getNetworkClass(appContext)
