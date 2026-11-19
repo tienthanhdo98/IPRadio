@@ -128,24 +128,24 @@ class HubManager(
             appContext, ConfigUtil.PROVIDER, GlobalProperties.Defaults.PROVIDER_VALUE
         )!!
         hubUrl = ConfigUtil.getString(
-            appContext,
-            ConfigUtil.URL_HUB,
-            "https://hubip-angiang.tek4tv.vn/hubServer"
-        ) ?: "https://hubip-angiang.tek4tv.vn/hubServer"
+            appContext, ConfigUtil.URL_HUB, "https://hubip-ninhbinh-alpha-qltt.tek4tv.vn/hubServer"
+        ) ?: "https://hubip-ninhbinh-alpha-qltt.tek4tv.vn/hubServer"
         tokenUrl = ConfigUtil.getString(
-            appContext, ConfigUtil.URL_TOKEN, Secrets().getgetTokenApi(packageName)
+            appContext,
+            ConfigUtil.URL_TOKEN,
+            "https://gateway-alpha-qltt.tek4tv.vn/api/v2/oauth/token"
         )!!
+
         serverTimeout = ConfigUtil.getInt(
             appContext, ConfigUtil.ServerTimeout, 60000
         )
         keepAliveInterval = ConfigUtil.getInt(
             appContext, ConfigUtil.KeepAliveInterval, 30000
         )
-        hubConnection = HubConnectionBuilder.create(hubUrl)
-            .setHttpClientBuilderCallback { builder ->
+        hubConnection =
+            HubConnectionBuilder.create(hubUrl).setHttpClientBuilderCallback { builder ->
                 CaCertHelper.buildConfiguredOkHttpClient(builder, appContext)
-            }
-            .withAccessTokenProvider(Single.defer {
+            }.withAccessTokenProvider(Single.defer {
                 val currentToken = hubToken
                 if (currentToken != null) {
                     Single.just(currentToken)
@@ -171,23 +171,16 @@ class HubManager(
     //check
     fun getHubToken(urlToken: String): String? {
         return try {
-            val u = byteArrayOf(58, 26, 1, 19, 28, 17, 4, 75)
-            val p = byteArrayOf(63, 8, 23, 18, 5, 31, 27, 74)
-
-            // Thông tin xác thực lưu trong thư viện
-//            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
-            val authInfo = Secrets().getAQNIjugs(packageName).split('-')
 
             val body = mapOf(
-                String(xorString(u, packageName.reversed())) to authInfo[0],
-                String(xorString(p, packageName.reversed())) to authInfo[1]
+                "Username" to "alpha_ninhbinh", "Password" to "042abd7d-e4aa-40a0-9ec0-7cf54168a65e"
             )
 
             val call = authService.getToken(body, urlToken)
             val response = call.execute()
             if (response.isSuccessful) {
                 isTokenReachable = true
-                val token = response.body()!!.token
+                val token = response.body()!!.noiDung.token
                 token
             } else {
                 isTokenReachable = true // Server trả response (dù lỗi 4xx/5xx) = Internet vẫn có
