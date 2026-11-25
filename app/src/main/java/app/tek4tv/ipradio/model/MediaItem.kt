@@ -87,19 +87,18 @@ data class MediaItem(
     @Json(name = "ProjectID")
     val projectID: String? = null,
 
+    @Json(name = "PathBackup")
+    var pathBackup: String = ""
+
     ) : Serializable {
 
     @Json(name = "Level")
     var level: Int = -1
 
-    var pathBackup: String = ""
-//        set(value) {
-//            if (value.startsWith("http"))
-//                field = value
-//        }
-
     init {
-        pathBackup = body!!
+        if (pathBackup.isEmpty()) {
+            pathBackup = body ?: ""
+        }
     }
 
 
@@ -114,17 +113,42 @@ data class MediaItem(
     }
 
     fun getVlcMedia(mLibVLC: LibVLC): Media {
+        val currentBody = body
         if (getMediaType() == MediaType.LIVE) {
-            return Media(mLibVLC, body?.toUri())
+            val url = prepareMediaUrl(currentBody, false) ?: ""
+            return Media(mLibVLC, url.toUri())
         }
-        return if (body!!.isNotEmpty() && File(body!!).exists()) {
-            Log.d("player", "local: $body")
-            Media(mLibVLC, "file://$body".toUri())
+        return if (!currentBody.isNullOrEmpty() && File(currentBody).exists()) {
+            Log.d("player", "local: $currentBody")
+            Media(mLibVLC, "file://$currentBody".toUri())
         } else {
             Log.d("player", "online: $pathBackup")
-            Media(mLibVLC, pathBackup.toUri())
-
+            val onlineUrl = prepareMediaUrl(pathBackup, false) ?: ""
+            Media(mLibVLC, onlineUrl.toUri())
         }
+    }
+
+    fun prepareMediaUrl(originalUrl: String?, forceHttp: Boolean): String? {
+        if (originalUrl == null || originalUrl.isEmpty()) {
+            return originalUrl
+        }
+
+        var cleanedUrl: String? = originalUrl
+
+        // Xóa các dấu '//' thừa trong đường dẫn (sau tên miền).
+        cleanedUrl = cleanedUrl!!.replace("(?<!:)//".toRegex(), "/")
+
+        // Mã hóa ký tự '#' thành '%23' để tránh VLC và HTTP client cắt cụt đường dẫn xem như fragment
+        if (cleanedUrl.contains("#")) {
+            cleanedUrl = cleanedUrl.replace("#", "%23")
+        }
+
+        // Hạ cấp từ HTTPS xuống HTTP nếu bạn muốn bỏ qua lỗi chứng chỉ (và server hỗ trợ HTTP)
+        if (forceHttp && cleanedUrl.startsWith("https://")) {
+            cleanedUrl = cleanedUrl.replaceFirst("https://".toRegex(), "http://")
+        }
+
+        return cleanedUrl
     }
 
 }

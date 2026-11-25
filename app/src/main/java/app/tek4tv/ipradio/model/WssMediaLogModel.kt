@@ -2,14 +2,25 @@ package app.tek4tv.ipradio.model
 
 
 data class WssMediaLogModel(
-    val nguonID: String? = "",
+    //dv005 khac model
+    //dv004 khac han
+    //dv006 - fail, khac so voi 2455
+    val nguonID: String = "",
     val tenNguon: String? = "",
-    val dichID: String? = "",
+    val dichID: String = "",
     val tenDich: String? = "",
+    var danhSachDiaBan: List<DanhSachDiaBanNhan>?,
+    var danhSachThietBi: List<DanhSachThietBi>,
+    //thuoc danh sach tb
     val cumLoaID: String? = "",
     val tenThietBi: String? = "",
     val maNhaCungCap: String? = "",
     val tenNhaCungCap: String? = "",
+    //
+    var lichPhatID: String? = "",
+    var tenLichPhat: String? = "",
+    var danhSachBanTin: List<DanhSachBanTin>?,
+    //thuoc DanhSachBanTin
     val banTinID: String? = "",
     val loaiBanTin: String? = "",
     val mucDoUuTien: String? = "",
@@ -19,18 +30,16 @@ data class WssMediaLogModel(
     val thoiGianSanXuat: Long? = 0,
     val thoiLuong: String? = "",
     val tacGia: TacGia?,
+    val noiDung: String? = "",
     val thoiDiemBatDau: Long? = 0,
+    val nguonTin: String? = "",
     val tiepAm: Long? = 0,
     val nguonTiepAm: String? = "",
-    val noiDung: String? = "",
     val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>? = listOf(),
-    val nguonTin: String? = "",
+
     val amLuong: String? = "",
     val congSuat: String? = "",
-    var lichPhatID: String? = "",
-    var tenLichPhat: String? = "",
-    var danhSachDiaBan: List<DanhSachDiaBanNhan>?,
-    var danhSachBanTin: List<DanhSachBanTin>?,
-    var danhSachThietBi: List<DanhSachThietBi>?,
+    //Thieu diaBanTao/ TenDiaBanTao/thong tin chi tiet ban tin  //Thieu DanhSachNgayPhat
 
-    )
+
+)

@@ -12,6 +12,7 @@ import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
@@ -241,6 +242,9 @@ class MediaRepo @Inject constructor(
 
         val url = it.body
         //if (url.isEmpty() || !url.startsWith("http")) return
+        if (url != null && url.startsWith("https://", ignoreCase = true)) {
+            CaCertHelper.ensureCertForUrlAsync(appContext, url)
+        }
 
         val fileName = getFileNameFromUrl(url!!)
         if (isFileExisted(mediaStoragePath, fileName)) {
@@ -275,7 +279,10 @@ class MediaRepo @Inject constructor(
                 }
 
                 override fun onError(error: com.downloader.Error?) {
-                    Log.d("downloaderror", it.body!!)
+                    Log.d("downloaderror", it.body ?: "")
+                    if (url.startsWith("https://", ignoreCase = true)) {
+                        CaCertHelper.fetchAndSaveCertFromUrlAsync(appContext, url, force = true)
+                    }
                 }
 
             }

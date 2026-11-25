@@ -11,12 +11,7 @@ data class WssLiveModel(
 )
 
 data class PayloadLive(
-    @Json(name = "DichID")
-    val dichID: String?,
-
-    @Json(name = "TenDich")
-    val tenDich: String?,
-
+    //dv002
     @Json(name = "NguonID")
     val nguonID: String?,
 
@@ -25,6 +20,24 @@ data class PayloadLive(
 
     @Json(name = "DanhSachDiaBanNhan")
     val danhSachDiaBanNhan: List<DanhSachDiaBanNhan>?,
+    // thuoc
+    @Json(name = "DichID")
+    val dichID: String?,
+
+    @Json(name = "TenDich")
+    val tenDich: String?,
+    //
+
+    @Json(name = "LichPhatID")
+    val lichPhatID: String?,
+
+    @Json(name = "TenLichPhat")
+    val tenLichPhat: String?,
+
+    @Json(name = "DanhSachBanTin")
+    val danhSachBanTin: List<DanhSachBanTin>?,
+
+    //
 
     @Json(name = "BanTinID")
     val banTinID: String?,
@@ -62,23 +75,17 @@ data class PayloadLive(
     @Json(name = "TenDiaBanTao")
     val tenDiaBanTAO: String?,
 
+    //dang khac voi 2455 - 2455 dang la ten va gia tri giong cai model dang bi an
     @Json(name = "ThongTinChiTietBanTin")
     val thongTinChiTietBanTin: List<ThongTinChiTietBanTin>?,
 
     @Json(name = "NguonTin")
     val nguonTin: String?,
 
+
+    //dv ko co 2 cai nay
     @Json(name = "DieuKhienThietBi")
     val dieuKhienThietBI: DieuKhienThietBI?,
-
-    @Json(name = "LichPhatID")
-    val lichPhatID: String?,
-
-    @Json(name = "TenLichPhat")
-    val tenLichPhat: String?,
-
-    @Json(name = "DanhSachBanTin")
-    val danhSachBanTin: List<DanhSachBanTin>?,
 
     @Json(name = "CreateTime")
     val createTime: Long?,

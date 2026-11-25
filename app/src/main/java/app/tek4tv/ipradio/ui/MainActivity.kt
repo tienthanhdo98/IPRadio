@@ -17,6 +17,7 @@ import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
+import androidx.appcompat.app.AppCompatActivity
 import androidx.lifecycle.lifecycleScope
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.R
@@ -57,7 +58,7 @@ import javax.inject.Inject
 
 @AndroidEntryPoint
 @RequiresApi(Build.VERSION_CODES.N)
-class MainActivity : StreamBaseFrag(), AlarmListener {
+class MainActivity : AppCompatActivity(), AlarmListener {
 
     private val UPDATE_PERMISSION_REQUEST_CODE = 1
 
@@ -75,9 +76,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
     private val viewModel by viewModels<MainViewModel>()
 
     @Inject
-    lateinit var moshi: Moshi
-
-    @Inject
     lateinit var authService: AuthService
 
     private lateinit var hubManager: HubManager
@@ -92,17 +90,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     private lateinit var mediaScheduler: MediaScheduler
 
-    private lateinit var rootLayout: FrameLayout
 
     private val globalProperties = GlobalProperties.getInst()
 
 
     private lateinit var binding: ActivityMainBinding
-
-    private var user_name_stream = ""
-    private var password_stream = ""
-
-    lateinit var micStreamRtsp: RtspOnlyAudioTek
 
 
     // event media
@@ -142,6 +134,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         //Dừng phát khẩn cấp
         override fun onEndForceMedia() {
+            serialPortController.turnOffPA()
             ForceMedia.deleteForeMediaPref(applicationContext)
             startPlayingMedia()
         }
@@ -225,7 +218,7 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
 
         hubManager = HubManager(
-            authService, baseContext, CoroutineScope(Dispatchers.Main)
+            authService, baseContext, CoroutineScope(Dispatchers.Main), hubComm,
         ) { command, message ->
             handleFromCommandServer(command, message)
         }
@@ -240,11 +233,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
             }
         }
 
-        rootLayout = findViewById(R.id.root_layout)
         playerManager = PlayersManager(
             applicationContext, viewModel.mediaRepo
         ) //PlayerManager(applicationContext, viewModel, rootLayout)
         playerManager.playerManagerListener = playerCallback
+        serialPortController.isPlayingProvider = { playerManager.isPlaying() }
 
         NetworkUtils.instance.startNetworkListener(this)
 
@@ -261,108 +254,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
         showMac()
 
-        initEncoder()
-
+        checkDeleteFileUpdate()
+        viewModel.startPeriodicScheduleCheckLoop()
 
     }
 
-    private fun initEncoder() {
-        if (isEncoder) {
-            micStreamRtsp = RtspOnlyAudioTek(this)
-            getSteamInfo()
-            lifecycleScope.launch(Dispatchers.Main) {
-                while (true) {
-                    if (hubManager.pingCounter <= 5) {
-                        if (!isStreaming) {
-                            delay(10000)
-                            if (urlStream != "") {
-                                startStream()
-                            }
-                        }
-                        Log.i("pingping:", "micStream.isStreaming:  $isStreaming")
-                    } else {
-                        stopStream()
-                    }
-                    delay(1000)
-                }
-            }
-        }
-        // lay thong so cua thiet bi
-        lifecycleScope.launch(Dispatchers.IO) {
-            while (true) {
-                serialPortController.updateStatus()
-
-                delay(5000)
-            }
-        }
-    }
-
-    private fun getSteamInfo() {
-        urlStream = ConfigUtil.getString(
-            this, ConfigUtil.URL_STREAM, ""
-        )!!
-        user_name_stream = ConfigUtil.getString(
-            this, ConfigUtil.USER_NAME_STREAM, ""
-        )!!
-        password_stream = ConfigUtil.getString(
-            this, ConfigUtil.PASSWORD_STREAM, ""
-        )!!
-        protocol_stream = ConfigUtil.getString(
-            this, ConfigUtil.PROTOCOL_STREAM, "TCP"
-        )!!
-        bitrate_stream = ConfigUtil.getString(
-            this, ConfigUtil.BITRATE_STREAM, "65536"
-        )!!
-        samplerate = ConfigUtil.getString(
-            this, ConfigUtil.SAMPLERATE_STREAM, "44100"
-        )!!
-    }
-
-    override fun startStopWatch() {
-        var secondPassed = 0L
-        lifecycleScope.launch {
-            while (isStreaming) {
-                delay(1000)
-                secondPassed++
-                binding.txtTime.text = secToReadable(secondPassed)
-            }
-            binding.txtTime.text = "00:00"
-        }
-    }
-
-    override fun startStream() {
-        binding.apply {
-            btnRecord.setImageResource(R.drawable.ic_stop_stream_voice)
-            txtStatus.text = "End"
-        }
-        micStreamRtsp.setAuthorization(user_name_stream, password_stream)
-        micStreamRtsp.setMicrophoneMode(MicrophoneMode.SYNC)
-        if (protocol_stream == "TCP") {
-            micStreamRtsp.setProtocol(Protocol.TCP)
-        } else {
-            micStreamRtsp.setProtocol(Protocol.UDP)
-        }
-        if (micStreamRtsp.prepareAudio(
-                bitrate_stream.toInt(), samplerate.toInt(), true, true, true
-            )
-        ) {
-            micStreamRtsp.startStream(urlStream)
-            isStreaming = true
-        } else {
-            Log.d("RTMP", "startStream: micStream not prepare success")
-        }
-    }
-
-    override fun stopStream() {
-        if (isEncoder) {
-            isStreaming = false
-            micStreamRtsp.stopStream()
-            binding.apply {
-                btnRecord.setImageResource(R.drawable.ic_start_stream_voice)
-                txtStatus.text = "Start"
-            }
-        }
-    }
 
     private fun showMac() {
         val tvMacAddress = findViewById<TextView>(R.id.tvMac)
@@ -373,8 +269,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     override fun onStop() {
         super.onStop()
+        serialPortController.turnOffPA()
         playerManager.onActivityStop()
-        stopStream()
 //        serialPortController.disConnect()
         cancelAllAlarm()
 
@@ -382,8 +278,8 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     override fun onDestroy() {
         super.onDestroy()
+        serialPortController.turnOffPA()
         playerManager.onActivityDestroy()
-        stopStream()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
     }
@@ -704,11 +600,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                     }, duration!!.toLong() * 60 * 1000)
                 }
 
-                HubCommand.UPLOAD_RECORDED -> {
-                    val filePath = responseHub.message!!
-                    mediaCapture.updateRecordedAudio(filePath)
-                }
-
                 HubCommand.DELETE_RECORD -> {
                     val fileDirPath = this.filesDir.path
                     val recordPath = "$fileDirPath${File.separator}$RECORDED_AUDIO_FOLDER_NAME"
@@ -735,10 +626,11 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
                 }
 
                 HubCommand.STOP_FORCE -> {
+                    serialPortController.turnOffPA()
                     playerManager.stopAllPlayer()
                     cancelAllAlarm()
                     ForceMedia.deleteForeMediaPref(applicationContext)
-                    viewModel.getPlayerContentWss()
+                    startPlayingMedia()
                 }
 
 
@@ -774,8 +666,25 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
         val totalStorage = appStorageManager.getTotalRomStorage()
         val usedStorage = appStorageManager.getUsedRomStorage()
         if (totalStorage - usedStorage <= limit) {
-            Log.d("clearDatastore", "clearDatastore: Must Clear")
-            appStorageManager.deleteAllMedia()
+            Log.d("clearDatastore", "clearDatastore: Dung lượng trống thấp -> Dọn dẹp file cũ")
+            appStorageManager.deleteAllRecord()
+            appStorageManager.deleteAllMusic()
+
+            // Bảo vệ các file media của lịch hôm nay, chỉ xóa các file media cũ không còn trong lịch
+            val currentMediaFiles = viewModel.mediaRepo.broadcastList.mapNotNull { it.body }.toSet()
+            appStorageManager.getAllMediaPath().forEach { filePath ->
+                if (!currentMediaFiles.contains(filePath)) {
+                    try {
+                        val file = File(filePath)
+                        if (file.exists()) {
+                            file.delete()
+                            Log.d("clearDatastore", "Đã xóa file media cũ không dùng: $filePath")
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    }
+                }
+            }
         } else {
             Log.d("clearDatastore", "clearDatastore: Dont have to clear")
         }
@@ -783,12 +692,6 @@ class MainActivity : StreamBaseFrag(), AlarmListener {
 
     companion object {
         var alarmListener: AlarmListener? = null
-        var isEncoder = false
-        var urlStream = ""
-        var protocol_stream = ""
-        var bitrate_stream = ""
-        var samplerate = ""
-
     }
 
 

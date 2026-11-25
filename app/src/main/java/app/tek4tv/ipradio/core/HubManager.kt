@@ -58,6 +58,7 @@ class HubManager(
     private val authService: AuthService,
     private val appContext: Context,
     private val coroutineScope: CoroutineScope,
+    private val hubComm: HubComm,
     private var onMessageListener: (command: String?, message: String?) -> Unit,
 ) : IConnectionServer {
     private val TAG = "HubManager"
@@ -87,9 +88,9 @@ class HubManager(
 
     var nguonId = "H41.126"
 
-    var tenNguon = "Phường Hoàng Mai"
-    var dichId = "H41"
-    var tenDich = "Nghệ An"
+    var tenNguon = "Đà Nẵng"
+    var dichId = "H17"
+    var tenDich = "Đà Nẵng"
     var listMQTTInfo: List<NoiDungMQTT> = listOf()
     val isMQTT = true
     private var getMQTTInfoJob: Job? = null
@@ -189,16 +190,14 @@ class HubManager(
         }
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun reconnectToServer() {
 //        closeConnect()
 //        connectToServer()
     }
 
-    @RequiresApi(Build.VERSION_CODES.N)
     fun connectToServer() {
         getTokenJob?.cancel()
-        getTokenJob = CoroutineScope(Dispatchers.Default).launch {
+        getTokenJob = CoroutineScope(Dispatchers.IO).launch {
             while (hubToken == null) {
                 getHubToken()
                 if (hubToken == null) {
@@ -217,14 +216,13 @@ class HubManager(
                                 delay(API_CALL_INTERVAL)
                             }
                         }
-                        mqttClient =
-                            MQTTManager(
-                                hubToken,
-                                appContext,
-                                this@HubManager,
-                                listMQTTInfo,
-                                destinationId = dichId
-                            )
+                        mqttClient = MQTTManager(
+                            hubToken,
+                            appContext,
+                            this@HubManager,
+                            listMQTTInfo,
+                            destinationId = dichId
+                        )
                         while (!isConnectSuccess) {
                             mqttClient?.connectToMQTT()
                             delay(5000)
@@ -232,7 +230,7 @@ class HubManager(
 
                     }
                 } else {
-                    wssManager = WssManager(hubToken, appContext, this@HubManager)
+                    wssManager = WssManager(hubToken, this@HubManager)
                     while (!isConnectSuccess) {
                         wssManager!!.connectToWss()
                         delay(5000)
@@ -290,8 +288,7 @@ class HubManager(
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
                 amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
+                    StringValue.deviceInfoVolume, SerialPortController.deviceInfo
                 ) ?: "0",
                 trangThaiHoatDong = trangThaiHoatDong,
                 trangThaiKetNoi = NetworkUtils.getNetworkInfo(appContext),
@@ -299,12 +296,10 @@ class HubManager(
                 kinhDo = GlobalProperties.getInst().lng,
                 thongTinThietBI = ThongTinThietBI(
                     congSuat = getDeviceInfo(
-                        StringValue.deviceInfoPA,
-                        SerialPortController.deviceInfo
+                        StringValue.deviceInfoPA, SerialPortController.deviceInfo
                     ) ?: "0",
                     nhietDo = getDeviceInfo(
-                        StringValue.deviceInfoTemperature,
-                        SerialPortController.deviceInfo
+                        StringValue.deviceInfoTemperature, SerialPortController.deviceInfo
                     ) ?: "0",
                     dungLuongSuDung = getTotalDataNetworkUsed(appContext),
                     duLieuKhac = SerialPortController.deviceInfo
@@ -363,19 +358,16 @@ class HubManager(
                             sourceReference = body.nguonID!!.split(".").firstOrNull(),
                             startTime = "00:00:00",
                             fieldType = Category(
-                                id = body.loaiLinhVuc?.toLong(),
-                                value = body.loaiLinhVuc
+                                id = body.loaiLinhVuc?.toLong(), value = body.loaiLinhVuc
                             ),
                             type = "LIVE",
                             fixTime = "00:00:00",
                             createDate = "",
                             contentType = ContentType(
-                                id = body.loaiBanTin!!.toLong(),
-                                value = body.loaiBanTin
+                                id = body.loaiBanTin!!.toLong(), value = body.loaiBanTin
                             ),
                             priority = Priority(
-                                id = body.mucDoUuTien.toLong(),
-                                value = body.mucDoUuTien
+                                id = body.mucDoUuTien.toLong(), value = body.mucDoUuTien
                             ),
                             author = Author(),
                         )
@@ -427,8 +419,7 @@ class HubManager(
                                     message = "1"
                                 }
                             }
-                        }
-                        /*  Dừng phát nội dung
+                        }/*  Dừng phát nội dung
                         1 - Dừng phát bản tin, chuyển sang bản tin tiếp theo của lịch nếu có
                         2 - Dừng phát
                         3 - Phát tiếp nội dụng đã dừng*/
@@ -497,8 +488,7 @@ class HubManager(
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
                 amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
+                    StringValue.deviceInfoVolume, SerialPortController.deviceInfo
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 congSuat = paState,
@@ -524,9 +514,7 @@ class HubManager(
     private fun sendLogSchedule(commanDV: String, body: PayloadLive) {
         val danhSachDiaBanNhan = listOf(
             DanhSachDiaBanNhan(
-                dichID = dichId,
-                tenDich = tenDich,
-                cumLoaID = listOf(
+                dichID = dichId, tenDich = tenDich, cumLoaID = listOf(
                     deviceImei
                 )
             )
@@ -549,8 +537,7 @@ class HubManager(
                 maNhaCungCap = GlobalProperties.getInst().providerValue,
                 tenNhaCungCap = GlobalProperties.getInst().providerValue,
                 amLuong = getDeviceInfo(
-                    StringValue.deviceInfoVolume,
-                    SerialPortController.deviceInfo
+                    StringValue.deviceInfoVolume, SerialPortController.deviceInfo
                 ),
                 thoiDiemBatDau = (Calendar.getInstance().time.time / 1000),
                 tenThietBi = GlobalProperties.getInst().nameDevice,
@@ -587,11 +574,9 @@ class HubManager(
         listDate.toSet().toMutableList().forEach {
 
             val jsonSchedule = findScheduleByDate(
-                payload,
-                it
+                payload, it
             )
-            mapData[it] =
-                jsonSchedule
+            mapData[it] = jsonSchedule
         }
 
         return mapData
@@ -608,8 +593,7 @@ class HubManager(
                 if (unixTimeStampToDateTime(it.ngayPhat) == ngayPhat) {
                     it.thoiDiemPhat.forEach { thoiDiemPhat ->
                         val time = ThongTinChiTietBanTin(
-                            thoiDiemPhat.thoiGianBatDau,
-                            thoiDiemPhat.thoiGianKetThuc
+                            thoiDiemPhat.thoiGianBatDau, thoiDiemPhat.thoiGianKetThuc
                         )
                         val itemMedia = itemMedia(time, item)
                         listItemMedia.add(itemMedia)
@@ -800,4 +784,5 @@ interface HubComm {
     fun forceRestartApp(countHardRestart: Int)
     fun forceRestartDevice()
 }
+
 

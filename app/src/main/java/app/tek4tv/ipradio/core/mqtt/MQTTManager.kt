@@ -27,24 +27,6 @@ class MQTTManager(
 
     private var mqttClient: MqttAndroidClient? = null
 
-    fun getSubscribeTopic(destinationId: String) {
-        subscribe("thietbi/$clientID")
-        val listDesId = destinationId.split(".")
-        Log.d(TAG, "Subscribed: ${listDesId.count()}")
-        if (listDesId.isNotEmpty()) {
-
-            subscribe("tinh/${listDesId[0]}".toLowerCase())
-        }
-        if (listDesId.count() >= 2) {
-            subscribe("huyen/${listDesId[0]}.${listDesId[1]}".toLowerCase())
-        }
-        if (listDesId.count() >= 3) {
-            subscribe("xa/${listDesId[0]}.${listDesId[1]}.${listDesId[2]}".toLowerCase())
-        } else {
-            subscribe("thon/$destinationId".toLowerCase())
-        }
-    }
-
     fun connectToMQTT() {
         listMQTTInfo.forEach {
             if (it.topic?.contains("thietbi") == true) {

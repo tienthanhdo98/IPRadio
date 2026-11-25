@@ -13,7 +13,6 @@ import java.util.concurrent.TimeUnit
 
 class WssManager(
     private var hubToken: String?,
-    private val context: Context,
     private val connectEventListener: IConnectionServer
 ) {
     val TAG = "WssManager"
@@ -27,7 +26,7 @@ class WssManager(
         }
 
         override fun onMessage(webSocket: WebSocket, text: String) {
-            Log.d("Websocket receive", text )
+            Log.d("Websocket receive", text)
             //Vừa kết nối được lại hub
             connectEventListener.onReceiveMessageSuccess(message = text)
         }
@@ -47,23 +46,24 @@ class WssManager(
             connectEventListener.onConnectFailure(t.message)
         }
     }
-    fun sendMessage(message : String)
-    {
+
+    fun sendMessage(message: String) {
         webSocket?.send(message)
     }
 
     fun connectToWss() {
-            client = OkHttpClient.Builder(
-            ).connectTimeout(60, TimeUnit.SECONDS)
-                .pingInterval(10, TimeUnit.SECONDS)
-                .build()
-        val url = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_WSS)
+        client = OkHttpClient.Builder(
+        ).connectTimeout(60, TimeUnit.SECONDS)
+            .pingInterval(10, TimeUnit.SECONDS)
+            .build()
+        //val url = ConfigUtil.getStringEncrypt(context, ConfigUtil.URL_WSS)
+        val url = "wss://gateway-thongtinnguon.tek4tv.vn/ws/ipradio"
         val request =
             Request.Builder().url(url)
                 .addHeader("Authorization", "Bearer $hubToken").build()
-            val listener = EchoWebSocketListener()
+        val listener = EchoWebSocketListener()
 
-            webSocket = client?.newWebSocket(request, listener)
+        webSocket = client?.newWebSocket(request, listener)
     }
 
     fun closeWebsocket() {

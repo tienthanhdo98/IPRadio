@@ -9,66 +9,38 @@ import android.net.Uri
 import android.os.Environment
 import android.util.Log
 import app.tek4tv.ipradio.core.SerialPortController
-import kotlinx.coroutines.*
 import java.io.File
 
-
-/*fun downloadUpdateApk(url: String, context: Context) {
-    var destination: String = Environment.getExternalStoragePublicDirectory(
-        Environment.DIRECTORY_DOWNLOADS
-    ).toString() + "/"
-    val fileName = "ggg.apk"
-    destination += fileName
-    val fileUri = Uri.parse("file://$destination")
-
-    val file = File(destination)
-    if (file.exists()) file.delete()
-
-    val appname = context.getString(R.string.app_name)
-
-    val request = DownloadManager.Request(Uri.parse(url))
-    request.setDescription("Updating $appname")
-    request.setTitle("Updating $appname...")
-
-    request.setDestinationUri(fileUri)
-
-    val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
-    val downloadId = downloadManager.enqueue(request)
-
-    val onComplete: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(ctxt: Context?, intent: Intent?) {
-            Log.d("installx", "begin install")
-            if (!rootInstall(destination)) normalInstall(
-                context, fileUri, downloadManager,
-                downloadId
-            )
+fun checkDeleteFileUpdate() {
+    try {
+        val destination = getDestinationApk()
+        val file = File(destination)
+        if (file.exists()) {
+            file.delete()
+            Log.d("deletefile", "checkDeleteFileUpdate: delete success")
+        } else {
+            Log.d("deletefile", "checkDeleteFileUpdate: file not exists")
         }
+    } catch (e: Exception) {
+        Log.d("deletefile", "checkDeleteFileUpdate: delete fail ${e.message}")
     }
-    context.registerReceiver(onComplete, IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE))
-}*/
+}
 
-
+fun getDestinationApk(): String {
+    val destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
+        .toString() + "/ipradio.apk"
+    return destination
+}
 
 fun downloadUpdateApk(
     url: String,
     context: Context,
     controller: SerialPortController,
 ) {
-    var destination = Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOWNLOADS)
-        .toString() + "/"
-    val fileName = "ipradio.apk"
-    destination += fileName
+    checkDeleteFileUpdate()
+    val destination = getDestinationApk()
     val uri = Uri.parse("file://$destination")
 
-    //Delete update file if exists
-    val file = File(destination)
-    if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
-        file.delete()
-
-    val successMsg = StringBuilder();
-
-    val errorMsg = StringBuilder();
-    //set downloadmanager
     val request = DownloadManager.Request(Uri.parse(url))
     request.setDescription("update version")
     request.setTitle("ipradio.apk")
@@ -90,21 +62,16 @@ fun downloadUpdateApk(
                 //pm install -r /storage/emulated/0/Download/ipradio.apk
                 val command = "pm install -r $finalDestination"
                 val proc = Runtime.getRuntime().exec(arrayOf("su", "-c", command))
-                val test = proc.waitFor() // Error is here.
+                val test = proc.waitFor()
                 Log.d("install", test.toString() + "")
-                deleteFileAfterUpdate(file)
                 Thread.sleep(30000)
                 doRestart(controller)
 
             } catch (e: Exception) {
                 Log.d("install", "failed root")
-                deleteFileAfterUpdate(file)
                 e.printStackTrace()
             }
-
-
         }
-
     }
 
     //register receiver for when .apk download is compete
@@ -114,20 +81,3 @@ fun downloadUpdateApk(
 private fun doRestart(controller: SerialPortController) {
     controller.invokeDeviceFunc(Define.FUNC_WRITE_FORCE_RESTART_DEVICE, "", true)
 }
-@OptIn(DelicateCoroutinesApi::class)
-private fun deleteFileAfterUpdate(file:File)
-{
-    GlobalScope.launch(Dispatchers.IO) {
-        delay(20000)
-        try {
-            if (file.exists()) //file.delete() - test this, I think sometimes it doesnt work
-                file.delete()
-            Log.d("install", "Delete file success")
-        }catch (e: Exception)
-        {
-            Log.d("install", "Delete file error ${e.message} ")
-        }
-
-    }
-}
-

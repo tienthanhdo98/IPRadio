@@ -34,33 +34,29 @@ data class ForceMedia(
     var name = ""
 
     fun toMediaItem(): MediaItem {
-//        val h = duration / 60
-//        val m = duration - h * 60
-//
-//        val hs = if (h >= 10) "$h" else "0$h"
-//        val ms = if (m >= 10) "$m" else "0$m"
-
+        val item = mediaItem
         return MediaItem(
             body = path,
-            title = mediaItem!!.title,
+            title = item?.title ?: name,
             type = type,
             fixTime = fixTime,
+            start = fixTime,
             end = endTime,
-            duration = mediaItem!!.duration,
-            author = mediaItem!!.author,
-            mediaID = mediaItem!!.mediaID,
-            category = mediaItem!!.category,
-            priority = mediaItem!!.priority,
-            contentType = mediaItem!!.contentType,
-            description = mediaItem!!.description,
-            sourceID = mediaItem!!.sourceID,
-            sourceName = mediaItem!!.sourceName,
-            sourceReference = mediaItem!!.sourceReference,
-            startTime = mediaItem!!.startTime,
-            createDate = mediaItem!!.createDate,
-            id = mediaItem!!.id,
-            projectID = mediaItem!!.mediaID,
-            fieldType = mediaItem!!.fieldType
+            duration = item?.duration ?: duration,
+            author = item?.author,
+            mediaID = item?.mediaID,
+            category = item?.category,
+            priority = item?.priority,
+            contentType = item?.contentType,
+            description = item?.description,
+            sourceID = item?.sourceID,
+            sourceName = item?.sourceName,
+            sourceReference = item?.sourceReference,
+            startTime = item?.startTime ?: fixTime,
+            createDate = item?.createDate,
+            id = item?.id,
+            projectID = item?.mediaID,
+            fieldType = item?.fieldType
         ).also { it.level = level }
     }
 

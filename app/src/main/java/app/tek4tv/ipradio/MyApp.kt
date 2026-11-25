@@ -3,6 +3,7 @@ package app.tek4tv.ipradio
 import android.app.Application
 import android.content.Context
 import app.tek4tv.ipradio.utils.ConfigUtil
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import dagger.hilt.android.HiltAndroidApp
 
 @HiltAndroidApp
@@ -12,28 +13,29 @@ class MyApp : Application() {
         super.onCreate()
 
         instance = this
-        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "nghean_tek4tv")
+        CaCertHelper.setupGlobalConfiguredSsl(this)
+        ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME, "danang_tek4tv_mqtt")
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.PASSWORD,
-            "5ca8ecc0-ed98-4413-95c2-b5646155b490"
+            "8cf8cd99-5460-41e2-8e40-1129c534037a"
         )
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.USERNAME_KEY, "USERNAME")
         ConfigUtil.putStringEncrypt(applicationContext, ConfigUtil.PASSWORD_KEY, "PASSWORD")
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_TOKEN,
-            "https://gateway-thongtinnguon.nghean.gov.vn/api/v2/oauth/token"
+            "https://gateway-ttn.danang.gov.vn/api/v2/oauth/token"
         )
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_MQTT,
-            "tcp://mqtt-thongtinnguon.nghean.gov.vn:1883"
+            "tcp://deviceApi-ttn.danang.gov.vn:1883"
         )
         ConfigUtil.putStringEncrypt(
             applicationContext,
             ConfigUtil.URL_MQTT_INFO,
-            "https://gateway-thongtinnguon.nghean.gov.vn/v2/mqtt-ipradio/Ipradio/mqtt/dangkythietbi"
+            "https://gateway-ttn.danang.gov.vn/api/v2/mqtt-ipradio/mqtt/dangkythietbi"
         )
 
 
