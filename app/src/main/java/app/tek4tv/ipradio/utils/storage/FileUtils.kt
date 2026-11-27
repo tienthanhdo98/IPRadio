@@ -10,6 +10,7 @@ const val PLAYLIST_FILE_NAME = "playlist.json"
 const val AUDIO_LIST_FILE_NAME = "audio_list.json"
 const val AUDIO_FOLDER_NAME = "audios"
 const val RECORDED_AUDIO_FOLDER_NAME = "recorded"
+const val LOG_FOLDER_NAME = "app_logs"
 
 
 fun isFileExisted(storagePath: String, fileName: String): Boolean {
@@ -73,7 +74,7 @@ fun getAllFileNameInFolder(storagePath: String): List<String> {
 
 fun getAllFilePathInFolder(storagePath: String): List<String> {
     val folder = File(storagePath)
-    return folder.listFiles().filter { it.isFile }.map { it.path }
+    return folder.listFiles()?.filter { it.isFile }?.map { it.path } ?: emptyList()
 }
 
 fun getFolderSize(path: String): Long {
@@ -82,7 +83,7 @@ fun getFolderSize(path: String): Long {
     return try {
         var size = 0L
 
-        for (f in folder.listFiles()) {
+        for (f in folder.listFiles() ?: emptyArray()) {
             if (f.isFile) size += f.length()
         }
 
@@ -96,7 +97,7 @@ fun getFolderSize(path: String): Long {
 fun deleteAllFileInFolder(path: String) {
     val folder = File(path)
     try {
-        for (f in folder.listFiles()) {
+        for (f in folder.listFiles() ?: emptyArray()) {
             if (f.isFile) f.delete()
         }
 

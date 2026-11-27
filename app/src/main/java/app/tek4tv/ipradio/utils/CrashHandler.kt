@@ -8,6 +8,7 @@ import android.content.Intent
 import android.util.Log
 import app.tek4tv.ipradio.MyApp
 import app.tek4tv.ipradio.ui.MainActivity
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileWriter
@@ -23,6 +24,7 @@ class CrashHandler(private val activity: Activity) : Thread.UncaughtExceptionHan
         val appInstance = MyApp.instance
         if (appInstance != null) {
             logToFile(thread, ex)
+            DeviceLogHelper.logCrash(thread, ex)
             restartApp(appInstance, activity)
         }
     }

@@ -24,6 +24,8 @@ class GlobalProperties {
     var piCode = "0"
     var psName = "AAA"
     var nameDevice = ""
+    var destinationId = ""
+    var destinationName = ""
     var resumeFromStart = false
     var lat: Float = 0F
     var lng: Float = 0F
@@ -34,6 +36,9 @@ class GlobalProperties {
         volume = ConfigUtil.getString(appContext, DEFAULT_VOLUME, "100") ?: "100"
         piCode = ConfigUtil.getString(appContext, DEFAULT_PI_CODE, "0") ?: "0"
         psName = ConfigUtil.getString(appContext, DEFAULT_PS_NAME, "AAA") ?: "AAA"
+        destinationId = ConfigUtil.getString(appContext, ConfigUtil.DEFAULT_DESTINATION_ID, "") ?: ""
+        destinationName =
+            ConfigUtil.getString(appContext, ConfigUtil.DEFAULT_DESTINATION_NAME, "") ?: ""
         nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "Thiết bị Demo - TEK4TV")
             ?: "Thiết bị Demo - TEK4TV"
         //nameDevice = ConfigUtil.getString(appContext, NAME_DEVICE, "TB Xã Ba Cung") ?: "TB Xã Ba Cung"
@@ -57,7 +62,7 @@ class GlobalProperties {
             ConfigUtil.putString(appContext, USER_NAME_CONTROLLER, responseHub.userNameControl)
             userNameController = responseHub.userNameControl ?: ""
         }
-        if (responseHub.deviceName != "" && responseHub.destinationName != null) {
+        if (!responseHub.deviceName.isNullOrEmpty()) {
             ConfigUtil.putString(appContext, NAME_DEVICE, responseHub.deviceName)
             nameDevice = responseHub.deviceName ?: ""
         }
@@ -65,6 +70,22 @@ class GlobalProperties {
         if (responseHub.psName != "") {
             ConfigUtil.putString(appContext, DEFAULT_PS_NAME, responseHub.psName)
             psName = responseHub.psName
+        }
+        if (!responseHub.destinationId.isNullOrEmpty()) {
+            ConfigUtil.putString(
+                appContext,
+                ConfigUtil.DEFAULT_DESTINATION_ID,
+                responseHub.destinationId
+            )
+            destinationId = responseHub.destinationId ?: ""
+        }
+        if (!responseHub.destinationName.isNullOrEmpty()) {
+            ConfigUtil.putString(
+                appContext,
+                ConfigUtil.DEFAULT_DESTINATION_NAME,
+                responseHub.destinationName
+            )
+            destinationName = responseHub.destinationName ?: ""
         }
 
         if (responseHub.resumeFromStart != null) {
@@ -86,6 +107,10 @@ class GlobalProperties {
         volume = vol
         ConfigUtil.putString(appContext, DEFAULT_VOLUME, vol)
 
+    }
+
+    fun setTempVolume(vol: String) {
+        volume = vol
     }
 
     companion object {

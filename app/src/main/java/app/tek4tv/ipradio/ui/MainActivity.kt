@@ -13,7 +13,6 @@ import android.util.Log
 import android.view.KeyEvent
 import android.view.MotionEvent
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.annotation.RequiresApi
@@ -25,11 +24,12 @@ import app.tek4tv.ipradio.core.HubComm
 import app.tek4tv.ipradio.core.HubManager
 import app.tek4tv.ipradio.core.MediaScheduler
 import app.tek4tv.ipradio.core.SerialPortController
+import app.tek4tv.ipradio.core.SignalRHubManager
 import app.tek4tv.ipradio.core.players_helper.IPlayerManagerListener
 import app.tek4tv.ipradio.core.players_helper.PlayersManager
 import app.tek4tv.ipradio.core.players_helper.PlayersManager.Companion.PLAY_MODE_FORCE
 import app.tek4tv.ipradio.databinding.ActivityMainBinding
-import app.tek4tv.ipradio.libs.rtsp.RtspOnlyAudioTek
+import app.tek4tv.ipradio.di.MoshiInst
 import app.tek4tv.ipradio.model.*
 import app.tek4tv.ipradio.network.AuthService
 import app.tek4tv.ipradio.utils.*
@@ -39,21 +39,22 @@ import app.tek4tv.ipradio.utils.StringValue.Companion.PAStatusOn
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S1_NAME
 import app.tek4tv.ipradio.utils.StringValue.Companion.UART_S4_NAME
 import app.tek4tv.ipradio.utils.media.MediaCapture
-import app.tek4tv.ipradio.utils.network.FtpUtils
+import app.tek4tv.ipradio.utils.logger.LogFileUtils
+import app.tek4tv.ipradio.utils.logger.LogManager
+import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import app.tek4tv.ipradio.utils.storage.*
 import app.tek4tv.ipradio.viewmodels.MainViewModel
-import com.pedro.encoder.input.audio.MicrophoneMode
-import com.pedro.rtsp.rtsp.Protocol
-import com.squareup.moshi.Moshi
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.io.File
+import java.io.IOException
 import java.util.*
 import javax.inject.Inject
+import kotlin.time.Duration.Companion.milliseconds
 
 
 @AndroidEntryPoint
@@ -80,6 +81,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private lateinit var hubManager: HubManager
 
+    private lateinit var signalRHubManager: SignalRHubManager
+
     private lateinit var playerManager: PlayersManager
 
     private lateinit var serialPortController: SerialPortController
@@ -89,6 +92,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
     private lateinit var mediaCapture: MediaCapture
 
     private lateinit var mediaScheduler: MediaScheduler
+
+    private lateinit var logManager: LogManager
 
 
     private val globalProperties = GlobalProperties.getInst()
@@ -104,6 +109,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             serialPortController.turnOffPA()
             serialPortController.writeForceSetVolume(globalProperties.volume)
             hubManager.currentMediaItem = null
+            signalRHubManager.currentMediaItem = null
+            signalRHubManager.curMediaName = ""
         }
 
         //Phát FM
@@ -116,10 +123,13 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     if (serialPortController.playMode != SerialPortController.MODE_NONE) PAStatusOff
                     else PAStatusOn
                 hubManager.currentMediaItem = mediaItem
+                signalRHubManager.currentMediaItem = mediaItem
+                signalRHubManager.playlistIndex = playerManager.playlistIndex
+                signalRHubManager.curMediaName = mediaItem.title ?: ""
 
                 if (!serialPortController.isUart1) {
                     lifecycleScope.launch {
-                        delay(11000)
+                        delay(11000.milliseconds)
                         serialPortController.playTuner(pipsData, tunerData)
                     }
                 } else {
@@ -142,12 +152,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         //Lỗi luồng live
         override fun onLiveError(mediaItem: MediaItem) {
             hubManager.currentMediaItem = mediaItem
+            signalRHubManager.currentMediaItem = mediaItem
             serialPortController.turnOffPA()
             Log.d("turnPA", "live error")
         }
 
         override fun onMediaStopPlaying(mediaItem: MediaItem, duration: Long) {
             hubManager.currentMediaItem = null
+            signalRHubManager.currentMediaItem = null
+            signalRHubManager.curMediaName = ""
         }
 
 
@@ -155,6 +168,9 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (mediaItem != null) {
 
                 hubManager.currentMediaItem = mediaItem
+                signalRHubManager.currentMediaItem = mediaItem
+                signalRHubManager.playlistIndex = playerManager.playlistIndex
+                signalRHubManager.curMediaName = mediaItem.title ?: ""
 
                 if (mediaItem.getMediaType() != MediaType.FM) {
                     serialPortController.turnOnPAVod()
@@ -195,15 +211,15 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         baseContext, ConfigUtil.CountForHardReset, countHardRestart + 1
                     )
                     Log.d("turnPA", "force reset")
-                    delay(3000)
+                    delay(3000.milliseconds)
                     //bật tắt lại mạng di động
                     setMobileDataEnabled(false)
                     setWifeDataEnabled(true)
-                    delay(3000)
+                    delay(3000.milliseconds)
                     setMobileDataEnabled(true)
                     //lấy lại imei trong trường hợp lỗi khi lấy imei
                     ConfigUtil.removeSharef(baseContext, Utils.DEVICE_ID)
-                    delay(3000)
+                    delay(3000.milliseconds)
                     restartApp(MyApp.instance!!, this@MainActivity)
                 }
             }
@@ -216,17 +232,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         appStorageManager = AppStorageManager(applicationContext)
         mediaCapture = MediaCapture(applicationContext, lifecycleScope)
+        LogFileUtils.initFolders()
 
         hubManager = HubManager(
             authService, baseContext, CoroutineScope(Dispatchers.Main), hubComm,
         ) { command, message ->
-            handleFromCommandServer(command, message)
+            handleFromCommandServer(command, message, hubManager.responseHub)
+        }
+        logManager = LogManager(applicationContext) {
+            "${hubManager.dichId},${hubManager.tenDich}"
+        }
+        signalRHubManager = SignalRHubManager(
+            baseContext, authService
+        ) { command, message, responseHub ->
+            handleFromSignalRMonitor(command, message, responseHub)
+        }.apply {
+            versionName = hubManager.versionName
+            destinationProvider = { Pair(hubManager.dichId, hubManager.tenDich) }
         }
         serialPortController = SerialPortController(applicationContext, lifecycleScope, hubManager)
 
         serialPortController.connectToSerialPort(UART_S1_NAME)
         lifecycleScope.launch {
-            delay(10000)
+            delay(10000.milliseconds)
             if (!serialPortController.isUart1) {
                 serialPortController.connectToSerialPort(UART_S4_NAME)
                 Log.i("PA", "onCreate: s4")
@@ -240,6 +268,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         serialPortController.isPlayingProvider = { playerManager.isPlaying() }
 
         NetworkUtils.instance.startNetworkListener(this)
+        NetworkUtils.instance.addCallback(object : NetworkUtils.ConnectionCallback {
+            override fun onChange(netWorkState: Boolean) {
+                if (netWorkState) {
+                    Log.i("MainActivity", "Network connected -> reconnect SignalR Hub & sync")
+                    lifecycleScope.launch(Dispatchers.Main) {
+                        signalRHubManager.connectToHub()
+                        if (!hubManager.isConnectSuccess) {
+                            hubManager.connectToServer()
+                        }
+                    }
+                }
+            }
+        })
 
         initHubConnect()
         registerObservers()
@@ -256,7 +297,19 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
         checkDeleteFileUpdate()
         viewModel.startPeriodicScheduleCheckLoop()
+        startPeriodicLogUploadLoop()
 
+    }
+
+    private fun startPeriodicLogUploadLoop() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            while (true) {
+                if (NetworkUtils.isNetworkConnected(applicationContext)) {
+                    logManager.uploadAllPendingLogs()
+                }
+                delay(60 * 60 * 1000L)
+            }
+        }
     }
 
 
@@ -280,6 +333,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
         super.onDestroy()
         serialPortController.turnOffPA()
         playerManager.onActivityDestroy()
+        signalRHubManager.disconnect()
         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
 
     }
@@ -314,9 +368,11 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                 lifecycleScope.launch {
                     mediaScheduler.cancelAllScheduledListAlarm()
                     viewModel.rescheduleMonthlyPlaylist()
+                    logManager.uploadAllPendingLogs()
                     hubManager.reconnectToServer()
+                    signalRHubManager.connectToHub()
                     serialPortController.turnOffPA()
-                    delay(120000)
+                    delay(120000.milliseconds)
                     Log.e("alarmx", "Hub restart")
                     serialPortController.hardRestart()
                 }
@@ -402,9 +458,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
     private fun initHubConnect() {
         hubManager.connectToServer()
+        signalRHubManager.connectToHub()
     }
 
-    private fun handleFromCommandServer(command: String?, message: String?) {
+    private fun handleFromCommandServer(
+        command: String?,
+        message: String?,
+        responseHub: ResponseHub = hubManager.responseHub
+    ) {
         try {
             if (command == null || command.isEmpty()) {
                 return
@@ -412,8 +473,6 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             if (message == null || message.isEmpty()) {
                 return
             }
-
-            val responseHub = hubManager.responseHub
 
 
             when (command) {
@@ -440,6 +499,8 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         playerManager.stopAllPlayer()
                     }
                     hubManager.currentMediaItem = null
+                    signalRHubManager.currentMediaItem = null
+                    signalRHubManager.curMediaName = ""
 
                     playerManager.resetPlayMode()
                     cancelAllAlarm()
@@ -454,15 +515,62 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
+                HubCommand.UPDATE_DESTINATION -> {
+                    val mess = responseHub.message ?: return
+                    Log.i("config_config", "updateconfig $mess")
+                    val listInfoConfig = mess.split(",")
+
+                    val newResponseHub = ResponseHub().apply {
+                        listInfoConfig.getOrNull(0)?.takeIf { it != "null" }?.let {
+                            volume = it
+                            serialPortController.writeForceSetVolume(it)
+                            globalProperties.setTempVolume(it)
+                        }
+                        listInfoConfig.getOrNull(1)?.takeIf { it != "null" }?.let {
+                            lat = it.toFloatOrNull()
+                        }
+                        listInfoConfig.getOrNull(2)?.takeIf { it != "null" }?.let {
+                            lng = it.toFloatOrNull()
+                        }
+                        listInfoConfig.getOrNull(3)?.takeIf { it != "null" }?.let {
+                            destinationId = it
+                        }
+                        listInfoConfig.getOrNull(4)?.takeIf { it != "null" }?.let {
+                            destinationName = it
+                        }
+                        listInfoConfig.getOrNull(5)?.takeIf { it != "null" }?.let {
+                            deviceName = it
+                        }
+                    }
+
+                    listInfoConfig.getOrNull(6)?.takeIf { it != "null" }?.let {
+                        ConfigUtil.putString(applicationContext, ConfigUtil.PROVIDER, it)
+                        signalRHubManager.providerValue = it
+                    }
+                    listInfoConfig.getOrNull(7)?.takeIf { it != "null" }?.toIntOrNull()?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.Minute_TURN_ON_PA, it)
+                    }
+                    listInfoConfig.getOrNull(8)?.takeIf { it != "null" }?.toIntOrNull()?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.ServerTimeout, it)
+                    }
+                    listInfoConfig.getOrNull(9)?.takeIf { it != "null" }?.toIntOrNull()?.let {
+                        ConfigUtil.putInt(applicationContext, ConfigUtil.KeepAliveInterval, it)
+                    }
+
+                    globalProperties.saveProperties(newResponseHub)
+                }
+
                 HubCommand.TURN_ON_PA -> {
-                    Log.i("TURN_ON_PA", responseHub.message!!)
-                    val mess = responseHub.message!!.toInt()
-                    if (mess == PAStatusOn.toInt()) {
-                        serialPortController.turnOnPAVod()
-
-                    } else {
-                        serialPortController.turnOffPA()
-
+                    val mess = responseHub.message
+                    try {
+                        when (val value = mess?.toIntOrNull()) {
+                            0 -> serialPortController.turnOnPAVod()
+                            1 -> serialPortController.turnOffPA()
+                            null -> Log.e("HubCommand", "Message is not a valid number: $mess")
+                            else -> Log.w("HubCommand", "Unexpected PA control value: $value")
+                        }
+                    } catch (e: Exception) {
+                        Log.e("HubCommand", "Error parsing PA command: ${e.message}")
                     }
                 }
 
@@ -515,8 +623,29 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 }
 
+                HubCommand.PLAYLIST_INFO -> {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
+                            val dataFromPlaylist: String = readFile(path)
+                            val connectionId = responseHub.message
+                            if (connectionId != null) {
+                                signalRHubManager.sendHubDirectMessage(
+                                    connectionId, HubCommand.PLAYLIST_INFO, dataFromPlaylist
+                                )
+                            }
+                        } catch (_: IOException) {
+                            Log.e("readplaylist", "error reading playlist!!!")
+                        }
+                    }
+                }
+
                 HubCommand.FM -> {
                     onPlayForce(responseHub)
+                }
+
+                HubCommand.UPDATE_STATUS -> {
+                    serialPortController.updateStatus()
                 }
 
                 HubCommand.RESTART -> {
@@ -538,18 +667,24 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                         Log.d("UpdateVolume", "handleFromCommandServer: ${responseHub.message}")
                         serialPortController.writeForceSetVolume(responseHub.message!!)
                         globalProperties.saveVolume(responseHub.message!!)
+                        globalProperties.setTempVolume(responseHub.message!!)
                     }
                 }
 
                 HubCommand.UPDATE_VERSION -> {
-                    Log.d("update", responseHub.message!!)
-                    downloadUpdateApk(responseHub.message!!, this, serialPortController)
+                    if (responseHub.message != null) {
+                        Log.d("update", responseHub.message!!)
+                        downloadUpdateApk(responseHub.message!!, this, serialPortController)
+                    }
                 }
 
                 HubCommand.SET_TIME_OVER -> {
                     serialPortController.setTimeOver()
                 }
 
+                HubCommand.SET_TIME_ON -> {
+                    serialPortController.setTimeOn(globalProperties.volume)
+                }
 
                 HubCommand.SETUP_PI_PS_NAME -> {
                     serialPortController.setUpPiPsName(responseHub.message ?: "")
@@ -567,15 +702,39 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     serialPortController.readDeviceInfo()
                 }
 
+                HubCommand.NETWORK_INFO -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val result = NetworkUtils.getNetworkInfo(applicationContext)
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.NETWORK_INFO, result
+                        )
+                    }
+                }
+
                 HubCommand.STORAGE_INFO -> {
                     val connectionId = responseHub.message
                     if (connectionId != null) {
                         val info = appStorageManager.run {
                             "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
                         }
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.STORAGE_INFO, info
+                        )
                     }
                 }
 
+                HubCommand.GET_MEDIA_PATH -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val mediaList = Utils.toJsonList(
+                            MoshiInst.moshi, appStorageManager.getAllMediaPath()
+                        )
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.GET_MEDIA_PATH, mediaList
+                        )
+                    }
+                }
 
                 HubCommand.DELETE_ALL_MEDIA -> {
                     appStorageManager.deleteAllMedia()
@@ -583,7 +742,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
 
                 HubCommand.RECORD -> {
                     val duration = responseHub.message
-                    val shouldStart = responseHub.start!! == "1"
+                    val shouldStart = responseHub.start == "1"
 
                     if (shouldStart) {
                         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
@@ -592,12 +751,30 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     } else {
                         if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
                     }
-                    Timer().schedule(object : TimerTask() {
-                        override fun run() {
-                            mediaCapture.stopAudioCapture()
-                            Log.i("kakaka", "stop record.... ")
-                        }
-                    }, duration!!.toLong() * 60 * 1000)
+                    duration?.toLongOrNull()?.let { mins ->
+                        Timer().schedule(object : TimerTask() {
+                            override fun run() {
+                                if (mediaCapture.isRecordingAudio) mediaCapture.stopAudioCapture()
+                                Log.i("kakaka", "stop record.... ")
+                            }
+                        }, mins * 60 * 1000)
+                    }
+                }
+
+                HubCommand.GET_RECORD -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val recordedAudioList = Utils.toJsonList(
+                            MoshiInst.moshi, appStorageManager.getAllRecordedAudioPath()
+                        )
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.GET_RECORD, recordedAudioList
+                        )
+                    }
+                }
+
+                HubCommand.UPLOAD_DEVICE_LOGGER -> {
+                    logManager.uploadAllPendingLogs()
                 }
 
                 HubCommand.DELETE_RECORD -> {
@@ -612,12 +789,14 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     }
                 }
 
+                HubCommand.DELETE_ALL_LOG -> {
+                    appStorageManager.deleteAllLog()
+                }
 
                 HubCommand.CONTROL_WIFI_STATE -> {
                     val wifiEnable = responseHub.message!! == "1"
                     NetworkUtils.setWifiEnable(applicationContext, wifiEnable)
                 }
-
 
                 HubCommand.SET_ENCRYPTED_VOLUME_DEVICE -> {
                     if (responseHub.message != null) {
@@ -633,11 +812,121 @@ class MainActivity : AppCompatActivity(), AlarmListener {
                     startPlayingMedia()
                 }
 
+                HubCommand.UPDATE_CA_CERT -> {
+                    val hubInput = responseHub.message ?: message
+                    if (hubInput.isNotBlank()) {
+                        Log.i("HubCommand", "Nhận lệnh nạp CA cert từ Hub: $hubInput")
+                        CaCertHelper.handleHubCaInputAsync(
+                            applicationContext,
+                            hubInput
+                        )
+                    } else {
+                        Log.w("HubCommand", "Lệnh UPDATE_CA nhận message rỗng")
+                    }
+                }
+
 
             }
 
         } catch (e: java.lang.Exception) {
             e.printStackTrace()
+        }
+    }
+
+    /**
+     * Xử lý riêng các lệnh monitor thông tin & log từ SignalR Hub.
+     * Tuyệt đối không thực thi các lệnh điều khiển phát, PA, cấu hình hay restart thiết bị.
+     */
+    private fun handleFromSignalRMonitor(
+        command: String?,
+        message: String?,
+        responseHub: ResponseHub
+    ) {
+        try {
+            if (command.isNullOrEmpty() || message.isNullOrEmpty()) return
+
+            when (command) {
+                HubCommand.UPDATE_STATUS -> {
+                    serialPortController.updateStatus()
+                }
+
+                HubCommand.READ_DEVICE_INFO -> {
+                    serialPortController.readDeviceInfo()
+                }
+
+                HubCommand.PLAYLIST_INFO -> {
+                    lifecycleScope.launch(Dispatchers.IO) {
+                        try {
+                            val path = "${filesDir.path}/$PLAYLIST_FILE_NAME"
+                            val dataFromPlaylist: String = readFile(path)
+                            val connectionId = responseHub.message
+                            if (connectionId != null) {
+                                signalRHubManager.sendHubDirectMessage(
+                                    connectionId, HubCommand.PLAYLIST_INFO, dataFromPlaylist
+                                )
+                            }
+                        } catch (_: IOException) {
+                            Log.e("readplaylist", "error reading playlist!!!")
+                        }
+                    }
+                }
+
+                HubCommand.NETWORK_INFO -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val result = NetworkUtils.getNetworkInfo(applicationContext)
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.NETWORK_INFO, result
+                        )
+                    }
+                }
+
+                HubCommand.STORAGE_INFO -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val info = appStorageManager.run {
+                            "${getTotalRam()},${getUsedRam()},${getTotalRomStorage()},${getUsedRomStorage()}"
+                        }
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.STORAGE_INFO, info
+                        )
+                    }
+                }
+
+                HubCommand.GET_MEDIA_PATH -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val mediaList = Utils.toJsonList(
+                            MoshiInst.moshi, appStorageManager.getAllMediaPath()
+                        )
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.GET_MEDIA_PATH, mediaList
+                        )
+                    }
+                }
+
+                HubCommand.GET_RECORD -> {
+                    val connectionId = responseHub.message
+                    if (connectionId != null) {
+                        val recordedAudioList = Utils.toJsonList(
+                            MoshiInst.moshi, appStorageManager.getAllRecordedAudioPath()
+                        )
+                        signalRHubManager.sendHubDirectMessage(
+                            connectionId, Utils.GET_RECORD, recordedAudioList
+                        )
+                    }
+                }
+
+                HubCommand.UPLOAD_DEVICE_LOGGER -> {
+                    logManager.uploadAllPendingLogs()
+                }
+
+                else -> {
+                    Log.d("SignalRMonitor", "Ignored non-monitor command from SignalR: $command")
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("SignalRMonitor", "Error handling SignalR monitor command: ${e.message}", e)
         }
     }
 
@@ -656,7 +945,7 @@ class MainActivity : AppCompatActivity(), AlarmListener {
             val audio = getSystemService(Context.AUDIO_SERVICE) as AudioManager
             val maxVolume = audio.getStreamMaxVolume(AudioManager.STREAM_MUSIC)
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, maxVolume, 0)
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Log.e("Main", "Error setting max volume")
         }
     }

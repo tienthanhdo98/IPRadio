@@ -46,6 +46,12 @@ object ConfigUtil {
     const val URL_MQTT_SOURCE = "URL_MQTT_SOURCE"
     const val URL_WSS = "URL_WSS"
 
+    // SignalR Hub (4.2.2b)
+    const val URL_SIGNALR_HUB = "URL_SIGNALR_HUB"
+    const val URL_SIGNALR_TOKEN = "URL_SIGNALR_TOKEN"
+    const val DEFAULT_DESTINATION_ID = "DEFAULT_DESTINATION_ID"
+    const val DEFAULT_DESTINATION_NAME = "DEFAULT_DESTINATION_NAME"
+
 
     fun putString(context: Context, key: String?, value: String?) {
         val sharedPref = context.getSharedPreferences(PREFERENCE_FILE_NAME, Context.MODE_PRIVATE)

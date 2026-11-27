@@ -12,6 +12,7 @@ import app.tek4tv.ipradio.model.MediaItem
 import app.tek4tv.ipradio.model.MediaType
 import app.tek4tv.ipradio.ui.CustomPlayer
 import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import app.tek4tv.ipradio.utils.network.CaCertHelper
 import app.tek4tv.ipradio.utils.toCalendar
 import org.videolan.libvlc.LibVLC
@@ -103,9 +104,19 @@ class VlcMediaPlayer(
                     val isFile = media.getMediaType() == MediaType.FILE && !isLiveMode
                     if (isFile) {
                         Log.e(TAG, "EncounteredError File: ${media.title}")
+                        val filePath = media.body ?: ""
+                        val fileSize = if (filePath.isNotEmpty() && File(filePath).exists()) {
+                            File(filePath).length()
+                        } else -1L
+                        DeviceLogHelper.logMediaFileCorrupted(
+                            media, filePath, fileSize, "LibVLC EncounteredError"
+                        )
                         checkStreamError()
                     } else {
                         Log.e(TAG, "EncounteredError Live: ${media.title}")
+                        DeviceLogHelper.logLiveStreamError(
+                            media, "LibVLC EncounteredError", countReplayLive
+                        )
                         onLiveErrorVlc()
                     }
                 }
@@ -174,6 +185,15 @@ class VlcMediaPlayer(
 
     private fun playFile(mediaItem: MediaItem, timeStamp: Int) {
         Log.i(TAG, "vlc play file: time stamp $timeStamp, title: ${mediaItem.title}")
+        val bodyPath = mediaItem.body ?: ""
+        if (bodyPath.isNotEmpty() && !bodyPath.startsWith("http", ignoreCase = true)) {
+            val f = File(bodyPath)
+            if (f.exists() && f.length() == 0L) {
+                DeviceLogHelper.logMediaFileCorrupted(
+                    mediaItem, bodyPath, 0L, "File âm thanh cục bộ có dung lượng 0 byte"
+                )
+            }
+        }
         val media = mediaItem.getVlcMedia(mLibVLC)
         if (timeStamp > 0) {
             media.addOption(":start-time=$timeStamp")

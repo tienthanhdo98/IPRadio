@@ -6,6 +6,7 @@ import android.util.Log
 import app.tek4tv.ipradio.utils.Define
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.Utils
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import app.tek4tv.ipradio.utils.network.NetworkUtils
 import kotlinx.coroutines.*
 import java.io.File
@@ -41,6 +42,7 @@ class SerialPortController(
             readDevice()
         } catch (e: Exception) {
             e.printStackTrace()
+            DeviceLogHelper.logUartError(uart, e.message ?: "Không mở được cổng UART")
         }
     }
 

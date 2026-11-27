@@ -14,6 +14,7 @@ import app.tek4tv.ipradio.repo.MediaRepo
 import app.tek4tv.ipradio.utils.ConfigUtil
 import app.tek4tv.ipradio.utils.GlobalProperties
 import app.tek4tv.ipradio.utils.getDurationInSecond
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import app.tek4tv.ipradio.utils.toCalendar
 import com.squareup.moshi.JsonDataException
 import com.squareup.moshi.JsonEncodingException
@@ -138,12 +139,20 @@ class PlayersManager(
     }
 
     fun setTimeFrame(timeFrame: String, resumePoint: Pair<Int, Int>?) {
-
+        val prevPlayMode = playMode.ifEmpty { "0" }
         stopAllPlayer()
 
         playMode = timeFrame
 
         currentPlaylist = mediaRepo.scheduledList[timeFrame] ?: listOf()
+        val targetIndex = resumePoint?.first ?: 0
+        val targetMedia = currentPlaylist.getOrNull(targetIndex) ?: currentPlaylist.firstOrNull()
+        DeviceLogHelper.logCampaignStart(
+            listKey = timeFrame,
+            from = prevPlayMode,
+            mediaItem = targetMedia,
+            items = currentPlaylist
+        )
 
         if (resumePoint != null) {
             playlistIndex = resumePoint.first
@@ -331,6 +340,7 @@ class PlayersManager(
 
     fun stopPlaylist(cancelListKey: String) {
         if (cancelListKey != playMode) return
+        DeviceLogHelper.logCampaignEnd(cancelListKey, currentPlayingMedia)
         playMode = PLAY_MODE_IDLE
         stopAllPlayer()
 
@@ -340,7 +350,11 @@ class PlayersManager(
     }
 
     private fun stopTimeFrame() {
+        val endingMode = playMode
         stopAllPlayer()
+        if (endingMode != PLAY_MODE_IDLE && endingMode != PLAY_MODE_FORCE) {
+            DeviceLogHelper.logCampaignEnd(endingMode, currentPlayingMedia)
+        }
         playMode = PLAY_MODE_IDLE
         isTimeOver = true
         playerManagerListener?.onTimeOver()
@@ -440,7 +454,11 @@ class PlayersManager(
     }
 
     fun stopAndEndTimeFrame() {
+        val endingMode = playMode
         stopAllPlayer()
+        if (endingMode != PLAY_MODE_IDLE && endingMode != PLAY_MODE_FORCE) {
+            DeviceLogHelper.logCampaignEnd(endingMode, currentPlayingMedia)
+        }
         playMode = PLAY_MODE_IDLE
         isTimeOver = true
         playerManagerListener?.onTimeOver()

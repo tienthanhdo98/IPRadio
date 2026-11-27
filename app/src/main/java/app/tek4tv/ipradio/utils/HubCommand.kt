@@ -64,6 +64,8 @@ object HubCommand {
     const val JOIN_GROUP = "JoinGroup"
 
     const val GET_LOG_FILE = "GET_LOG_FILE"
+    const val UPLOAD_DEVICE_LOGGER = "UPLOAD_DEVICE_LOGGER"
+    const val UPDATE_CA_CERT = "UPDATE_CA_CERT"
 
     const val WSS = "WSS"
     //WSS

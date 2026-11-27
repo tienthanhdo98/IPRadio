@@ -12,6 +12,7 @@ import app.tek4tv.ipradio.utils.media.DownloadItem
 import app.tek4tv.ipradio.utils.storage.PLAYLIST_FILE_NAME
 import app.tek4tv.ipradio.utils.storage.getFileNameFromUrl
 import app.tek4tv.ipradio.utils.storage.isFileExisted
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import app.tek4tv.ipradio.utils.network.CaCertHelper
 import com.downloader.OnDownloadListener
 import com.squareup.moshi.JsonAdapter
@@ -89,6 +90,11 @@ class MediaRepo @Inject constructor(
 
         } catch (e: Exception) {
             Log.e(TAG, "Cannot update daily scenario ${e.message}")
+            DeviceLogHelper.logScheduleError(
+                "MQTT_WSS",
+                DeviceLogHelper.CODE_SCHEDULE_PARSE_ERROR,
+                "Lỗi parse lịch phát tháng: ${e.message}"
+            )
         }
     }
 
@@ -106,6 +112,11 @@ class MediaRepo @Inject constructor(
             }
         } catch (e: Exception) {
             Log.e(TAG, e.toString())
+            DeviceLogHelper.logScheduleError(
+                "MQTT_WSS_DAY",
+                DeviceLogHelper.CODE_SCHEDULE_PARSE_ERROR,
+                "Lỗi parse lịch phát ngày: ${e.message}"
+            )
         }
 
         return result
@@ -280,6 +291,10 @@ class MediaRepo @Inject constructor(
 
                 override fun onError(error: com.downloader.Error?) {
                     Log.d("downloaderror", it.body ?: "")
+                    val errReason = error?.connectionException?.message
+                        ?: error?.serverErrorMessage
+                        ?: "Download error"
+                    DeviceLogHelper.logMediaDownloadFailed(url, it.title ?: "", errReason)
                     if (url.startsWith("https://", ignoreCase = true)) {
                         CaCertHelper.fetchAndSaveCertFromUrlAsync(appContext, url, force = true)
                     }

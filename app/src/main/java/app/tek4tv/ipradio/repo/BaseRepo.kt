@@ -1,6 +1,7 @@
 package app.tek4tv.ipradio.repo
 
 import android.util.Log
+import app.tek4tv.ipradio.utils.logger.DeviceLogHelper
 import app.tek4tv.ipradio.utils.storage.readFile
 import app.tek4tv.ipradio.utils.storage.writeFile
 import com.squareup.moshi.JsonAdapter
@@ -44,6 +45,7 @@ abstract class BaseRepo<T>(
                 result = jsonAdapter.fromJson(contentFromFile) ?: listOf()
             } catch (e: Exception) {
                 Log.e("BaseRepo", "error reading playlist!!!")
+                DeviceLogHelper.logPlaylistCorrupted(fileStoragePath, e.message ?: "Read error")
             }
 
         }
